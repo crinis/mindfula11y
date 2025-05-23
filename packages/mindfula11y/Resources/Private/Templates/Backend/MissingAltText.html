@@ -1,5 +1,6 @@
 <html
   xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
+  xmlns:be="http://typo3.org/ns/TYPO3/CMS/Backend/ViewHelpers"
   xmlns:core="http://typo3.org/ns/TYPO3/CMS/Core/ViewHelpers"
   xmlns:be="http://typo3.org/ns/TYPO3/CMS/Backend/ViewHelpers"
   xmlns:mindfula11y="http://typo3.org/ns/MindfulMarkup/MindfulA11y/ViewHelpers"
@@ -8,21 +9,50 @@
   <f:layout name="Module" />
 
   <f:section name="Content">
-    <h1>
-      <f:translate
-        key="LLL:EXT:mindfula11y/Resources/Private/Language/Modules/MissingAltText.xlf:mlang_tabs_tab"
-      />
-    </h1>
-
-    <f:for each="{tables}" key="table" as="fields">
-      <mindfula11y:tableList
-        tableName="{table}"
-        storagePid="{pageId}"
-        levels="{pageLevels}"
-        enableControlPanels="1"
-        languageId="{languageId}"
-        fileReferenceFields="{fields}"
-      />
-    </f:for>
+    <section class="callout callout-notice">
+      <div class="callout-content">
+        <div class="callout-title">
+          <h1>
+            <f:translate
+              key="LLL:EXT:mindfula11y/Resources/Private/Language/Modules/MissingAltText.xlf:mlang_tabs_tab"
+            />
+          </h1>
+        </div>
+        <div class="callout-body">
+          <f:if condition="{paginator.paginatedItems -> f:count()} > 0">
+            <f:then>
+              <ul class="list-unstyled mb-0">
+                <f:for
+                  each="{paginator.paginatedItems}"
+                  as="fileReference"
+                  iteration="iterator"
+                >
+                  <li class="{f:if(condition: iterator.isFirst, else: 'mb-3')}">
+                    <f:alias
+                      map="{originalResource: fileReference.originalResource}"
+                    >
+                      <mindfula11y:altlessFileReference
+                        fileReference="{fileReference}"
+                        previewUrl="{f:uri.image(image: originalResource, maxHeight: 150)}"
+                        originalUrl="{f:uri.image(image: originalResource)}"
+                      />
+                    </f:alias>
+                  </li>
+                </f:for>
+              </ul>
+              <f:render
+                partial="Backend/MissingAltText/Pagination"
+                arguments="{pagination: pagination, paginator: paginator, moduleData: moduleData}"
+              />
+            </f:then>
+            <f:else>
+              <f:translate
+                key="LLL:EXT:mindfula11y/Resources/Private/Language/Modules/MissingAltText.xlf:noMissingAltText"
+              />
+            </f:else>
+          </f:if>
+        </div>
+      </div>
+    </section>
   </f:section>
 </html>

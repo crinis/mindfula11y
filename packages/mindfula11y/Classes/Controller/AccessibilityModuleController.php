@@ -79,7 +79,7 @@ class AccessibilityModuleController extends AbstractModuleController
                 ->withLanguage($this->languageId)
                 ->buildUri(),
             'enableHeadingStructure' => array_key_exists('mindfula11y_headingstructure', $activeModules),
-            'enableMissingAltText' => array_key_exists('mindfula11y_alternativemissingalttext', $activeModules),
+            'enableMissingAltText' => array_key_exists('mindfula11y_missingalttext', $activeModules),
         ]);
 
         $this->pageRenderer->addInlineLanguageLabelArray([

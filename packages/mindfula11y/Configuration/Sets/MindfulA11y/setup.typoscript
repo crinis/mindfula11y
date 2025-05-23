@@ -1,9 +1,0 @@
-#page = PAGE
-#page.10 = CONTENT
-#page.10 {
-#  table = tt_content
-#  select.where = colPos = 0
-#  select.orderBy = sorting
-#}
-
-#lib.contentElement.partialRootPaths.1745149906 = EXT:mindfula11y/Resources/Private/Partials/

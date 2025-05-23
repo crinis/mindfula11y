@@ -355,14 +355,14 @@ abstract class AbstractModuleController
             $modules['mindfula11y_accessibility'] = $accessibilityModule;
         }
 
-        $missingAltTextModule = $this->moduleProvider->getModule('mindfula11y_alternativemissingalttext', $backendUser);
-        $isMissingAltTextEnabled = $this->pageTsConfig['mod']['mindfula11y_alternativemissingalttext']['enable'] ?? false;
+        $missingAltTextModule = $this->moduleProvider->getModule('mindfula11y_missingalttext', $backendUser);
+        $isMissingAltTextEnabled = $this->pageTsConfig['mod']['mindfula11y_missingalttext']['enable'] ?? false;
 
         if (
             $missingAltTextModule !== null &&
             $isMissingAltTextEnabled
         ) {
-            $modules['mindfula11y_alternativemissingalttext'] = $missingAltTextModule;
+            $modules['mindfula11y_missingalttext'] = $missingAltTextModule;
         }
 
         $headingStructureModule = $this->moduleProvider->getModule('mindfula11y_headingstructure', $backendUser);

@@ -12,7 +12,7 @@
       <f:if condition="{pagination.previousPageNumber}">
         <li class="page-item">
           <a
-            href="{be:moduleLink(route: 'mindfula11y_alternativemissingalttext', arguments: {id: moduleData.id, languageId: moduleData.languageId, pageLevels: moduleData.pageLevels, tableName: moduleData.tableName, filterFileMetaData: moduleData.filterFileMetaData, currentPage: pagination.previousPageNumber})}"
+            href="{be:moduleLink(route: 'mindfula11y_missingalttext', arguments: {id: moduleData.id, languageId: moduleData.languageId, pageLevels: moduleData.pageLevels, tableName: moduleData.tableName, filterFileMetaData: moduleData.filterFileMetaData, currentPage: pagination.previousPageNumber})}"
             class="page-link"
           >
             {f:translate(key:
@@ -25,7 +25,7 @@
           class="page-item{f:if(condition: '{pageNumber} == {paginator.currentPageNumber}', then: ' active')}"
         >
           <a
-            href="{be:moduleLink(route: 'mindfula11y_alternativemissingalttext', arguments: {id: moduleData.id, languageId: moduleData.languageId, pageLevels: moduleData.pageLevels, tableName: moduleData.tableName, filterFileMetaData: moduleData.filterFileMetaData, currentPage: pageNumber})}"
+            href="{be:moduleLink(route: 'mindfula11y_missingalttext', arguments: {id: moduleData.id, languageId: moduleData.languageId, pageLevels: moduleData.pageLevels, tableName: moduleData.tableName, filterFileMetaData: moduleData.filterFileMetaData, currentPage: pageNumber})}"
             class="page-link"
             aria-label="{f:translate(key: 'LLL:EXT:mindfula11y/Resources/Private/Language/Modules/MissingAltText.xlf:pagination.page', arguments: {0: pageNumber})}"
             aria-current="{f:if(condition: '{pageNumber} == {paginator.currentPageNumber}', then: 'page', else: 'false')}"
@@ -37,7 +37,7 @@
       <f:if condition="{pagination.nextPageNumber}">
         <li class="page-item">
           <a
-            href="{be:moduleLink(route: 'mindfula11y_alternativemissingalttext', arguments: {id: moduleData.id, languageId: moduleData.languageId, pageLevels: moduleData.pageLevels, tableName: moduleData.tableName, filterFileMetaData: moduleData.filterFileMetaData, currentPage: pagination.nextPageNumber})}"
+            href="{be:moduleLink(route: 'mindfula11y_missingalttext', arguments: {id: moduleData.id, languageId: moduleData.languageId, pageLevels: moduleData.pageLevels, tableName: moduleData.tableName, filterFileMetaData: moduleData.filterFileMetaData, currentPage: pagination.nextPageNumber})}"
             class="page-link"
           >
             {f:translate(key:

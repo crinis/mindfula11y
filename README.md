@@ -31,7 +31,7 @@ Configure module behavior per page using Page TSconfig (`Configuration/page.tsco
 
 ```
 mod {
-    mindfula11y_alternativemissingalttext {
+    mindfula11y_missingalttext {
         enable = 1
         ignoreColumns {
             tt_content = image

@@ -11,5 +11,3 @@ if (!$disableAltTextAI && !empty($apiKey)) {
         'renderType' => 'altText',
     ];
 }
-
-$GLOBALS['TCA']['sys_file_reference']['ctrl']['hideTable'] = false;

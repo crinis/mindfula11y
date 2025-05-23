@@ -1,5 +1,5 @@
 mod {
-    mindfula11y_alternativemissingalttext {
+    mindfula11y_missingalttext {
         enable = 1
         ignoreColumns {
             tt_content = image

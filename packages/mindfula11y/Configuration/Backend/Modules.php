@@ -20,15 +20,15 @@ return [
             'languageId' => 0,
         ],
     ],
-    'mindfula11y_alternativemissingalttext' => [
+    'mindfula11y_missingalttext' => [
         'parent' => 'web',
         'access' => 'user',
-        'path' => '/module/web/mindfula11y/accessibility/alternative-missing-alt-text',
+        'path' => '/module/web/mindfula11y/accessibility/missing-alt-text',
         'iconIdentifier' => 'tx-mindfula11y-module-missingalttext',
         'labels' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Modules/MissingAltText.xlf',
         'routes' => [
             '_default' => [
-                'target' => \MindfulMarkup\MindfulA11y\Controller\AlternativeMissingAltTextModuleController::class . '::mainAction',
+                'target' => \MindfulMarkup\MindfulA11y\Controller\MissingAltTextModuleController::class . '::mainAction',
                 'methods' => ['GET'],
             ],
         ],
