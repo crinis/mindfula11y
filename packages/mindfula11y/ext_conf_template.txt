@@ -1,0 +1,15 @@
+# customcategory=mindfula11y=LLL:EXT:mindfula11y/Resources/Private/Language/Configuration.xlf:title
+
+# cat=mindfula11y//a; type=string; label=LLL:EXT:mindfula11y/Resources/Private/Language/Configuration.xlf:openAI.apiKey
+openAIApiKey = 
+
+# cat=mindfula11y//b; type=options[gpt-4o-mini,gpt-4o]; label=LLL:EXT:mindfula11y/Resources/Private/Language/Configuration.xlf:openAI.chat.model
+openAIChatModel = gpt-4o-mini
+
+# cat=mindfula11y//c; type=options[low,high]; label=LLL:EXT:mindfula11y/Resources/Private/Language/Configuration.xlf:openAI.chat.imageDetail
+openAIChatImageDetail = low
+
+#cat=mindfula11y//d; type=boolean; label=LLL:EXT:mindfula11y/Resources/Private/Language/Configuration.xlf:disableAltTextAI
+disableAltTextAI = 0
+
+#cat=mindfula11y//e; type=boolean; label=LLL:EXT:mindfula11y/Resources/Private/Language/Configuration.xlf:disableAltTextAI

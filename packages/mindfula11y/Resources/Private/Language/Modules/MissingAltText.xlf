@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xliff version="1.2" xmlns="urn:oasis:names:tc:xliff:document:1.2">
+    <file source-language="en" datatype="plaintext"
+        original="EXT:mindfula11y/Resources/Private/Language/Modules/MissingAltText.xlf"
+        date="2011-10-17T20:22:32Z" product-name="mindfula11y">
+        <header />
+        <body>
+            <trans-unit id="mlang_labels_tablabel" resname="mlang_labels_tablabel">
+                <source>Images without alternative text</source>
+            </trans-unit>
+            <trans-unit id="mlang_labels_tabdescr" resname="mlang_labels_tabdescr">
+                <source>
+                    Listing records of different tables that are missing alternative in their
+                    associated file
+                    references. Allows filtering by the type and language of the record and can
+                    function recursively for
+                    all subpages of the currently selected page.
+                </source>
+            </trans-unit>
+            <trans-unit id="mlang_tabs_tab" resname="mlang_tabs_tab">
+                <source>Images without alternative text</source>
+            </trans-unit>
+            <trans-unit id="menu.pageLevels" resname="menu.pageLevels">
+                <source>Check Recursive</source>
+            </trans-unit>
+            <trans-unit id="menu.pageLevels.1" resname="menu.pageLevels.1">
+                <source>Levels 1</source>
+            </trans-unit>
+            <trans-unit id="menu.pageLevels.5" resname="menu.pageLevels.5">
+                <source>Levels 5</source>
+            </trans-unit>
+            <trans-unit id="menu.pageLevels.10" resname="menu.pageLevels.10">
+                <source>Levels 10</source>
+            </trans-unit>
+            <trans-unit id="menu.pageLevels.99" resname="menu.pageLevels.99">
+                <source>Levels 99</source>
+            </trans-unit>
+            <trans-unit id="menu.table" resname="menu.table">
+                <source>Record Type</source>
+            </trans-unit>
+            <trans-unit id="menu.tables.all" resname="menu.tables.all">
+                <source>All Record Types</source>
+            </trans-unit>
+            <trans-unit id="menu.filter" resname="menu.filter">
+                <source>Filter</source>
+            </trans-unit>
+            <trans-unit id="menu.filter.fileMetaData" resname="menu.filter.fileMetaData">
+                <source>
+                    Filter records with inherited alternative text
+                </source>
+            </trans-unit>
+            <trans-unit id="noTableAccess" resname="noTableAccess">
+                <source>No access to the selected table.</source>
+            </trans-unit>
+            <trans-unit id="noTableAccess.description" resname="noTableAccess.description">
+                <source>
+                    Please select a record type that you have access to or contact your
+                    administrator.
+                </source>
+            </trans-unit>
+            <trans-unit id="generate.button" resname="generate.button">
+                <source>Generate</source>
+            </trans-unit>
+            <trans-unit id="generate.loading" resname="generate.loading">
+                <source>Generating alternative text...</source>
+            </trans-unit>
+            <trans-unit id="generate.success" resname="generate.success">
+                <source>Alternative text generated.</source>
+            </trans-unit>
+            <trans-unit id="generate.success.description" resname="generate.success.description">
+                <source>
+                    Alternative text was successfully generated. Please make sure it describes
+                    the picture accurately.
+                </source>
+            </trans-unit>
+            <trans-unit id="generate.error.unknown" resname="generate.error.unknown">
+                <source>Unknown error occurred.</source>
+            </trans-unit>
+            <trans-unit id="generate.error.unknown.description"
+                resname="generate.error.unknown.description">
+                <source>
+                    An unknown error occurred. Please contact your admin or try again
+                    later.
+                </source>
+            </trans-unit>
+            <trans-unit id="generate.error.openAIConnection"
+                resname="generate.error.openAIConnection">
+                <source>ChatGPT connection error.</source>
+            </trans-unit>
+            <trans-unit id="generate.error.openAIConnection.description"
+                resname="generate.error.openAIConnection.description">
+                <source>Could not establish connection to ChatGPT. Is your API-Key OK?</source>
+            </trans-unit>
+            <trans-unit id="editRecord.label" resname="editRecord.label">
+                <source>Edit record [%1$s][%2$s].</source>
+            </trans-unit>
+            <trans-unit id="altLabel" resname="altLabel">
+                <source>Alternative text</source>
+            </trans-unit>
+            <trans-unit id="altPlaceholder" resname="altPlaceholder">
+                <source>Enter alternative text for the image</source>
+            </trans-unit>
+            <trans-unit id="save" resname="save">
+                <source>Save</source>
+            </trans-unit>
+            <trans-unit id="imagePreview" resname="imagePreview">
+                <source>Image preview</source>
+            </trans-unit>
+            <trans-unit id="fallbackAltLabel" resname="fallbackAltLabel">
+                <source>Label specified in file metadata:</source>
+            </trans-unit>
+            <trans-unit id="pagination.navigation" resname="pagination.navigation">
+                <source>Pagination navigation</source>
+            </trans-unit>
+            <trans-unit id="pagination.previous" resname="pagination.previous">
+                <source>Previous page</source>
+            </trans-unit>
+            <trans-unit id="pagination.next" resname="pagination.next">
+                <source>Next page</source>
+            </trans-unit>
+            <trans-unit id="pagination.page" resname="pagination.page">
+                <source>Go to page %1$s</source>
+            </trans-unit>
+            <trans-unit id="pagination.current" resname="pagination.current">
+                <source>(current page)</source>
+            </trans-unit>
+            <trans-unit id="noMissingAltText" resname="noMissingAltText">
+                <source>No images without alternative text found.</source>
+            </trans-unit>
+        </body>
+    </file>
+</xliff>

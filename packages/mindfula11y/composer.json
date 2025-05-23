@@ -1,0 +1,31 @@
+{
+    "name": "mindfulmarkup/mindfula11y",
+    "description": "Mindful A11y extension for TYPO3.",
+    "type": "typo3-cms-extension",
+    "license": [
+        "GPL-2.0-or-later"
+    ],
+    "require": {
+        "typo3/cms-core": "~13.4.0",
+        "typo3/cms-backend": "~13.4.0",
+        "typo3/cms-fluid": "~13.4.0",
+        "typo3/cms-frontend": "~13.4.0",
+		"openai-php/client": "~0.10.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "MindfulMarkup\\MindfulA11y\\": "Classes/"
+        }
+    },
+    "extra": {
+        "typo3/cms": {
+            "extension-key": "mindfula11y"
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "typo3/cms-composer-installers": false,
+            "typo3/class-alias-loader": false
+        }
+    }
+}

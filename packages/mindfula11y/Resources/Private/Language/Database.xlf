@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<xliff version="1.2" xmlns="urn:oasis:names:tc:xliff:document:1.2">
+	<file source-language="en" datatype="plaintext"
+		original="EXT:mindfula11y/Resources/Private/Language/Database.xlf"
+		date="2020-11-16T10:32:58Z"
+		product-name="mindfula11y">
+		<header />
+		<body>
+			<trans-unit id="ttContent.columns.mindfulA11y.headingLevel"
+				resname="ttContent.columns.mindfulA11y.headingLevel">
+				<source>Heading Level</source>
+			</trans-unit>
+			<trans-unit id="ttContent.columns.mindfulA11y.headingLevel.description"
+				resname="ttContent.columns.mindfulA11y.headingLevel.description">
+				<source>
+					A heading level defines the structure of the document. It is especially
+					important for users of assistive technology
+					to efficiently navigate through the content.
+				</source>
+			</trans-unit>
+			<trans-unit id="ttContent.columns.mindfulA11y.headingLevel.items.default"
+				resname="ttContent.columns.mindfulA11y.headingLevel.items.default">
+				<source>Default</source>
+			</trans-unit>
+			<trans-unit id="ttContent.columns.mindfulA11y.headingLevel.items.1"
+				resname="ttContent.columns.mindfulA11y.headingLevel.items.1">
+				<source>H1</source>
+			</trans-unit>
+			<trans-unit id="ttContent.columns.mindfulA11y.headingLevel.items.2"
+				resname="ttContent.columns.mindfulA11y.headingLevel.items.2">
+				<source>H2</source>
+			</trans-unit>
+			<trans-unit id="ttContent.columns.mindfulA11y.headingLevel.items.3"
+				resname="ttContent.columns.mindfulA11y.headingLevel.items.3">
+				<source>H3</source>
+			</trans-unit>
+			<trans-unit id="ttContent.columns.mindfulA11y.headingLevel.items.4"
+				resname="ttContent.columns.mindfulA11y.headingLevel.items.4">
+				<source>H4</source>
+			</trans-unit>
+			<trans-unit id="ttContent.columns.mindfulA11y.headingLevel.items.5"
+				resname="ttContent.columns.mindfulA11y.headingLevel.items.5">
+				<source>H5</source>
+			</trans-unit>
+			<trans-unit id="ttContent.columns.mindfulA11y.headingLevel.items.6"
+				resname="ttContent.columns.mindfulA11y.headingLevel.items.6">
+				<source>H6</source>
+			</trans-unit>
+			<trans-unit id="ttContent.columns.mindfulA11y.headingLevel.items.fallbackTag"
+				resname="ttContent.columns.mindfulA11y.headingLevel.items.fallbackTag">
+				<source>Do not make this a heading</source>
+			</trans-unit>
+		</body>
+	</file>
+</xliff>

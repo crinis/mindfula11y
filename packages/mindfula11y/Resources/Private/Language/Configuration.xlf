@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<xliff version="1.2" xmlns="urn:oasis:names:tc:xliff:document:1.2">
+	<file source-language="en" datatype="plaintext"
+		original="EXT:mindfula11y/Resources/Private/Language/Configuration.xlf"
+		date="2020-11-16T10:32:58Z"
+		product-name="mindfula11y">
+		<header />
+		<body>
+            <trans-unit id="title" xml:space="preserve">
+                <source>Mindful A11y Settings</source>
+            </trans-unit>
+            <trans-unit id="openAI.apiKey" xml:space="preserve">
+                <source>OpenAI API Key</source>
+            </trans-unit>
+            <trans-unit id="openAI.chat.model" xml:space="preserve">
+                <source>OpenAI Chat Model: LLM Model used. Tested are gpt-4o-mini and gpt-4o.</source>
+            </trans-unit>
+            <trans-unit id="openAI.chat.imageDetail" xml:space="preserve">
+                <source>OpenAI Chat Image Detail: Detail level for images described by the LLM. Can be low or high.</source>
+            </trans-unit>
+            <trans-unit id="disableAltTextAI" xml:space="preserve">
+                <source>Disable Alt Text AI: Enable or disable the AI-generated alt text for images.</source>
+            </trans-unit>
+		</body>
+	</file>
+</xliff>

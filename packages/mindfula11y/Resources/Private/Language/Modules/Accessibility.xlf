@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xliff version="1.2" xmlns="urn:oasis:names:tc:xliff:document:1.2">
+    <file source-language="en" datatype="plaintext"
+        original="EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf"
+        date="2011-10-17T20:22:32Z" product-name="mindfula11y">
+        <header />
+        <body>
+            <trans-unit id="mlang_labels_tablabel" resname="mlang_labels_tablabel">
+                <source>Accessibility</source>
+            </trans-unit>
+            <trans-unit id="mlang_labels_tabdescr" resname="mlang_labels_tabdescr">
+                <source>
+                    Checks for various accessibility issues on the currently selected page.
+                </source>
+            </trans-unit>
+            <trans-unit id="mlang_tabs_tab" resname="mlang_tabs_tab">
+                <source>
+                    Accessibility
+                </source>
+            </trans-unit>
+            <trans-unit id="noPageSelected" resname="noPageSelected">
+                <source>
+                    No page selected.
+                </source>
+            </trans-unit>
+            <trans-unit id="noPageSelected.description" resname="noPageSelected.description">
+                <source>
+                    Please select a page in the page tree to check for accessibility issues.
+                </source>
+            </trans-unit>
+            <trans-unit id="noLanguageAccess" resname="noLanguageAccess">
+                <source>
+                    No access to the selected language.
+                </source>
+            </trans-unit>
+            <trans-unit id="noLanguageAccess.description"
+                resname="noLanguageAccess.description">
+                <source>
+                    Please select an allowed language in the page tree to check for accessibility
+                    issues.
+                </source>
+            </trans-unit>
+            <trans-unit id="menu.language" resname="menu.language">
+                <source>Language</source>
+            </trans-unit>
+            <trans-unit id="missingAltText" resname="missingAltText">
+                <source>Images without alternative text</source>
+            </trans-unit>
+            <trans-unit id="headingStructure" resname="headingStructure">
+                <source>Heading structure</source>
+            </trans-unit>
+            <trans-unit id="menu.module" resname="menu.module">
+                <source>Module</source>
+            </trans-unit>
+        </body>
+    </file>
+</xliff>
