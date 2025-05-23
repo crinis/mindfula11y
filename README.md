@@ -53,9 +53,9 @@ To enable heading structure editing, use the provided `HeadingViewHelper` in you
 **Example usage:**
 
 ```html
-<mindfulA11y:heading recordTableName="tt_content" recordColumnName="tx_mindfula11y_headinglevel" recordUid="{record.uid}" level="2">
+<mindfula11y:heading recordTableName="tt_content" recordColumnName="tx_mindfula11y_headinglevel" recordUid="{record.uid}" level="2">
     {record.header}
-</mindfulA11y:heading>
+</mindfula11y:heading>
 ```
 
 - If this view helper is used editors can then use the backend module to review and adjust heading levels more easily.
