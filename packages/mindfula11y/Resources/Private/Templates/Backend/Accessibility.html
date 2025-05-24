@@ -14,6 +14,23 @@
       />
     </h1>
 
+    <f:if condition="{enableHeadingStructure}">
+      <section class="callout callout-notice">
+        <div class="callout-content">
+          <div class="callout-title">
+            <h2>
+              <f:translate
+                key="LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:headingStructure"
+              />
+            </h2>
+          </div>
+          <div class="callout-body">
+            <mindfula11y-heading-structure previewUrl="{previewUrl}" />
+          </div>
+        </div>
+      </section>
+    </f:if>
+
     <f:if condition="{enableMissingAltText}">
       <section class="callout callout-notice">
         <div class="callout-content">
@@ -55,23 +72,6 @@
                 />
               </f:else>
             </f:if>
-          </div>
-        </div>
-      </section>
-    </f:if>
-
-    <f:if condition="{enableHeadingStructure}">
-      <section class="callout callout-notice">
-        <div class="callout-content">
-          <div class="callout-title">
-            <h2>
-              <f:translate
-                key="LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:headingStructure"
-              />
-            </h2>
-          </div>
-          <div class="callout-body">
-            <mindfula11y-heading-structure previewUrl="{previewUrl}" />
           </div>
         </div>
       </section>
