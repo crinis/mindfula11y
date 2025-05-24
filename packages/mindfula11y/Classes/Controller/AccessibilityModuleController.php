@@ -89,6 +89,7 @@ class AccessibilityModuleController extends AbstractModuleController
             'mindfula11y.modules.headingStructure.error.store.description' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/HeadingStructure.xlf:error.store.description'),
             'mindfula11y.modules.headingStructure.error.skippedLevel' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/HeadingStructure.xlf:error.skippedLevel'),
             'mindfula11y.modules.headingStructure.error.skippedLevel.description' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/HeadingStructure.xlf:error.skippedLevel.description'),
+            'mindfula11y.modules.headingStructure.error.skippedLevel.inline' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/HeadingStructure.xlf:error.skippedLevel.inline'),
             'mindfula11y.modules.headingStructure.error.missingH1' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/HeadingStructure.xlf:error.missingH1'),
             'mindfula11y.modules.headingStructure.error.missingH1.description' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/HeadingStructure.xlf:error.missingH1.description'),
             'mindfula11y.modules.missingAltText.generate.button' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/MissingAltText.xlf:generate.button'),
