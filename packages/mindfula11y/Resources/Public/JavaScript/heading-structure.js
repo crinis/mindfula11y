@@ -29,32 +29,28 @@ export class HeadingStructure extends LitElement {
         --radius: 0.5rem;
         --color: var(--typo3-badge-success-border-color);
         --color-error: var(--typo3-badge-danger-border-color);
-        --vertical-spacing: 0.5rem;
+        --border-width: 4px;
+      }
+
+      .mindfula11y-heading-structure__errors + .mindfula11y-tree {
+        margin-block-start: 1.5rem;
       }
 
       .mindfula11y-tree .mindfula11y-tree__node {
         display: block;
         position: relative;
-        padding-left: calc(2 * var(--spacing) - var(--radius) - 2px);
+        padding-left: calc(
+          2 * var(--spacing) - var(--radius) - var(--border-width)
+        );
       }
-      .mindfula11y-tree .mindfula11y-tree__node > .mindfula11y-level {
-        margin-bottom: var(--vertical-spacing);
-      }
-      .mindfula11y-tree
-        .mindfula11y-tree__node:last-child
-        > .mindfula11y-level {
-        margin-bottom: 0;
-      }
+
       .mindfula11y-tree ol {
         margin-left: calc(var(--radius) - var(--spacing));
         padding-left: 0;
       }
-      .mindfula11y-tree ol:not(:first-child) {
-        margin-top: var(--vertical-spacing);
-      }
 
       .mindfula11y-tree ol .mindfula11y-tree__node {
-        border-left: 2px solid var(--color);
+        border-left: var(--border-width) solid var(--color);
       }
 
       .mindfula11y-tree ol .mindfula11y-tree__node:last-child {
@@ -66,15 +62,22 @@ export class HeadingStructure extends LitElement {
         display: block;
         position: absolute;
         top: calc(var(--spacing) / -2);
-        left: -2px;
-        width: calc(var(--spacing) + 2px);
+        left: calc(-1 * var(--border-width));
+        width: calc(var(--spacing) + var(--border-width));
         height: calc(var(--spacing) + 1px);
         border: solid var(--color);
-        border-width: 0 0 2px 2px;
+        border-width: 0 0 var(--border-width) var(--border-width);
       }
 
       .mindfula11y-level {
-        display: block;
+        display: flex;
+        min-height: 2.25em;
+        align-items: center;
+        gap: 0.35em;
+      }
+
+      .mindfula11y-level__input {
+        width: 3.5rem;
       }
 
       .mindfula11y-tree .mindfula11y-tree__node::after,
@@ -101,6 +104,7 @@ export class HeadingStructure extends LitElement {
       .mindfula11y-tree ol .mindfula11y-tree__node--error::before {
         border-color: var(--color-error);
       }
+
       .mindfula11y-tree .mindfula11y-tree__node--error::after,
       .mindfula11y-level.mindfula11y-level--error::before {
         background: var(--color-error);
@@ -259,7 +263,7 @@ export class HeadingStructure extends LitElement {
   renderHeadingTree(nodes, isRoot = true) {
     if (!nodes || !nodes.length) return null;
 
-    return html`<ol class="${isRoot ? "mindfula11y-tree" : ""}">
+    return html`<ol class="${isRoot ? " mindfula11y-tree" : ""}">
       ${nodes.map((node) => {
         const hasError = node.skippedLevels > 0;
         let content = html`
@@ -275,10 +279,13 @@ export class HeadingStructure extends LitElement {
         // If there are skipped levels, wrap in extra <li><ol> for each skipped level
         for (let i = 0; i < node.skippedLevels; i++) {
           content = html`<li
-            class="mindfula11y-tree__node${hasError
-              ? " mindfula11y-tree__node--error"
-              : ""}"
+            class="mindfula11y-tree__node mindfula11y-tree__node--error"
           >
+            <strong class="text-danger"
+              >${TYPO3.lang[
+                "mindfula11y.modules.headingStructure.error.skippedLevel.inline"
+              ].replace("%1$d", node.level - i - 1)}</strong
+            >
             <ol>
               ${content}
             </ol>
@@ -359,7 +366,7 @@ export class HeadingStructure extends LitElement {
    * Build a list of errors for the heading structure.
    *
    * @param {Array<HTMLElement>} headings - The list of heading elements.
-   * 
+   *
    * @returns {Array<HeadingStructureError>} List of error messages for the heading structure.
    */
   buildErrorList(headings) {
@@ -415,12 +422,12 @@ export class HeadingStructure extends LitElement {
    */
   renderErrors(errors) {
     return html`
-      <section
-        class="mindfula11y-heading-structure__errors"
-        role="${this.firstRun ? "" : "alert"}"
-      >
-        ${errors.length > 0
-          ? html`
+      ${errors.length > 0
+        ? html`
+            <section
+              class="mindfula11y-heading-structure__errors"
+              role="${this.firstRun ? "" : "alert"}"
+            >
               <ul class="list-unstyled">
                 ${errors.map(
                   (error) => html`
@@ -434,9 +441,9 @@ export class HeadingStructure extends LitElement {
                   `
                 )}
               </ul>
-            `
-          : ""}
-      </section>
+            </section>
+          `
+        : ""}
     `;
   }
 }

@@ -44,7 +44,7 @@ ExtensionManagementUtility::addTCAcolumns(
                     ],
                     [
                         'label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfulA11y.headingLevel.items.fallbackTag',
-                        'value' => 10
+                        'value' => -1
                     ]
                 ],
             ],

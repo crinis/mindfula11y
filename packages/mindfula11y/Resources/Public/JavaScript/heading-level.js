@@ -76,45 +76,46 @@ export class HeadingLevel extends LitElement {
    * @returns {import('lit').TemplateResult} The rendered template for the component.
    */
   render() {
-    return html`
-      ${this.createLevelSelect("" === this.recordEditLink)}
-      <label for="${this.id}" class="form-label">${this.label}</label>
+    const isEditable = "" !== this.recordEditLink;
 
-      ${this.recordEditLink
-        ? html`<a
-            href="${this.recordEditLink}"
-            class="btn btn-default btn-sm"
-            aria-label="Edit"
-          >
-            <svg
-              class="t3js-icon icon icon-size-small"
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 16 16"
-              aria-hidden="true"
-            >
-              <g fill="currentColor">
-                <path
-                  d="m9.293 3.293-8 8A.997.997 0 0 0 1 12v3h3c.265 0 .52-.105.707-.293l8-8-3.414-3.414zM8.999 5l.5.5-5 5-.5-.5 5-5zM4 14H3v-1H2v-1l1-1 2 2-1 1zM13.707 5.707l1.354-1.354a.5.5 0 0 0 0-.707L12.354.939a.5.5 0 0 0-.707 0l-1.354 1.354 3.414 3.414z"
-                />
-              </g>
-            </svg>
-          </a>`
-        : html` <svg
-            class="t3js-icon icon icon-size-small"
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 16 16"
-            aria-hidden="true"
-          >
-            <g fill="currentColor">
-              <path
-                d="M13 7v7H3V7h10m.5-1h-11a.5.5 0 0 0-.5.5v8a.5.5 0 0 0 .5.5h11a.5.5 0 0 0 .5-.5v-8a.5.5 0 0 0-.5-.5zM8 2c1.654 0 3 1.346 3 3v1h1V5a4 4 0 0 0-8 0v1h1V5c0-1.654 1.346-3 3-3z"
-              />
-              <path
-                d="M10 10a2 2 0 1 0-4 0c0 .738.405 1.376 1 1.723V13h2v-1.277c.595-.347 1-.985 1-1.723z"
-              />
-            </g>
-          </svg>`}
-    `;
+    return html`${this.createLevelSelect(!isEditable)}
+      <label for="${this.id}" class="fw-bold">${this.label}</label>
+        ${
+          isEditable
+            ? html` <a
+                href="${this.recordEditLink}"
+                class="btn btn-default btn-sm"
+                aria-label="Edit"
+                ><svg
+                  class="t3js-icon icon icon-size-small"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 16 16"
+                  aria-hidden="true"
+                >
+                  <g fill="currentColor">
+                    <path
+                      d="m9.293 3.293-8 8A.997.997 0 0 0 1 12v3h3c.265 0 .52-.105.707-.293l8-8-3.414-3.414zM8.999 5l.5.5-5 5-.5-.5 5-5zM4 14H3v-1H2v-1l1-1 2 2-1 1zM13.707 5.707l1.354-1.354a.5.5 0 0 0 0-.707L12.354.939a.5.5 0 0 0-.707 0l-1.354 1.354 3.414 3.414z"
+                    />
+                  </g>
+                </svg>
+              </a>`
+            : html`<svg
+                class="t3js-icon icon icon-size-small"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 16 16"
+                aria-hidden="true"
+              >
+                <g fill="currentColor">
+                  <path
+                    d="M13 7v7H3V7h10m.5-1h-11a.5.5 0 0 0-.5.5v8a.5.5 0 0 0 .5.5h11a.5.5 0 0 0 .5-.5v-8a.5.5 0 0 0-.5-.5zM8 2c1.654 0 3 1.346 3 3v1h1V5a4 4 0 0 0-8 0v1h1V5c0-1.654 1.346-3 3-3z"
+                  />
+                  <path
+                    d="M10 10a2 2 0 1 0-4 0c0 .738.405 1.376 1 1.723V13h2v-1.277c.595-.347 1-.985 1-1.723z"
+                  />
+                </g>
+              </svg>`
+        }</a
+      >`;
   }
 
   /**
@@ -155,17 +156,25 @@ export class HeadingLevel extends LitElement {
       );
     }
 
-    return html`
-      <select
-        id="${this.id}"
-        class="badge"
-        @change="${(e) => this.handleSave(e.target.value)}"
-        ?aria-invalid="${this.hasError}"
-        ?disabled="${disabled}"
-      >
-        ${options}
-      </select>
-    `;
+    return disabled
+      ? html`<input
+          id="${this.id}"
+          type="text"
+          class="badge mindfula11y-level__input"
+          value="H${this.level}"
+          readonly
+          ?aria-invalid="${this.hasError}"
+        />`
+      : html`
+          <select
+            id="${this.id}"
+            class="badge mindfula11y-level__input"
+            @change="${(e) => this.handleSave(e.target.value)}"
+            ?aria-invalid="${this.hasError}"
+          >
+            ${options}
+          </select>
+        `;
   }
 
   /**

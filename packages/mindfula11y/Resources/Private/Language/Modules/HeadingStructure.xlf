@@ -50,6 +50,9 @@
                     at the top of the main content. Screenreader users rely on the &lt;h1&gt; to
                     quickly skip to the main content and get to understand what the content is about.</source>
             </trans-unit>
+            <trans-unit id="error.skippedLevel.inline" resname="error.skippedLevel.inline">
+                <source>Skipped H%1$d</source>
+            </trans-unit>
         </body>
     </file>
 </xliff>
