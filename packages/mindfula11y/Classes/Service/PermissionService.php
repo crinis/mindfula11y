@@ -236,66 +236,6 @@ class PermissionService
     }
 
     /**
-     * Check record read access.
-     * 
-     * Check if the user has read access to a specific record in the given table. Also
-     * checks page, workspace and language permissions. Optionally tests if the provided columns
-     * are disallowed non_exclude_fields.
-     * 
-     * @param string $tableName The name of the table to check.
-     * @param array $row The row of the record to check.
-     * @param array $columnNames The non_exclude_fields of the record to check. If empty none are checked.
-     * 
-     * @return bool True if the user can read the record, false otherwise.
-     */
-    public function checkRecordReadAccess(string $tableName, array $row, array $columnNames = []): bool
-    {
-        $backendUser = $this->getBackendUserAuthentication();
-
-        if (null === $backendUser || !$this->checkTableReadAccess($tableName)) {
-            return false;
-        }
-
-        if ($backendUser->isAdmin()) {
-            return true;
-        }
-
-        $pageId = (int)($tableName === 'pages' ? ($row['l10n_parent'] > 0 ?: $row['uid']) : $row['pid']);
-        $pageRow = 'pages' !== $tableName || ('pages' === $tableName && $row['l10n_parent'] > 0) ?
-            BackendUtility::getRecord('pages', $pageId) : $row;
-
-        if (null === $pageRow) {
-            return false;
-        }
-
-        $pagePerms = new Permission($backendUser->calcPerms($pageRow));
-
-        if (!$pagePerms->showPagePermissionIsGranted()) {
-            return false;
-        }
-
-        if ($GLOBALS['TCA'][$tableName]['ctrl']['languageField'] ?? false && !$backendUser->checkLanguageAccess($row[$GLOBALS['TCA'][$tableName]['ctrl']['languageField']])) {
-            return false;
-        }
-
-        $allowedAuthModeValues = $this->getAllowedAuthModeValues($tableName);
-        foreach ($allowedAuthModeValues as $columnName => $allowedValues) {
-            if (
-                isset($row[$columnName])
-                && !in_array($row[$columnName], $allowedValues, true)
-            ) {
-                return false;
-            }
-        }
-
-        if (!empty($columnNames) && !$this->checkNonExcludeFields($tableName, $columnNames)) {
-            return false;
-        }
-
-        return true;
-    }
-
-    /**
      * Check if given columns are non_exclude_fields.
      * 
      * Takes an array of column names and checks if the user is not excluded from
@@ -306,7 +246,7 @@ class PermissionService
      * 
      * @return bool True if the columns are non_exclude_fields, false otherwise.
      */
-    protected function checkNonExcludeFields(string $tableName, array $columnNames): bool
+    public function checkNonExcludeFields(string $tableName, array $columnNames): bool
     {
         $backendUser = $this->getBackendUserAuthentication();
 

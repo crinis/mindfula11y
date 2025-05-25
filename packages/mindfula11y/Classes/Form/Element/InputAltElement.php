@@ -20,6 +20,7 @@ namespace MindfulMarkup\MindfulA11y\Form\Element;
 use Exception;
 use MindfulMarkup\MindfulA11y\Domain\Model\AltTextDemand;
 use MindfulMarkup\MindfulA11y\Service\OpenAIService;
+use MindfulMarkup\MindfulA11y\Service\PermissionService;
 use TYPO3\CMS\Backend\Form\Element\AbstractFormElement;
 use TYPO3\CMS\Core\Imaging\IconFactory;
 use TYPO3\CMS\Core\Imaging\IconSize;
@@ -78,6 +79,7 @@ class InputAltElement extends AbstractFormElement
         protected readonly OpenAIService $openAIService,
         protected readonly ResourceFactory $resourceFactory,
         protected readonly PageRenderer $pageRenderer,
+        protected readonly PermissionService $permissionService,
     ) {}
 
     /**
@@ -194,6 +196,32 @@ class InputAltElement extends AbstractFormElement
         if ($minLength > 0 && ($maxLength === 0 || $minLength <= $maxLength)) {
             $attributes['minlength'] = (string)$minLength;
         }
+
+        if ('sys_file_reference' === $table) {
+            $fileUid = (int)$row['uid_local'][0]['uid'];
+        } elseif ('sys_file_metadata' === $table) {
+            $fileUid = (int)$row['file'][0];
+        } else {
+            $fileUid = null;
+        }
+
+        if ($fileUid !== null) {
+            try {
+                $file = $this->resourceFactory->getFileObject($fileUid);
+            } catch (Exception $e) {
+                $file = null;
+            }
+        } else {
+            $file = null;
+        }
+
+        /**
+         * In class TcaInputPlaceholders TYPO3 hardcodes the field types that get their placeholder resolved. We get the alternative text otherwise here.
+         */
+        $canReadPlaceholder = $this->permissionService->checkTableReadAccess('sys_file_metadata')
+            && $this->permissionService->checkNonExcludeFields('sys_file_metadata', ['alternative']);
+        $config['placeholder'] = $canReadPlaceholder && null !== $file ? $file->getProperty('alternative') : '';
+
         if (!empty($config['placeholder'])) {
             $attributes['placeholder'] = trim($config['placeholder']);
         }
@@ -209,31 +237,13 @@ class InputAltElement extends AbstractFormElement
         $fieldWizardHtml = $fieldWizardResult['html'];
         $resultArray = $this->mergeChildReturnIntoExistingResult($resultArray, $fieldWizardResult, false);
 
-        if ('sys_file_reference' === $table) {
-            $fileUid = (int)$row['uid_local'][0]['uid'];
-        } elseif ('sys_file_metadata' === $table) {
-            $fileUid = (int)$row['file'][0];
-        } else {
-            $fileUid = null;
-        }
-
-        if ($fileUid !== null) {
-            try {
-                $fileExt = $this->resourceFactory->getFileObject($fileUid)->getExtension();
-            } catch (Exception $e) {
-                $fileExt = null;
-            }
-        } else {
-            $fileExt = null;
-        }
-
         $thisAltId = 't3js-form-field-alt-id' . StringUtility::getUniqueId();
         $generateButtonLabel = $languageService->sL('LLL:EXT:mindfula11y/Resources/Private/Language/GenerateAltText.xlf:buttonLabel');
         $mainFieldHtml = [];
         $mainFieldHtml[] = '<div class="form-control-wrap" style="max-width: ' . $width . 'px" id="' . htmlspecialchars($thisAltId) . '">';
         $mainFieldHtml[] =      '<div class="form-wizards-wrap">';
         $mainFieldHtml[] =          '<div class="form-wizards-item-element">';
-        if (null !== $fileExt && $this->openAIService->isChatFileExtSupported($fileExt)) {
+        if (null !== $file && $this->openAIService->isChatFileExtSupported($file->getExtension())) {
             $mainFieldHtml[] =              '<div class="input-group">';
             $mainFieldHtml[] =                  '<input type="text" ' . GeneralUtility::implodeAttributes($attributes, true) . ' />';
             $mainFieldHtml[] =                  '<input type="hidden" name="' . $itemName . '" value="' . htmlspecialchars((string)$itemValue) . '" />';
@@ -323,7 +333,7 @@ class InputAltElement extends AbstractFormElement
                 ' . $fieldInformationHtml . $fullElement . '
             </div>';
 
-        if (null !== $fileExt && $this->openAIService->isChatFileExtSupported($fileExt)) {
+        if (null !== $file && $this->openAIService->isChatFileExtSupported($file->getExtension())) {
             $altTextDemand = new AltTextDemand(
                 (int)$this->data['effectivePid'],
                 $languageUid,

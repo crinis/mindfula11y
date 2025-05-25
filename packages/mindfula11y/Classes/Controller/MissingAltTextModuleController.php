@@ -85,7 +85,10 @@ class MissingAltTextModuleController extends AbstractModuleController
         $this->moduleTemplate->getDocHeaderComponent()->getMenuRegistry()->addMenu($this->buildPageLevelsMenu());
         $this->moduleTemplate->getDocHeaderComponent()->getMenuRegistry()->addMenu($this->buildTableMenu());
 
-        if ($this->permissionService->checkTableReadAccess('sys_file_metadata')) {
+        if (
+            $this->permissionService->checkTableReadAccess('sys_file_metadata') &&
+            $this->permissionService->checkNonExcludeFields('sys_file_metadata', ['alternative'])
+        ) {
             $this->moduleTemplate->getDocHeaderComponent()->getButtonBar()->addButton(
                 $this->buildFilterDropdown(),
                 ButtonBar::BUTTON_POSITION_RIGHT
@@ -115,7 +118,7 @@ class MissingAltTextModuleController extends AbstractModuleController
          */
         if (
             !$this->permissionService->checkTableWriteAccess('sys_file_reference')
-            || !$this->getBackendUserAuthentication()->check('non_exclude_fields', 'sys_file_reference:alternative')
+            || !$this->permissionService->checkNonExcludeFields('sys_file_reference', ['alternative'])
         ) {
             $this->addFlashMessage(
                 $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/MissingAltText.xlf:noFileReferenceAccess'),
