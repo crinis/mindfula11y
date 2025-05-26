@@ -23,7 +23,7 @@ You can configure Mindful A11y in the extension settings (`ext_conf_template.txt
 - **OpenAI API Key**: Set your OpenAI API key for ChatGPT-powered features.
 - **Chat Model**: Choose the OpenAI model for generating alternative text (e.g., `gpt-4o-mini`, `gpt-4o`).
 - **Image Detail**: Set the detail level for image analysis (`low` or `high`).
-- **Disable Alt Text AI**: Option to disable the AI-powered alt text feature.
+- **Disable Alt Text Generation**: Option to disable the AI-powered alt text feature.
 
 ## Page TSconfig Options
 

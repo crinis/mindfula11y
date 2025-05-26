@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 /*
@@ -20,15 +21,17 @@ declare(strict_types=1);
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 defined('TYPO3') or die();
 
-$disableAltTextAI = GeneralUtility::makeInstance(ExtensionConfiguration::class)->get('mindfula11y', 'disableAltTextAI');
-$apiKey = GeneralUtility::makeInstance(ExtensionConfiguration::class)->get('mindfula11y', 'openAIApiKey');
+$extensionConfiguration = GeneralUtility::makeInstance(ExtensionConfiguration::class);
 
-if (!$disableAltTextAI && !empty($apiKey)) {
+if (
+    !$extensionConfiguration->get('mindfula11y', 'disableAltTextGeneration') &&
+    !empty($extensionConfiguration->get('mindfula11y', 'openAIApiKey'))
+) {
     $GLOBALS['TCA']['sys_file_metadata']['columns']['alternative']['config']['type'] = 'user';
     $GLOBALS['TCA']['sys_file_metadata']['columns']['alternative']['config']['renderType'] = 'mindfula11yAltText';
 }

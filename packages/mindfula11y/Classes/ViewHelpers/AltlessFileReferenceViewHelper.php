@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 /*
@@ -26,7 +27,7 @@ use MindfulMarkup\MindfulA11y\Domain\Model\AltlessFileReference;
 use MindfulMarkup\MindfulA11y\Domain\Model\AltTextDemand;
 use MindfulMarkup\MindfulA11y\Service\PermissionService;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
-use TYPO3\CMS\Backend\Utility\BackendUtility;
+use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
 use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractTagBasedViewHelper;
 
@@ -48,6 +49,10 @@ class AltlessFileReferenceViewHelper extends AbstractTagBasedViewHelper
      */
     protected readonly UriBuilder $backendUriBuilder;
 
+    /**
+     * ExtensionConfiguration instance.
+     */
+    protected readonly ExtensionConfiguration $extensionConfiguration;
 
     /**
      * Tag name.
@@ -55,7 +60,7 @@ class AltlessFileReferenceViewHelper extends AbstractTagBasedViewHelper
     protected $tagName = 'mindfula11y-altless-file-reference';
 
     /**
-     * Inject the permission service.
+     * Inject permission service.
      */
     public function injectPermissionService(PermissionService $permissionService): void
     {
@@ -63,11 +68,19 @@ class AltlessFileReferenceViewHelper extends AbstractTagBasedViewHelper
     }
 
     /**
-     * Inject the UriBuilder.
+     * Inject UriBuilder.
      */
     public function injectBackendUriBuilder(UriBuilder $backendUriBuilder): void
     {
         $this->backendUriBuilder = $backendUriBuilder;
+    }
+
+    /**
+     * Inject ExtensionConfiguration.
+     */
+    public function injectAltTextGeneratorService(ExtensionConfiguration $extensionConfiguration): void
+    {
+        $this->extensionConfiguration = $extensionConfiguration;
     }
 
     /**
@@ -102,7 +115,16 @@ class AltlessFileReferenceViewHelper extends AbstractTagBasedViewHelper
         ]));
         $this->tag->addAttribute('recordEditLinkLabel', sprintf($this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/MissingAltText.xlf:editRecord.label'), $recordTableName, $recordUid));
 
-        $this->tag->addAttribute('altTextDemand', json_encode($this->getAltTextDemand($fileReference)));
+        if (
+            !$this->extensionConfiguration->get('mindfula11y', 'disableAltTextGeneration') &&
+            !empty($this->extensionConfiguration->get('mindfula11y', 'openAIApiKey'))
+        ) {
+            $this->tag->addAttribute(
+                'altTextDemand',
+                json_encode($this->getAltTextDemand($fileReference))
+            );
+        }
+
         $this->tag->addAttribute('uid', $fileReference->getUid());
 
         if ($this->permissionService->checkTableReadAccess('sys_file_metadata')) {

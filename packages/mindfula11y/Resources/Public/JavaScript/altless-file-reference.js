@@ -219,16 +219,20 @@ export class AltlessFileReference extends LitElement {
           ></textarea>
 
           <div class="d-flex gap-2 mt-2">
-            <button
-              class="btn btn-secondary"
-              type="button"
-              @click="${this.handleGenerate}"
-              ?disabled="${this.loading}"
-            >
-              ${TYPO3.lang[
-                "mindfula11y.modules.missingAltText.generate.button"
-              ]}
-            </button>
+            ${null !== this.altTextDemand
+              ? html`
+                  <button
+                    class="btn btn-secondary"
+                    type="button"
+                    @click="${this.handleGenerate}"
+                    ?disabled="${this.loading}"
+                  >
+                    ${TYPO3.lang[
+                      "mindfula11y.modules.missingAltText.generate.button"
+                    ]}
+                  </button>
+                `
+              : null}
             <button
               class="btn btn-primary"
               type="button"

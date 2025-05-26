@@ -9,5 +9,5 @@ openAIChatModel = gpt-4o-mini
 # cat=mindfula11y//c; type=options[low,high]; label=LLL:EXT:mindfula11y/Resources/Private/Language/Configuration.xlf:openAI.chat.imageDetail
 openAIChatImageDetail = low
 
-#cat=mindfula11y//d; type=boolean; label=LLL:EXT:mindfula11y/Resources/Private/Language/Configuration.xlf:disableAltTextAI
-disableAltTextAI = 0
+#cat=mindfula11y//d; type=boolean; label=LLL:EXT:mindfula11y/Resources/Private/Language/Configuration.xlf:disableAltTextGeneration
+disableAltTextGeneration = 0

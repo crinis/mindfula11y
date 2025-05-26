@@ -18,8 +18,8 @@
             <trans-unit id="openAI.chat.imageDetail" xml:space="preserve">
                 <source>OpenAI Chat Image Detail: Detail level for images described by the LLM. Can be low or high.</source>
             </trans-unit>
-            <trans-unit id="disableAltTextAI" xml:space="preserve">
-                <source>Disable Alt Text AI: Enable or disable the AI-generated alt text for images.</source>
+            <trans-unit id="disableAltTextGeneration" xml:space="preserve">
+                <source>Disable Alt Text Generation: Disable AI-Generation of alternative text.</source>
             </trans-unit>
 		</body>
 	</file>
