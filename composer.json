@@ -1,6 +1,6 @@
 {
 	"name": "typo3/cms-base-distribution",
-	"description" : "TYPO3 CMS Base Distribution",
+	"description": "TYPO3 CMS Base Distribution",
 	"license": "GPL-2.0-or-later",
 	"type": "project",
 	"config": {
@@ -48,5 +48,10 @@
 			"type": "path",
 			"url": "./packages/*"
 		}
-	]
+	],
+	"scripts": {
+		"extension-create-libs": [
+			"@composer install --no-dev -d packages/mindfula11y/Resources/Private/PHP"
+		]
+	}
 }

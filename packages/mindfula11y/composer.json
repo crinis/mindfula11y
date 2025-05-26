@@ -1,16 +1,29 @@
 {
     "name": "mindfulmarkup/mindfula11y",
-    "description": "Mindful A11y extension for TYPO3.",
+    "description": "TYPO3 extension integrating accessibility analysis and productivity tools into the TYPO3 backend.",
     "type": "typo3-cms-extension",
     "license": [
         "GPL-2.0-or-later"
     ],
+    "authors": [
+        {
+            "name": "Felix Spittel",
+            "role": "Developer",
+            "homepage": "https://www.mindfulmarkup.de"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/crinis/mindfula11y/issues",
+        "source": "https://github.com/crinis/mindfula11y"
+    },
     "require": {
+        "php": ">=8.2 <=8.4",
         "typo3/cms-core": "~13.4.0",
         "typo3/cms-backend": "~13.4.0",
         "typo3/cms-fluid": "~13.4.0",
         "typo3/cms-frontend": "~13.4.0",
-		"openai-php/client": "~0.10.0"
+        "typo3/cms-extbase": "~13.4.0",
+        "openai-php/client": "~0.10.0"
     },
     "autoload": {
         "psr-4": {
@@ -27,5 +40,12 @@
             "typo3/cms-composer-installers": false,
             "typo3/class-alias-loader": false
         }
-    }
+    },
+    "keywords": [
+        "TYPO3",
+        "accessibility",
+        "alt text",
+        "extension",
+        "chatgpt"
+    ]
 }

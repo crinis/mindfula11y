@@ -1,0 +1,12 @@
+{
+    "config": {
+        "classmap-authoritative": true,
+        "prepend-autoloader": false,
+        "allow-plugins": {
+            "php-http/discovery": false
+        }
+    },
+    "require": {
+        "openai-php/client": "~0.10.0"
+    }
+}
