@@ -23,7 +23,7 @@ declare(strict_types=1);
 
 namespace MindfulMarkup\MindfulA11y\Service;
 
-use Exception;
+use RuntimeException;
 use TYPO3\CMS\Core\Resource\FileInterface;
 use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
 
@@ -51,15 +51,11 @@ class AltTextGeneratorService
      * @param FileInterface $file The file object representing the image.
      * @param string $languageCode The language code for the generated text (default is 'en').
      * 
-     * @return string The generated alternative text.
-     * 
-     * @throws Exception If the OpenAI API request fails.
+     * @return string The generated alternative text or null if the request fails.
      */
-    public function generate(FileInterface $file, string $languageCode = 'en'): string
+    public function generate(FileInterface $file, string $languageCode = 'en'): ?string
     {
-        $imageUrl = $this->getBase64ImageUrlFromFile($file);
-
-        $altText = $this->openAIService->chat([
+        return $this->openAIService->chat([
             [
                 'role' => 'system',
                 'content' => [
@@ -75,15 +71,13 @@ class AltTextGeneratorService
                     [
                         'type' => 'image_url',
                         'image_url' => [
-                            'url' => $imageUrl,
+                            'url' => $this->getBase64ImageUrlFromFile($file),
                             'detail' => $this->getChatImageDetail(),
                         ]
                     ]
                 ]
             ],
         ]);
-
-        return $altText;
     }
 
     /**

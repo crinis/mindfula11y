@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 /*
@@ -111,9 +112,10 @@ class AltTextAjaxController extends ActionController
         $languageCode = $this->siteLanguageService->getLanguageCode($demand->getLanguageUid(), $demand->getPageUid());
         $file = $this->resourceFactory->getFileObject($demand->getFileUid());
 
-        try {
-            $altText = $this->altTextGeneratorService->generate($file, $languageCode);
-        } catch (Exception $e) {
+
+        $altText = $this->altTextGeneratorService->generate($file, $languageCode);
+
+        if (null === $altText) {
             return $this->jsonResponse(
                 json_encode([
                     'error' => [

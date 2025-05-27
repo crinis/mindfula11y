@@ -18,19 +18,11 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-use TYPO3\CMS\Core\Core\Environment;
-use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 use MindfulMarkup\MindfulA11y\Form\Element\InputAltElement;
 
 defined('TYPO3') or die();
 
 (static function (): void {
-    $isComposerMode = Environment::isComposerMode();
-
-    if (!$isComposerMode) {
-        require_once(ExtensionManagementUtility::extPath('mindfula11y') . 'Resources/Private/PHP/vendor/autoload.php');
-    }
-
     $GLOBALS['TYPO3_CONF_VARS']['SYS']['formEngine']['nodeRegistry'][1744207980] = [
         'nodeName' => 'mindfula11yAltText',
         'priority' => 40,

@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 /*
@@ -22,9 +23,10 @@ declare(strict_types=1);
 
 namespace MindfulMarkup\MindfulA11y\Service;
 
-use OpenAI;
-use OpenAI\Client;
+use TYPO3\CMS\Core\Http\RequestFactory;
+use Psr\Http\Message\ResponseInterface;
 use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
+use RuntimeException;
 
 /**
  * Class OpenAIService.
@@ -37,9 +39,11 @@ class OpenAIService
      * Constructor.
      * 
      * @param ExtensionConfiguration $extensionConfiguration
+     * @param RequestFactory $requestFactory
      */
     public function __construct(
         protected readonly ExtensionConfiguration $extensionConfiguration,
+        protected readonly RequestFactory $requestFactory,
     ) {}
 
     /**
@@ -47,31 +51,37 @@ class OpenAIService
      * 
      * @param array $messages The messages to be sent to the OpenAI API.
      * 
-     * @return string The response message from the OpenAI API.
-     * 
-     * @throws Exception If the OpenAI API request fails.
+     * @return string|null The response message from the OpenAI API or null if the request fails.
      */
-    public function chat(array $messages): string
-    {
-        $client = $this->getClient();
-
-        $response = $client->chat()->create([
-            'model' => $this->getChatModelName(),
-            'messages' => $messages
-        ]);
-
-        return $response['choices'][0]['message']['content'] ?? '';
-    }
-
-    /**
-     * Get OpenAI API client.
-     * 
-     * @return Client The OpenAI API client.
-     */
-    protected function getClient(): Client
+    public function chat(array $messages): ?string
     {
         $apiKey = $this->getApiKey();
-        return OpenAI::client($apiKey);
+        $model = $this->getChatModelName();
+        $url = 'https://api.openai.com/v1/chat/completions';
+        $headers = [
+            'Authorization' => 'Bearer ' . $apiKey,
+            'Content-Type' => 'application/json',
+        ];
+        $body = [
+            'model' => $model,
+            'messages' => $messages,
+        ];
+        $options = [
+            'headers' => $headers,
+            'body' => json_encode($body),
+        ];
+        /** @var ResponseInterface $response */
+        $response = $this->requestFactory->request($url, 'POST', $options);
+
+        try {
+            $responseBody = $response->getBody()->getContents();
+        } catch (RuntimeException $e) {
+            return null;
+        }
+        
+        $data = json_decode($responseBody, true);
+
+        return $data['choices'][0]['message']['content'] ?? null;
     }
 
     /**
