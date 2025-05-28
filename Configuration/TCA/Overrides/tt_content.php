@@ -29,39 +29,38 @@ ExtensionManagementUtility::addTCAcolumns(
     [
         'tx_mindfula11y_headinglevel' => [
             'exclude' => true,
-            'label' => 'LLL:EXT:mindfulA11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfulA11y.headingLevel',
-            'description' => 'LLL:EXT:mindfulA11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfulA11y.headingLevel.description',
+            'label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.headingLevel',
             'config' => [
                 'type' => 'select',
                 'renderType' => 'selectSingle',
                 'default' => 2,
                 'items' => [
                     [
-                        'label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfulA11y.headingLevel.items.1',
+                        'label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.headingLevel.items.1',
                         'value' => 1,
                     ],
                     [
-                        'label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfulA11y.headingLevel.items.2',
+                        'label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.headingLevel.items.2',
                         'value' => 2,
                     ],
                     [
-                        'label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfulA11y.headingLevel.items.3',
+                        'label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.headingLevel.items.3',
                         'value' => 3,
                     ],
                     [
-                        'label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfulA11y.headingLevel.items.4',
+                        'label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.headingLevel.items.4',
                         'value' => 4,
                     ],
                     [
-                        'label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfulA11y.headingLevel.items.5',
+                        'label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.headingLevel.items.5',
                         'value' => 5,
                     ],
                     [
-                        'label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfulA11y.headingLevel.items.6',
+                        'label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.headingLevel.items.6',
                         'value' => 6,
                     ],
                     [
-                        'label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfulA11y.headingLevel.items.fallbackTag',
+                        'label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.headingLevel.items.fallbackTag',
                         'value' => -1
                     ]
                 ],
@@ -73,5 +72,6 @@ ExtensionManagementUtility::addTCAcolumns(
 ExtensionManagementUtility::addFieldsToPalette(
     'tt_content',
     'headers',
-    'tx_mindfula11y_headinglevel'
+    'tx_mindfula11y_headinglevel',
+    'after:header'
 );
