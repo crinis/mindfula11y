@@ -1,11 +1,5 @@
 /nbproject
-/var/*
-!/var/labels
 /vendor
-/packages/mindfula11y/Resources/Private/PHP/vendor
-/public/*
-/config/*
-/config/*
 # Logs
 /logs
 *.log

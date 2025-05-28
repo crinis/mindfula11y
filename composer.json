@@ -1,57 +1,50 @@
 {
-	"name": "typo3/cms-base-distribution",
-	"description": "TYPO3 CMS Base Distribution",
-	"license": "GPL-2.0-or-later",
-	"type": "project",
-	"config": {
-		"allow-plugins": {
-			"php-http/discovery": true,
-			"typo3/class-alias-loader": true,
-			"typo3/cms-composer-installers": true
-		},
-		"platform": {
-			"php": "8.2.0"
-		},
-		"sort-packages": true
-	},
-	"require": {
-		"typo3/cms-backend": "^13.4",
-		"typo3/cms-belog": "^13.4",
-		"typo3/cms-beuser": "^13.4",
-		"typo3/cms-core": "^13.4",
-		"typo3/cms-dashboard": "^13.4",
-		"typo3/cms-extbase": "^13.4",
-		"typo3/cms-extensionmanager": "^13.4",
-		"typo3/cms-felogin": "^13.4",
-		"typo3/cms-filelist": "^13.4",
-		"typo3/cms-fluid": "^13.4",
-		"typo3/cms-fluid-styled-content": "^13.4",
-		"typo3/cms-form": "^13.4",
-		"typo3/cms-frontend": "^13.4",
-		"typo3/cms-impexp": "^13.4",
-		"typo3/cms-info": "^13.4",
-		"typo3/cms-install": "^13.4",
-		"typo3/cms-reactions": "^13.4",
-		"typo3/cms-recycler": "^13.4",
-		"typo3/cms-rte-ckeditor": "^13.4",
-		"typo3/cms-seo": "^13.4",
-		"typo3/cms-setup": "^13.4",
-		"typo3/cms-sys-note": "^13.4",
-		"typo3/cms-tstemplate": "^13.4",
-		"typo3/cms-viewpage": "^13.4",
-		"typo3/cms-webhooks": "^13.4",
-		"typo3/cms-lowlevel": "~13.4",
-		"mindfulmarkup/mindfula11y": "@dev"
-	},
-	"repositories": [
-		{
-			"type": "path",
-			"url": "./packages/*"
-		}
-	],
-	"scripts": {
-		"extension-create-libs": [
-			"@composer install --no-dev -d packages/mindfula11y/Resources/Private/PHP"
-		]
-	}
+    "name": "mindfulmarkup/mindfula11y",
+    "description": "TYPO3 extension integrating accessibility analysis and productivity tools into the TYPO3 backend.",
+    "type": "typo3-cms-extension",
+    "license": [
+        "GPL-2.0-or-later"
+    ],
+    "authors": [
+        {
+            "name": "Felix Spittel",
+            "role": "Developer",
+            "homepage": "https://www.mindfulmarkup.de"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/crinis/mindfula11y/issues",
+        "source": "https://github.com/crinis/mindfula11y"
+    },
+    "require": {
+        "php": ">=8.2 <=8.4",
+        "typo3/cms-core": "~13.4.0",
+        "typo3/cms-backend": "~13.4.0",
+        "typo3/cms-fluid": "~13.4.0",
+        "typo3/cms-frontend": "~13.4.0",
+        "typo3/cms-extbase": "~13.4.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "MindfulMarkup\\MindfulA11y\\": "Classes/"
+        }
+    },
+    "extra": {
+        "typo3/cms": {
+            "extension-key": "mindfula11y"
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "typo3/cms-composer-installers": false,
+            "typo3/class-alias-loader": false
+        }
+    },
+    "keywords": [
+        "TYPO3",
+        "accessibility",
+        "alt text",
+        "extension",
+        "chatgpt"
+    ]
 }
