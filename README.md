@@ -1,6 +1,14 @@
 # Mindful A11y TYPO3 Extension
 
-> **Note:** This extension is in a very early stage of development and is not yet available on Packagist or the TYPO3 Extension Repository (TER). I do not recommend using it in production environments at this time.
+> **Note:** This extension is in a very early stage of development and is not yet available on the TYPO3 Extension Repository (TER). I do not recommend using it in production environments at this time.
+
+## Installation
+
+Install via Composer:
+
+```bash
+composer require mindfulmarkup/mindfula11y
+```
 
 Mindful A11y is a TYPO3 extension that integrates accessibility tools directly into the TYPO3 backend, helping editors and integrators improve the accessibility of their content.
 
