@@ -18,6 +18,7 @@
                     Accessibility
                 </source>
             </trans-unit>
+
             <trans-unit id="noPageSelected" resname="noPageSelected">
                 <source>
                     No page selected.
@@ -40,6 +41,16 @@
                     issues.
                 </source>
             </trans-unit>
+            <trans-unit id="noTableAccess" resname="noTableAccess">
+                <source>No access to the selected table.</source>
+            </trans-unit>
+            <trans-unit id="noTableAccess.description" resname="noTableAccess.description">
+                <source>
+                    Please select a record type that you have access to or contact your
+                    administrator.
+                </source>
+            </trans-unit>
+
             <trans-unit id="menu.language" resname="menu.language">
                 <source>Language</source>
             </trans-unit>
@@ -49,8 +60,191 @@
             <trans-unit id="headingStructure" resname="headingStructure">
                 <source>Heading structure</source>
             </trans-unit>
-            <trans-unit id="menu.module" resname="menu.module">
-                <source>Module</source>
+
+            <trans-unit id="menu.pageLevels" resname="menu.pageLevels">
+                <source>Check Recursive</source>
+            </trans-unit>
+            <trans-unit id="menu.pageLevels.1" resname="menu.pageLevels.1">
+                <source>Levels 1</source>
+            </trans-unit>
+            <trans-unit id="menu.pageLevels.5" resname="menu.pageLevels.5">
+                <source>Levels 5</source>
+            </trans-unit>
+            <trans-unit id="menu.pageLevels.10" resname="menu.pageLevels.10">
+                <source>Levels 10</source>
+            </trans-unit>
+            <trans-unit id="menu.pageLevels.99" resname="menu.pageLevels.99">
+                <source>Levels 99</source>
+            </trans-unit>
+
+            <trans-unit id="menu.table" resname="menu.table">
+                <source>Record Type</source>
+            </trans-unit>
+            <trans-unit id="menu.tables.all" resname="menu.tables.all">
+                <source>All Record Types</source>
+            </trans-unit>
+
+            <trans-unit id="menu.filter" resname="menu.filter">
+                <source>Filter</source>
+            </trans-unit>
+            <trans-unit id="menu.filter.fileMetaData" resname="menu.filter.fileMetaData">
+                <source>
+                    Filter records with inherited alternative text
+                </source>
+            </trans-unit>
+
+            <trans-unit id="menu.features" resname="menu.features">
+                <source>Feature</source>
+            </trans-unit>
+            <trans-unit id="menu.features.general" resname="menu.features.general">
+                <source>General</source>
+            </trans-unit>
+            <trans-unit id="menu.features.missingAltText" resname="menu.features.missingAltText">
+                <source>Images without alternative text</source>
+            </trans-unit>
+            <trans-unit id="menu.features.headingStructure" resname="menu.features.headingStructure">
+                <source>Heading structure</source>
+            </trans-unit>
+
+            <trans-unit id="missingAltText" resname="missingAltText">
+                <source>Images without alternative text</source>
+            </trans-unit>
+            <trans-unit id="missingAltText.description" resname="missingAltText.description">
+                <source>
+                    Listing records of tables that are missing alternative text in their
+                    associated file references. Allows filtering by the type and language of the
+                    record and can function recursively for all subpages of the currently selected page.
+                </source>
+            </trans-unit>
+            <trans-unit id="missingAltText.generate.button" resname="missingAltText.generate.button">
+                <source>Generate</source>
+            </trans-unit>
+            <trans-unit id="missingAltText.generate.loading"
+                resname="missingAltText.generate.loading">
+                <source>Generating alternative text...</source>
+            </trans-unit>
+            <trans-unit id="missingAltText.generate.success"
+                resname="missingAltText.generate.success">
+                <source>Alternative text generated.</source>
+            </trans-unit>
+            <trans-unit id="missingAltText.generate.success.description"
+                resname="missingAltText.generate.success.description">
+                <source>
+                    Alternative text was successfully generated. Please make sure it describes
+                    the picture accurately.
+                </source>
+            </trans-unit>
+            <trans-unit id="missingAltText.generate.error.unknown"
+                resname="missingAltText.generate.error.unknown">
+                <source>Unknown error occurred.</source>
+            </trans-unit>
+            <trans-unit id="missingAltText.generate.error.unknown.description"
+                resname="missingAltText.generate.error.unknown.description">
+                <source>
+                    An unknown error occurred. Please contact your admin or try again
+                    later.
+                </source>
+            </trans-unit>
+            <trans-unit id="missingAltText.generate.error.openAIConnection"
+                resname="missingAltText.generate.error.openAIConnection">
+                <source>ChatGPT connection error.</source>
+            </trans-unit>
+            <trans-unit id="missingAltText.generate.error.openAIConnection.description"
+                resname="missingAltText.generate.error.openAIConnection.description">
+                <source>Could not establish connection to ChatGPT. Is your API-Key OK?</source>
+            </trans-unit>
+            <trans-unit id="missingAltText.editRecord.label"
+                resname="missingAltText.editRecord.label">
+                <source>Edit record [%1$s][%2$s].</source>
+            </trans-unit>
+            <trans-unit id="missingAltText.altLabel" resname="missingAltText.altLabel">
+                <source>Alternative text</source>
+            </trans-unit>
+            <trans-unit id="missingAltText.altPlaceholder" resname="missingAltText.altPlaceholder">
+                <source>Enter alternative text for the image</source>
+            </trans-unit>
+            <trans-unit id="missingAltText.save" resname="missingAltText.save">
+                <source>Save</source>
+            </trans-unit>
+            <trans-unit id="missingAltText.imagePreview" resname="missingAltText.imagePreview">
+                <source>Image preview</source>
+            </trans-unit>
+            <trans-unit id="missingAltText.fallbackAltLabel"
+                resname="missingAltText.fallbackAltLabel">
+                <source>Label specified in file metadata:</source>
+            </trans-unit>
+            <trans-unit id="missingAltText.pagination.navigation"
+                resname="missingAltText.pagination.navigation">
+                <source>Pagination navigation</source>
+            </trans-unit>
+            <trans-unit id="missingAltText.pagination.previous"
+                resname="missingAltText.pagination.previous">
+                <source>Previous page</source>
+            </trans-unit>
+            <trans-unit id="missingAltText.pagination.next" resname="missingAltText.pagination.next">
+                <source>Next page</source>
+            </trans-unit>
+            <trans-unit id="missingAltText.pagination.page" resname="missingAltText.pagination.page">
+                <source>Go to page %1$s</source>
+            </trans-unit>
+            <trans-unit id="missingAltText.pagination.current"
+                resname="missingAltText.pagination.current">
+                <source>(current page)</source>
+            </trans-unit>
+            <trans-unit id="missingAltText.noMissingAltText"
+                resname="missingAltText.noMissingAltText">
+                <source>No images without alternative text found.</source>
+            </trans-unit>
+
+            <trans-unit id="headingStructure" resname="headingStructure">
+                <source>Heading Structure</source>
+            </trans-unit>
+            <trans-unit id="headingStructure.description" resname="headingStructure.description">
+                <source>
+                    Listing the heading structure of the currently selected page and
+                    providing options to fix it.
+                </source>
+            </trans-unit>
+            <trans-unit id="headingStructure.error.loading" resname="headingStructure.error.loading">
+                <source>Loading heading structure failed.</source>
+            </trans-unit>
+            <trans-unit id="headingStructure.error.loading.description"
+                resname="headingStructure.error.loading.description">
+                <source>Could not load the heading structure. Cannot analyze the page heading
+                    structure.</source>
+            </trans-unit>
+            <trans-unit id="headingStructure.error.store" resname="headingStructure.error.store">
+                <source>Saving heading level failed.</source>
+            </trans-unit>
+            <trans-unit id="headingStructure.error.store.description"
+                resname="headingStructure.error.store.description">
+                <source>Could not save the heading level. Do you have permission?</source>
+            </trans-unit>
+            <trans-unit id="headingStructure.error.skippedLevel"
+                resname="headingStructure.error.skippedLevel">
+                <source>Skipped heading levels! </source>
+            </trans-unit>
+            <trans-unit id="headingStructure.error.skippedLevel.description"
+                resname="headingStructure.error.skippedLevel.description">
+                <source>Headings should be nested in a logical order. For example, if you have an
+                    &lt;h1&gt;, the next heading should be an &lt;h2&gt;, not an &lt;h3&gt; or
+                    &lt;h4&gt;. This is important for screenreader users to understand the page
+                    structure.</source>
+            </trans-unit>
+            <trans-unit id="headingStructure.error.missingH1"
+                resname="headingStructure.error.missingH1">
+                <source>Missing &lt;h1&gt; heading.</source>
+            </trans-unit>
+            <trans-unit id="headingStructure.error.missingH1.description"
+                resname="headingStructure.error.missingH1.description">
+                <source>Every page should have exactly one &lt;h1&gt; as the main heading, usually
+                    at the top of the main content. Screenreader users rely on the &lt;h1&gt; to
+                    quickly skip to the main content and get to understand what the content is
+                    about.</source>
+            </trans-unit>
+            <trans-unit id="headingStructure.error.skippedLevel.inline"
+                resname="headingStructure.error.skippedLevel.inline">
+                <source>Skipped H%1$d</source>
             </trans-unit>
         </body>
     </file>

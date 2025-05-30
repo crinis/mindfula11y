@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 /*
@@ -20,9 +21,8 @@ declare(strict_types=1);
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+use MindfulMarkup\MindfulA11y\Enum\Feature;
 use MindfulMarkup\MindfulA11y\Controller\AccessibilityModuleController;
-use MindfulMarkup\MindfulA11y\Controller\HeadingStructureModuleController;
-use MindfulMarkup\MindfulA11y\Controller\MissingAltTextModuleController;
 
 return [
     'mindfula11y_accessibility' => [
@@ -40,42 +40,11 @@ return [
         ],
         'moduleData' => [
             'languageId' => 0,
-        ],
-    ],
-    'mindfula11y_missingalttext' => [
-        'parent' => 'web',
-        'access' => 'user',
-        'path' => '/module/web/mindfula11y/accessibility/missing-alt-text',
-        'iconIdentifier' => 'tx-mindfula11y-module-missingalttext',
-        'labels' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Modules/MissingAltText.xlf',
-        'routes' => [
-            '_default' => [
-                'target' => MissingAltTextModuleController::class . '::mainAction',
-                'methods' => ['GET'],
-            ],
-        ],
-        'moduleData' => [
-            'languageId' => 0,
             'pageLevels' => 1,
             'tableName' => '',
             'currentPage' => 1,
             'filterFileMetaData' => true,
-        ],
-    ],
-    'mindfula11y_headingstructure' => [
-        'parent' => 'web',
-        'access' => 'user',
-        'path' => '/module/web/mindfula11y/accessibility/heading-structure',
-        'iconIdentifier' => 'tx-mindfula11y-module-headingstructure',
-        'labels' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Modules/HeadingStructure.xlf',
-        'routes' => [
-            '_default' => [
-                'target' => HeadingStructureModuleController::class . '::mainAction',
-                'methods' => ['GET'],
-            ],
-        ],
-        'moduleData' => [
-            'languageId' => 0,
+            'feature' => Feature::GENERAL->value,
         ],
     ],
 ];

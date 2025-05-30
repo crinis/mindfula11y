@@ -228,9 +228,9 @@ export class HeadingLevel extends LitElement {
       })
       .catch(() => {
         Notification.error(
-          TYPO3.lang["mindfula11y.modules.headingStructure.error.store"],
+          TYPO3.lang["mindfula11y.features.headingStructure.error.store"],
           TYPO3.lang[
-            "mindfula11y.modules.headingStructure.error.store.description"
+            "mindfula11y.features.headingStructure.error.store.description"
           ]
         );
       });

@@ -6,7 +6,7 @@
 -->
 <f:if condition="{pagination.lastPageNumber} > 1">
   <nav
-    aria-label="{f:translate(key: 'LLL:EXT:mindfula11y/Resources/Private/Language/Modules/MissingAltText.xlf:pagination.navigation')}"
+    aria-label="{f:translate(key: 'LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:missingAltText.pagination.navigation')}"
   >
     <ul class="pagination">
       <f:if condition="{pagination.previousPageNumber}">
@@ -16,7 +16,7 @@
             class="page-link"
           >
             {f:translate(key:
-            'LLL:EXT:mindfula11y/Resources/Private/Language/Modules/MissingAltText.xlf:pagination.previous')}
+            'LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:missingAltText.pagination.previous')}
           </a>
         </li>
       </f:if>
@@ -27,7 +27,7 @@
           <a
             href="{be:moduleLink(route: 'mindfula11y_missingalttext', arguments: {id: moduleData.id, languageId: moduleData.languageId, pageLevels: moduleData.pageLevels, tableName: moduleData.tableName, filterFileMetaData: moduleData.filterFileMetaData, currentPage: pageNumber})}"
             class="page-link"
-            aria-label="{f:translate(key: 'LLL:EXT:mindfula11y/Resources/Private/Language/Modules/MissingAltText.xlf:pagination.page', arguments: {0: pageNumber})}"
+            aria-label="{f:translate(key: 'LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:missingAltText.pagination.page', arguments: {0: pageNumber})}"
             aria-current="{f:if(condition: '{pageNumber} == {paginator.currentPageNumber}', then: 'page', else: 'false')}"
           >
             {pageNumber}
@@ -41,7 +41,7 @@
             class="page-link"
           >
             {f:translate(key:
-            'LLL:EXT:mindfula11y/Resources/Private/Language/Modules/MissingAltText.xlf:pagination.next')}
+            'LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:missingAltText.pagination.next')}
           </a>
         </li>
       </f:if>

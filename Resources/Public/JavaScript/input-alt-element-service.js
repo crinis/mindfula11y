@@ -101,9 +101,9 @@ class InputAltElementService {
       inputField.value = altText;
       inputField.dispatchEvent(new Event("change"));
       Notification.success(
-        TYPO3.lang["mindfula11y.modules.missingAltText.generate.success"],
+        TYPO3.lang["mindfula11y.features.missingAltText.generate.success"],
         TYPO3.lang[
-          "mindfula11y.modules.missingAltText.generate.success.description"
+          "mindfula11y.features.missingAltText.generate.success.description"
         ]
       );
     }).bindTo(generateButton);

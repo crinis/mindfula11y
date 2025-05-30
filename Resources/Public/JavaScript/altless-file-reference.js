@@ -121,7 +121,7 @@ export class AltlessFileReference extends LitElement {
   async handleGenerate() {
     this.loading = true;
     this.statusMessage =
-      TYPO3.lang["mindfula11y.modules.missingAltText.generate.loading"];
+      TYPO3.lang["mindfula11y.features.missingAltText.generate.loading"];
     this.requestUpdate();
 
     const altText = await this.altTextGeneratorService.generateAltText(
@@ -131,19 +131,19 @@ export class AltlessFileReference extends LitElement {
     this.loading = false;
     if (!altText) {
       this.statusMessage =
-        TYPO3.lang["mindfula11y.modules.missingAltText.generate.error.unknown"];
+        TYPO3.lang["mindfula11y.features.missingAltText.generate.error.unknown"];
       this.requestUpdate();
       return;
     }
 
     this.alternative = altText;
     this.statusMessage =
-      TYPO3.lang["mindfula11y.modules.missingAltText.generate.success"];
+      TYPO3.lang["mindfula11y.features.missingAltText.generate.success"];
     this.requestUpdate();
     Notification.success(
-      TYPO3.lang["mindfula11y.modules.missingAltText.generate.success"],
+      TYPO3.lang["mindfula11y.features.missingAltText.generate.success"],
       TYPO3.lang[
-        "mindfula11y.modules.missingAltText.generate.success.description"
+        "mindfula11y.features.missingAltText.generate.success.description"
       ]
     );
   }
@@ -173,9 +173,9 @@ export class AltlessFileReference extends LitElement {
       })
       .catch(() => {
         Notification.error(
-          TYPO3.lang["mindfula11y.modules.missingAltText.error.store"],
+          TYPO3.lang["mindfula11y.features.missingAltText.error.store"],
           TYPO3.lang[
-            "mindfula11y.modules.missingAltText.error.store.description"
+            "mindfula11y.features.missingAltText.error.store.description"
           ]
         );
       });
@@ -200,17 +200,17 @@ export class AltlessFileReference extends LitElement {
               src="${this.previewUrl}"
               class="img-fluid"
               alt="${this.alternative ||
-              TYPO3.lang["mindfula11y.modules.missingAltText.imagePreview"]}"
+              TYPO3.lang["mindfula11y.features.missingAltText.imagePreview"]}"
             />
           </a>
           <label class="form-label" for="${this.inputId}">
-            ${TYPO3.lang["mindfula11y.modules.missingAltText.altLabel"]}
+            ${TYPO3.lang["mindfula11y.features.missingAltText.altLabel"]}
           </label>
           <textarea
             id="${this.inputId}"
             class="form-control"
             placeholder="${TYPO3.lang[
-              "mindfula11y.modules.missingAltText.altPlaceholder"
+              "mindfula11y.features.missingAltText.altPlaceholder"
             ]}"
             rows="3"
             .value="${this.alternative}"
@@ -228,7 +228,7 @@ export class AltlessFileReference extends LitElement {
                     ?disabled="${this.loading}"
                   >
                     ${TYPO3.lang[
-                      "mindfula11y.modules.missingAltText.generate.button"
+                      "mindfula11y.features.missingAltText.generate.button"
                     ]}
                   </button>
                 `
@@ -239,7 +239,7 @@ export class AltlessFileReference extends LitElement {
               @click="${this.handleSave}"
               ?disabled="${this.loading}"
             >
-              ${TYPO3.lang["mindfula11y.modules.missingAltText.save"]}
+              ${TYPO3.lang["mindfula11y.features.missingAltText.save"]}
             </button>
           </div>
           <div class="mt-2" role="status" aria-live="polite" aria-atomic="true">
@@ -259,7 +259,7 @@ export class AltlessFileReference extends LitElement {
             ? html`
                 <p class="mt-2 alert alert-secondary">
                   ${TYPO3.lang[
-                    "mindfula11y.modules.missingAltText.fallbackAltLabel"
+                    "mindfula11y.features.missingAltText.fallbackAltLabel"
                   ]}
                   ${this.fallbackAlternative}
                 </p>
@@ -272,8 +272,7 @@ export class AltlessFileReference extends LitElement {
             class="link-secondary"
             rel="noopener"
           >
-            ${this.recordEditLinkLabel ||
-            TYPO3.lang["mindfula11y.modules.missingAltText.editRecord"]}
+            ${this.recordEditLinkLabel}
           </a>
         </div>
       </div>

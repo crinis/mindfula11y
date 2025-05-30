@@ -1,12 +1,14 @@
 mod {
-    mindfula11y_missingalttext {
-        enable = 1
-        ignoreColumns {
-            tt_content = image
+    mindfula11y_accessibility {
+        missingAltText {
+            enable = 1
+            ignoreColumns {
+                tt_content = image
+            }
+            ignoreFileMetadata = 1
         }
-        ignoreFileMetadata = 1
-    }
-    mindfula11y_headingstructure {
-        enable = 1
+        headingStructure {
+            enable = 1
+        }
     }
 }

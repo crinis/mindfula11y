@@ -92,7 +92,7 @@ export class HeadingStructure extends LitElement {
         display: flex;
         min-height: 2.25em;
         align-items: center;
-        gap: 0.35em;
+        gap: 1em;
       }
 
       .mindfula11y-level__input {
@@ -162,9 +162,9 @@ export class HeadingStructure extends LitElement {
           previewHtml = await this.fetchPreview(previewUrl);
         } catch (error) {
           Notification.notice(
-            TYPO3.lang["mindfula11y.modules.headingStructure.error.loading"],
+            TYPO3.lang["mindfula11y.features.headingStructure.error.loading"],
             TYPO3.lang[
-              "mindfula11y.modules.headingStructure.error.loading.description"
+              "mindfula11y.features.headingStructure.error.loading.description"
             ]
           );
           return null;
@@ -302,7 +302,7 @@ export class HeadingStructure extends LitElement {
           >
             <strong class="text-danger"
               >${TYPO3.lang[
-                "mindfula11y.modules.headingStructure.error.skippedLevel.inline"
+                "mindfula11y.features.headingStructure.error.skippedLevel.inline"
               ].replace("%1$d", node.level - i - 1)}</strong
             >
             <ol>
@@ -396,10 +396,10 @@ export class HeadingStructure extends LitElement {
       errors.push({
         count: 1,
         title:
-          TYPO3.lang["mindfula11y.modules.headingStructure.error.missingH1"],
+          TYPO3.lang["mindfula11y.features.headingStructure.error.missingH1"],
         description:
           TYPO3.lang[
-            "mindfula11y.modules.headingStructure.error.missingH1.description"
+            "mindfula11y.features.headingStructure.error.missingH1.description"
           ],
       });
     }
@@ -423,10 +423,10 @@ export class HeadingStructure extends LitElement {
       errors.push({
         count: skippedErrorHeadings,
         title:
-          TYPO3.lang["mindfula11y.modules.headingStructure.error.skippedLevel"],
+          TYPO3.lang["mindfula11y.features.headingStructure.error.skippedLevel"],
         description:
           TYPO3.lang[
-            "mindfula11y.modules.headingStructure.error.skippedLevel.description"
+            "mindfula11y.features.headingStructure.error.skippedLevel.description"
           ],
       });
     }
