@@ -451,7 +451,7 @@ export class HeadingStructure extends LitElement {
                 ${errors.map(
                   (error) => html`
                     <li class="alert alert-warning">
-                      <p class="lead">
+                      <p class="lead mb-2">
                         ${error.title}
                         <span class="badge rounded-pill">${error.count}</span>
                       </p>
