@@ -1,6 +1,6 @@
 {
     "name": "mindfulmarkup/mindfula11y",
-    "description": "TYPO3 extension integrating accessibility analysis and productivity tools into the TYPO3 backend.",
+    "description": "TYPO3 extension with backend tools to help you create accessible content. Includes management of heading structure, finding missing alternative text for images and alternative text generation using ChatGPT. More features to come.",
     "type": "typo3-cms-extension",
     "license": [
         "GPL-2.0-or-later"

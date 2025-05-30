@@ -2,7 +2,7 @@
 
 $EM_CONF[$_EXTKEY] = [
     'title' => 'Mindful A11y',
-    'description' => 'TYPO3 extension integrating accessibility analysis and productivity tools into the TYPO3 backend.',
+    'description' => 'TYPO3 extension with backend tools to help you create accessible content. Includes management of heading structure, finding missing alternative text for images and alternative text generation using ChatGPT. More features to come.',
     'category' => 'module',
     'author' => 'Felix Spittel',
     'author_email' => 'felix@mindfulmarkup.de',
