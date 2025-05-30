@@ -44,6 +44,9 @@ import AltTextGeneratorService from "./alt-text-generator-service.js";
  * @property {string} recordEditLinkLabel - The label for the edit record link.
  * @property {number} uid - The unique identifier for the file reference.
  * @property {AltTextDemand} altTextDemand - The object containing the parameters for generating alt text.
+ * @property {string} fallbackAlternative - Optional fallback alternative text to display if no alt text is provided.
+ * @property {boolean} _loading - Indicates if alt text is currently being generated. Used internally to manage UI state.
+ * @property {string} _statusMessage - Status message for screen readers, indicating the current state of the component. Used internally to provide feedback during alt text generation and saving.
  */
 export class AltlessFileReference extends LitElement {
   static get properties() {
@@ -55,9 +58,9 @@ export class AltlessFileReference extends LitElement {
       recordEditLinkLabel: { type: String },
       uid: { type: Number },
       altTextDemand: { type: Object },
-      loading: { type: Boolean }, // Indicates if alt text is being generated
-      statusMessage: { type: String }, // For screenreader status
       fallbackAlternative: { type: String }, // Optional fallback alt text
+      _loading: { type: Boolean }, // Indicates if alt text is being generated
+      _statusMessage: { type: String }, // For screenreader status
     };
   }
 
@@ -71,17 +74,22 @@ export class AltlessFileReference extends LitElement {
     this.uid = 0;
     this.altTextDemand = null;
     this.fallbackAlternative = null;
-
-    /**
-     * Internal properties.
-     */
-    this.loading = false;
-    this.statusMessage = "";
-
-    this.inputId = this.createNodeId("mindfula11y-altless-file-reference");
-    this.altTextGeneratorService = new AltTextGeneratorService(
+    this._loading = false;
+    this._statusMessage = "";
+    this._inputId = this.createNodeId("mindfula11y-altless-file-reference");
+    this._altTextGeneratorService = new AltTextGeneratorService(
       TYPO3.settings.ajaxUrls.mindfula11y_generatealttext
     );
+    this._lastSavedAlternative = this.alternative;
+  }
+
+  updated(changedProps) {
+    if (
+      changedProps.has("alternative") &&
+      this._lastSavedAlternative === undefined
+    ) {
+      this._lastSavedAlternative = this.alternative;
+    }
   }
 
   /**
@@ -110,6 +118,7 @@ export class AltlessFileReference extends LitElement {
    */
   handleAlternativeInput(e) {
     this.alternative = e.target.value;
+    this.requestUpdate();
   }
 
   /**
@@ -119,25 +128,27 @@ export class AltlessFileReference extends LitElement {
    * @returns {Promise<void>}
    */
   async handleGenerate() {
-    this.loading = true;
-    this.statusMessage =
+    this._loading = true;
+    this._statusMessage =
       TYPO3.lang["mindfula11y.features.missingAltText.generate.loading"];
     this.requestUpdate();
 
-    const altText = await this.altTextGeneratorService.generateAltText(
+    const altText = await this._altTextGeneratorService.generateAltText(
       this.altTextDemand
     );
 
-    this.loading = false;
+    this._loading = false;
     if (!altText) {
-      this.statusMessage =
-        TYPO3.lang["mindfula11y.features.missingAltText.generate.error.unknown"];
+      this._statusMessage =
+        TYPO3.lang[
+          "mindfula11y.features.missingAltText.generate.error.unknown"
+        ];
       this.requestUpdate();
       return;
     }
 
     this.alternative = altText;
-    this.statusMessage =
+    this._statusMessage =
       TYPO3.lang["mindfula11y.features.missingAltText.generate.success"];
     this.requestUpdate();
     Notification.success(
@@ -167,7 +178,6 @@ export class AltlessFileReference extends LitElement {
 
     AjaxDataHandler.process(params)
       .then(() => {
-        // Update the last saved value after successful save
         this._lastSavedAlternative = this.alternative;
         this.requestUpdate();
       })
@@ -179,6 +189,10 @@ export class AltlessFileReference extends LitElement {
           ]
         );
       });
+  }
+
+  isSaveDisabled() {
+    return this._loading || this.alternative === this._lastSavedAlternative;
   }
 
   /**
@@ -203,18 +217,18 @@ export class AltlessFileReference extends LitElement {
               TYPO3.lang["mindfula11y.features.missingAltText.imagePreview"]}"
             />
           </a>
-          <label class="form-label" for="${this.inputId}">
+          <label class="form-label" for="${this._inputId}">
             ${TYPO3.lang["mindfula11y.features.missingAltText.altLabel"]}
           </label>
           <textarea
-            id="${this.inputId}"
+            id="${this._inputId}"
             class="form-control"
             placeholder="${TYPO3.lang[
               "mindfula11y.features.missingAltText.altPlaceholder"
             ]}"
             rows="3"
             .value="${this.alternative}"
-            ?readonly="${this.loading}"
+            ?readonly="${this._loading}"
             @input="${this.handleAlternativeInput}"
           ></textarea>
 
@@ -225,7 +239,7 @@ export class AltlessFileReference extends LitElement {
                     class="btn btn-secondary"
                     type="button"
                     @click="${this.handleGenerate}"
-                    ?disabled="${this.loading}"
+                    ?disabled="${this._loading}"
                   >
                     ${TYPO3.lang[
                       "mindfula11y.features.missingAltText.generate.button"
@@ -237,21 +251,21 @@ export class AltlessFileReference extends LitElement {
               class="btn btn-primary"
               type="button"
               @click="${this.handleSave}"
-              ?disabled="${this.loading}"
+              ?disabled="${this.isSaveDisabled()}"
             >
               ${TYPO3.lang["mindfula11y.features.missingAltText.save"]}
             </button>
           </div>
           <div class="mt-2" role="status" aria-live="polite" aria-atomic="true">
-            ${this.statusMessage
+            ${this._statusMessage
               ? html`<p class="alert alert-info">
-                  ${this.loading
+                  ${this._loading
                     ? html`<span
                         class="spinner-border spinner-border-sm"
                         aria-hidden="true"
                       ></span>`
                     : null}
-                  ${this.statusMessage}
+                  ${this._statusMessage}
                 </p>`
               : null}
           </div>
