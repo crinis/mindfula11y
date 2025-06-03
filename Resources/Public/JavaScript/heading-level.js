@@ -104,13 +104,14 @@ export class HeadingLevel extends LitElement {
             ? html` <a
                 href="${this.recordEditLink}"
                 class="btn btn-default btn-sm"
-                aria-label="Edit"
                 ><svg
                   class="t3js-icon icon icon-size-small"
                   xmlns="http://www.w3.org/2000/svg"
                   viewBox="0 0 16 16"
-                  aria-hidden="true"
                 >
+                  <title>
+                    ${TYPO3.lang["mindfula11y.features.headingStructure.edit"]}
+                  </title>
                   <g fill="currentColor">
                     <path
                       d="m9.293 3.293-8 8A.997.997 0 0 0 1 12v3h3c.265 0 .52-.105.707-.293l8-8-3.414-3.414zM8.999 5l.5.5-5 5-.5-.5 5-5zM4 14H3v-1H2v-1l1-1 2 2-1 1zM13.707 5.707l1.354-1.354a.5.5 0 0 0 0-.707L12.354.939a.5.5 0 0 0-.707 0l-1.354 1.354 3.414 3.414z"
@@ -122,8 +123,10 @@ export class HeadingLevel extends LitElement {
                 class="t3js-icon icon icon-size-small"
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 16 16"
-                aria-hidden="true"
               >
+                <title>
+                  ${TYPO3.lang["mindfula11y.features.headingStructure.edit.locked"]}
+                </title>
                 <g fill="currentColor">
                   <path
                     d="M13 7v7H3V7h10m.5-1h-11a.5.5 0 0 0-.5.5v8a.5.5 0 0 0 .5.5h11a.5.5 0 0 0 .5-.5v-8a.5.5 0 0 0-.5-.5zM8 2c1.654 0 3 1.346 3 3v1h1V5a4 4 0 0 0-8 0v1h1V5c0-1.654 1.346-3 3-3z"

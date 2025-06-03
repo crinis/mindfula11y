@@ -246,6 +246,12 @@
                 resname="headingStructure.error.skippedLevel.inline">
                 <source>Skipped H%1$d</source>
             </trans-unit>
+            <trans-unit id="headingStructure.edit" resname="headingStructure.edit">
+                <source>Edit heading</source>
+            </trans-unit>
+            <trans-unit id="headingStructure.edit.locked" resname="headingStructure.edit.locked">
+                <source>Editing not allowed</source>
+            </trans-unit>
         </body>
     </file>
 </xliff>
