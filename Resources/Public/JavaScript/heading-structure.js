@@ -44,7 +44,7 @@ export class HeadingStructure extends LitElement {
   static get styles() {
     return css`
       .mindfula11y-tree {
-        --spacing: 1.5rem;
+        --spacing: 2.25rem;
         --radius: 0.5rem;
         --color: var(--typo3-badge-success-border-color);
         --color-error: var(--typo3-badge-danger-border-color);
@@ -93,6 +93,7 @@ export class HeadingStructure extends LitElement {
         min-height: 2.25em;
         align-items: center;
         gap: 1em;
+        font-size: 1.125rem;
       }
 
       .mindfula11y-level__input {
