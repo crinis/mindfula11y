@@ -63,7 +63,7 @@ Render a heading with the ability to edit its level from the backend module. Thi
 
 ```html
 <mindfula11y:heading
-  recordUid="{data.uid}"
+  recordUid="{f:if(condition: data._LOCALIZED_UID, then: data._LOCALIZED_UID, else: data.uid)}"
   recordTableName="tt_content"
   recordColumnName="tx_mindfula11y_headinglevel"
   level="{data.tx_mindfula11y_headinglevel}"
