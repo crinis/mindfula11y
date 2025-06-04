@@ -27,6 +27,7 @@ use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 use TYPO3\CMS\Core\Context\Context;
+use TYPO3\CMS\Frontend\Cache\CacheInstruction;
 
 /**
  * Middleware to disable the cache.
@@ -47,6 +48,7 @@ class DisableCacheMiddleware implements MiddlewareInterface
         if ($this->context->getPropertyFromAspect('backend.user', 'isLoggedIn', false) && $request->getHeaderLine('Mindfula11y-Heading-Structure') === '1') {
             $cacheInstruction = $request->getAttribute(
                 'frontend.cache.instruction',
+                new CacheInstruction()
             );
 
             $cacheInstruction->disableCache('EXT:mindfula11y: Mindfula11y-Heading-Structure header set.');

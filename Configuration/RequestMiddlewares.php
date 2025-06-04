@@ -27,8 +27,8 @@ return [
     'frontend' => [
         'mindfulmarkup/mindfula11y/disable-cache' => [
             'target' => DisableCacheMiddleware::class,
-            'after' => [
-                'typo3/cms-frontend/tsfe',
+            'before' => [
+                'typo3/cms-frontend/prepare-tsfe-rendering',
             ],
         ],
         'mindfulmarkup/mindfula11y/disable-admin-panel' => [
