@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<xliff version="1.2" xmlns="urn:oasis:names:tc:xliff:document:1.2">
+	<file source-language="en" target-language="de" datatype="plaintext"
+		original="EXT:mindfula11y/Resources/Private/Language/Configuration.xlf"
+		date="2020-11-16T10:32:58Z"
+		product-name="mindfula11y">
+		<header />
+		<body>
+            <trans-unit id="title" xml:space="preserve">
+                <source>Mindful A11y Settings</source>
+                <target>Mindful A11y Einstellungen</target>
+            </trans-unit>
+            <trans-unit id="openAI.apiKey" xml:space="preserve">
+                <source>OpenAI API Key</source>
+                <target>OpenAI API-Schlüssel</target>
+            </trans-unit>
+            <trans-unit id="openAI.chat.model" xml:space="preserve">
+                <source>OpenAI Chat Model: LLM Model used. Tested are gpt-4o-mini and gpt-4o.</source>
+                <target>OpenAI Chat-Modell: Verwendetes LLM-Modell. Getestet sind gpt-4o-mini und gpt-4o.</target>
+            </trans-unit>
+            <trans-unit id="openAI.chat.imageDetail" xml:space="preserve">
+                <source>OpenAI Chat Image Detail: Detail level for images described by the LLM. Can be low or high.</source>
+                <target>OpenAI Chat Bilddetails: Detailgrad für Bilder, die vom LLM beschrieben werden. Kann niedrig oder hoch sein.</target>
+            </trans-unit>
+            <trans-unit id="disableAltTextGeneration" xml:space="preserve">
+                <source>Disable Alt Text Generation: Disable AI-Generation of alternative text.</source>
+                <target>Alt-Text-Generierung deaktivieren: KI-Generierung von Alternativtext deaktivieren.</target>
+            </trans-unit>
+		</body>
+	</file>
+</xliff>
