@@ -130,7 +130,7 @@ class HeadingViewHelper extends AbstractTagBasedViewHelper
         $request = $this->getRequest();
         if (
             null !== $request
-            && $request->getHeaderLine('Mindfula11y-Heading-Structure') === '1'
+            && $request->hasHeader('Mindfula11y-Structure-Analysis')
             && $this->context->getPropertyFromAspect('backend.user', 'isLoggedIn', false)
             && null !== $this->arguments['recordUid']
             && $this->hasPermissionToModifyHeadingLevel(

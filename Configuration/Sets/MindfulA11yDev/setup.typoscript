@@ -1,9 +1,46 @@
 page = PAGE
+
+# Add navigation with placeholder links
+page.5 = COA
+page.5 {
+  wrap = <nav role="navigation" aria-label="Main navigation">|</nav>
+  
+  10 = COA
+  10 {
+    wrap = <ul class="main-navigation">|</ul>
+    
+    10 = TEXT
+    10.value = Home
+    10.typolink.parameter = /
+    10.wrap = <li>|</li>
+    
+    20 = TEXT
+    20.value = About
+    20.typolink.parameter = /about
+    20.wrap = <li>|</li>
+    
+    30 = TEXT
+    30.value = Services
+    30.typolink.parameter = /services
+    30.wrap = <li>|</li>
+    
+    40 = TEXT
+    40.value = Contact
+    40.typolink.parameter = /contact
+    40.wrap = <li>|</li>
+  }
+}
+
+# Main content with landmark wrapper
 page.10 = CONTENT
 page.10 {
   table = tt_content
   select.where = colPos = 0
   select.orderBy = sorting
+  wrap = <main role="main" aria-label="Main content">|</main><nav aria-label="Main navigation"></nav><main></main><section></section><section role="region"></section><aside></aside>
 }
 
+lib.contentElement.layoutRootPaths.1745149906 = EXT:mindfula11y/Resources/Private/Layouts/
 lib.contentElement.partialRootPaths.1745149906 = EXT:mindfula11y/Resources/Private/Partials/
+
+config.contentObjectExceptionHandler = 0

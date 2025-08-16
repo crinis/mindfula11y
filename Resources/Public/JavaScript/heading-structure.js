@@ -375,7 +375,7 @@ export class HeadingStructure extends LitElement {
   async fetchPreview() {
     const response = await new AjaxRequest(this.previewUrl).get({
       headers: {
-        "Mindfula11y-Heading-Structure": "1",
+        "Mindfula11y-Structure-Analysis": "1",
       },
     });
 

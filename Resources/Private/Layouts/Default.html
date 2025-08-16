@@ -1,0 +1,107 @@
+<html xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
+    xmlns:mindfula11y="http://typo3.org/ns/MindfulMarkup/MindfulA11y/ViewHelpers" data-namespace-typo3-fluid="true">
+<f:if condition="{data.frame_class} != none">
+    <f:then>
+
+        <f:if condition="{data.tx_mindfula11y_landmark}">
+            <f:then>
+                <mindfula11y:landmark recordUid="{data.uid}" role="{data.tx_mindfula11y_landmark}" fallbackTag="div"
+                    id="c{data.uid}"
+                    class="frame frame-{data.frame_class} frame-type-{data.CType} frame-layout-{data.layout}{f:if(condition: data.space_before_class, then: ' frame-space-before-{data.space_before_class}')}{f:if(condition: data.space_after_class, then: ' frame-space-after-{data.space_after_class}')}"
+                    aria="{f:if(condition: '{data.tx_mindfula11y_arialabelledby} && {data.header}', then: '{labelledby: \'c{data.uid}-heading\'}', else: '{label: data.tx_mindfula11y_arialabel}')}">
+                    <f:if condition="{data._LOCALIZED_UID}">
+                        <a id="c{data._LOCALIZED_UID}"></a>
+                    </f:if>
+                    <f:render section="Before" optional="true">
+                        <f:render partial="DropIn/Before/All" arguments="{_all}" />
+                    </f:render>
+                    <f:render section="Header" optional="true">
+                        <f:render partial="Header/All" arguments="{_all}" />
+                    </f:render>
+                    <f:render section="Main" optional="true" />
+                    <f:render section="Footer" optional="true">
+                        <f:render partial="Footer/All" arguments="{_all}" />
+                    </f:render>
+                    <f:render section="After" optional="true">
+                        <f:render partial="DropIn/After/All" arguments="{_all}" />
+                    </f:render>
+                </mindfula11y:landmark>
+            </f:then>
+            <f:else>
+                <mindfula11y:landmark recordUid="{data.uid}" fallbackTag="div" id="c{data.uid}"
+                    class="frame frame-{data.frame_class} frame-type-{data.CType} frame-layout-{data.layout}{f:if(condition: data.space_before_class, then: ' frame-space-before-{data.space_before_class}')}{f:if(condition: data.space_after_class, then: ' frame-space-after-{data.space_after_class}')}">
+                    <f:if condition="{data._LOCALIZED_UID}">
+                        <a id="c{data._LOCALIZED_UID}"></a>
+                    </f:if>
+                    <f:render section="Before" optional="true">
+                        <f:render partial="DropIn/Before/All" arguments="{_all}" />
+                    </f:render>
+                    <f:render section="Header" optional="true">
+                        <f:render partial="Header/All" arguments="{_all}" />
+                    </f:render>
+                    <f:render section="Main" optional="true" />
+                    <f:render section="Footer" optional="true">
+                        <f:render partial="Footer/All" arguments="{_all}" />
+                    </f:render>
+                    <f:render section="After" optional="true">
+                        <f:render partial="DropIn/After/All" arguments="{_all}" />
+                    </f:render>
+                </mindfula11y:landmark>
+            </f:else>
+        </f:if>
+
+    </f:then>
+    <f:else>
+
+        <a id="c{data.uid}"></a>
+        <f:if condition="{data._LOCALIZED_UID}">
+            <a id="c{data._LOCALIZED_UID}"></a>
+        </f:if>
+        <f:if condition="{data.space_before_class}">
+            <div class="frame-space-before-{data.space_before_class}"></div>
+        </f:if>
+        <f:if condition="{data.tx_mindfula11y_landmark}">
+            <f:then>
+                <mindfula11y:landmark recordUid="{data.uid}" role="{data.tx_mindfula11y_landmark}" fallbackTag="div"
+                    aria="{f:if(condition: '{data.tx_mindfula11y_arialabelledby} && {data.header}', then: '{labelledby: \'c{data.uid}-heading\'}', else: '{label: data.tx_mindfula11y_arialabel}')}">
+                    <f:render section="Before" optional="true">
+                        <f:render partial="DropIn/Before/All" arguments="{_all}" />
+                    </f:render>
+                    <f:render section="Header" optional="true">
+                        <f:render partial="Header/All" arguments="{_all}" />
+                    </f:render>
+                    <f:render section="Main" optional="true" />
+                    <f:render section="Footer" optional="true">
+                        <f:render partial="Footer/All" arguments="{_all}" />
+                    </f:render>
+                    <f:render section="After" optional="true">
+                        <f:render partial="DropIn/After/All" arguments="{_all}" />
+                    </f:render>
+                </mindfula11y:landmark>
+            </f:then>
+            <f:else>
+                <mindfula11y:landmark recordUid="{data.uid}" fallbackTag="div">
+                    <f:render section="Before" optional="true">
+                        <f:render partial="DropIn/Before/All" arguments="{_all}" />
+                    </f:render>
+                    <f:render section="Header" optional="true">
+                        <f:render partial="Header/All" arguments="{_all}" />
+                    </f:render>
+                    <f:render section="Main" optional="true" />
+                    <f:render section="Footer" optional="true">
+                        <f:render partial="Footer/All" arguments="{_all}" />
+                    </f:render>
+                    <f:render section="After" optional="true">
+                        <f:render partial="DropIn/After/All" arguments="{_all}" />
+                    </f:render>
+                </mindfula11y:landmark>
+            </f:else>
+        </f:if>
+        <f:if condition="{data.space_after_class}">
+            <div class="frame-space-after-{data.space_after_class}"></div>
+        </f:if>
+
+    </f:else>
+</f:if>
+
+</html>

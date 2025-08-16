@@ -42,6 +42,86 @@
 				resname="ttContent.columns.mindfula11y.headingLevel.items.fallbackTag">
 				<source>Do not make this a heading</source>
 			</trans-unit>
+			
+			<!-- Accessibility Tab -->
+			<trans-unit id="ttContent.tabs.accessibility"
+				resname="ttContent.tabs.accessibility">
+				<source>Accessibility</source>
+			</trans-unit>
+			
+			<!-- Landmarks Palette -->
+			<trans-unit id="ttContent.palettes.landmarks"
+				resname="ttContent.palettes.landmarks">
+				<source>ARIA Landmarks</source>
+			</trans-unit>
+			
+			<!-- Landmark Field -->
+			<trans-unit id="ttContent.columns.mindfula11y.landmark"
+				resname="ttContent.columns.mindfula11y.landmark">
+				<source>Landmark Type</source>
+			</trans-unit>
+			<trans-unit id="ttContent.columns.mindfula11y.landmark.description"
+				resname="ttContent.columns.mindfula11y.landmark.description">
+				<source>Choose how this content should be identified to screen reader users for easier page navigation. Only select a landmark type if this content represents a distinct, meaningful section of the page.</source>
+			</trans-unit>
+			
+			<!-- Landmark Type Options -->
+			<trans-unit id="ttContent.columns.mindfula11y.landmark.items.none"
+				resname="ttContent.columns.mindfula11y.landmark.items.none">
+				<source>None</source>
+			</trans-unit>
+			<trans-unit id="ttContent.columns.mindfula11y.landmark.items.region"
+				resname="ttContent.columns.mindfula11y.landmark.items.region">
+				<source>Important Section (only if none of the other options apply)</source>
+			</trans-unit>
+			<trans-unit id="ttContent.columns.mindfula11y.landmark.items.navigation"
+				resname="ttContent.columns.mindfula11y.landmark.items.navigation">
+				<source>Navigation Menu</source>
+			</trans-unit>
+			<trans-unit id="ttContent.columns.mindfula11y.landmark.items.complementary"
+				resname="ttContent.columns.mindfula11y.landmark.items.complementary">
+				<source>Sidebar / Related Content</source>
+			</trans-unit>
+			<trans-unit id="ttContent.columns.mindfula11y.landmark.items.main"
+				resname="ttContent.columns.mindfula11y.landmark.items.main">
+				<source>Main Content Area</source>
+			</trans-unit>
+			<trans-unit id="ttContent.columns.mindfula11y.landmark.items.banner"
+				resname="ttContent.columns.mindfula11y.landmark.items.banner">
+				<source>Site Header</source>
+			</trans-unit>
+			<trans-unit id="ttContent.columns.mindfula11y.landmark.items.contentinfo"
+				resname="ttContent.columns.mindfula11y.landmark.items.contentinfo">
+				<source>Site Footer</source>
+			</trans-unit>
+			<trans-unit id="ttContent.columns.mindfula11y.landmark.items.search"
+				resname="ttContent.columns.mindfula11y.landmark.items.search">
+				<source>Search Function</source>
+			</trans-unit>
+			<trans-unit id="ttContent.columns.mindfula11y.landmark.items.form"
+				resname="ttContent.columns.mindfula11y.landmark.items.form">
+				<source>Form Section</source>
+			</trans-unit>
+			
+			<!-- ARIA Labelledby Field -->
+			<trans-unit id="ttContent.columns.mindfula11y.ariaLabelledby"
+				resname="ttContent.columns.mindfula11y.ariaLabelledby">
+				<source>Use header as landmark name</source>
+			</trans-unit>
+			<trans-unit id="ttContent.columns.mindfula11y.ariaLabelledby.description"
+				resname="ttContent.columns.mindfula11y.ariaLabelledby.description">
+				<source>When enabled, the content element's header will be used as the accessible name for this landmark. IMPORTANT: Make sure your content element has a meaningful header when this option is enabled, as screen readers will announce it as the landmark's name.</source>
+			</trans-unit>
+			
+			<!-- ARIA Label Field -->
+			<trans-unit id="ttContent.columns.mindfula11y.ariaLabel"
+				resname="ttContent.columns.mindfula11y.ariaLabel">
+				<source>Custom landmark name</source>
+			</trans-unit>
+			<trans-unit id="ttContent.columns.mindfula11y.ariaLabel.description"
+				resname="ttContent.columns.mindfula11y.ariaLabel.description">
+				<source>Provide a descriptive name for this landmark that will be announced by screen readers. This should be concise but meaningful, helping users understand the purpose of this section.</source>
+			</trans-unit>
 		</body>
 	</file>
 </xliff>

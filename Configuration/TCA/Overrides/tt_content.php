@@ -21,6 +21,7 @@ declare(strict_types=1);
  */
 
 use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
+use MindfulMarkup\MindfulA11y\Enum\AriaLandmark;
 
 defined('TYPO3') or die();
 
@@ -66,6 +67,91 @@ ExtensionManagementUtility::addTCAcolumns(
                 ],
             ],
         ],
+        'tx_mindfula11y_landmark' => [
+            'exclude' => true,
+            'label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.landmark',
+            'description' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.landmark.description',
+            'onChange' => 'reload',
+            'config' => [
+                'type' => 'select',
+                'renderType' => 'selectSingle',
+                'default' => AriaLandmark::NONE->value,
+                'items' => [
+                    [
+                        'label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.landmark.items.none',
+                        'value' => AriaLandmark::NONE->value,
+                    ],
+                    [
+                        'label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.landmark.items.region',
+                        'value' => AriaLandmark::REGION->value,
+                    ],
+                    [
+                        'label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.landmark.items.navigation',
+                        'value' => AriaLandmark::NAVIGATION->value,
+                    ],
+                    [
+                        'label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.landmark.items.complementary',
+                        'value' => AriaLandmark::COMPLEMENTARY->value,
+                    ],
+                    [
+                        'label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.landmark.items.main',
+                        'value' => AriaLandmark::MAIN->value,
+                    ],
+                    [
+                        'label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.landmark.items.banner',
+                        'value' => AriaLandmark::BANNER->value,
+                    ],
+                    [
+                        'label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.landmark.items.contentinfo',
+                        'value' => AriaLandmark::CONTENTINFO->value,
+                    ],
+                    [
+                        'label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.landmark.items.search',
+                        'value' => AriaLandmark::SEARCH->value,
+                    ],
+                    [
+                        'label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.landmark.items.form',
+                        'value' => AriaLandmark::FORM->value,
+                    ],
+                ],
+            ],
+        ],
+        'tx_mindfula11y_arialabelledby' => [
+            'exclude' => true,
+            'label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.ariaLabelledby',
+            'description' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.ariaLabelledby.description',
+            'displayCond' => 'FIELD:tx_mindfula11y_landmark:!=:',
+            'onChange' => 'reload',
+            'config' => [
+                'type' => 'check',
+                'renderType' => 'checkboxToggle',
+                'default' => 1,
+                'items' => [
+                    [
+                        'label' => '',
+                        'value' => '',
+                    ],
+                ],
+            ],
+        ],
+        'tx_mindfula11y_arialabel' => [
+            'exclude' => true,
+            'label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.ariaLabel',
+            'description' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.ariaLabel.description',
+            'displayCond' => [
+                'AND' => [
+                    'FIELD:tx_mindfula11y_landmark:!=:',
+                    'FIELD:tx_mindfula11y_arialabelledby:=:0'
+                ]
+            ],
+            'config' => [
+                'type' => 'input',
+                'size' => 50,
+                'max' => 255,
+                'eval' => 'trim',
+                'required' => true,
+            ],
+        ],
     ]
 );
 
@@ -74,4 +160,16 @@ ExtensionManagementUtility::addFieldsToPalette(
     'headers',
     'tx_mindfula11y_headinglevel',
     'after:header'
+);
+
+// Add landmark palette
+$GLOBALS['TCA']['tt_content']['palettes']['landmarks'] = [
+    'label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.palettes.landmarks',
+    'showitem' => 'tx_mindfula11y_landmark, --linebreak--, tx_mindfula11y_arialabelledby, tx_mindfula11y_arialabel'
+];
+
+// Add accessibility tab to all content element types
+ExtensionManagementUtility::addToAllTCAtypes(
+    'tt_content',
+    '--div--;LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.tabs.accessibility, --palette--;LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.palettes.landmarks;landmarks'
 );

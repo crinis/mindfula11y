@@ -32,7 +32,8 @@ use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 /**
  * Middleware to disable the admin panel.
  * 
- * Middleware to disable the admin panel for a request if Mindfula11y-Heading-Structure header is set.
+ * Middleware to disable the admin panel for a request if Mindfula11y-Structure-Analysis header is present
+ * for structure analysis requests.
  */
 class DisableAdminPanel implements MiddlewareInterface
 {
@@ -44,7 +45,7 @@ class DisableAdminPanel implements MiddlewareInterface
     {
         if (
             $this->context->getPropertyFromAspect('backend.user', 'isLoggedIn', false)
-            && $request->getHeaderLine('Mindfula11y-Heading-Structure') === '1'
+            && $request->hasHeader('Mindfula11y-Structure-Analysis')
             && ExtensionManagementUtility::isLoaded('adminpanel')
         ) {
             /**

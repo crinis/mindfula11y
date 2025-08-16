@@ -60,6 +60,9 @@
             <trans-unit id="headingStructure" resname="headingStructure">
                 <source>Heading structure</source>
             </trans-unit>
+            <trans-unit id="landmarkStructure" resname="landmarkStructure">
+                <source>Landmark structure</source>
+            </trans-unit>
 
             <trans-unit id="menu.pageLevels" resname="menu.pageLevels">
                 <source>Check Recursive</source>
@@ -104,6 +107,9 @@
             </trans-unit>
             <trans-unit id="menu.features.headingStructure" resname="menu.features.headingStructure">
                 <source>Heading structure</source>
+            </trans-unit>
+            <trans-unit id="menu.features.landmarkStructure" resname="menu.features.landmarkStructure">
+                <source>Landmark structure</source>
             </trans-unit>
 
             <trans-unit id="missingAltText" resname="missingAltText">
@@ -251,6 +257,154 @@
             </trans-unit>
             <trans-unit id="headingStructure.edit.locked" resname="headingStructure.edit.locked">
                 <source>Editing not allowed</source>
+            </trans-unit>
+
+            <trans-unit id="landmarkStructure" resname="landmarkStructure">
+                <source>Landmark Structure</source>
+            </trans-unit>
+            <trans-unit id="landmarkStructure.description" resname="landmarkStructure.description">
+                <source>
+                    Listing the landmark structure of the currently selected page and
+                    providing options to fix it.
+                </source>
+            </trans-unit>
+            <trans-unit id="landmarkStructure.edit" resname="landmarkStructure.edit">
+                <source>Edit landmark</source>
+            </trans-unit>
+            <trans-unit id="landmarkStructure.edit.locked" resname="landmarkStructure.edit.locked">
+                <source>Landmark is not editable</source>
+            </trans-unit>
+            <trans-unit id="landmarkStructure.nestedLandmarks" resname="landmarkStructure.nestedLandmarks">
+                <source>Nested landmarks</source>
+            </trans-unit>
+            <trans-unit id="landmarkStructure.role" resname="landmarkStructure.role">
+                <source>Landmark role</source>
+            </trans-unit>
+            <trans-unit id="landmarkStructure.role.none" resname="landmarkStructure.role.none">
+                <source>No Landmark (none)</source>
+            </trans-unit>
+            <trans-unit id="landmarkStructure.role.banner" resname="landmarkStructure.role.banner">
+                <source>Site Header (banner)</source>
+            </trans-unit>
+            <trans-unit id="landmarkStructure.role.main" resname="landmarkStructure.role.main">
+                <source>Main Content (main)</source>
+            </trans-unit>
+            <trans-unit id="landmarkStructure.role.navigation" resname="landmarkStructure.role.navigation">
+                <source>Navigation (navigation)</source>
+            </trans-unit>
+            <trans-unit id="landmarkStructure.role.complementary" resname="landmarkStructure.role.complementary">
+                <source>Sidebar (complementary)</source>
+            </trans-unit>
+            <trans-unit id="landmarkStructure.role.contentinfo" resname="landmarkStructure.role.contentinfo">
+                <source>Site Footer (contentinfo)</source>
+            </trans-unit>
+            <trans-unit id="landmarkStructure.role.region" resname="landmarkStructure.role.region">
+                <source>Section (region)</source>
+            </trans-unit>
+            <trans-unit id="landmarkStructure.role.search" resname="landmarkStructure.role.search">
+                <source>Search (search)</source>
+            </trans-unit>
+            <trans-unit id="landmarkStructure.role.form" resname="landmarkStructure.role.form">
+                <source>Form (form)</source>
+            </trans-unit>
+            
+            <!-- No landmarks message -->
+            <trans-unit id="landmarkStructure.noLandmarks.title" resname="landmarkStructure.noLandmarks.title">
+                <source>No landmarks found</source>
+            </trans-unit>
+            <trans-unit id="landmarkStructure.noLandmarks.description" resname="landmarkStructure.noLandmarks.description">
+                <source>This page doesn't contain any ARIA landmarks or semantic HTML elements.</source>
+            </trans-unit>
+            
+            <trans-unit id="landmarkStructure.error.loading" resname="landmarkStructure.error.loading">
+                <source>Loading landmark structure failed.</source>
+            </trans-unit>
+            <trans-unit id="landmarkStructure.error.loading.description"
+                resname="landmarkStructure.error.loading.description">
+                <source>Could not load the landmark structure. Cannot analyze the page landmark
+                    structure.</source>
+            </trans-unit>
+            <trans-unit id="landmarkStructure.error.store" resname="landmarkStructure.error.store">
+                <source>Saving landmark role failed.</source>
+            </trans-unit>
+            <trans-unit id="landmarkStructure.error.store.description"
+                resname="landmarkStructure.error.store.description">
+                <source>Could not save the landmark role. Do you have permission?</source>
+            </trans-unit>
+            <trans-unit id="landmarkStructure.error.updateFailed" resname="landmarkStructure.error.updateFailed">
+                <source>Updating landmark role failed.</source>
+            </trans-unit>
+            <trans-unit id="landmarkStructure.error.updateFailed.description"
+                resname="landmarkStructure.error.updateFailed.description">
+                <source>Could not update the landmark role. Do you have permission?</source>
+            </trans-unit>
+            <!-- Global error messages (shown above landmark list) -->
+            <trans-unit id="landmarkStructure.error.missingMain"
+                resname="landmarkStructure.error.missingMain">
+                <source>Missing main landmark.</source>
+            </trans-unit>
+            <trans-unit id="landmarkStructure.error.missingMain.description"
+                resname="landmarkStructure.error.missingMain.description">
+                <source>Every page should have exactly one main landmark to identify the main content area. 
+                    This helps screenreader users quickly navigate to the primary content.</source>
+            </trans-unit>
+            <trans-unit id="landmarkStructure.error.duplicateLandmark"
+                resname="landmarkStructure.error.duplicateLandmark">
+                <source>Duplicate unique landmark.</source>
+            </trans-unit>
+            <trans-unit id="landmarkStructure.error.duplicateLandmark.description"
+                resname="landmarkStructure.error.duplicateLandmark.description">
+                <source>The main landmark must appear exactly once per page. Multiple main landmarks can confuse assistive technology users.</source>
+            </trans-unit>
+            <trans-unit id="landmarkStructure.error.duplicateSameLabel" resname="landmarkStructure.error.duplicateSameLabel">
+                <source>Landmarks with identical labels.</source>
+            </trans-unit>
+            <trans-unit id="landmarkStructure.error.duplicateSameLabel.description" resname="landmarkStructure.error.duplicateSameLabel.description">
+                <source>Multiple landmarks share an identical label. Provide unique labels so users can differentiate them.</source>
+            </trans-unit>
+            <trans-unit id="landmarkStructure.error.multipleUnlabeledLandmarks" resname="landmarkStructure.error.multipleUnlabeledLandmarks">
+                <source>Multiple unlabeled landmarks of the same role.</source>
+            </trans-unit>
+            <trans-unit id="landmarkStructure.error.multipleUnlabeledLandmarks.description" resname="landmarkStructure.error.multipleUnlabeledLandmarks.description">
+                <source>More than one landmark with the same role lacks a label. Add unique labels (aria-label or aria-labelledby) so users can distinguish them.</source>
+            </trans-unit>
+            
+            <!-- Individual landmark callout messages (shown on specific landmarks) -->
+            <trans-unit id="landmarkStructure.callout.duplicateMain" resname="landmarkStructure.callout.duplicateMain">
+                <source>Multiple Main landmarks found. There must be exactly one.</source>
+            </trans-unit>
+            <trans-unit id="landmarkStructure.callout.duplicateRoleSameLabel" resname="landmarkStructure.callout.duplicateRoleSameLabel">
+                <source>This label is used by multiple landmarks. Provide a distinct label.</source>
+            </trans-unit>
+            <trans-unit id="landmarkStructure.callout.multipleUnlabeledSameRole" resname="landmarkStructure.callout.multipleUnlabeledSameRole">
+                <source>Add a unique label. Multiple unlabeled landmarks share this role.</source>
+            </trans-unit>
+            <trans-unit id="landmarkStructure.success.roleUpdated"
+                resname="landmarkStructure.success.roleUpdated">
+                <source>Landmark role updated.</source>
+            </trans-unit>
+            <trans-unit id="landmarkStructure.success.roleUpdated.description"
+                resname="landmarkStructure.success.roleUpdated.description">
+                <source>Successfully updated landmark role to</source>
+            </trans-unit>
+            <trans-unit id="landmarkStructure.error.badge" resname="landmarkStructure.error.badge">
+                <source>Error</source>
+            </trans-unit>
+            <trans-unit id="landmarkStructure.intro" resname="landmarkStructure.intro">
+                <source>Landmarks identify key regions of a page for assistive technology. Use them once per page when unique (Main, Banner, Footer) and provide distinct labels for repeated regions (Navigation, Search, Complementary, Region, Form).</source>
+            </trans-unit>
+            <trans-unit id="landmarkStructure.intro.roles" resname="landmarkStructure.intro.roles">
+                <source>Available roles: Banner (banner), Main (main), Footer (contentinfo), Navigation (navigation), Search (search), Complementary (complementary), Region (region), Form (form) or None.</source>
+            </trans-unit>
+            
+            <trans-unit id="landmarkStructure.unlabelledLandmark" resname="landmarkStructure.unlabelledLandmark">
+                <source>Unlabelled Landmark</source>
+            </trans-unit>
+            <trans-unit id="landmarkStructure.error.duplicateSameLabel" resname="landmarkStructure.error.duplicateSameLabel">
+                <source>Landmarks with identical labels.</source>
+            </trans-unit>
+            <trans-unit id="landmarkStructure.error.duplicateSameLabel.description" resname="landmarkStructure.error.duplicateSameLabel.description">
+                <source>Multiple landmarks share an identical label. Provide unique labels so users can differentiate them.</source>
             </trans-unit>
         </body>
     </file>

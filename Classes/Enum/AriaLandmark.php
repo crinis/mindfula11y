@@ -20,17 +20,23 @@ declare(strict_types=1);
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-return [
-    'dependencies' => [
-        'backend',
-    ],
-    'tags' => [
-        'backend.form',
-    ],
-    'imports' => [
-        '@mindfulmarkup/mindfula11y/input-alt-element-service.js' => 'EXT:mindfula11y/Resources/Public/JavaScript/input-alt-element-service.js',
-        '@mindfulmarkup/mindfula11y/heading-structure.js' => 'EXT:mindfula11y/Resources/Public/JavaScript/heading-structure.js',
-        '@mindfulmarkup/mindfula11y/landmark-structure.js' => 'EXT:mindfula11y/Resources/Public/JavaScript/landmark-structure.js',
-        '@mindfulmarkup/mindfula11y/altless-file-reference.js' => 'EXT:mindfula11y/Resources/Public/JavaScript/altless-file-reference.js',
-    ],
-];
+namespace MindfulMarkup\MindfulA11y\Enum;
+
+/**
+ * Enumeration for ARIA landmarks.
+ * 
+ * Maps landmark types to string values based on ARIA role names.
+ * Ordered by expected usage frequency.
+ */
+enum AriaLandmark: string
+{
+    case NONE = '';
+    case REGION = 'region';
+    case NAVIGATION = 'navigation';
+    case COMPLEMENTARY = 'complementary';
+    case MAIN = 'main';
+    case BANNER = 'banner';
+    case CONTENTINFO = 'contentinfo';
+    case SEARCH = 'search';
+    case FORM = 'form';
+}

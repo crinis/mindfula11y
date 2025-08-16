@@ -1,27 +1,21 @@
-<html
-  xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
-  xmlns:mindfula11y="http://typo3.org/ns/MindfulMarkup/MindfulA11y/ViewHelpers"
-  data-namespace-typo3-fluid="true"
->
-  <f:if condition="{data.header_layout} != 100">
-    <f:if condition="{data.header} || {data.subheader} || {data.date}">
-      <header>
-        <mindfula11y:heading
-          recordUid="{f:if(condition: data._LOCALIZED_UID, then: data._LOCALIZED_UID, else: data.uid)}"
-          level="{data.tx_mindfula11y_headinglevel}"
-        >
-          {data.header}</mindfula11y:heading
-        >
-        <f:if condition="{data.subheader}">
-          <f:comment>
-            Just for testing. It is bad practice to use an actual heading for a
-            subheader.
-          </f:comment>
-          <mindfula11y:heading level="{data.tx_mindfula11y_headinglevel + 1}">
-            {data.subheader}</mindfula11y:heading
-          >
-        </f:if>
-      </header>
+<html xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
+  xmlns:mindfula11y="http://typo3.org/ns/MindfulMarkup/MindfulA11y/ViewHelpers" data-namespace-typo3-fluid="true">
+<f:if condition="{data.header_layout} != 100">
+  <f:if condition="{data.header} || {data.subheader} || {data.date}">
+
+    <mindfula11y:heading recordUid="{f:if(condition: data._LOCALIZED_UID, then: data._LOCALIZED_UID, else: data.uid)}"
+      level="{data.tx_mindfula11y_headinglevel}"
+      id="c{data.uid}-heading">
+      {data.header}</mindfula11y:heading>
+    <f:if condition="{data.subheader}">
+      <f:comment>
+        Just for testing. It is bad practice to use an actual heading for a
+        subheader.
+      </f:comment>
+      <mindfula11y:heading level="{data.tx_mindfula11y_headinglevel + 1}">
+        {data.subheader}</mindfula11y:heading>
     </f:if>
   </f:if>
+</f:if>
+
 </html>

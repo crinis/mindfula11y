@@ -32,7 +32,7 @@ use TYPO3\CMS\Frontend\Cache\CacheInstruction;
 /**
  * Middleware to disable the cache.
  * 
- * Middleware to disable the cache for a request if Mindfula11y-Heading-Structure header is set.
+ * Middleware to disable the cache for a request if Mindfula11y-Structure-Analysis header is set.
  */
 class DisableCacheMiddleware implements MiddlewareInterface
 {
@@ -41,17 +41,17 @@ class DisableCacheMiddleware implements MiddlewareInterface
     ) {}
 
     /**
-     * Process the request and disable the frontend cache if the Mindfula11y-Heading-Structure header is set.
+     * Process the request and disable the frontend cache if the Mindfula11y-Structure-Analysis header is set.
      */
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
-        if ($this->context->getPropertyFromAspect('backend.user', 'isLoggedIn', false) && $request->getHeaderLine('Mindfula11y-Heading-Structure') === '1') {
+        if ($this->context->getPropertyFromAspect('backend.user', 'isLoggedIn', false) && $request->hasHeader('Mindfula11y-Structure-Analysis')) {
             $cacheInstruction = $request->getAttribute(
                 'frontend.cache.instruction',
                 new CacheInstruction()
             );
 
-            $cacheInstruction->disableCache('EXT:mindfula11y: Mindfula11y-Heading-Structure header set.');
+            $cacheInstruction->disableCache('EXT:mindfula11y: Mindfula11y-Structure-Analysis header set.');
             $request = $request->withAttribute('frontend.cache.instruction', $cacheInstruction);
         }
 

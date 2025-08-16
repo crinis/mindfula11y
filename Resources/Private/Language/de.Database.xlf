@@ -6,13 +6,12 @@
 		product-name="mindfula11y">
 		<header />
 		<body>
-			<trans-unit id="ttContent.columns.mindfulA11y.headingLevel"
-				resname="ttContent.columns.mindfulA11y.headingLevel">
+			<!-- Corrected mindfulA11y -> mindfula11y in ids/resnames for heading level entries -->
+			<trans-unit id="ttContent.columns.mindfula11y.headingLevel" resname="ttContent.columns.mindfula11y.headingLevel">
 				<source>Heading Level</source>
 				<target>Überschriftenebene</target>
 			</trans-unit>
-			<trans-unit id="ttContent.columns.mindfulA11y.headingLevel.description"
-				resname="ttContent.columns.mindfulA11y.headingLevel.description">
+			<trans-unit id="ttContent.columns.mindfula11y.headingLevel.description" resname="ttContent.columns.mindfula11y.headingLevel.description">
 				<source>
 					A heading level defines the structure of the document. It is especially
 					important for users of assistive technology
@@ -24,45 +23,134 @@
 					um effizient durch den Inhalt zu navigieren.
 				</target>
 			</trans-unit>
-			<trans-unit id="ttContent.columns.mindfulA11y.headingLevel.items.default"
-				resname="ttContent.columns.mindfulA11y.headingLevel.items.default">
+			<trans-unit id="ttContent.columns.mindfula11y.headingLevel.items.default" resname="ttContent.columns.mindfula11y.headingLevel.items.default">
 				<source>Default</source>
 				<target>Standard</target>
 			</trans-unit>
-			<trans-unit id="ttContent.columns.mindfulA11y.headingLevel.items.1"
-				resname="ttContent.columns.mindfulA11y.headingLevel.items.1">
+			<trans-unit id="ttContent.columns.mindfula11y.headingLevel.items.1" resname="ttContent.columns.mindfula11y.headingLevel.items.1">
 				<source>H1</source>
 				<target>H1</target>
 			</trans-unit>
-			<trans-unit id="ttContent.columns.mindfulA11y.headingLevel.items.2"
-				resname="ttContent.columns.mindfulA11y.headingLevel.items.2">
+			<trans-unit id="ttContent.columns.mindfula11y.headingLevel.items.2" resname="ttContent.columns.mindfula11y.headingLevel.items.2">
 				<source>H2</source>
 				<target>H2</target>
 			</trans-unit>
-			<trans-unit id="ttContent.columns.mindfulA11y.headingLevel.items.3"
-				resname="ttContent.columns.mindfulA11y.headingLevel.items.3">
+			<trans-unit id="ttContent.columns.mindfula11y.headingLevel.items.3" resname="ttContent.columns.mindfula11y.headingLevel.items.3">
 				<source>H3</source>
 				<target>H3</target>
 			</trans-unit>
-			<trans-unit id="ttContent.columns.mindfulA11y.headingLevel.items.4"
-				resname="ttContent.columns.mindfulA11y.headingLevel.items.4">
+			<trans-unit id="ttContent.columns.mindfula11y.headingLevel.items.4" resname="ttContent.columns.mindfula11y.headingLevel.items.4">
 				<source>H4</source>
 				<target>H4</target>
 			</trans-unit>
-			<trans-unit id="ttContent.columns.mindfulA11y.headingLevel.items.5"
-				resname="ttContent.columns.mindfulA11y.headingLevel.items.5">
+			<trans-unit id="ttContent.columns.mindfula11y.headingLevel.items.5" resname="ttContent.columns.mindfula11y.headingLevel.items.5">
 				<source>H5</source>
 				<target>H5</target>
 			</trans-unit>
-			<trans-unit id="ttContent.columns.mindfulA11y.headingLevel.items.6"
-				resname="ttContent.columns.mindfulA11y.headingLevel.items.6">
+			<trans-unit id="ttContent.columns.mindfula11y.headingLevel.items.6" resname="ttContent.columns.mindfula11y.headingLevel.items.6">
 				<source>H6</source>
 				<target>H6</target>
 			</trans-unit>
-			<trans-unit id="ttContent.columns.mindfulA11y.headingLevel.items.fallbackTag"
-				resname="ttContent.columns.mindfulA11y.headingLevel.items.fallbackTag">
+			<trans-unit id="ttContent.columns.mindfula11y.headingLevel.items.fallbackTag" resname="ttContent.columns.mindfula11y.headingLevel.items.fallbackTag">
 				<source>Do not make this a heading</source>
 				<target>Dies nicht zu einer Überschrift machen</target>
+			</trans-unit>
+			
+			<!-- Accessibility Tab -->
+			<trans-unit id="ttContent.tabs.accessibility"
+				resname="ttContent.tabs.accessibility">
+				<source>Accessibility</source>
+				<target>Barrierefreiheit</target>
+			</trans-unit>
+			
+			<!-- Landmarks Palette -->
+			<trans-unit id="ttContent.palettes.landmarks"
+				resname="ttContent.palettes.landmarks">
+				<source>ARIA Landmarks</source>
+				<target>ARIA-Landmarks</target>
+			</trans-unit>
+			
+			<!-- Landmark Field -->
+			<trans-unit id="ttContent.columns.mindfula11y.landmark"
+				resname="ttContent.columns.mindfula11y.landmark">
+				<source>Landmark Type</source>
+				<target>Landmark-Typ</target>
+			</trans-unit>
+			<trans-unit id="ttContent.columns.mindfula11y.landmark.description"
+				resname="ttContent.columns.mindfula11y.landmark.description">
+				<source>Choose how this content should be identified to screen reader users for easier page navigation. Only select a landmark type if this content represents a distinct, meaningful section of the page.</source>
+				<target>Wählen Sie, wie dieser Inhalt für Screenreader-Nutzer zur einfacheren Seitennavigation identifiziert werden soll. Wählen Sie nur dann einen Landmark-Typ, wenn dieser Inhalt einen eigenständigen, bedeutsamen Seitenbereich darstellt.</target>
+			</trans-unit>
+			
+			<!-- Landmark Type Options -->
+			<trans-unit id="ttContent.columns.mindfula11y.landmark.items.none"
+				resname="ttContent.columns.mindfula11y.landmark.items.none">
+				<source>None</source>
+				<target>Keine</target>
+			</trans-unit>
+			<trans-unit id="ttContent.columns.mindfula11y.landmark.items.region"
+				resname="ttContent.columns.mindfula11y.landmark.items.region">
+				<source>Important Section (only if none of the other options apply)</source>
+				<target>Wichtiger Bereich (nur wenn keine der anderen Optionen zutrifft)</target>
+			</trans-unit>
+			<trans-unit id="ttContent.columns.mindfula11y.landmark.items.navigation"
+				resname="ttContent.columns.mindfula11y.landmark.items.navigation">
+				<source>Navigation Menu</source>
+				<target>Navigationsmenü</target>
+			</trans-unit>
+			<trans-unit id="ttContent.columns.mindfula11y.landmark.items.complementary"
+				resname="ttContent.columns.mindfula11y.landmark.items.complementary">
+				<source>Sidebar / Related Content</source>
+				<target>Seitenleiste / Verwandte Inhalte</target>
+			</trans-unit>
+			<trans-unit id="ttContent.columns.mindfula11y.landmark.items.main"
+				resname="ttContent.columns.mindfula11y.landmark.items.main">
+				<source>Main Content Area</source>
+				<target>Hauptinhaltsbereich</target>
+			</trans-unit>
+			<trans-unit id="ttContent.columns.mindfula11y.landmark.items.banner"
+				resname="ttContent.columns.mindfula11y.landmark.items.banner">
+				<source>Site Header</source>
+				<target>Seitenkopf</target>
+			</trans-unit>
+			<trans-unit id="ttContent.columns.mindfula11y.landmark.items.contentinfo"
+				resname="ttContent.columns.mindfula11y.landmark.items.contentinfo">
+				<source>Site Footer</source>
+				<target>Seitenfuß</target>
+			</trans-unit>
+			<trans-unit id="ttContent.columns.mindfula11y.landmark.items.search"
+				resname="ttContent.columns.mindfula11y.landmark.items.search">
+				<source>Search Function</source>
+				<target>Suchfunktion</target>
+			</trans-unit>
+			<trans-unit id="ttContent.columns.mindfula11y.landmark.items.form"
+				resname="ttContent.columns.mindfula11y.landmark.items.form">
+				<source>Form Section</source>
+				<target>Formularabschnitt</target>
+			</trans-unit>
+			
+			<!-- ARIA Labelledby Field -->
+			<trans-unit id="ttContent.columns.mindfula11y.ariaLabelledby"
+				resname="ttContent.columns.mindfula11y.ariaLabelledby">
+				<source>Use header as landmark name</source>
+				<target>Überschrift als Landmark-Name verwenden</target>
+			</trans-unit>
+			<trans-unit id="ttContent.columns.mindfula11y.ariaLabelledby.description"
+				resname="ttContent.columns.mindfula11y.ariaLabelledby.description">
+				<source>When enabled, the content element's header will be used as the accessible name for this landmark. IMPORTANT: Make sure your content element has a meaningful header when this option is enabled, as screen readers will announce it as the landmark's name.</source>
+				<target>Wenn aktiviert, wird die Überschrift des Inhaltselements als zugänglicher Name für dieses Landmark verwendet. WICHTIG: Stellen Sie sicher, dass Ihr Inhaltselement eine aussagekräftige Überschrift hat, wenn diese Option aktiviert ist, da Screenreader sie als Namen des Landmarks vorlesen werden.</target>
+			</trans-unit>
+			
+			<!-- ARIA Label Field -->
+			<trans-unit id="ttContent.columns.mindfula11y.ariaLabel"
+				resname="ttContent.columns.mindfula11y.ariaLabel">
+				<source>Custom landmark name</source>
+				<target>Benutzerdefinierter Landmark-Name</target>
+			</trans-unit>
+			<trans-unit id="ttContent.columns.mindfula11y.ariaLabel.description"
+				resname="ttContent.columns.mindfula11y.ariaLabel.description">
+				<source>Provide a descriptive name for this landmark that will be announced by screen readers. This should be concise but meaningful, helping users understand the purpose of this section.</source>
+				<target>Geben Sie einen beschreibenden Namen für dieses Landmark an, der von Screenreadern vorgelesen wird. Dieser sollte prägnant aber aussagekräftig sein und Nutzern helfen, den Zweck dieses Bereichs zu verstehen.</target>
 			</trans-unit>
 		</body>
 	</file>

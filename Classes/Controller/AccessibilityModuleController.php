@@ -193,6 +193,11 @@ class AccessibilityModuleController
                     return $this->handleHeadingStructureFeature();
                 }
                 break;
+            case Feature::LANDMARK_STRUCTURE:
+                if ($this->pageTsConfig['mod']['mindfula11y_accessibility']['landmarkStructure']['enable'] ?? false) {
+                    return $this->handleLandmarkStructureFeature();
+                }
+                break;
             case Feature::MISSING_ALT_TEXT:
                 if ($this->pageTsConfig['mod']['mindfula11y_accessibility']['missingAltText']['enable'] ?? false) {
                     return $this->handleMissingAltTextFeature();
@@ -259,6 +264,25 @@ class AccessibilityModuleController
         $this->pageRenderer->loadJavaScriptModule('@mindfulmarkup/mindfula11y/heading-structure.js');
 
         return $this->moduleTemplate->renderResponse('Backend/HeadingStructure');
+    }
+
+    /**
+     * Handle the landmark structure feature.
+     */
+    protected function handleLandmarkStructureFeature(): ResponseInterface
+    {
+        $this->moduleTemplate->assignMultiple([
+            'moduleData' => array_merge($this->moduleData->toArray(), [
+                'id' => $this->pageId,
+            ]),
+            'previewUrl' => (string)PreviewUriBuilder::create($this->pageId)
+                ->withLanguage($this->languageId)
+                ->buildUri(),
+        ]);
+
+        $this->pageRenderer->loadJavaScriptModule('@mindfulmarkup/mindfula11y/landmark-structure.js');
+
+        return $this->moduleTemplate->renderResponse('Backend/LandmarkStructure');
     }
 
     /**
@@ -415,7 +439,7 @@ class AccessibilityModuleController
         $menu = $this->moduleTemplate->getDocHeaderComponent()->getMenuRegistry()->makeMenu()
             ->setIdentifier('MindfulA11yFeatures')
             ->setLabel($this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:menu.features'));
-        foreach ([Feature::GENERAL, Feature::HEADING_STRUCTURE, Feature::MISSING_ALT_TEXT] as $feature) {
+        foreach ([Feature::GENERAL, Feature::HEADING_STRUCTURE, Feature::LANDMARK_STRUCTURE, Feature::MISSING_ALT_TEXT] as $feature) {
             $menuItem = $menu->makeMenuItem()->setTitle(
                 $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:menu.features.' . $feature->value)
             )->setHref(
@@ -588,7 +612,7 @@ class AccessibilityModuleController
      */
     protected function getInlineLanguageLabels(): array
     {
-        return [
+        $labels = [
             // Heading Structure labels
             'mindfula11y.features.headingStructure.edit' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:headingStructure.edit'),
             'mindfula11y.features.headingStructure.edit.locked' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:headingStructure.edit.locked'),
@@ -601,6 +625,37 @@ class AccessibilityModuleController
             'mindfula11y.features.headingStructure.error.skippedLevel.inline' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:headingStructure.error.skippedLevel.inline'),
             'mindfula11y.features.headingStructure.error.missingH1' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:headingStructure.error.missingH1'),
             'mindfula11y.features.headingStructure.error.missingH1.description' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:headingStructure.error.missingH1.description'),
+            // Landmark Structure labels
+            'mindfula11y.features.landmarkStructure.edit' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.edit'),
+            'mindfula11y.features.landmarkStructure.edit.locked' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.edit.locked'),
+            'mindfula11y.features.landmarkStructure.nestedLandmarks' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.nestedLandmarks'),
+            'mindfula11y.features.landmarkStructure.role' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.role'),
+            'mindfula11y.features.landmarkStructure.unlabelledLandmark' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.unlabelledLandmark'),
+            'mindfula11y.features.landmarkStructure.error.loading' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.error.loading'),
+            'mindfula11y.features.landmarkStructure.error.loading.description' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.error.loading.description'),
+            'mindfula11y.features.landmarkStructure.error.store' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.error.store'),
+            'mindfula11y.features.landmarkStructure.error.store.description' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.error.store.description'),
+            'mindfula11y.features.landmarkStructure.error.missingMain' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.error.missingMain'),
+            'mindfula11y.features.landmarkStructure.error.missingMain.description' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.error.missingMain.description'),
+            'mindfula11y.features.landmarkStructure.error.duplicateLandmark' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.error.duplicateLandmark'),
+            'mindfula11y.features.landmarkStructure.error.duplicateLandmark.description' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.error.duplicateLandmark.description'),
+            'mindfula11y.features.landmarkStructure.error.duplicateSameLabel' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.error.duplicateSameLabel'),
+            'mindfula11y.features.landmarkStructure.error.duplicateSameLabel.description' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.error.duplicateSameLabel.description'),
+            'mindfula11y.features.landmarkStructure.error.multipleUnlabeledLandmarks' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.error.multipleUnlabeledLandmarks'),
+            'mindfula11y.features.landmarkStructure.error.multipleUnlabeledLandmarks.description' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.error.multipleUnlabeledLandmarks.description'),
+            // Default landmark labels
+            'mindfula11y.features.landmarkStructure.role.banner' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.role.banner'),
+            'mindfula11y.features.landmarkStructure.role.main' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.role.main'),
+            'mindfula11y.features.landmarkStructure.role.navigation' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.role.navigation'),
+            'mindfula11y.features.landmarkStructure.role.complementary' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.role.complementary'),
+            'mindfula11y.features.landmarkStructure.role.contentinfo' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.role.contentinfo'),
+            'mindfula11y.features.landmarkStructure.role.region' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.role.region'),
+            'mindfula11y.features.landmarkStructure.role.search' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.role.search'),
+            'mindfula11y.features.landmarkStructure.role.form' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.role.form'),
+            'mindfula11y.features.landmarkStructure.role.none' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.role.none'),
+            // No landmarks message
+            'mindfula11y.features.landmarkStructure.noLandmarks.title' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.noLandmarks.title'),
+            'mindfula11y.features.landmarkStructure.noLandmarks.description' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.noLandmarks.description'),
             // Missing Alt Text labels
             'mindfula11y.features.missingAltText.generate.button' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:missingAltText.generate.button'),
             'mindfula11y.features.missingAltText.generate.loading' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:missingAltText.generate.loading'),
@@ -615,7 +670,17 @@ class AccessibilityModuleController
             'mindfula11y.features.missingAltText.save' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:missingAltText.save'),
             'mindfula11y.features.missingAltText.imagePreview' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:missingAltText.imagePreview'),
             'mindfula11y.features.missingAltText.fallbackAltLabel' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:missingAltText.fallbackAltLabel'),
+            // Error badge label
+            'mindfula11y.features.landmarkStructure.error.badge' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.error.badge'),
+            'mindfula11y.features.landmarkStructure.intro' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.intro'),
+            'mindfula11y.features.landmarkStructure.intro.roles' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.intro.roles'),
+            // Individual landmark callout messages (shown on specific landmarks)
+            'mindfula11y.features.landmarkStructure.callout.duplicateMain' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.callout.duplicateMain'),
+            'mindfula11y.features.landmarkStructure.callout.duplicateRoleSameLabel' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.callout.duplicateRoleSameLabel'),
+            'mindfula11y.features.landmarkStructure.callout.multipleUnlabeledSameRole' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.callout.multipleUnlabeledSameRole'),
         ];
+
+        return $labels;
     }
 
     /**
