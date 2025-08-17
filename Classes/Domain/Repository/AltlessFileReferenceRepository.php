@@ -150,14 +150,14 @@ class AltlessFileReferenceRepository extends Repository
             ->innerJoin(
                 'sys_file_reference',
                 'sys_file',
-                'sys_file',
-                $queryBuilder->expr()->eq('sys_file_reference.uid_local', $queryBuilder->quoteIdentifier('sys_file.uid'))
+                'mindfula11y_sys_file',
+                $queryBuilder->expr()->eq('sys_file_reference.uid_local', $queryBuilder->quoteIdentifier('mindfula11y_sys_file.uid'))
             )->where(
                 $queryBuilder->expr()->or(
                     $queryBuilder->expr()->isNull('sys_file_reference.alternative'),
                     $queryBuilder->expr()->eq('sys_file_reference.alternative', $queryBuilder->createNamedParameter('', Connection::PARAM_STR))
                 ),
-                $queryBuilder->expr()->in('sys_file.extension', $queryBuilder->createNamedParameter($this->getImageFileExtensions(), Connection::PARAM_STR_ARRAY)),
+                $queryBuilder->expr()->in('mindfula11y_sys_file.extension', $queryBuilder->createNamedParameter($this->getImageFileExtensions(), Connection::PARAM_STR_ARRAY)),
                 $queryBuilder->expr()->eq(
                     'sys_file_reference.' . $this->getLanguageField('sys_file_reference'),
                     $queryBuilder->createNamedParameter($languageId, Connection::PARAM_INT)
@@ -211,15 +211,15 @@ class AltlessFileReferenceRepository extends Repository
         $queryBuilder->leftJoin(
             'sys_file_reference',
             'sys_file_metadata',
-            'sys_file_metadata',
+            'mindfula11y_sys_file_metadata',
             $queryBuilder->expr()->and(
-                $queryBuilder->expr()->eq('sys_file_reference.uid_local', $queryBuilder->quoteIdentifier('sys_file_metadata.file')),
-                $queryBuilder->expr()->eq('sys_file_reference.' . $this->getLanguageField('sys_file_reference'), $queryBuilder->quoteIdentifier('sys_file_metadata.' . $this->getLanguageField('sys_file_metadata')))
+                $queryBuilder->expr()->eq('sys_file_reference.uid_local', $queryBuilder->quoteIdentifier('mindfula11y_sys_file_metadata.file')),
+                $queryBuilder->expr()->eq('sys_file_reference.' . $this->getLanguageField('sys_file_reference'), $queryBuilder->quoteIdentifier('mindfula11y_sys_file_metadata.' . $this->getLanguageField('sys_file_metadata')))
             )
         )->andWhere(
             $queryBuilder->expr()->or(
-                $queryBuilder->expr()->isNull('sys_file_metadata.alternative'),
-                $queryBuilder->expr()->eq('sys_file_metadata.alternative', $queryBuilder->createNamedParameter('', Connection::PARAM_STR)),
+                $queryBuilder->expr()->isNull('mindfula11y_sys_file_metadata.alternative'),
+                $queryBuilder->expr()->eq('mindfula11y_sys_file_metadata.alternative', $queryBuilder->createNamedParameter('', Connection::PARAM_STR)),
             )
         );
 
