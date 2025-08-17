@@ -1,6 +1,5 @@
 # Mindful A11y TYPO3 Extension
 
-
 Mindful A11y is a TYPO3 extension that integrates accessibility tools directly into the TYPO3 backend, helping editors and integrators improve the accessibility of their content.
 
 > **Note:** This extension is in an early stage of development. I do not recommend using it in production environments at this time.
@@ -16,7 +15,7 @@ composer require mindfulmarkup/mindfula11y
 ## Features
 
 - **Alternative Text Checker**: Backend module that lists all `sys_file_reference` records (e.g., images) without alternative text, making it easy to find and fix missing alt attributes.
-- **Heading Structure Overview**: Backend module that visualizes the heading structure of content elements and allows editors to easily review and edit heading levels for records using the custom ViewHelper.
+- **Heading Structure Overview**: Backend module that visualizes the heading structure of content elements and allows editors to easily review and edit heading types for records using the custom ViewHelper.
 - **Landmark Structure Overview**: Backend module that displays ARIA landmarks on the page in a visual, hierarchical layout. Editors can review landmark structure, identify accessibility issues, and edit landmark roles directly from the backend to improve page navigation and semantic structure.
 - **AI-Powered Alt Text Generation**: Supports generating alternative texts for images using ChatGPT.
 
@@ -59,36 +58,46 @@ mod {
 
 ## Heading ViewHelper Usage
 
-The `HeadingViewHelper` allows you to render headings in TYPO3 with support for editing heading levels in the MindfulA11y backend module.
+The `HeadingViewHelper` allows you to render headings in TYPO3 with support for editing heading types in the MindfulA11y backend module.
 
 ### Basic Usage
 
 Render a heading with the ability to edit its level from the backend module. This example outputs the default heading field for a `tt_content` record:
 
 ```html
-<mindfula11y:heading
-  recordUid="{f:if(condition: data._LOCALIZED_UID, then: data._LOCALIZED_UID, else: data.uid)}"
-  recordTableName="tt_content"
-  recordColumnName="tx_mindfula11y_headinglevel"
-  level="{data.tx_mindfula11y_headinglevel}"
-  fallbackTag="p"
->
-  {data.header}
+## Heading ViewHelper Usage
+
+The HeadingViewHelper renders semantic headings with backend editing support.
+
+```xml
+<!-- Basic usage with content element -->
+<mindfula11y:heading 
+    recordUid="{data.uid}" 
+    recordTableName="tt_content" 
+    recordColumnName="tx_mindfula11y_headingtype" 
+    type="{data.tx_mindfula11y_headingtype}">
+    {data.header}
 </mindfula11y:heading>
+
+<!-- Direct heading type specification -->
+<mindfula11y:heading type="h2">Page Title</mindfula11y:heading>
+
+<!-- Using HeadingType enum values -->
+<mindfula11y:heading type="{headingType.value}">Dynamic Heading</mindfula11y:heading>
+```
 ```
 
 - `recordUid`: The UID of the record to allow editing (optional for static headings).
 - `recordTableName`: The database table name (default: `tt_content`).
-- `recordColumnName`: The field storing the heading level (default: `tx_mindfula11y_headinglevel`).
-- `level`: The heading level to use (required).
-- `fallbackTag`: The tag to use if `level` is `-1` (default: `p`).
+- `recordColumnName`: The field storing the heading type (default: `tx_mindfula11y_headingtype`).
+- `type`: The heading type to use (required). Accepts HTML tag names like 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'div', etc.
 
 ### Static Heading (No Editing)
 
 Render a heading without edit capability, e.g. for child or dependent headings:
 
 ```html
-<mindfula11y:heading level="{data.tx_mindfula11y_headinglevel + 1}">
+<mindfula11y:heading type="{data.tx_mindfula11y_headingtype}">
   {data.header}
 </mindfula11y:heading>
 ```
@@ -98,9 +107,9 @@ Render a heading without edit capability, e.g. for child or dependent headings:
 - When used in the MindfulA11y backend module and the user has permission, the ViewHelper adds data attributes for frontend editing.
 - The ViewHelper checks user permissions and only enables editing if allowed.
 
-## Extending Custom Records with the Heading Level Column
+## Extending Custom Records with the Heading Type Column
 
-You can add the heading level column provided by this extension to your own custom records. This allows you to reuse the same heading level selection and editing features in your own tables.
+You can add the heading type column provided by this extension to your own custom records. This allows you to reuse the same heading type selection and editing features in your own tables.
 
 ### Example: Add to a Custom Table
 
@@ -109,17 +118,17 @@ In your TCA override (e.g. `Configuration/TCA/Overrides/tx_yourextension_domain_
 ```php
 use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 
-// Add the heading level column from tt_content to your custom table
+// Add the heading type column from tt_content to your custom table
 ExtensionManagementUtility::addTCAcolumns(
     'tx_yourextension_domain_model_custom',
     [
-        'tx_mindfula11y_headinglevel' => $GLOBALS['TCA']['tt_content']['columns']['tx_mindfula11y_headinglevel'],
+        'tx_mindfula11y_headingtype' => $GLOBALS['TCA']['tt_content']['columns']['tx_mindfula11y_headingtype'],
     ]
 );
 
 ExtensionManagementUtility::addToAllTCAtypes(
     'tx_yourextension_domain_model_custom',
-    'tx_mindfula11y_headinglevel',
+    'tx_mindfula11y_headingtype',
     '',
     'after:title' // or any field you want
 );
@@ -403,17 +412,6 @@ Once the fields are added, use the ViewHelper with your custom records:
 </mindfula11y:landmark>
 ```
 
-### Database Schema
-
-You'll also need to add the fields to your database schema. In your `ext_tables.sql`:
-
-```sql
-CREATE TABLE tx_yourextension_domain_model_custom (
-    tx_mindfula11y_landmark varchar(255) DEFAULT '' NOT NULL,
-    tx_mindfula11y_arialabel text,
-    tx_mindfula11y_arialabelledby tinyint(1) DEFAULT '1' NOT NULL,
-);
-```
 
 ---
 

@@ -4,7 +4,7 @@
   <f:if condition="{data.header} || {data.subheader} || {data.date}">
 
     <mindfula11y:heading recordUid="{f:if(condition: data._LOCALIZED_UID, then: data._LOCALIZED_UID, else: data.uid)}"
-      level="{data.tx_mindfula11y_headinglevel}"
+      type="{data.tx_mindfula11y_headingtype}"
       id="c{data.uid}-heading">
       {data.header}</mindfula11y:heading>
     <f:if condition="{data.subheader}">
@@ -12,7 +12,7 @@
         Just for testing. It is bad practice to use an actual heading for a
         subheader.
       </f:comment>
-      <mindfula11y:heading level="{data.tx_mindfula11y_headinglevel + 1}">
+      <mindfula11y:heading type="{data.tx_mindfula11y_headingtype}">
         {data.subheader}</mindfula11y:heading>
     </f:if>
   </f:if>

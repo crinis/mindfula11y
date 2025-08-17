@@ -22,47 +22,52 @@ declare(strict_types=1);
 
 use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 use MindfulMarkup\MindfulA11y\Enum\AriaLandmark;
+use MindfulMarkup\MindfulA11y\Enum\HeadingType;
 
 defined('TYPO3') or die();
 
 ExtensionManagementUtility::addTCAcolumns(
     'tt_content',
     [
-        'tx_mindfula11y_headinglevel' => [
+        'tx_mindfula11y_headingtype' => [
             'exclude' => true,
-            'label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.headingLevel',
+            'label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.headingType',
             'config' => [
                 'type' => 'select',
                 'renderType' => 'selectSingle',
-                'default' => 2,
+                'default' => HeadingType::H2->value,
                 'items' => [
                     [
-                        'label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.headingLevel.items.1',
-                        'value' => 1,
+                        'label' => HeadingType::H1->getLabelKey(),
+                        'value' => HeadingType::H1->value,
                     ],
                     [
-                        'label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.headingLevel.items.2',
-                        'value' => 2,
+                        'label' => HeadingType::H2->getLabelKey(),
+                        'value' => HeadingType::H2->value,
                     ],
                     [
-                        'label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.headingLevel.items.3',
-                        'value' => 3,
+                        'label' => HeadingType::H3->getLabelKey(),
+                        'value' => HeadingType::H3->value,
                     ],
                     [
-                        'label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.headingLevel.items.4',
-                        'value' => 4,
+                        'label' => HeadingType::H4->getLabelKey(),
+                        'value' => HeadingType::H4->value,
                     ],
                     [
-                        'label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.headingLevel.items.5',
-                        'value' => 5,
+                        'label' => HeadingType::H5->getLabelKey(),
+                        'value' => HeadingType::H5->value,
                     ],
                     [
-                        'label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.headingLevel.items.6',
-                        'value' => 6,
+                        'label' => HeadingType::H6->getLabelKey(),
+                        'value' => HeadingType::H6->value,
                     ],
                     [
-                        'label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.headingLevel.items.fallbackTag',
-                        'value' => -1
+                        'label' => HeadingType::P->getLabelKey(),
+                        'value' => HeadingType::P->value,
+                    ],
+                    [
+                        'label' => HeadingType::DIV->getLabelKey(),
+                        'value' => HeadingType::DIV->value,
                     ]
                 ],
             ],
@@ -158,7 +163,7 @@ ExtensionManagementUtility::addTCAcolumns(
 ExtensionManagementUtility::addFieldsToPalette(
     'tt_content',
     'headers',
-    'tx_mindfula11y_headinglevel',
+    'tx_mindfula11y_headingtype',
     'after:header'
 );
 

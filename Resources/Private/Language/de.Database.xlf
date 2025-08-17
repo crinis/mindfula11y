@@ -6,54 +6,54 @@
 		product-name="mindfula11y">
 		<header />
 		<body>
-			<!-- Corrected mindfulA11y -> mindfula11y in ids/resnames for heading level entries -->
-			<trans-unit id="ttContent.columns.mindfula11y.headingLevel" resname="ttContent.columns.mindfula11y.headingLevel">
-				<source>Heading Level</source>
-				<target>Überschriftenebene</target>
+			<!-- Corrected mindfulA11y -> mindfula11y in ids/resnames for heading type entries -->
+			<trans-unit id="ttContent.columns.mindfula11y.headingType" resname="ttContent.columns.mindfula11y.headingType">
+				<source>Heading Type</source>
+				<target>Überschriftentyp</target>
 			</trans-unit>
-			<trans-unit id="ttContent.columns.mindfula11y.headingLevel.description" resname="ttContent.columns.mindfula11y.headingLevel.description">
+			<trans-unit id="ttContent.columns.mindfula11y.headingType.description" resname="ttContent.columns.mindfula11y.headingType.description">
 				<source>
-					A heading level defines the structure of the document. It is especially
+					A heading type defines the structure of the document. It is especially
 					important for users of assistive technology
 					to efficiently navigate through the content.
 				</source>
 				<target>
-					Eine Überschriftenebene definiert die Struktur des Dokuments. Sie ist besonders
+					Ein Überschriftentyp definiert die Struktur des Dokuments. Er ist besonders
 					wichtig für Nutzer assistiver Technologien,
 					um effizient durch den Inhalt zu navigieren.
 				</target>
 			</trans-unit>
-			<trans-unit id="ttContent.columns.mindfula11y.headingLevel.items.default" resname="ttContent.columns.mindfula11y.headingLevel.items.default">
-				<source>Default</source>
-				<target>Standard</target>
-			</trans-unit>
-			<trans-unit id="ttContent.columns.mindfula11y.headingLevel.items.1" resname="ttContent.columns.mindfula11y.headingLevel.items.1">
+			<trans-unit id="ttContent.columns.mindfula11y.headingType.items.h1" resname="ttContent.columns.mindfula11y.headingType.items.h1">
 				<source>H1</source>
 				<target>H1</target>
 			</trans-unit>
-			<trans-unit id="ttContent.columns.mindfula11y.headingLevel.items.2" resname="ttContent.columns.mindfula11y.headingLevel.items.2">
+			<trans-unit id="ttContent.columns.mindfula11y.headingType.items.h2" resname="ttContent.columns.mindfula11y.headingType.items.h2">
 				<source>H2</source>
 				<target>H2</target>
 			</trans-unit>
-			<trans-unit id="ttContent.columns.mindfula11y.headingLevel.items.3" resname="ttContent.columns.mindfula11y.headingLevel.items.3">
+			<trans-unit id="ttContent.columns.mindfula11y.headingType.items.h3" resname="ttContent.columns.mindfula11y.headingType.items.h3">
 				<source>H3</source>
 				<target>H3</target>
 			</trans-unit>
-			<trans-unit id="ttContent.columns.mindfula11y.headingLevel.items.4" resname="ttContent.columns.mindfula11y.headingLevel.items.4">
+			<trans-unit id="ttContent.columns.mindfula11y.headingType.items.h4" resname="ttContent.columns.mindfula11y.headingType.items.h4">
 				<source>H4</source>
 				<target>H4</target>
 			</trans-unit>
-			<trans-unit id="ttContent.columns.mindfula11y.headingLevel.items.5" resname="ttContent.columns.mindfula11y.headingLevel.items.5">
+			<trans-unit id="ttContent.columns.mindfula11y.headingType.items.h5" resname="ttContent.columns.mindfula11y.headingType.items.h5">
 				<source>H5</source>
 				<target>H5</target>
 			</trans-unit>
-			<trans-unit id="ttContent.columns.mindfula11y.headingLevel.items.6" resname="ttContent.columns.mindfula11y.headingLevel.items.6">
+			<trans-unit id="ttContent.columns.mindfula11y.headingType.items.h6" resname="ttContent.columns.mindfula11y.headingType.items.h6">
 				<source>H6</source>
 				<target>H6</target>
 			</trans-unit>
-			<trans-unit id="ttContent.columns.mindfula11y.headingLevel.items.fallbackTag" resname="ttContent.columns.mindfula11y.headingLevel.items.fallbackTag">
-				<source>Do not make this a heading</source>
-				<target>Dies nicht zu einer Überschrift machen</target>
+			<trans-unit id="ttContent.columns.mindfula11y.headingType.items.p" resname="ttContent.columns.mindfula11y.headingType.items.p">
+				<source>Paragraph (p)</source>
+				<target>Absatz (p)</target>
+			</trans-unit>
+			<trans-unit id="ttContent.columns.mindfula11y.headingType.items.div" resname="ttContent.columns.mindfula11y.headingType.items.div">
+				<source>Generic div</source>
+				<target>Allgemeines div</target>
 			</trans-unit>
 			
 			<!-- Accessibility Tab -->

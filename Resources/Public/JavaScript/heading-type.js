@@ -18,29 +18,29 @@
  */
 
 /**
- * @file heading-level.js
- * @description Web component for displaying and editing a single heading level in TYPO3, with AJAX save support.
+ * @file heading-type.js
+ * @description Web component for displaying and editing a single heading type in TYPO3, with AJAX save support.
  */
 import { LitElement, html, svg } from "lit";
 import AjaxDataHandler from "@typo3/backend/ajax-data-handler.js";
 
 /**
- * Web component for displaying and editing a single heading level in TYPO3.
+ * Web component for displaying and editing a single heading type in TYPO3.
  *
- * Renders a heading's content and level. If it has a valid edit configuration, it provides a select input
- * to change the level of the heading.
+ * Renders a heading's content and type. If it has a valid edit configuration, it provides a select input
+ * to change the type of the heading.
  *
- * @class HeadingLevel
+ * @class HeadingType
  * @extends LitElement
  */
-export class HeadingLevel extends LitElement {
+export class HeadingType extends LitElement {
   /**
    * Component properties.
    *
-   * @property {number} level - The heading level (e.g., 1 for <h1>, 2 for <h2>, etc.).
-   * @property {Object.<string, string>} availableLevels - Mapping of heading level numbers to their labels.
+   * @property {string} type - The heading type (e.g., 'h1' for <h1>, 'h2' for <h2>, 'p' for <p>, etc.).
+   * @property {Object.<string, string>} availableTypes - Mapping of heading type tags to their labels.
    * @property {string} recordTableName - The name of the database table associated with the record.
-   * @property {string} recordColumnName - The field name in the database record that stores the heading level.
+   * @property {string} recordColumnName - The field name in the database record that stores the heading type.
    * @property {number} recordUid - The unique identifier (UID) of the database record.
    * @property {string} recordEditLink - The edit link for the record.
    * @property {boolean} hasError - Indicates if there is an error in the component.
@@ -49,8 +49,8 @@ export class HeadingLevel extends LitElement {
    */
   static get properties() {
     return {
-      level: { type: Number },
-      availableLevels: { type: Object },
+      type: { type: String },
+      availableTypes: { type: Object },
       recordTableName: { type: String },
       recordColumnName: { type: String },
       recordUid: { type: Number },
@@ -61,7 +61,7 @@ export class HeadingLevel extends LitElement {
   }
 
   /**
-   * Constructor for the HeadingLevel component.
+   * Constructor for the HeadingType component.
    *
    * Initializes the component properties.
    */
@@ -71,11 +71,11 @@ export class HeadingLevel extends LitElement {
     this.recordColumnName = "";
     this.recordUid = 0;
     this.recordEditLink = "";
-    this.level = 2;
-    this.availableLevels = {};
+    this.type = "h2";
+    this.availableTypes = {};
     this.hasError = false;
     this.label = "";
-    this.id = this.createNodeId("mindfula11y-heading-level");
+    this.id = this.createNodeId("mindfula11y-heading-type");
   }
 
   /**
@@ -88,16 +88,16 @@ export class HeadingLevel extends LitElement {
   }
 
   /**
-   * Renders the heading level component.
+   * Renders the heading type component.
    *
-   * Creates a single heading level component with a select input for editing the level if allowed.
+   * Creates a single heading type component with a select input for editing the type if allowed.
    *
    * @returns {import('lit').TemplateResult} The rendered template for the component.
    */
   render() {
     const isEditable = "" !== this.recordEditLink;
 
-    return html`${this.createLevelSelect(!isEditable)}
+    return html`${this.createTypeSelect(!isEditable)}
       <label for="${this.id}" class="fw-bold">${this.label}</label>
         ${
           isEditable
@@ -151,28 +151,28 @@ export class HeadingLevel extends LitElement {
   }
 
   /**
-   * Creates a level select input element.
+   * Creates a type select input element.
    *
-   * Returns a <select> element with all available heading levels as options. If editing is disabled,
-   * only the current level is shown as a single option.
+   * Returns a <select> element with all available heading types as options. If editing is disabled,
+   * only the current type is shown as a single option.
    *
    * @param {boolean} [disabled=false] - Whether the select input should be disabled.
-   * @returns {import('lit').TemplateResult} The level select element.
+   * @returns {import('lit').TemplateResult} The type select element.
    */
-  createLevelSelect(disabled = false) {
+  createTypeSelect(disabled = false) {
     let options = [];
     if (disabled) {
       options.push(
-        html`<option value="${this.level}" selected>H${this.level}</option>`
+        html`<option value="${this.type}" selected>${this.type.toUpperCase()}</option>`
       );
     } else {
-      options = Object.entries(this.availableLevels).map(
-        ([level, _]) => html`
+      options = Object.entries(this.availableTypes).map(
+        ([type, label]) => html`
           <option
-            value="${level}"
-            ?selected="${this.level === parseInt(level)}"
+            value="${type}"
+            ?selected="${this.type === type}"
           >
-            H${level}
+            ${label || type.toUpperCase()}
           </option>
         `
       );
@@ -182,15 +182,15 @@ export class HeadingLevel extends LitElement {
       ? html`<input
           id="${this.id}"
           type="text"
-          class="badge mindfula11y-level__input"
-          value="H${this.level}"
+          class="badge mindfula11y-type__input"
+          value="${this.type.toUpperCase()}"
           readonly
           ?aria-invalid="${this.hasError}"
         />`
       : html`
           <select
             id="${this.id}"
-            class="badge mindfula11y-level__input"
+            class="badge mindfula11y-type__input"
             @change="${(e) => this.handleSave(e.target.value)}"
             ?aria-invalid="${this.hasError}"
           >
@@ -200,20 +200,20 @@ export class HeadingLevel extends LitElement {
   }
 
   /**
-   * Store the selected level on change.
+   * Store the selected type on change.
    *
-   * Stores the updated heading level in the record via AjaxDataHandler. Serves
+   * Stores the updated heading type in the record via AjaxDataHandler. Serves
    * as a callback for the select input's change event.
    *
-   * @param {string|number} level - The new heading level selected by the user (string from select, will be converted to number).
+   * @param {string} type - The new heading type selected by the user (tag name like 'h1', 'h2', 'p', 'div', etc.).
    * @returns {void}
    */
-  handleSave(level) {
+  handleSave(type) {
     const params = {
       data: {
         [this.recordTableName]: {
           [this.recordUid]: {
-            [this.recordColumnName]: level,
+            [this.recordColumnName]: type,
           },
         },
       },
@@ -221,9 +221,9 @@ export class HeadingLevel extends LitElement {
 
     AjaxDataHandler.process(params)
       .then(() => {
-        this.level = level;
+        this.type = type;
         this.dispatchEvent(
-          new CustomEvent("mindfula11y-heading-level-changed", {
+          new CustomEvent("mindfula11y-heading-type-changed", {
             bubbles: true,
             composed: true,
           })
@@ -240,6 +240,6 @@ export class HeadingLevel extends LitElement {
   }
 }
 
-customElements.define("mindfula11y-heading-level", HeadingLevel);
+customElements.define("mindfula11y-heading-type", HeadingType);
 
-export default HeadingLevel;
+export default HeadingType;

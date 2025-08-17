@@ -6,41 +6,41 @@
 		product-name="mindfula11y">
 		<header />
 		<body>
-			<trans-unit id="ttContent.columns.mindfula11y.headingLevel"
-				resname="ttContent.columns.mindfula11y.headingLevel">
-				<source>Heading Level</source>
+			<trans-unit id="ttContent.columns.mindfula11y.headingType"
+				resname="ttContent.columns.mindfula11y.headingType">
+				<source>Heading Type</source>
 			</trans-unit>
-			<trans-unit id="ttContent.columns.mindfula11y.headingLevel.items.default"
-				resname="ttContent.columns.mindfula11y.headingLevel.items.default">
-				<source>Default</source>
-			</trans-unit>
-			<trans-unit id="ttContent.columns.mindfula11y.headingLevel.items.1"
-				resname="ttContent.columns.mindfula11y.headingLevel.items.1">
+			<trans-unit id="ttContent.columns.mindfula11y.headingType.items.h1"
+				resname="ttContent.columns.mindfula11y.headingType.items.h1">
 				<source>H1</source>
 			</trans-unit>
-			<trans-unit id="ttContent.columns.mindfula11y.headingLevel.items.2"
-				resname="ttContent.columns.mindfula11y.headingLevel.items.2">
+			<trans-unit id="ttContent.columns.mindfula11y.headingType.items.h2"
+				resname="ttContent.columns.mindfula11y.headingType.items.h2">
 				<source>H2</source>
 			</trans-unit>
-			<trans-unit id="ttContent.columns.mindfula11y.headingLevel.items.3"
-				resname="ttContent.columns.mindfula11y.headingLevel.items.3">
+			<trans-unit id="ttContent.columns.mindfula11y.headingType.items.h3"
+				resname="ttContent.columns.mindfula11y.headingType.items.h3">
 				<source>H3</source>
 			</trans-unit>
-			<trans-unit id="ttContent.columns.mindfula11y.headingLevel.items.4"
-				resname="ttContent.columns.mindfula11y.headingLevel.items.4">
+			<trans-unit id="ttContent.columns.mindfula11y.headingType.items.h4"
+				resname="ttContent.columns.mindfula11y.headingType.items.h4">
 				<source>H4</source>
 			</trans-unit>
-			<trans-unit id="ttContent.columns.mindfula11y.headingLevel.items.5"
-				resname="ttContent.columns.mindfula11y.headingLevel.items.5">
+			<trans-unit id="ttContent.columns.mindfula11y.headingType.items.h5"
+				resname="ttContent.columns.mindfula11y.headingType.items.h5">
 				<source>H5</source>
 			</trans-unit>
-			<trans-unit id="ttContent.columns.mindfula11y.headingLevel.items.6"
-				resname="ttContent.columns.mindfula11y.headingLevel.items.6">
+			<trans-unit id="ttContent.columns.mindfula11y.headingType.items.h6"
+				resname="ttContent.columns.mindfula11y.headingType.items.h6">
 				<source>H6</source>
 			</trans-unit>
-			<trans-unit id="ttContent.columns.mindfula11y.headingLevel.items.fallbackTag"
-				resname="ttContent.columns.mindfula11y.headingLevel.items.fallbackTag">
-				<source>Do not make this a heading</source>
+			<trans-unit id="ttContent.columns.mindfula11y.headingType.items.p"
+				resname="ttContent.columns.mindfula11y.headingType.items.p">
+				<source>Paragraph (p)</source>
+			</trans-unit>
+			<trans-unit id="ttContent.columns.mindfula11y.headingType.items.div"
+				resname="ttContent.columns.mindfula11y.headingType.items.div">
+				<source>Generic div</source>
 			</trans-unit>
 			
 			<!-- Accessibility Tab -->

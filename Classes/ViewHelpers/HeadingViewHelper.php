@@ -31,18 +31,18 @@ use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractTagBasedViewHelper;
 
 /**
- * Heading ViewHelper to allow editinng heading levels using the heading structure module.
+ * Heading ViewHelper to allow editing heading types using the heading structure module.
  * 
  * This ViewHelper renders a heading element and adds data attributes with DB information 
  * in case we use the heading structure backend module.
  * 
  * Usage examples:
  *
- * Basic usage with ability to edit heading level from backend module. Outputting the default heading field for a tt_content record:
- * <mindfula11y:heading recordUid="{data.uid}" recordTableName="tt_content" recordColumnName="tx_mindfula11y_headinglevel" level="{data.tx_mindfula11y_headinglevel}" fallbackTag="p">{data.header}</mindfula11y:heading>
+ * Basic usage with ability to edit heading type from backend module. Outputting the default heading field for a tt_content record:
+ * <mindfula11y:heading recordUid="{data.uid}" recordTableName="tt_content" recordColumnName="tx_mindfula11y_headingtype" type="{data.tx_mindfula11y_headingtype}">{data.header}</mindfula11y:heading>
  *
- * Specify heading level without way to edit it: Use for dependent headings like child headings.
- * <mindfula11y:heading level="{data.tx_mindfula11y_headinglevel + 1}">{data.header}</mindfula11y:heading>
+ * Specify heading type without way to edit it: Use for dependent headings like child headings.
+ * <mindfula11y:heading type="h2">{data.header}</mindfula11y:heading>
  */
 class HeadingViewHelper extends AbstractTagBasedViewHelper
 {
@@ -62,9 +62,9 @@ class HeadingViewHelper extends AbstractTagBasedViewHelper
     protected readonly UriBuilder $backendUriBuilder;
 
     /**
-     * The default heading level if not specified and not found in the record.
+     * The default heading type if not specified and not found in the record.
      */
-    public const DEFAULT_LEVEL = 2;
+    public const DEFAULT_TYPE = 'h2';
 
     /**
      * Inject Context object.
@@ -96,31 +96,34 @@ class HeadingViewHelper extends AbstractTagBasedViewHelper
     public function initializeArguments(): void
     {
         parent::initializeArguments();
-        $this->registerArgument('fallbackTag', 'string', 'The fallback tag to use if level is set to -1. Defaults to p', false, 'p');
         $this->registerArgument('recordTableName', 'string', 'The name of the database table with the heading. Defaults to tt_content', false, 'tt_content');
-        $this->registerArgument('recordColumnName', 'string', 'The name of the field to store the heading type. Defaults to tx_mindfula11y_headinglevel.', false, 'tx_mindfula11y_headinglevel');
-        $this->registerArgument('recordUid', 'int', 'The UID of the record to edit the heading level.', false, null);
-        $this->registerArgument('level', 'int', 'The heading level to use. If not specified, will use the value from the database.', true);
+        $this->registerArgument('recordColumnName', 'string', 'The name of the field to store the heading type. Defaults to tx_mindfula11y_headingtype.', false, 'tx_mindfula11y_headingtype');
+        $this->registerArgument('recordUid', 'int', 'The UID of the record to edit the heading type.', false, null);
+        $this->registerArgument('type', 'string', 'The heading type to use (h1, h2, h3, h4, h5, h6, p, div, etc.).', true);
     }
 
     /**
-     * Set the current tag name based on the heading level and fallback tag.
+     * Set the current tag name based on the heading type.
      */
     public function initialize(): void
     {
         parent::initialize();
 
-        if (-1 === $this->arguments['level']) {
-            $this->tag->setTagName($this->arguments['fallbackTag']);
+        $type = $this->arguments['type'];
+        
+        // Check if it's a heading tag (h1-h6)
+        if (preg_match('/^h[1-6]$/', $type)) {
+            $this->tag->setTagName($type);
         } else {
-            $this->tag->setTagName('h' . $this->arguments['level']);
+            // For non-heading tags, use the tag as-is (p, div, span, etc.)
+            $this->tag->setTagName($type);
         }
     }
 
     /**
      * Render the heading tag.
      * 
-     * This method checks if the MindfulA11y heading structure module is active and if the user has permission to modify the heading level.
+     * This method checks if the MindfulA11y heading structure module is active and if the user has permission to modify the heading type.
      * If so, it adds data attributes to the tag with information about the record.
      * 
      * @return string The rendered tag HTML.
@@ -133,7 +136,7 @@ class HeadingViewHelper extends AbstractTagBasedViewHelper
             && $request->hasHeader('Mindfula11y-Structure-Analysis')
             && $this->context->getPropertyFromAspect('backend.user', 'isLoggedIn', false)
             && null !== $this->arguments['recordUid']
-            && $this->hasPermissionToModifyHeadingLevel(
+            && $this->hasPermissionToModifyHeadingType(
                 $this->arguments['recordUid'],
                 $this->arguments['recordTableName'],
                 $this->arguments['recordColumnName']
@@ -149,8 +152,8 @@ class HeadingViewHelper extends AbstractTagBasedViewHelper
                     ],
                 ],
             ]));
-            $this->tag->addAttribute('data-mindfula11y-level', $this->arguments['level']);
-            $this->tag->addAttribute('data-mindfula11y-available-levels', json_encode($this->getHeadingLevels(
+            $this->tag->addAttribute('data-mindfula11y-type', $this->arguments['type']);
+            $this->tag->addAttribute('data-mindfula11y-available-types', json_encode($this->getHeadingTypes(
                 $this->arguments['recordTableName'],
                 $this->arguments['recordColumnName']
             )));
@@ -161,12 +164,12 @@ class HeadingViewHelper extends AbstractTagBasedViewHelper
     }
 
     /**
-     * Check permissions to modify the heading level.
+     * Check permissions to modify the heading type.
      * 
-     * Checks if the user has permission to modify the heading level of the given record.
+     * Checks if the user has permission to modify the heading type of the given record.
      * This has no impact on the actual modification as those permissions are checked by DataHandler on
-     * save. We still don't want to show the heading level select box if the user has no
-     * permissions to modify the heading level.
+     * save. We still don't want to show the heading type select box if the user has no
+     * permissions to modify the heading type.
      * 
      * @param int $recordUid The UID of the record.
      * @param string $recordTableName The name of the database table with the heading.
@@ -174,7 +177,7 @@ class HeadingViewHelper extends AbstractTagBasedViewHelper
      * 
      * @return bool True if the user has permission, false otherwise.
      */
-    protected function hasPermissionToModifyHeadingLevel(
+    protected function hasPermissionToModifyHeadingType(
         int $recordUid,
         string $recordTableName,
         string $recordColumnName
@@ -194,24 +197,21 @@ class HeadingViewHelper extends AbstractTagBasedViewHelper
     }
 
     /**
-     * Get available heading levels from the TCA configuration.
+     * Get available heading types from the TCA configuration.
      * 
      * @param string $recordTableName The name of the database table with the heading.
      * @param string $recordColumnName The name of the field to store the heading type.
-     * @return array The available heading levels as an associative array.
+     * @return array The available heading types as an associative array.
      */
-    protected function getHeadingLevels(string $recordTableName, string $recordColumnName): array
+    protected function getHeadingTypes(string $recordTableName, string $recordColumnName): array
     {
-        $headingLevels = [];
+        $headingTypes = [];
         if (isset($GLOBALS['TCA'][$recordTableName]['columns'][$recordColumnName]['config']['items'])) {
             foreach ($GLOBALS['TCA'][$recordTableName]['columns'][$recordColumnName]['config']['items'] as $item) {
-                if (-1 === $item['value']) {
-                    continue;
-                }
-                $headingLevels[$item['value']] = LocalizationUtility::translate($item['label']);
+                $headingTypes[$item['value']] = LocalizationUtility::translate($item['label']);
             }
         }
-        return $headingLevels;
+        return $headingTypes;
     }
 
     /**

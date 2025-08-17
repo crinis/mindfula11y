@@ -27,7 +27,7 @@ import { LitElement, html, css } from "lit";
 import { Task } from "@lit/task";
 import AjaxRequest from "@typo3/core/ajax/ajax-request.js";
 import Notification from "@typo3/backend/notification.js";
-import HeadingLevel from "./heading-level.js";
+import HeadingType from "./heading-type.js";
 
 /**
  * Web component for visualizing and editing the heading structure of an HTML document in TYPO3.
@@ -292,7 +292,7 @@ export class HeadingStructure extends LitElement {
               ? " mindfula11y-tree__node--error"
               : ""}"
           >
-            ${this.createHeadingLevel(node)}
+            ${this.createHeadingType(node)}
             ${this.renderHeadingTree(node.children, false)}
           </li>
         `;
@@ -317,34 +317,34 @@ export class HeadingStructure extends LitElement {
   }
 
   /**
-   * Create a heading-level component for a given heading node.
+   * Create a heading-type component for a given heading node.
    * Optionally adds a visual indication if a skipped level is detected.
    *
    * @param {HeadingTreeNode} node - The heading tree node to create.
-   * @returns {import('lit').TemplateResult} The created heading-level element.
+   * @returns {import('lit').TemplateResult} The created heading-type element.
    */
-  createHeadingLevel(node) {
-    const availableLevels = JSON.parse(
-      node.element.dataset.mindfula11yAvailableLevels || "{}"
+  createHeadingType(node) {
+    const availableTypes = JSON.parse(
+      node.element.dataset.mindfula11yAvailableTypes || "{}"
     );
 
     const hasError = node.skippedLevels > 0;
     return html`
-      <mindfula11y-heading-level
-        class="mindfula11y-level${hasError ? " mindfula11y-level--error" : ""}"
-        .level="${node.level}"
-        .availableLevels="${availableLevels}"
+      <mindfula11y-heading-type
+        class="mindfula11y-type${hasError ? " mindfula11y-type--error" : ""}"
+        .type="${node.element.dataset.mindfula11yType || node.element.tagName.toLowerCase()}"
+        .availableTypes="${availableTypes}"
         recordTableName="${node.element.dataset.mindfula11yRecordTableName}"
         recordColumnName="${node.element.dataset.mindfula11yRecordColumnName}"
         recordUid="${node.element.dataset.mindfula11yRecordUid}"
         recordEditLink="${node.element.dataset.mindfula11yRecordEditLink}"
         .hasError="${node.hasError}"
         label="${node.element.innerText}"
-        @mindfula11y-heading-level-changed="${(_) => {
+        @mindfula11y-heading-type-changed="${(_) => {
           this.loadHeadingsTask.run();
         }}"
       >
-      </mindfula11y-heading-level>
+      </mindfula11y-heading-type>
     `;
   }
 

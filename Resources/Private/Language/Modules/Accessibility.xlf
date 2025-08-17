@@ -220,11 +220,11 @@
                     structure.</source>
             </trans-unit>
             <trans-unit id="headingStructure.error.store" resname="headingStructure.error.store">
-                <source>Saving heading level failed.</source>
+                <source>Saving heading type failed.</source>
             </trans-unit>
             <trans-unit id="headingStructure.error.store.description"
                 resname="headingStructure.error.store.description">
-                <source>Could not save the heading level. Do you have permission?</source>
+                <source>Could not save the heading type. Do you have permission?</source>
             </trans-unit>
             <trans-unit id="headingStructure.error.skippedLevel"
                 resname="headingStructure.error.skippedLevel">
