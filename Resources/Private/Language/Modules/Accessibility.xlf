@@ -258,6 +258,18 @@
             <trans-unit id="headingStructure.edit.locked" resname="headingStructure.edit.locked">
                 <source>Editing not allowed</source>
             </trans-unit>
+            <trans-unit id="headingStructure.unlabeled" resname="headingStructure.unlabeled">
+                <source>Unlabeled heading</source>
+            </trans-unit>
+            <trans-unit id="headingStructure.type.label" resname="headingStructure.type.label">
+                <source>Heading type</source>
+            </trans-unit>
+            <trans-unit id="headingStructure.noHeadings" resname="headingStructure.noHeadings">
+                <source>No headings found</source>
+            </trans-unit>
+            <trans-unit id="headingStructure.noHeadings.description" resname="headingStructure.noHeadings.description">
+                <source>No heading elements (h1-h6) were found on this page.</source>
+            </trans-unit>
 
             <trans-unit id="landmarkStructure" resname="landmarkStructure">
                 <source>Landmark Structure</source>

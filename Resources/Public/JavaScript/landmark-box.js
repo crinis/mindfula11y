@@ -174,8 +174,7 @@ export class LandmarkBox extends LitElement {
     if (this.label?.trim()) {
       return this.label;
     }
-    
-    return TYPO3.lang[LANDMARK_LABEL_KEYS.COMPONENT.UNLABELED_LANDMARK] || LANDMARK_UI_CONSTANTS.DEFAULT_UNLABELED_TEXT;
+    return TYPO3.lang[LANDMARK_LABEL_KEYS.COMPONENT.UNLABELED_LANDMARK] || '';
   }
 
   /**
@@ -260,7 +259,7 @@ export class LandmarkBox extends LitElement {
         </span>
         ${landmarkInfo.hasChildren ? html`
           <span class="badge rounded-pill">
-            ${this.children.length} ${LANDMARK_UI_CONSTANTS.BADGE_NESTED_TEXT}
+            ${this.children.length} ${TYPO3.lang[LANDMARK_LABEL_KEYS.UI.NESTED_LANDMARKS]}
           </span>
         ` : ''}
       </div>
@@ -494,14 +493,9 @@ export class LandmarkBox extends LitElement {
    * @returns {string} The translated label
    */
   _getRoleOptionLabel(value) {
-    const keySuffix = value === "" ? "none" : value;
+    const keySuffix = value === '' ? 'none' : value;
     const translationKey = `mindfula11y.features.landmarkStructure.role.${keySuffix}`;
-    
-    return TYPO3.lang[translationKey] || 
-           this.availableRoles[value] || 
-           value || 
-           TYPO3.lang[LANDMARK_LABEL_KEYS.COMPONENT.ROLE_NONE] || 
-           LANDMARK_UI_CONSTANTS.DEFAULT_NO_LANDMARK_TEXT;
+    return TYPO3.lang[translationKey] || this.availableRoles[value] || value;
   }
 
   /**
@@ -524,7 +518,7 @@ export class LandmarkBox extends LitElement {
   _renderRoleSelectError() {
     return html`
       <div class="alert alert-danger alert-sm">
-        ${TYPO3.lang[LANDMARK_LABEL_KEYS.ERROR_HANDLING.ROLE_SELECT_ERROR] || 'Error loading role selector'}
+        ${TYPO3.lang[LANDMARK_LABEL_KEYS.ERROR_HANDLING.ROLE_SELECT_ERROR]}
       </div>
     `;
   }
@@ -617,8 +611,8 @@ export class LandmarkBox extends LitElement {
    */
   _handleSaveError() {
     Notification.error(
-      TYPO3.lang[LANDMARK_LABEL_KEYS.ERROR_HANDLING.STORE_FAILED] || 'Save failed',
-      TYPO3.lang[LANDMARK_LABEL_KEYS.ERROR_HANDLING.STORE_FAILED_DESC] || 'Unable to save landmark role'
+      TYPO3.lang[LANDMARK_LABEL_KEYS.ERROR_HANDLING.STORE_FAILED],
+      TYPO3.lang[LANDMARK_LABEL_KEYS.ERROR_HANDLING.STORE_FAILED_DESC]
     );
   }
 
@@ -628,7 +622,7 @@ export class LandmarkBox extends LitElement {
    * @private
    */
   _showSaveError() {
-    const errorMessage = TYPO3.lang[LANDMARK_LABEL_KEYS.ERROR_HANDLING.STORE_FAILED] || 'Failed to save role';
+    const errorMessage = TYPO3.lang[LANDMARK_LABEL_KEYS.ERROR_HANDLING.STORE_FAILED];
     console.error(errorMessage);
   }
 
@@ -642,15 +636,11 @@ export class LandmarkBox extends LitElement {
    * @returns {string} The human-readable display name for the role.
    */
   getRoleDisplayName(role) {
-    if (role === "") {
-      return TYPO3.lang[LANDMARK_LABEL_KEYS.COMPONENT.ROLE_NONE] || LANDMARK_UI_CONSTANTS.DEFAULT_NO_LANDMARK_TEXT;
+    if (role === '') {
+      return TYPO3.lang[LANDMARK_LABEL_KEYS.COMPONENT.ROLE_NONE] || '';
     }
-    
     const translationKey = `mindfula11y.features.landmarkStructure.role.${role}`;
-    return TYPO3.lang[translationKey] || 
-           TYPO3.lang[LANDMARK_LABEL_KEYS.COMPONENT.ROLE_NONE] || 
-           role || 
-           LANDMARK_UI_CONSTANTS.DEFAULT_NO_LANDMARK_TEXT;
+    return TYPO3.lang[translationKey] || role;
   }
 }
 

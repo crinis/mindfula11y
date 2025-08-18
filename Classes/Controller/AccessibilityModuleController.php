@@ -238,11 +238,13 @@ class AccessibilityModuleController
                 ->withLanguage($this->languageId)
                 ->buildUri(),
             'enableHeadingStructure' => $this->pageTsConfig['mod']['mindfula11y_accessibility']['headingStructure']['enable'] ?? false,
+            'enableLandmarkStructure' => $this->pageTsConfig['mod']['mindfula11y_accessibility']['landmarkStructure']['enable'] ?? false,
             'enableMissingAltText' => $this->pageTsConfig['mod']['mindfula11y_accessibility']['missingAltText']['enable'] ?? false,
         ]);
 
         $this->pageRenderer->loadJavaScriptModule('@mindfulmarkup/mindfula11y/altless-file-reference.js');
         $this->pageRenderer->loadJavaScriptModule('@mindfulmarkup/mindfula11y/heading-structure.js');
+        $this->pageRenderer->loadJavaScriptModule('@mindfulmarkup/mindfula11y/landmark-structure.js');
 
         return $this->moduleTemplate->renderResponse('Backend/General');
     }
@@ -534,6 +536,7 @@ class AccessibilityModuleController
             ->setLabel($this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:menu.filter'))
             ->setShowLabelText(true);
 
+        /** @var DropDownToggle $filterFileMetaDataToggle */
         $filterFileMetaDataToggle = GeneralUtility::makeInstance(DropDownToggle::class)
             ->setActive($filterFileMetaData)
             ->setHref($this->getMenuItemUri([
@@ -625,6 +628,10 @@ class AccessibilityModuleController
             'mindfula11y.features.headingStructure.error.skippedLevel.inline' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:headingStructure.error.skippedLevel.inline'),
             'mindfula11y.features.headingStructure.error.missingH1' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:headingStructure.error.missingH1'),
             'mindfula11y.features.headingStructure.error.missingH1.description' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:headingStructure.error.missingH1.description'),
+            'mindfula11y.features.headingStructure.unlabeled' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:headingStructure.unlabeled'),
+            'mindfula11y.features.headingStructure.type.label' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:headingStructure.type.label'),
+            'mindfula11y.features.headingStructure.noHeadings' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:headingStructure.noHeadings'),
+            'mindfula11y.features.headingStructure.noHeadings.description' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:headingStructure.noHeadings.description'),
             // Landmark Structure labels
             'mindfula11y.features.landmarkStructure.edit' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.edit'),
             'mindfula11y.features.landmarkStructure.edit.locked' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.edit.locked'),

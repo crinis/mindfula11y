@@ -31,6 +31,23 @@
       </section>
     </f:if>
 
+    <f:if condition="{enableLandmarkStructure}">
+      <section class="callout callout-notice">
+        <div class="callout-content">
+          <div class="callout-title">
+            <h2>
+              <f:translate
+                key="LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure"
+              />
+            </h2>
+          </div>
+          <div class="callout-body">
+            <mindfula11y-landmark-structure previewUrl="{previewUrl}" />
+          </div>
+        </div>
+      </section>
+    </f:if>
+
     <f:if condition="{enableMissingAltText}">
       <section class="callout callout-notice">
         <div class="callout-content">

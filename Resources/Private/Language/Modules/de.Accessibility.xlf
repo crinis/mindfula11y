@@ -469,6 +469,22 @@
                 <source>Editing not allowed</source>
                 <target>Bearbeitung nicht erlaubt</target>
             </trans-unit>
+            <trans-unit id="headingStructure.unlabeled" resname="headingStructure.unlabeled">
+                <source>Unlabeled heading</source>
+                <target>Unbeschriftete Überschrift</target>
+            </trans-unit>
+            <trans-unit id="headingStructure.type.label" resname="headingStructure.type.label">
+                <source>Heading type</source>
+                <target>Überschriftentyp</target>
+            </trans-unit>
+            <trans-unit id="headingStructure.noHeadings" resname="headingStructure.noHeadings">
+                <source>No headings found</source>
+                <target>Keine Überschriften gefunden</target>
+            </trans-unit>
+            <trans-unit id="headingStructure.noHeadings.description" resname="headingStructure.noHeadings.description">
+                <source>No heading elements (h1-h6) were found on this page.</source>
+                <target>Auf dieser Seite wurden keine Überschriften-Elemente (h1-h6) gefunden.</target>
+            </trans-unit>
 
             <!-- Landmark Structure missing keys -->
             <trans-unit id="landmarkStructure.error.store" resname="landmarkStructure.error.store">
