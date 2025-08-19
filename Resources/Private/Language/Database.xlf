@@ -40,7 +40,7 @@
 			</trans-unit>
 			<trans-unit id="ttContent.columns.mindfula11y.headingType.items.div"
 				resname="ttContent.columns.mindfula11y.headingType.items.div">
-				<source>Generic div</source>
+				<source>Generic div (div)</source>
 			</trans-unit>
 			
 			<!-- Accessibility Tab -->

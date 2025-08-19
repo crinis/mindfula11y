@@ -15,9 +15,9 @@ composer require mindfulmarkup/mindfula11y
 ## Features
 
 - **Alternative Text Checker**: Backend module that lists all `sys_file_reference` records (e.g., images) without alternative text, making it easy to find and fix missing alt attributes.
+- **AI-Powered Alt Text Generation**: Supports generating alternative texts for images using ChatGPT.
 - **Heading Structure Overview**: Backend module that visualizes the heading structure of content elements and allows editors to easily review and edit heading types for records using the custom ViewHelper.
 - **Landmark Structure Overview**: Backend module that displays ARIA landmarks on the page in a visual, hierarchical layout. Editors can review landmark structure, identify accessibility issues, and edit landmark roles directly from the backend to improve page navigation and semantic structure.
-- **AI-Powered Alt Text Generation**: Supports generating alternative texts for images using ChatGPT.
 
 ## Planned Features
 
@@ -41,6 +41,7 @@ mod {
     mindfula11y_missingalttext {
         enable = 1
         ignoreColumns {
+            # Do not include column `image` from table `tt_content` in the alternative text check.
             tt_content = image
         }
     }
@@ -53,24 +54,94 @@ mod {
 }
 ```
 
-- Enable or disable modules.
-- Exclude specific columns from the alternative text check.
+## Finding images with missing alternative text
 
-## Heading ViewHelper Usage
+The Accessibility module provides a list of `sys_file_reference` records that do not have alternative text set. This helps editors identify and fix images that are missing accessibility information.
 
-The `HeadingViewHelper` allows you to render headings in TYPO3 with support for editing heading types in the MindfulA11y backend module.
+### Backend Module Integration
 
-### Basic Usage
+The Missing Alt Text checker is integrated into the main Accessibility backend module and provides filtering options based on:
 
-Render a heading with the ability to edit its level from the backend module. This example outputs the default heading field for a `tt_content` record:
+- **Current Page**: Results are shown for the currently selected page in the page tree
+- **Record Type**: Filter by specific tables (e.g., `tt_content`, `pages`) or show all record types
+- **Language**: Filter results by specific languages
+- **Recursive Depth**: Choose how many page levels to scan (1, 5, 10, or 99 levels deep)
+
+![Screenshot of the accessibility backend module listing images missing an alternative text with an input field, a generate and a save button.](Resources/Public/Images/Screenshots/MissingAltTextModule.png)
+*The Missing Alt Text module showing the list of images without alternative text with inline editing capabilities. Also allowing to generate an alternative text using ChatGPT if configured.*
+
+### Inline Editing
+
+Each missing alternative text entry provides:
+
+- **Image Preview**: Thumbnail display with link to view the full-size image
+- **Alternative Text Input**: Multi-line text area for entering descriptive text
+- **AI Generation**: When ChatGPT is configured, a "Generate" button automatically creates alternative text
+- **Save Functionality**: Individual saving for each image
+- **Record Link**: Direct access to edit the original record containing the file reference
+
+### Configuration Options
+
+The module can be configured using Page TSconfig to exclude specific columns:
+
+```
+mod {
+    mindfula11y_missingalttext {
+        enable = 1
+        ignoreColumns {
+            # Exclude specific columns from the alternative text check
+            tt_content = image,media
+            pages = media
+        }
+    }
+}
+```
+
+## Heading Types
+
+The Mindful A11y extension adds a `tx_mindfula11y_headingtype` column to the `tt_content` table, allowing editors (with appropriate permissions) to set the semantic heading type for content elements. This enables precise control over the document's heading hierarchy for better accessibility.
+
+### What are Heading Types?
+
+Heading types define the semantic level and HTML element used to render headings in your content. Proper heading structure is crucial for accessibility, as screen readers and other assistive technologies use headings to navigate and understand the page structure.
+
+### Available Heading Types
+
+The extension provides the following heading type options:
+
+- **H1-H6**: Semantic heading levels (`<h1>` through `<h6>`) for proper document structure
+- **Paragraph (p)**: For text that should be rendered as a paragraph rather than a heading (`<p>`)
+- **Generic div (div)**: For content that needs custom styling without any semantic meaning (`<div>`)
+
+### Backend Module Integration
+
+Headings are displayed in a tree structure within the Accessibility backend module, providing editors with a clear overview of the page's heading hierarchy. The module identifies accessibility issues such as missing H1 elements or skipped heading levels, and allows for easy editing of heading types directly from the tree view.
+
+![Screenshot of the accessibility backend module showing a heading tree with an error shown due to a skipped heading level](Resources/Public/Images/Screenshots/HeadingTreeModule.png)
+*The Heading Structure module showing the hierarchical tree of headings with inline editing capabilities. Helping editors to catch errors.*
+
+### Using the Heading ViewHelper
+
+To apply heading types in the frontend, use the provided `HeadingViewHelper`. The ViewHelper renders the appropriate HTML element based on the stored heading type and integrates with the backend module for inline editing capabilities.
+
+#### Basic Usage for tt_content Records
 
 ```html
-## Heading ViewHelper Usage
+<mindfula11y:heading 
+    recordUid="{data.uid}" 
+    recordTableName="tt_content" 
+    recordColumnName="tx_mindfula11y_headingtype" 
+    type="{data.tx_mindfula11y_headingtype}">
+    {data.header}
+</mindfula11y:heading>
+```
 
-The HeadingViewHelper renders semantic headings with backend editing support.
+#### Dependent Child Headings
 
-```xml
-<!-- Basic usage with content element -->
+For child headings that should automatically adjust based on their parent heading level, you can use Fluid's mathematical operations with the `f:variable` ViewHelper:
+
+```html
+<f:comment>Parent heading</f:comment>
 <mindfula11y:heading 
     recordUid="{data.uid}" 
     recordTableName="tt_content" 
@@ -79,344 +150,307 @@ The HeadingViewHelper renders semantic headings with backend editing support.
     {data.header}
 </mindfula11y:heading>
 
-<!-- Direct heading type specification -->
-<mindfula11y:heading type="h2">Page Title</mindfula11y:heading>
+<f:comment>Child heading that adapts to parent level</f:comment>
+<f:if condition="{data.tx_mindfula11y_headingtype} == 'p' || {data.tx_mindfula11y_headingtype} == 'div'">
+    <f:then>
+        <f:comment>Non-semantic parent: use same type for child</f:comment>
+        <f:variable name="childType" value="{data.tx_mindfula11y_headingtype}" />
+    </f:then>
+    <f:else>
+        <f:comment>Semantic heading parent: increment level</f:comment>
+        <f:variable name="parentLevel" value="{f:replace(subject: data.tx_mindfula11y_headingtype, search: 'h', replace: '')}" />
+        <f:variable name="childLevel" value="{f:if(condition: '{parentLevel} < 6', then: '{parentLevel + 1}', else: '6')}" />
+        <f:variable name="childType" value="h{childLevel}" />
+    </f:else>
+</f:if>
 
-<!-- Using HeadingType enum values -->
-<mindfula11y:heading type="{headingType.value}">Dynamic Heading</mindfula11y:heading>
-```
-```
-
-- `recordUid`: The UID of the record to allow editing (optional for static headings).
-- `recordTableName`: The database table name (default: `tt_content`).
-- `recordColumnName`: The field storing the heading type (default: `tx_mindfula11y_headingtype`).
-- `type`: The heading type to use (required). Accepts HTML tag names like 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'div', etc.
-
-### Static Heading (No Editing)
-
-Render a heading without edit capability, e.g. for child or dependent headings:
-
-```html
-<mindfula11y:heading type="{data.tx_mindfula11y_headingtype}">
-  {data.header}
+<mindfula11y:heading type="{childType}">
+    {data.subheader}
 </mindfula11y:heading>
 ```
 
-### Notes
+This example handles both semantic headings (h1-h6) and non-semantic elements (p, div). For semantic headings, it increments the level by 1. For non-semantic elements, the child uses the same type as the parent.
 
-- When used in the MindfulA11y backend module and the user has permission, the ViewHelper adds data attributes for frontend editing.
-- The ViewHelper checks user permissions and only enables editing if allowed.
+### Extending Custom Record Types
 
-## Extending Custom Records with the Heading Type Column
+To add heading type support to custom record types, follow these steps:
 
-You can add the heading type column provided by this extension to your own custom records. This allows you to reuse the same heading type selection and editing features in your own tables.
+#### 1. Add TCA Column Definition
 
-### Example: Add to a Custom Table
-
-In your TCA override (e.g. `Configuration/TCA/Overrides/tx_yourextension_domain_model_custom.php`):
+Create a TCA override file for your custom table (e.g., `Configuration/TCA/Overrides/tx_myext_records.php`):
 
 ```php
+<?php
+declare(strict_types=1);
+
+use MindfulMarkup\MindfulA11y\Enum\HeadingType;
 use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 
-// Add the heading type column from tt_content to your custom table
+defined('TYPO3') or die();
+
+// Add the heading type column to your custom table
 ExtensionManagementUtility::addTCAcolumns(
-    'tx_yourextension_domain_model_custom',
+    'tx_myext_records',
     [
-        'tx_mindfula11y_headingtype' => $GLOBALS['TCA']['tt_content']['columns']['tx_mindfula11y_headingtype'],
+        'headingtype' => [
+            'exclude' => true,
+            'label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.headingType',
+            'config' => [
+                'type' => 'select',
+                'renderType' => 'selectSingle',
+                'default' => HeadingType::H2->value,
+                'items' => [
+                    ['label' => HeadingType::H1->getLabelKey(), 'value' => HeadingType::H1->value],
+                    ['label' => HeadingType::H2->getLabelKey(), 'value' => HeadingType::H2->value],
+                    ['label' => HeadingType::H3->getLabelKey(), 'value' => HeadingType::H3->value],
+                    ['label' => HeadingType::H4->getLabelKey(), 'value' => HeadingType::H4->value],
+                    ['label' => HeadingType::H5->getLabelKey(), 'value' => HeadingType::H5->value],
+                    ['label' => HeadingType::H6->getLabelKey(), 'value' => HeadingType::H6->value],
+                    ['label' => HeadingType::P->getLabelKey(), 'value' => HeadingType::P->value],
+                    ['label' => HeadingType::DIV->getLabelKey(), 'value' => HeadingType::DIV->value],
+                ],
+            ],
+        ],
     ]
 );
 
+// Add the field to your record type's interface
 ExtensionManagementUtility::addToAllTCAtypes(
-    'tx_yourextension_domain_model_custom',
-    'tx_mindfula11y_headingtype',
-    '',
-    'after:title' // or any field you want
-);
-```
-
-- This copies the column configuration from `tt_content` to your custom table.
-- Adjust the table name and position as needed.
-- You can now use the `HeadingViewHelper` with your custom records just like with `tt_content`.
-
-For more details, see the PHPDoc in `Classes/ViewHelpers/HeadingViewHelper.php`.
-
-## ARIA Landmarks and Accessibility
-
-### What are ARIA Landmarks?
-
-ARIA landmarks provide a way to identify sections of a page and allow assistive technology users to navigate directly to specific content areas. They are essential for screen reader users who rely on landmarks to quickly understand page structure and navigate efficiently.
-
-### Landmark Structure Backend Module
-
-The Landmark Structure backend module provides:
-
-- **Visual Overview**: Displays all landmarks on the current page in a hierarchical, color-coded layout
-- **Accessibility Validation**: Identifies common landmark issues such as:
-  - Missing main landmark
-  - Duplicate main landmarks (main)
-  - Unlabeled landmarks that share a role
-- **Direct Editing**: Edit landmark roles directly from the backend with real-time validation
-- **Nested Relationship Display**: Shows parent-child relationships between landmarks clearly
-
-## Landmark ViewHelper Usage
-
-The `LandmarkViewHelper` renders semantic HTML elements with ARIA landmark roles, providing both accessibility benefits and backend editing capabilities through the MindfulA11y module.
-
-### Key Features
-
-- **Semantic HTML Output**: Automatically uses appropriate semantic elements (`<main>`, `<nav>`, `<aside>`, etc.)
-- **ARIA Role Support**: Adds explicit ARIA roles when needed for clarity
-- **Backend Integration**: Enables editing landmark roles directly from the MindfulA11y backend module
-- **Accessibility Validation**: Built-in validation for proper landmark usage
-- **Flexible Configuration**: Supports both database-driven and static landmark definitions
-
-### Basic Usage (Database-Driven Landmarks)
-
-Use the ViewHelper when you need to get landmark roles from database fields and enable backend editing:
-
-```html
-<!-- For content elements with landmark roles stored in the database -->
-<mindfula11y:landmark
-  recordUid="{f:if(condition: data._LOCALIZED_UID, then: data._LOCALIZED_UID, else: data.uid)}"
-  recordTableName="tt_content"
-  recordColumnName="tx_mindfula11y_landmark"
-  role="{data.tx_mindfula11y_landmark}"
-  aria="{label: data.tx_mindfula11y_arialabel, labelledby: data.tx_mindfula11y_arialabelledby}"
->
-  <!-- Content element content -->
-  <f:format.html>{data.bodytext}</f:format.html>
-</mindfula11y:landmark>
-```
-
-The ViewHelper automatically:
-- Chooses the correct HTML element (`<main>`, `<nav>`, `<aside>`, `<section>`, etc.) based on the role
-- Adds backend editing capabilities when accessed through the MindfulA11y module
-- Falls back to a `<div>` when no landmark role is set
-
-### Static Template-Level Landmarks
-
-For static landmarks defined at the template level, use semantic HTML directly **without** the ViewHelper:
-
-```html
-<!-- Site header -->
-<header>
-  <f:render partial="Header" />
-</header>
-
-<!-- Main navigation -->
-<nav aria-label="Main navigation">
-  <f:render partial="Navigation" />
-</nav>
-
-<!-- Main content area -->
-<main>
-  <f:render partial="Content" />
-</main>
-
-<!-- Sidebar -->
-<aside aria-label="Related content">
-  <f:render partial="Sidebar" />
-</aside>
-
-<!-- Site footer -->
-<footer>
-  <f:render partial="Footer" />
-</footer>
-```
-
-### ViewHelper Parameters
-
-#### Required Parameters
-- **`role`**: The ARIA landmark role (string). See available roles below.
-
-#### Optional Parameters (for Backend Editing)
-- **`recordUid`**: Database record UID for backend editing capability
-- **`recordTableName`**: Database table name (default: `tt_content`)
-- **`recordColumnName`**: Field storing the landmark role (default: `tx_mindfula11y_landmark`)
-
-#### ARIA Configuration
-- **`aria`**: Array of ARIA attributes:
-  - `label`: Accessible name for the landmark (string) - used when `arialabelledby` is disabled
-  - `labelledby`: Reference to element(s) that label the landmark (string) - automatically set when `arialabelledby` is enabled
-
-### Available Landmark Roles
-
-| Role | Purpose | HTML Element | Uniqueness | Accessible Name |
-|------|---------|--------------|------------|-----------------|
-| `""` (empty) | No landmark role | `<div>` | - | - |
-| `main` | Primary content area | `<main>` | **Unique per page** | Optional |
-| `navigation` | Navigation sections | `<nav>` | Multiple allowed | Recommended |
-| `complementary` | Supporting content, sidebars | `<aside>` | Multiple allowed | **Required** |
-| `banner` | Site header/masthead | `<header>` | **Unique per page** | Optional |
-| `contentinfo` | Site footer/metadata | `<footer>` | **Unique per page** | Optional |
-| `region` | Generic content sections | `<section>` | Multiple allowed | **Required** |
-| `search` | Search functionality | `<div>` | Multiple allowed | Recommended |
-| `form` | Form sections | `<form>` | Multiple allowed | Recommended |
-
-### When to Use the ViewHelper vs. Semantic HTML
-
-**Use the LandmarkViewHelper when:**
-- Working with content elements that have database-stored landmark roles
-- Need backend editing capabilities through the MindfulA11y module
-- Content editors should be able to change landmark roles without touching templates
-- Working with dynamic content where landmark roles may vary
-
-**Use semantic HTML directly when:**
-- Creating static template-level landmarks (header, nav, main, aside, footer)
-- The landmark role is fixed and won't change
-- No backend editing is needed
-- Working with page layout structure rather than content elements
-
-### Content Element Integration
-
-To enable landmark functionality for content elements, configure your content element types:
-
-```php
-// In your extension's TCA configuration
-$GLOBALS['TCA']['tt_content']['types']['your_content_type']['showitem'] .= ',
-  --div--;LLL:EXT:mindfula11y/Resources/Private/Language/locallang_db.xlf:tabs.accessibility,
-    tx_mindfula11y_landmark,
-    tx_mindfula11y_arialabel,
-    tx_mindfula11y_arialabelledby,
-';
-```
-
-Then use in your Fluid template:
-
-```html
-<mindfula11y:landmark
-  recordUid="{data.uid}"
-  recordTableName="tt_content"
-  recordColumnName="tx_mindfula11y_landmark"
-  role="{data.tx_mindfula11y_landmark}"
-  aria="{label: data.tx_mindfula11y_arialabel, labelledby: data.tx_mindfula11y_arialabelledby}"
->
-  <f:render partial="YourContentElement" arguments="{data: data}" />
-</mindfula11y:landmark>
-```
-
-### Accessibility Best Practices
-
-#### Landmark Hierarchy
-```html
-<!-- Good: Proper landmark hierarchy using semantic HTML -->
-<header> <!-- role="banner" -->
-  <nav aria-label="Main menu"> <!-- role="navigation" -->
-    <!-- Main navigation -->
-  </nav>
-</header>
-
-<main> <!-- role="main" -->
-  <section aria-label="Article content"> <!-- role="region" -->
-    <!-- Article content -->
-  </section>
-  
-  <aside aria-label="Related articles"> <!-- role="complementary" -->
-    <!-- Sidebar content -->
-  </aside>
-</main>
-```
-
-#### Required Accessible Names
-Always provide accessible names for `region` and `complementary` landmarks:
-
-```html
-<!-- Good: Region with accessible name -->
-<section aria-label="User comments"> <!-- role="region" -->
-  <!-- Comments section -->
-</section>
-
-<!-- Good: Complementary with labelledby -->
-<aside aria-labelledby="sidebar-title"> <!-- role="complementary" -->
-  <h2 id="sidebar-title">Related Articles</h2>
-  <!-- Sidebar content -->
-</aside>
-```
-
-#### Unique Landmarks
-Ensure `main`, `banner`, and `contentinfo` appear only once per page:
-
-```html
-<!-- Good: Single main landmark -->
-<main> <!-- role="main" -->
-  <!-- All primary page content -->
-</main>
-
-<!-- Avoid: Multiple main landmarks -->
-<!-- This would be flagged as an error in the backend module -->
-```
-
-### Backend Module Integration
-
-When the ViewHelper is used with record parameters (`recordUid`, `recordTableName`, `recordColumnName`), it integrates with the Landmark Structure backend module:
-
-1. **Data Attributes**: Adds editing metadata to HTML for backend recognition
-2. **Permission Checks**: Only enables editing for users with appropriate permissions
-3. **Real-time Updates**: Changes made in the backend immediately reflect on the frontend
-4. **Validation Feedback**: Shows accessibility issues directly in the module interface
-
-## Extending Custom Records with Landmark Columns
-
-You can add the landmark columns provided by this extension to your own custom records, enabling the same editing capabilities available for `tt_content` records.
-
-### Database Fields
-
-The extension provides three database fields for landmark functionality:
-
-- **`tx_mindfula11y_landmark`**: Stores the landmark role (select field)
-- **`tx_mindfula11y_arialabel`**: Stores the `aria-label` value (text field)
-- **`tx_mindfula11y_arialabelledby`**: Checkbox that determines whether to use the content element's header as `aria-labelledby` (when enabled) or use a custom `aria-label` (when disabled)
-
-### Adding to Custom Tables
-
-In your TCA override file (e.g., `Configuration/TCA/Overrides/tx_yourextension_domain_model_custom.php`):
-
-```php
-use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
-
-// Add landmark columns from tt_content to your custom table
-ExtensionManagementUtility::addTCAcolumns(
-    'tx_yourextension_domain_model_custom',
-    [
-        'tx_mindfula11y_landmark' => $GLOBALS['TCA']['tt_content']['columns']['tx_mindfula11y_landmark'],
-        'tx_mindfula11y_arialabel' => $GLOBALS['TCA']['tt_content']['columns']['tx_mindfula11y_arialabel'],
-        'tx_mindfula11y_arialabelledby' => $GLOBALS['TCA']['tt_content']['columns']['tx_mindfula11y_arialabelledby'],
-    ]
-);
-
-// Add fields to the backend form
-ExtensionManagementUtility::addToAllTCAtypes(
-    'tx_yourextension_domain_model_custom',
-    '--div--;Accessibility,tx_mindfula11y_landmark,tx_mindfula11y_arialabelledby,tx_mindfula11y_arialabel',
+    'tx_myext_records',
+    'headingtype',
     '',
     'after:title'
 );
 ```
 
-### Using with Custom Records
+#### 2. Update Database Schema
 
-Once the fields are added, use the ViewHelper with your custom records:
+Add the database column to your `ext_tables.sql`:
+
+```sql
+CREATE TABLE tx_myext_records (
+    headingtype varchar(10) DEFAULT 'h2' NOT NULL
+);
+```
+
+> **Note:** In TYPO3 13+, database schema updates are handled automatically based on TCA configuration, so manual `ext_tables.sql` definitions are no longer required for TCA-defined fields.
+
+#### 3. Use in Fluid Templates
+
+In your Fluid templates, use the ViewHelper with your custom table:
 
 ```html
-<mindfula11y:landmark
-  recordUid="{customRecord.uid}"
-  recordTableName="tx_yourextension_domain_model_custom"
-  recordColumnName="tx_mindfula11y_landmark"
-  role="{customRecord.txYourextensionLandmark}"
-  aria="{
-    label: customRecord.txYourextensionArialabel,
-    labelledby: customRecord.txYourextensionArialabelledby
-  }"
->
-  <f:render partial="CustomRecord" arguments="{record: customRecord}" />
+<mindfula11y:heading 
+    recordUid="{record.uid}" 
+    recordTableName="tx_myext_records" 
+    recordColumnName="headingtype" 
+    type="{record.headingtype}">
+    {record.title}
+</mindfula11y:heading>
+```
+
+This integration allows your custom records to benefit from the same heading structure analysis and inline editing capabilities provided by the Accessibility backend module.
+
+## Landmarks
+
+The Mindful A11y extension adds landmark-related columns to the `tt_content` table, allowing editors to define ARIA landmarks for better page navigation. These landmarks help screen reader users understand the structure and purpose of different page sections.
+
+### What are Landmarks?
+
+ARIA landmarks identify the purpose of different sections of a page, making it easier for assistive technology users to navigate content. They provide semantic meaning to regions of a page and allow users to quickly jump between different sections.
+
+### Available Landmark Types
+
+The extension provides the following landmark options:
+
+- **None**: No landmark role applied
+- **Region**: Important Section (only if none of the other options apply)
+- **Navigation**: Navigation Menu (`<nav>`)
+- **Complementary**: Sidebar / Related Content (`<aside>`)
+- **Main**: Main Content Area (`<main>`)
+- **Banner**: Site Header (`<header>`)
+- **Contentinfo**: Site Footer (`<footer>`)
+- **Search**: Search Function (`<search>`)
+- **Form**: Form Section (`<form>`)
+
+### Landmark Columns
+
+The extension adds three columns to support landmarks:
+
+- **`tx_mindfula11y_landmark`**: The landmark type/role
+- **`tx_mindfula11y_arialabelledby`**: Checkbox to use the content element's header as the landmark name
+- **`tx_mindfula11y_arialabel`**: Custom landmark name (when not using the header)
+
+### Backend Module Integration
+
+Landmarks are displayed in a hierarchical layout within the Accessibility backend module, providing editors with a clear overview of the page's landmark structure. The module identifies many accessibility issues and allows for easy editing of landmark roles and names directly from the structure view.
+
+![Screenshot of the landmark structure of a page in the accessibility module showing an error due to a duplicated "search" landmark sharing the same label.](Resources/Public/Images/Screenshots/LandmarkModule.png)
+*The Landmark Structure module showing the hierarchical layout of landmarks with inline editing capabilities listing errors on the top.*
+
+### Using the Landmark ViewHelper
+
+To apply landmarks in the frontend, use the provided `LandmarkViewHelper`. The ViewHelper renders the appropriate HTML element based on the landmark type and integrates with the backend module for inline editing capabilities.
+
+#### Basic Usage for tt_content Records
+
+```html
+<f:variable name="ariaAttributes" value="{}" />
+<f:if condition="{data.tx_mindfula11y_arialabelledby} && {data.header}">
+    <f:then>
+        <f:variable name="ariaAttributes" value="{labelledby: 'c{data.uid}-heading'}" />
+    </f:then>
+    <f:else>
+        <f:if condition="{data.tx_mindfula11y_arialabel}">
+            <f:variable name="ariaAttributes" value="{label: data.tx_mindfula11y_arialabel}" />
+        </f:if>
+    </f:else>
+</f:if>
+
+<mindfula11y:landmark 
+    recordUid="{data.uid}" 
+    recordTableName="tt_content" 
+    recordColumnName="tx_mindfula11y_landmark" 
+    role="{data.tx_mindfula11y_landmark}" 
+    fallbackTag="div"
+    aria="{ariaAttributes}">
+    {data.bodytext}
 </mindfula11y:landmark>
 ```
 
+### Extending Custom Record Types
 
----
+To add landmark support to custom record types, follow these steps:
 
-**For detailed technical documentation, see the PHPDoc in `Classes/ViewHelpers/LandmarkViewHelper.php`.**
+#### 1. Add TCA Column Definitions
 
+Create a TCA override file for your custom table (e.g., `Configuration/TCA/Overrides/tx_myext_records.php`):
+
+```php
+<?php
+declare(strict_types=1);
+
+use MindfulMarkup\MindfulA11y\Enum\AriaLandmark;
+use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
+
+defined('TYPO3') or die();
+
+// Add the landmark columns to your custom table
+ExtensionManagementUtility::addTCAcolumns(
+    'tx_myext_records',
+    [
+        'landmark' => [
+            'exclude' => true,
+            'label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.landmark',
+            'description' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.landmark.description',
+            'onChange' => 'reload',
+            'config' => [
+                'type' => 'select',
+                'renderType' => 'selectSingle',
+                'default' => AriaLandmark::NONE->value,
+                'items' => [
+                    ['label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.landmark.items.none', 'value' => AriaLandmark::NONE->value],
+                    ['label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.landmark.items.region', 'value' => AriaLandmark::REGION->value],
+                    ['label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.landmark.items.navigation', 'value' => AriaLandmark::NAVIGATION->value],
+                    ['label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.landmark.items.complementary', 'value' => AriaLandmark::COMPLEMENTARY->value],
+                    ['label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.landmark.items.main', 'value' => AriaLandmark::MAIN->value],
+                    ['label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.landmark.items.banner', 'value' => AriaLandmark::BANNER->value],
+                    ['label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.landmark.items.contentinfo', 'value' => AriaLandmark::CONTENTINFO->value],
+                    ['label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.landmark.items.search', 'value' => AriaLandmark::SEARCH->value],
+                    ['label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.landmark.items.form', 'value' => AriaLandmark::FORM->value],
+                ],
+            ],
+        ],
+        'aria_labelledby' => [
+            'exclude' => true,
+            'label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.ariaLabelledby',
+            'description' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.ariaLabelledby.description',
+            'displayCond' => 'FIELD:landmark:!=:',
+            'onChange' => 'reload',
+            'config' => [
+                'type' => 'check',
+                'renderType' => 'checkboxToggle',
+                'default' => 1,
+                'items' => [['label' => '', 'value' => '']],
+            ],
+        ],
+        'aria_label' => [
+            'exclude' => true,
+            'label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.ariaLabel',
+            'description' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.ariaLabel.description',
+            'displayCond' => [
+                'AND' => [
+                    'FIELD:landmark:!=:',
+                    'FIELD:aria_labelledby:=:0'
+                ]
+            ],
+            'config' => [
+                'type' => 'input',
+                'size' => 50,
+                'max' => 255,
+                'eval' => 'trim',
+                'required' => true,
+            ],
+        ],
+    ]
+);
+
+// Add landmark palette
+$GLOBALS['TCA']['tx_myext_records']['palettes']['landmarks'] = [
+    'label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.palettes.landmarks',
+    'showitem' => 'landmark, --linebreak--, aria_labelledby, aria_label'
+];
+
+// Add the accessibility tab with landmarks palette
+ExtensionManagementUtility::addToAllTCAtypes(
+    'tx_myext_records',
+    '--div--;LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.tabs.accessibility, --palette--;LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.palettes.landmarks;landmarks'
+);
+```
+
+#### 2. Update Database Schema
+
+Add the database columns to your `ext_tables.sql`:
+
+```sql
+CREATE TABLE tx_myext_records (
+    landmark varchar(15) DEFAULT '' NOT NULL,
+    aria_labelledby tinyint(1) DEFAULT 1 NOT NULL,
+    aria_label varchar(255) DEFAULT '' NOT NULL
+);
+```
+
+> **Note:** In TYPO3 13+, database schema updates are handled automatically based on TCA configuration, so manual `ext_tables.sql` definitions are no longer required for TCA-defined fields.
+
+#### 3. Use in Fluid Templates
+
+In your Fluid templates, use the ViewHelper with your custom table:
+
+```html
+<f:variable name="ariaAttributes" value="{}" />
+<f:if condition="{record.aria_labelledby} && {record.title}">
+    <f:then>
+        <f:variable name="ariaAttributes" value="{labelledby: 'record-{record.uid}-title'}" />
+    </f:then>
+    <f:else>
+        <f:if condition="{record.aria_label}">
+            <f:variable name="ariaAttributes" value="{label: record.aria_label}" />
+        </f:if>
+    </f:else>
+</f:if>
+
+<mindfula11y:landmark 
+    recordUid="{record.uid}" 
+    recordTableName="tx_myext_records" 
+    recordColumnName="landmark" 
+    role="{record.landmark}" 
+    fallbackTag="div"
+    aria="{ariaAttributes}">
+    {record.content}
+</mindfula11y:landmark>
+```
+
+This integration allows your custom records to benefit from the same landmark structure analysis and inline editing capabilities provided by the Accessibility backend module.
 
 ## License
 

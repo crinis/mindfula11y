@@ -52,8 +52,8 @@
 				<target>Absatz (p)</target>
 			</trans-unit>
 			<trans-unit id="ttContent.columns.mindfula11y.headingType.items.div" resname="ttContent.columns.mindfula11y.headingType.items.div">
-				<source>Generic div</source>
-				<target>Allgemeines div</target>
+				<source>Generic div (div)</source>
+				<target>Generic div (div)</target>
 			</trans-unit>
 			
 			<!-- Accessibility Tab -->

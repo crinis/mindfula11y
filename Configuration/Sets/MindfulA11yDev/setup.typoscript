@@ -3,7 +3,7 @@ page = PAGE
 # Add navigation with placeholder links
 page.5 = COA
 page.5 {
-  wrap = <nav role="navigation" aria-label="Main navigation">|</nav>
+  wrap = <header><nav role="navigation" aria-label="Main navigation">|</nav></header>
   
   10 = COA
   10 {
@@ -32,12 +32,20 @@ page.5 {
 }
 
 # Main content with landmark wrapper
-page.10 = CONTENT
+page.10 = COA
 page.10 {
-  table = tt_content
-  select.where = colPos = 0
-  select.orderBy = sorting
-  wrap = <main role="main" aria-label="Main content">|</main><nav aria-label="Main navigation"></nav><main></main><section></section><section role="region"></section><aside></aside>
+  10 = CONTENT
+  10 {
+    table = tt_content
+    select.where = colPos = 0
+    select.orderBy = sorting
+    wrap = <main>|</main>
+  }
+
+  20 = TEXT
+  20 {
+    value = <footer>That's a footer</footer>
+  }
 }
 
 lib.contentElement.layoutRootPaths.1745149906 = EXT:mindfula11y/Resources/Private/Layouts/

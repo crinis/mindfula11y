@@ -2,13 +2,13 @@
 
 $EM_CONF[$_EXTKEY] = [
     'title' => 'Mindful A11y',
-    'description' => 'TYPO3 extension with backend tools to help you create accessible content. Includes management of heading structure, finding missing alternative text for images and alternative text generation using ChatGPT. More features to come.',
+    'description' => 'Comprehensive accessibility extension for TYPO3 providing backend tools for content editors and integrators. Features include missing alternative text detection with AI-powered generation via ChatGPT, semantic heading structure management with ViewHelper integration, ARIA landmark configuration for improved navigation, and inline editing capabilities within a unified accessibility backend module.',
     'category' => 'module',
     'author' => 'Felix Spittel',
     'author_email' => 'felix@mindfulmarkup.de',
-    'author_company' => 'MindfulMarkup',
+    'author_company' => 'Mindful Markup',
     'state' => 'alpha',
-    'version' => '0.1.2',
+    'version' => '0.2.0',
     'constraints' => [
         'depends' => [
             'typo3' => '13.4.0-13.4.99',

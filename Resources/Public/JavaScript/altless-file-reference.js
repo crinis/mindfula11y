@@ -202,7 +202,7 @@ export class AltlessFileReference extends LitElement {
    */
   render() {
     return html`
-      <div class="card w-100 mb-0">
+      <div class="card w-100">
         <div class="card-body">
           <a
             href="${this.originalUrl}"
