@@ -34,20 +34,17 @@
 import { LitElement, html, css } from "lit";
 import AjaxDataHandler from "@typo3/backend/ajax-data-handler.js";
 import Notification from "@typo3/backend/notification.js";
-import { 
-  LANDMARK_ROLES, 
-  LANDMARK_CALLOUT_CLASSES, 
-  LANDMARK_LABEL_KEYS, 
-  LANDMARK_UI_CONSTANTS 
+import {
+  LANDMARK_LABEL_KEYS,
 } from "./types.js";
 
 /**
  * Web component for displaying and editing a single landmark in TYPO3.
- * 
+ *
  * This component renders a landmark as a styled callout with role selection capability,
  * error display, and integration with TYPO3's backend editing system. It supports
  * both editable and readonly modes depending on user permissions.
- * 
+ *
  * Features:
  * - Visual landmark representation with role-based styling
  * - Inline role editing with AJAX persistence
@@ -75,13 +72,13 @@ export class LandmarkBox extends LitElement {
       label: { type: String },
       children: { type: Array },
       landmarkId: { type: String },
-      errorMessages: { type: Array }
+      errorMessages: { type: Array },
     };
   }
 
   /**
    * Creates an instance of LandmarkBox.
-   * 
+   *
    * Initializes all component properties with sensible defaults and generates
    * a unique component ID for accessibility purposes.
    */
@@ -93,7 +90,7 @@ export class LandmarkBox extends LitElement {
 
   /**
    * Initializes component properties with default values.
-   * 
+   *
    * @private
    */
   _initializeProperties() {
@@ -111,7 +108,7 @@ export class LandmarkBox extends LitElement {
 
   /**
    * Creates a unique ID for the component.
-   * 
+   *
    * @private
    * @param {string} prefix - The prefix for the ID
    * @returns {string} A unique ID string
@@ -140,9 +137,12 @@ export class LandmarkBox extends LitElement {
   render() {
     const landmarkInfo = this._analyzeLandmark();
     const calloutClass = this.getCalloutClass(landmarkInfo.hasErrors);
-    
+
     return html`
-      <div class="callout ${calloutClass} shadow-sm mb-3" data-uid="${this.recordUid}">
+      <div
+        class="callout ${calloutClass} shadow-sm mb-3"
+        data-uid="${this.recordUid}"
+      >
         ${this._renderLandmarkContent(landmarkInfo)}
         ${this._renderEditControls(landmarkInfo.isEditable)}
       </div>
@@ -151,22 +151,24 @@ export class LandmarkBox extends LitElement {
 
   /**
    * Analyzes the current landmark to extract key information.
-   * 
+   *
    * @private
    * @returns {Object} Landmark analysis object
    */
   _analyzeLandmark() {
+    const hasErrors = this.errorMessages?.length > 0;
     return {
       hasChildren: this.children?.length > 0,
-      isEditable: this.recordEditLink !== '',
-      hasErrors: this.errorMessages?.length > 0,
-      displayLabel: this._getDisplayLabel()
+      isEditable: this.recordEditLink !== "",
+      hasErrors: hasErrors,
+      displayLabel: this._getDisplayLabel(),
+      mostSevereError: hasErrors ? this._getMostSevereError() : null,
     };
   }
 
   /**
    * Gets the display label for the landmark.
-   * 
+   *
    * @private
    * @returns {string} The label to display
    */
@@ -174,12 +176,12 @@ export class LandmarkBox extends LitElement {
     if (this.label?.trim()) {
       return this.label;
     }
-    return TYPO3.lang[LANDMARK_LABEL_KEYS.COMPONENT.UNLABELED_LANDMARK] || '';
+    return TYPO3.lang[LANDMARK_LABEL_KEYS.COMPONENT.UNLABELED_LANDMARK] || "";
   }
 
   /**
    * Renders the main content of the landmark box.
-   * 
+   *
    * @private
    * @param {Object} landmarkInfo - Analysis information about the landmark
    * @returns {import('lit').TemplateResult} The rendered content
@@ -196,7 +198,7 @@ export class LandmarkBox extends LitElement {
 
   /**
    * Renders the landmark header with title.
-   * 
+   *
    * @private
    * @param {Object} landmarkInfo - Analysis information about the landmark
    * @returns {import('lit').TemplateResult} The rendered header
@@ -211,26 +213,36 @@ export class LandmarkBox extends LitElement {
 
   /**
    * Renders error messages if present.
-   * 
+   *
    * @private
    * @param {boolean} hasErrors - Whether the landmark has errors
    * @returns {import('lit').TemplateResult|string} The rendered error messages or empty string
    */
   _renderErrorMessages(hasErrors) {
-    if (!hasErrors) {
-      return '';
+    if (!hasErrors || !this.errorMessages?.length) {
+      return "";
     }
 
     return html`
       <ul class="list-unstyled mt-0 mb-2 small text-danger">
-        ${this.errorMessages.map(message => html`<li>${message}</li>`)}
+        ${this.errorMessages.map((errorObj) => {
+          // Handle both string messages (legacy) and error objects with severity
+          const message =
+            typeof errorObj === "string" ? errorObj : errorObj.message;
+          const severity =
+            typeof errorObj === "object" ? errorObj.severity : "error";
+          const textClass =
+            severity === "warning" ? "text-warning" : "text-danger";
+
+          return html`<li class="${textClass}">${message}</li>`;
+        })}
       </ul>
     `;
   }
 
   /**
    * Renders the landmark controls (role selector and badges).
-   * 
+   *
    * @private
    * @param {Object} landmarkInfo - Analysis information about the landmark
    * @returns {import('lit').TemplateResult} The rendered controls
@@ -246,7 +258,7 @@ export class LandmarkBox extends LitElement {
 
   /**
    * Renders landmark badges (role and children count).
-   * 
+   *
    * @private
    * @param {Object} landmarkInfo - Analysis information about the landmark
    * @returns {import('lit').TemplateResult} The rendered badges
@@ -257,18 +269,21 @@ export class LandmarkBox extends LitElement {
         <span class="badge rounded-pill px-2 py-1">
           <code>${this.role}</code>
         </span>
-        ${landmarkInfo.hasChildren ? html`
-          <span class="badge rounded-pill">
-            ${this.children.length} ${TYPO3.lang[LANDMARK_LABEL_KEYS.UI.NESTED_LANDMARKS]}
-          </span>
-        ` : ''}
+        ${landmarkInfo.hasChildren
+          ? html`
+              <span class="badge rounded-pill">
+                ${this.children.length}
+                ${TYPO3.lang[LANDMARK_LABEL_KEYS.UI.NESTED_LANDMARKS]}
+              </span>
+            `
+          : ""}
       </div>
     `;
   }
 
   /**
    * Renders edit controls (edit button or locked indicator).
-   * 
+   *
    * @private
    * @param {boolean} isEditable - Whether the landmark can be edited
    * @returns {import('lit').TemplateResult} The rendered edit controls
@@ -283,13 +298,16 @@ export class LandmarkBox extends LitElement {
 
   /**
    * Renders the edit button for editable landmarks.
-   * 
+   *
    * @private
    * @returns {import('lit').TemplateResult} The rendered edit button
    */
   _renderEditButton() {
     return html`
-      <a href="${this.recordEditLink}" class="btn btn-outline-primary btn-sm d-flex align-items-center gap-1">
+      <a
+        href="${this.recordEditLink}"
+        class="btn btn-outline-primary btn-sm d-flex align-items-center gap-1"
+      >
         ${this._renderEditIcon()}
         <span>${TYPO3.lang[LANDMARK_LABEL_KEYS.COMPONENT.EDIT]}</span>
       </a>
@@ -298,7 +316,7 @@ export class LandmarkBox extends LitElement {
 
   /**
    * Renders the locked indicator for non-editable landmarks.
-   * 
+   *
    * @private
    * @returns {import('lit').TemplateResult} The rendered locked indicator
    */
@@ -306,14 +324,16 @@ export class LandmarkBox extends LitElement {
     return html`
       <span class="text-muted d-flex align-items-center gap-1">
         ${this._renderLockIcon()}
-        <span class="fs-7">${TYPO3.lang[LANDMARK_LABEL_KEYS.COMPONENT.EDIT_LOCKED]}</span>
+        <span class="fs-7"
+          >${TYPO3.lang[LANDMARK_LABEL_KEYS.COMPONENT.EDIT_LOCKED]}</span
+        >
       </span>
     `;
   }
 
   /**
    * Renders the edit icon SVG.
-   * 
+   *
    * @private
    * @returns {import('lit').TemplateResult} The rendered edit icon
    */
@@ -338,7 +358,7 @@ export class LandmarkBox extends LitElement {
 
   /**
    * Renders the lock icon SVG.
-   * 
+   *
    * @private
    * @returns {import('lit').TemplateResult} The rendered lock icon
    */
@@ -375,25 +395,35 @@ export class LandmarkBox extends LitElement {
   }
 
   /**
-   * Get the appropriate callout CSS class for the landmark role.
+   * Get the appropriate callout CSS class based on error severity or landmark role.
+   * Error severity takes priority over role-based styling.
    *
-   * @returns {string} The callout CSS class based on the landmark role.
+   * @param {boolean} hasError - Whether the landmark has errors (legacy parameter, kept for compatibility)
+   * @returns {string} The callout CSS class based on the most severe error or landmark role.
    */
   getCalloutClass(hasError = false) {
-    if (hasError) {
-      return 'callout-danger';
+    // Check for errors and determine the most severe one
+    if (this.errorMessages?.length > 0) {
+      const mostSevereError = this._getMostSevereError();
+      if (mostSevereError === "error") {
+        return "callout-danger";
+      } else if (mostSevereError === "warning") {
+        return "callout-warning";
+      }
     }
+
+    // Fall back to role-based styling when no errors
     const roleClassMap = {
-      main: 'callout-info',
-      banner: 'callout-primary',
-      contentinfo: 'callout-secondary',
-      navigation: 'callout-success',
-      complementary: 'callout-warning',
-      region: 'callout-info',
-      search: 'callout-primary',
-      form: 'callout-info'
+      main: "callout-info",
+      banner: "callout-primary",
+      contentinfo: "callout-secondary",
+      navigation: "callout-success",
+      complementary: "callout-light", // Changed from warning to avoid confusion with error warnings
+      region: "callout-info",
+      search: "callout-primary",
+      form: "callout-info",
     };
-    return roleClassMap[this.role] || 'callout-danger';
+    return roleClassMap[this.role] || "callout-secondary";
   }
 
   /**
@@ -414,17 +444,22 @@ export class LandmarkBox extends LitElement {
         <label id="${labelId}" for="${uniqueId}" class="visually-hidden">
           ${TYPO3.lang[LANDMARK_LABEL_KEYS.COMPONENT.ROLE_LABEL]}
         </label>
-        ${disabled ? this._renderRoleInput(uniqueId, labelId) : this._renderRoleSelect(uniqueId, labelId)}
+        ${disabled
+          ? this._renderRoleInput(uniqueId, labelId)
+          : this._renderRoleSelect(uniqueId, labelId)}
       `;
     } catch (error) {
-      console.error(`Error creating role select for landmark ${this.landmarkId}:`, error);
+      console.error(
+        `Error creating role select for landmark ${this.landmarkId}:`,
+        error
+      );
       return this._renderRoleSelectError();
     }
   }
 
   /**
    * Renders a readonly role input for disabled mode.
-   * 
+   *
    * @private
    * @param {string} uniqueId - Unique identifier for the input
    * @param {string} labelId - Label identifier for accessibility
@@ -440,14 +475,14 @@ export class LandmarkBox extends LitElement {
         value="${this.getRoleDisplayName(this.role)}"
         readonly
         aria-labelledby="${labelId}"
-        ?aria-invalid="${this.hasError}"
+        ?aria-invalid="${this.errorMessages && this.errorMessages.length > 0}"
       />
     `;
   }
 
   /**
    * Renders an interactive role selection dropdown.
-   * 
+   *
    * @private
    * @param {string} uniqueId - Unique identifier for the select
    * @param {string} labelId - Label identifier for accessibility
@@ -461,7 +496,7 @@ export class LandmarkBox extends LitElement {
         style="max-width: 12rem;"
         @change="${this._handleRoleSelectChange}"
         aria-labelledby="${labelId}"
-        ?aria-invalid="${this.hasError}"
+        ?aria-invalid="${this.errorMessages && this.errorMessages.length > 0}"
       >
         ${this._renderRoleSelectOptions()}
       </select>
@@ -470,7 +505,7 @@ export class LandmarkBox extends LitElement {
 
   /**
    * Renders the options for the role selection dropdown.
-   * 
+   *
    * @private
    * @returns {import('lit').TemplateResult[]} Array of option templates
    */
@@ -487,20 +522,20 @@ export class LandmarkBox extends LitElement {
 
   /**
    * Gets the translated label for a role option.
-   * 
+   *
    * @private
    * @param {string} value - The role value
    * @returns {string} The translated label
    */
   _getRoleOptionLabel(value) {
-    const keySuffix = value === '' ? 'none' : value;
-    const translationKey = `mindfula11y.features.landmarkStructure.role.${keySuffix}`;
+    const keySuffix = value === "" ? "none" : value;
+    const translationKey = `landmarkStructure.role.${keySuffix}`;
     return TYPO3.lang[translationKey] || this.availableRoles[value] || value;
   }
 
   /**
    * Handles role selection changes from the dropdown.
-   * 
+   *
    * @private
    * @param {Event} event - The change event
    */
@@ -511,7 +546,7 @@ export class LandmarkBox extends LitElement {
 
   /**
    * Renders an error state for the role selector.
-   * 
+   *
    * @private
    * @returns {import('lit').TemplateResult} The error template
    */
@@ -541,14 +576,17 @@ export class LandmarkBox extends LitElement {
       const params = this._buildSaveParams(role);
       this._processRoleSave(params, role);
     } catch (error) {
-      console.error(`Error saving role for landmark ${this.landmarkId}:`, error);
+      console.error(
+        `Error saving role for landmark ${this.landmarkId}:`,
+        error
+      );
       this._showSaveError();
     }
   }
 
   /**
    * Builds the parameters for saving the role.
-   * 
+   *
    * @private
    * @param {string} role - The new role value
    * @returns {Object} The parameters object for AjaxDataHandler
@@ -567,7 +605,7 @@ export class LandmarkBox extends LitElement {
 
   /**
    * Processes the role save operation.
-   * 
+   *
    * @private
    * @param {Object} params - The save parameters
    * @param {string} role - The new role value
@@ -578,14 +616,14 @@ export class LandmarkBox extends LitElement {
         this._handleSaveSuccess(role);
       })
       .catch((error) => {
-        console.error('AjaxDataHandler save failed:', error);
+        console.error("AjaxDataHandler save failed:", error);
         this._handleSaveError();
       });
   }
 
   /**
    * Handles successful role save.
-   * 
+   *
    * @private
    * @param {string} role - The saved role value
    */
@@ -598,15 +636,15 @@ export class LandmarkBox extends LitElement {
         detail: {
           landmarkId: this.landmarkId,
           newRole: role,
-          recordUid: this.recordUid
-        }
+          recordUid: this.recordUid,
+        },
       })
     );
   }
 
   /**
    * Handles save errors.
-   * 
+   *
    * @private
    */
   _handleSaveError() {
@@ -618,11 +656,12 @@ export class LandmarkBox extends LitElement {
 
   /**
    * Shows a general save error message.
-   * 
+   *
    * @private
    */
   _showSaveError() {
-    const errorMessage = TYPO3.lang[LANDMARK_LABEL_KEYS.ERROR_HANDLING.STORE_FAILED];
+    const errorMessage =
+      TYPO3.lang[LANDMARK_LABEL_KEYS.ERROR_HANDLING.STORE_FAILED];
     console.error(errorMessage);
   }
 
@@ -636,11 +675,45 @@ export class LandmarkBox extends LitElement {
    * @returns {string} The human-readable display name for the role.
    */
   getRoleDisplayName(role) {
-    if (role === '') {
-      return TYPO3.lang[LANDMARK_LABEL_KEYS.COMPONENT.ROLE_NONE] || '';
+    if (role === "") {
+      return TYPO3.lang[LANDMARK_LABEL_KEYS.COMPONENT.ROLE_NONE] || "";
     }
-    const translationKey = `mindfula11y.features.landmarkStructure.role.${role}`;
+    const translationKey = `landmarkStructure.role.${role}`;
     return TYPO3.lang[translationKey] || role;
+  }
+
+  /**
+   * Determines the most severe error level from the error messages.
+   *
+   * @private
+   * @returns {string} The most severe error level ('error' or 'warning')
+   */
+  _getMostSevereError() {
+    if (!this.errorMessages?.length) {
+      return null;
+    }
+
+    // Check if any error has 'error' severity
+    const hasError = this.errorMessages.some((errorObj) => {
+      if (typeof errorObj === "string") {
+        return true; // Treat string messages as errors for backwards compatibility
+      }
+      return errorObj.severity === "error";
+    });
+
+    if (hasError) {
+      return "error";
+    }
+
+    // Check if any error has 'warning' severity
+    const hasWarning = this.errorMessages.some((errorObj) => {
+      if (typeof errorObj === "object") {
+        return errorObj.severity === "warning";
+      }
+      return false;
+    });
+
+    return hasWarning ? "warning" : "error";
   }
 }
 

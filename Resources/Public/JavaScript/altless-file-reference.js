@@ -183,9 +183,9 @@ export class AltlessFileReference extends LitElement {
       })
       .catch(() => {
         Notification.error(
-          TYPO3.lang["mindfula11y.features.missingAltText.error.store"],
+          TYPO3.lang["mindfula11y.features.missingAltText.generate.error.unknown"],
           TYPO3.lang[
-            "mindfula11y.features.missingAltText.error.store.description"
+            "mindfula11y.features.missingAltText.generate.error.unknown.description"
           ]
         );
       });

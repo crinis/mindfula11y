@@ -39,4 +39,38 @@ enum AriaLandmark: string
     case CONTENTINFO = 'contentinfo';
     case SEARCH = 'search';
     case FORM = 'form';
+
+    /**
+     * Get all landmark types as an array of values
+     *
+     * @return array<string>
+     */
+    public static function getValues(): array
+    {
+        return array_map(fn(self $case) => $case->value, self::cases());
+    }
+
+    /**
+     * Check if a value is a valid landmark type
+     */
+    public static function isValid(string $value): bool
+    {
+        return in_array($value, self::getValues(), true);
+    }
+
+    /**
+     * Get the label key for this landmark type
+     */
+    public function getLabelKey(): string
+    {
+        return 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.landmark.items.' . ($this->value ?: 'none');
+    }
+
+    /**
+     * Check if this is an actual landmark (not NONE)
+     */
+    public function isLandmark(): bool
+    {
+        return $this !== self::NONE;
+    }
 }

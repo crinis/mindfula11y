@@ -27,7 +27,7 @@
  * @property {string} recordColumnName - Database column name
  * @property {number} recordUid - Record unique identifier
  * @property {string} recordEditLink - Edit link URL
- * @property {boolean} hasError - Error state indicator
+ * @property {Array<string>} errorMessages - Array of error message keys for this heading
  * @property {string} label - Display label/content text
  */
 import { LitElement, html } from "lit";
@@ -66,7 +66,7 @@ export class HeadingType extends LitElement {
       recordColumnName: { type: String },
       recordUid: { type: Number },
       recordEditLink: { type: String },
-      hasError: { type: Boolean },
+      errorMessages: { type: Array },
       label: { type: String },
     };
   }
@@ -95,7 +95,7 @@ export class HeadingType extends LitElement {
     this.recordEditLink = "";
     this.type = "h2";
     this.availableTypes = {};
-    this.hasError = false;
+    this.errorMessages = [];
     this.label = "";
   }
 
@@ -201,7 +201,7 @@ export class HeadingType extends LitElement {
         class="form-select form-select-sm w-auto"
         style="max-width: 6rem;"
         @change="${this._handleTypeChange}"
-        ?aria-invalid="${this.hasError}"
+        ?aria-invalid="${this.errorMessages?.length > 0}"
       >
         ${this._renderTypeOptions()}
       </select>
@@ -225,21 +225,20 @@ export class HeadingType extends LitElement {
         style="max-width: 6rem;"
         value="${this.type.toUpperCase()}"
         readonly
-        ?aria-invalid="${this.hasError}"
+        ?aria-invalid="${this.errorMessages?.length > 0}"
       />
     `;
   }
 
   /**
    * Gets the appropriate CSS class for the type input based on heading level.
+   * Error severity styling is handled at the structure level via border-start.
    *
    * @private
    * @returns {string} CSS class for styling
    */
   _getTypeInputClass() {
-    if (this.hasError) {
-      return "border-danger";
-    }
+    // No error-based border styling here - that's handled by the heading structure wrapper
 
     // Add subtle styling based on heading level without affecting accessibility
     if (this.type.startsWith("h")) {
@@ -276,11 +275,7 @@ export class HeadingType extends LitElement {
    * @returns {import('lit').TemplateResult} The rendered heading text
    */
   _renderHeadingText(componentInfo) {
-    return html`
-      <span class="fw-bold ${this.hasError ? "text-danger" : ""}">
-        ${componentInfo.displayLabel}
-      </span>
-    `;
+    return html` <span class="fw-bold"> ${componentInfo.displayLabel} </span> `;
   }
 
   /**

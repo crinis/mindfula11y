@@ -122,7 +122,7 @@ class InputAltElementService {
     spinner.setAttribute("role", "status");
     const span = document.createElement("span");
     span.classList.add("visually-hidden");
-    span.textContent = TYPO3.lang["mindfula11y.generateAltText.loading"];
+    span.textContent = TYPO3.lang["mindfula11y.features.missingAltText.generate.loading"];
     spinner.appendChild(span);
     spinnerWrap.appendChild(spinner);
     return spinnerWrap;

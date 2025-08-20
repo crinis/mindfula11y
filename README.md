@@ -141,7 +141,7 @@ To apply heading types in the frontend, use the provided `HeadingViewHelper`. Th
 For child headings that should automatically adjust based on their parent heading level, you can use Fluid's mathematical operations with the `f:variable` ViewHelper:
 
 ```html
-<f:comment>Parent heading</f:comment>
+<f:comment><!--Parent heading--></f:comment>
 <mindfula11y:heading 
     recordUid="{data.uid}" 
     recordTableName="tt_content" 
@@ -150,14 +150,14 @@ For child headings that should automatically adjust based on their parent headin
     {data.header}
 </mindfula11y:heading>
 
-<f:comment>Child heading that adapts to parent level</f:comment>
+<f:comment><!--Child heading that adapts to parent level--></f:comment>
 <f:if condition="{data.tx_mindfula11y_headingtype} == 'p' || {data.tx_mindfula11y_headingtype} == 'div'">
     <f:then>
-        <f:comment>Non-semantic parent: use same type for child</f:comment>
+        <f:comment><!--Non-semantic parent: use same type for child--></f:comment>
         <f:variable name="childType" value="{data.tx_mindfula11y_headingtype}" />
     </f:then>
     <f:else>
-        <f:comment>Semantic heading parent: increment level</f:comment>
+        <f:comment><!--Semantic heading parent: increment level--></f:comment>
         <f:variable name="parentLevel" value="{f:replace(subject: data.tx_mindfula11y_headingtype, search: 'h', replace: '')}" />
         <f:variable name="childLevel" value="{f:if(condition: '{parentLevel} < 6', then: '{parentLevel + 1}', else: '6')}" />
         <f:variable name="childType" value="h{childLevel}" />
@@ -349,15 +349,15 @@ ExtensionManagementUtility::addTCAcolumns(
                 'renderType' => 'selectSingle',
                 'default' => AriaLandmark::NONE->value,
                 'items' => [
-                    ['label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.landmark.items.none', 'value' => AriaLandmark::NONE->value],
-                    ['label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.landmark.items.region', 'value' => AriaLandmark::REGION->value],
-                    ['label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.landmark.items.navigation', 'value' => AriaLandmark::NAVIGATION->value],
-                    ['label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.landmark.items.complementary', 'value' => AriaLandmark::COMPLEMENTARY->value],
-                    ['label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.landmark.items.main', 'value' => AriaLandmark::MAIN->value],
-                    ['label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.landmark.items.banner', 'value' => AriaLandmark::BANNER->value],
-                    ['label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.landmark.items.contentinfo', 'value' => AriaLandmark::CONTENTINFO->value],
-                    ['label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.landmark.items.search', 'value' => AriaLandmark::SEARCH->value],
-                    ['label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.landmark.items.form', 'value' => AriaLandmark::FORM->value],
+                    ['label' => AriaLandmark::NONE->getLabelKey(), 'value' => AriaLandmark::NONE->value],
+                    ['label' => AriaLandmark::REGION->getLabelKey(), 'value' => AriaLandmark::REGION->value],
+                    ['label' => AriaLandmark::NAVIGATION->getLabelKey(), 'value' => AriaLandmark::NAVIGATION->value],
+                    ['label' => AriaLandmark::COMPLEMENTARY->getLabelKey(), 'value' => AriaLandmark::COMPLEMENTARY->value],
+                    ['label' => AriaLandmark::MAIN->getLabelKey(), 'value' => AriaLandmark::MAIN->value],
+                    ['label' => AriaLandmark::BANNER->getLabelKey(), 'value' => AriaLandmark::BANNER->value],
+                    ['label' => AriaLandmark::CONTENTINFO->getLabelKey(), 'value' => AriaLandmark::CONTENTINFO->value],
+                    ['label' => AriaLandmark::SEARCH->getLabelKey(), 'value' => AriaLandmark::SEARCH->value],
+                    ['label' => AriaLandmark::FORM->getLabelKey(), 'value' => AriaLandmark::FORM->value],
                 ],
             ],
         ],

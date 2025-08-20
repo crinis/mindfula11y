@@ -202,9 +202,7 @@
                 <source>No images without alternative text found.</source>
             </trans-unit>
 
-            <trans-unit id="headingStructure" resname="headingStructure">
-                <source>Heading Structure</source>
-            </trans-unit>
+            <!-- Heading Structure Section -->
             <trans-unit id="headingStructure.description" resname="headingStructure.description">
                 <source>
                     Listing the heading structure of the currently selected page and
@@ -248,6 +246,36 @@
                     quickly skip to the main content and get to understand what the content is
                     about.</source>
             </trans-unit>
+            <trans-unit id="headingStructure.error.multipleH1"
+                resname="headingStructure.error.multipleH1">
+                <source>Multiple &lt;h1&gt; headings found.</source>
+            </trans-unit>
+            <trans-unit id="headingStructure.error.multipleH1.description"
+                resname="headingStructure.error.multipleH1.description">
+                <source>Pages should have exactly one &lt;h1&gt; heading to provide a clear document structure. Multiple &lt;h1&gt; elements can confuse screen readers and hurt SEO. Consider using &lt;h2&gt; or other heading levels for additional headings.</source>
+            </trans-unit>
+            <trans-unit id="headingStructure.error.emptyHeadings"
+                resname="headingStructure.error.emptyHeadings">
+                <source>Empty headings found.</source>
+            </trans-unit>
+            <trans-unit id="headingStructure.error.emptyHeadings.description"
+                resname="headingStructure.error.emptyHeadings.description">
+                <source>Headings without text content provide no semantic value and can confuse screen reader users. Please add descriptive text to all heading elements or remove empty headings.</source>
+            </trans-unit>
+            <trans-unit id="severity.error" resname="severity.error">
+                <source>Error</source>
+            </trans-unit>
+            <trans-unit id="severity.warning" resname="severity.warning">
+                <source>Warning</source>
+            </trans-unit>
+            <trans-unit id="accessibility.error.loading" resname="accessibility.error.loading">
+                <source>Failed to load content structure</source>
+            </trans-unit>
+            <trans-unit id="accessibility.error.loading.description" resname="accessibility.error.loading.description">
+                <source>Could not analyze the page content. Please try again or check your connection.</source>
+            </trans-unit>
+
+            <!-- Heading Structure UI Labels -->
             <trans-unit id="headingStructure.error.skippedLevel.inline"
                 resname="headingStructure.error.skippedLevel.inline">
                 <source>Skipped H%1$d</source>
@@ -411,12 +439,6 @@
             
             <trans-unit id="landmarkStructure.unlabelledLandmark" resname="landmarkStructure.unlabelledLandmark">
                 <source>Unlabelled Landmark</source>
-            </trans-unit>
-            <trans-unit id="landmarkStructure.error.duplicateSameLabel" resname="landmarkStructure.error.duplicateSameLabel">
-                <source>Landmarks with identical labels.</source>
-            </trans-unit>
-            <trans-unit id="landmarkStructure.error.duplicateSameLabel.description" resname="landmarkStructure.error.duplicateSameLabel.description">
-                <source>Multiple landmarks share an identical label. Provide unique labels so users can differentiate them.</source>
             </trans-unit>
         </body>
     </file>

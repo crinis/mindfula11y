@@ -23,19 +23,18 @@
  * @typedef {import('./types.js').HeadingTreeNode} HeadingTreeNode
  * @typedef {import('./types.js').HeadingStructureError} HeadingStructureError
  */
-import { LitElement, html, css } from "lit";
-import { Task } from "@lit/task";
-import AjaxRequest from "@typo3/core/ajax/ajax-request.js";
-import Notification from "@typo3/backend/notification.js";
+import { html, css } from "lit";
 import HeadingType from "./heading-type.js";
+import AccessibilityStructureBase from "./accessibility-structure-base.js";
+import { ERROR_SEVERITY } from "./types.js";
 
 /**
  * Web component for visualizing and editing the heading structure of an HTML document in TYPO3.
- * 
- * This component analyzes HTML content for heading elements (h1-h6), displays them in a 
- * hierarchical tree structure, and validates their accessibility compliance. It provides 
+ *
+ * This component analyzes HTML content for heading elements (h1-h6), displays them in a
+ * hierarchical tree structure, and validates their accessibility compliance. It provides
  * error reporting for missing H1 elements and skipped heading levels.
- * 
+ *
  * Features:
  * - Hierarchical heading tree visualization with connecting lines
  * - Accessibility error detection and reporting
@@ -44,9 +43,9 @@ import HeadingType from "./heading-type.js";
  * - Real-time structure updates on heading changes
  *
  * @class HeadingStructure
- * @extends LitElement
+ * @extends AccessibilityStructureBase
  */
-export class HeadingStructure extends LitElement {
+export class HeadingStructure extends AccessibilityStructureBase {
   /**
    * CSS styles for the component tree visualization.
    *
@@ -59,6 +58,7 @@ export class HeadingStructure extends LitElement {
         --radius: 0.5rem;
         --color: var(--typo3-badge-success-border-color);
         --color-error: var(--typo3-badge-danger-border-color);
+        --color-warning: var(--typo3-badge-warning-border-color);
         --border-width: 4px;
       }
 
@@ -122,6 +122,18 @@ export class HeadingStructure extends LitElement {
       .mindfula11y-tree .mindfula11y-tree__node--error::after {
         background: var(--color-error);
       }
+
+      .mindfula11y-tree ol .mindfula11y-tree__node--warning {
+        border-color: var(--color-warning);
+      }
+
+      .mindfula11y-tree ol .mindfula11y-tree__node--warning::before {
+        border-color: var(--color-warning);
+      }
+
+      .mindfula11y-tree .mindfula11y-tree__node--warning::after {
+        background: var(--color-warning);
+      }
     `;
   }
 
@@ -138,26 +150,16 @@ export class HeadingStructure extends LitElement {
 
   /**
    * Creates an instance of HeadingStructure.
-   * 
-   * Initializes the component with a task for loading and analyzing headings from the preview URL.
-   * The task is configured to not auto-run to give control over when analysis happens.
+   *
+   * Inherits the task system from AccessibilityStructureBase for loading and analyzing headings.
    */
   constructor() {
-    super();
-    this.previewUrl = "";
-    this.firstRun = true; // Prevents alert notifications on initial load
-
-    this.loadHeadingsTask = new Task(
-      this,
-      this._analyzeHeadings.bind(this),
-      () => [this.previewUrl],
-      { autoRun: false }
-    );
+    super(); // This initializes the base class task system
   }
 
   /**
    * Analyzes headings from the preview URL.
-   * 
+   *
    * @private
    * @param {Array} args - Task arguments containing [previewUrl]
    * @returns {Promise<NodeListOf<HTMLElement>|null>} The headings found or null on error
@@ -170,21 +172,6 @@ export class HeadingStructure extends LitElement {
       this._handleLoadingError(error);
       return null;
     }
-  }
-
-  /**
-   * Handles loading errors with user notification.
-   * 
-   * @private
-   * @param {Error} error - The error that occurred during loading
-   */
-  _handleLoadingError(error) {
-    console.error('Failed to load heading structure:', error);
-    
-    Notification.notice(
-      TYPO3.lang["mindfula11y.features.headingStructure.error.loading"],
-      TYPO3.lang["mindfula11y.features.headingStructure.error.loading.description"]
-    );
   }
 
   /**
@@ -206,16 +193,16 @@ export class HeadingStructure extends LitElement {
       <style>
         ${this.constructor.styles}
       </style>
-      ${this.loadHeadingsTask.render({
+      ${this.loadContentTask.render({
         complete: (headings) => {
           if (this.firstRun) {
             this.firstRun = false;
           }
-          
+
           const headingArray = Array.from(headings || []);
           const errors = this._buildErrorList(headingArray);
           const headingTree = this._buildHeadingTree(headingArray);
-          
+
           return html`
             ${this._renderErrors(errors)}
             ${this._renderHeadingContent(headingTree)}
@@ -227,7 +214,7 @@ export class HeadingStructure extends LitElement {
 
   /**
    * Renders the main heading content or no-headings message.
-   * 
+   *
    * @private
    * @param {Array<HeadingTreeNode>} headingTree - The processed heading tree
    * @returns {import('lit').TemplateResult} The rendered content
@@ -240,12 +227,14 @@ export class HeadingStructure extends LitElement {
             ${TYPO3.lang["mindfula11y.features.headingStructure.noHeadings"]}
           </h4>
           <p class="mb-0">
-            ${TYPO3.lang["mindfula11y.features.headingStructure.noHeadings.description"]}
+            ${TYPO3.lang[
+              "mindfula11y.features.headingStructure.noHeadings.description"
+            ]}
           </p>
         </div>
       `;
     }
-    
+
     return this._renderHeadingTree(headingTree);
   }
 
@@ -264,7 +253,13 @@ export class HeadingStructure extends LitElement {
     headings.forEach((element) => {
       const level = this._extractHeadingLevel(element);
       const skippedLevels = this._calculateSkippedLevels(level, parentStack);
-      
+      const errorReasons = this._getHeadingErrors(element);
+
+      // Add skipped level error if needed
+      if (skippedLevels > 0) {
+        errorReasons.push("skippedLevel");
+      }
+
       // Update parent stack for proper nesting
       this._updateParentStack(level, parentStack);
 
@@ -273,7 +268,8 @@ export class HeadingStructure extends LitElement {
         level,
         children: [],
         skippedLevels,
-        hasError: skippedLevels > 0
+        hasError: errorReasons.length > 0,
+        errorReasons, // Use same name as landmark-structure
       };
 
       // Add to appropriate parent or root
@@ -290,15 +286,42 @@ export class HeadingStructure extends LitElement {
   }
 
   /**
+   * Gets specific errors for a heading element.
+   *
+   * @private
+   * @param {HTMLElement} element - The heading element
+   * @returns {Array<string>} Array of error message keys
+   */
+  _getHeadingErrors(element) {
+    const errors = [];
+
+    // Check if heading is empty
+    const text = element.innerText?.trim() || "";
+    if (text.length === 0) {
+      errors.push("emptyHeading");
+    }
+
+    // Check if heading is one of multiple H1s
+    if (element.tagName === "H1") {
+      const allH1s = element.ownerDocument.querySelectorAll("h1");
+      if (allH1s.length > 1) {
+        errors.push("multipleH1");
+      }
+    }
+
+    return errors;
+  }
+
+  /**
    * Extracts the heading level from an HTML element.
-   * 
+   *
    * @private
    * @param {HTMLElement} element - The heading element
    * @returns {number} The heading level (1-6)
    */
   _extractHeadingLevel(element) {
     const tagName = element.tagName.toLowerCase();
-    if (tagName.startsWith('h') && tagName.length === 2) {
+    if (tagName.startsWith("h") && tagName.length === 2) {
       return parseInt(tagName.charAt(1), 10);
     }
     return 0; // Not a heading
@@ -306,7 +329,7 @@ export class HeadingStructure extends LitElement {
 
   /**
    * Calculates skipped heading levels for accessibility validation.
-   * 
+   *
    * @private
    * @param {number} currentLevel - The current heading level
    * @param {Array} parentStack - Stack of parent headings
@@ -315,16 +338,18 @@ export class HeadingStructure extends LitElement {
   _calculateSkippedLevels(currentLevel, parentStack) {
     if (parentStack.length > 0) {
       const parentLevel = parentStack[parentStack.length - 1].level;
-      return currentLevel > parentLevel + 1 ? currentLevel - parentLevel - 1 : 0;
+      return currentLevel > parentLevel + 1
+        ? currentLevel - parentLevel - 1
+        : 0;
     }
-    
+
     // No parent: if not h1, treat as skipped levels
     return currentLevel > 1 ? currentLevel - 1 : 0;
   }
 
   /**
    * Updates the parent stack for proper tree nesting.
-   * 
+   *
    * @private
    * @param {number} currentLevel - The current heading level
    * @param {Array} parentStack - Stack of parent headings to modify
@@ -341,7 +366,7 @@ export class HeadingStructure extends LitElement {
 
   /**
    * Recursively renders the heading tree as nested lists with connecting lines.
-   * 
+   *
    * @private
    * @param {Array<HeadingTreeNode>} nodes - The heading tree nodes
    * @param {boolean} [isRoot=true] - Whether this is the root level
@@ -351,7 +376,9 @@ export class HeadingStructure extends LitElement {
     if (!nodes || !nodes.length) return null;
 
     return html`
-      <ol class="${isRoot ? 'mindfula11y-tree list-unstyled' : 'list-unstyled'}">
+      <ol
+        class="${isRoot ? "mindfula11y-tree list-unstyled" : "list-unstyled"}"
+      >
         ${nodes.map((node) => this._renderHeadingNode(node))}
       </ol>
     `;
@@ -359,15 +386,30 @@ export class HeadingStructure extends LitElement {
 
   /**
    * Renders a single heading node with error handling for skipped levels.
-   * 
+   *
    * @private
    * @param {HeadingTreeNode} node - The heading node to render
    * @returns {import('lit').TemplateResult} The rendered node
    */
   _renderHeadingNode(node) {
-    const hasError = node.skippedLevels > 0;
+    const hasError = node.errorReasons && node.errorReasons.length > 0;
+    const errorMessages = hasError
+      ? this._getErrorMessages(node.errorReasons)
+      : [];
+    const mostSevereError = this._getMostSevereError(errorMessages);
+
+    // Determine the appropriate CSS class based on error severity
+    let nodeClass = "mindfula11y-tree__node";
+    if (mostSevereError) {
+      if (mostSevereError.severity === ERROR_SEVERITY.ERROR) {
+        nodeClass += " mindfula11y-tree__node--error";
+      } else if (mostSevereError.severity === ERROR_SEVERITY.WARNING) {
+        nodeClass += " mindfula11y-tree__node--warning";
+      }
+    }
+
     let content = html`
-      <li class="mindfula11y-tree__node${hasError ? ' mindfula11y-tree__node--error' : ''}">
+      <li class="${nodeClass}">
         ${this._createHeadingType(node)}
         ${this._renderHeadingTree(node.children, false)}
       </li>
@@ -379,7 +421,7 @@ export class HeadingStructure extends LitElement {
 
   /**
    * Wraps content with error indicators for skipped heading levels.
-   * 
+   *
    * @private
    * @param {import('lit').TemplateResult} content - The content to wrap
    * @param {HeadingTreeNode} node - The heading node with potential errors
@@ -387,7 +429,7 @@ export class HeadingStructure extends LitElement {
    */
   _wrapWithSkippedLevelErrors(content, node) {
     let wrappedContent = content;
-    
+
     // Add error layers for each skipped level
     for (let i = 0; i < node.skippedLevels; i++) {
       const skippedLevel = node.level - i - 1;
@@ -395,7 +437,9 @@ export class HeadingStructure extends LitElement {
         <li class="mindfula11y-tree__node mindfula11y-tree__node--error">
           <div class="alert alert-danger py-2 px-3 mb-2">
             <span class="fw-bold">
-              ${TYPO3.lang["mindfula11y.features.headingStructure.error.skippedLevel.inline"]?.replace("%1$d", skippedLevel)}
+              ${TYPO3.lang[
+                "mindfula11y.features.headingStructure.error.skippedLevel.inline"
+              ]?.replace("%1$d", skippedLevel)}
             </span>
           </div>
           <ol class="list-unstyled">
@@ -404,30 +448,36 @@ export class HeadingStructure extends LitElement {
         </li>
       `;
     }
-    
+
     return wrappedContent;
   }
 
   /**
    * Creates a heading-type component for a given heading node.
-   * 
+   *
    * @private
    * @param {HeadingTreeNode} node - The heading tree node
    * @returns {import('lit').TemplateResult} The heading-type component
    */
   _createHeadingType(node) {
     const availableTypes = this._parseAvailableTypes(node.element);
+    const errorMessages = this._getErrorMessages(node.errorReasons || []);
+    const mostSevereError = this._getMostSevereError(errorMessages);
+    const borderClass = this._getBorderClass(mostSevereError);
 
     return html`
       <mindfula11y-heading-type
-        class="d-flex align-items-center gap-3 py-2 ${node.hasError ? 'border-start border-danger border-3 ps-2' : ''}"
-        .type="${node.element.dataset.mindfula11yType || node.element.tagName.toLowerCase()}"
+        class="d-flex align-items-center gap-3 py-2 ${borderClass}"
+        .type="${node.element.dataset.mindfula11yType ||
+        node.element.tagName.toLowerCase()}"
         .availableTypes="${availableTypes}"
-        recordTableName="${node.element.dataset.mindfula11yRecordTableName || ''}"
-        recordColumnName="${node.element.dataset.mindfula11yRecordColumnName || ''}"
+        recordTableName="${node.element.dataset.mindfula11yRecordTableName ||
+        ""}"
+        recordColumnName="${node.element.dataset.mindfula11yRecordColumnName ||
+        ""}"
         recordUid="${node.element.dataset.mindfula11yRecordUid || 0}"
-        recordEditLink="${node.element.dataset.mindfula11yRecordEditLink || ''}"
-        .hasError="${node.hasError}"
+        recordEditLink="${node.element.dataset.mindfula11yRecordEditLink || ""}"
+        .errorMessages="${errorMessages}"
         label="${this._extractHeadingLabel(node.element)}"
         @mindfula11y-heading-type-changed="${this._handleHeadingTypeChange}"
       >
@@ -437,19 +487,21 @@ export class HeadingStructure extends LitElement {
 
   /**
    * Extracts and cleans the heading label text.
-   * 
+   *
    * @private
    * @param {HTMLElement} element - The heading element
    * @returns {string} The cleaned heading text
    */
   _extractHeadingLabel(element) {
-    return element.innerText?.trim() || 
-           TYPO3.lang["mindfula11y.features.headingStructure.unlabeled"];
+    return (
+      element.innerText?.trim() ||
+      TYPO3.lang["mindfula11y.features.headingStructure.unlabeled"]
+    );
   }
 
   /**
    * Parses available types from element dataset.
-   * 
+   *
    * @private
    * @param {HTMLElement} element - The heading element
    * @returns {Object} Available heading types
@@ -458,50 +510,73 @@ export class HeadingStructure extends LitElement {
     try {
       return JSON.parse(element.dataset.mindfula11yAvailableTypes || "{}");
     } catch (error) {
-      console.warn('Failed to parse available types:', error);
+      console.warn("Failed to parse available types:", error);
       return {};
     }
   }
 
   /**
+   * Gets the most severe error from an array of error messages.
+   *
+   * @private
+   * @param {Array<Object>} errorMessages - Array of error message objects with severity
+   * @returns {Object|null} The most severe error or null if no errors
+   */
+  _getMostSevereError(errorMessages) {
+    if (!errorMessages || errorMessages.length === 0) {
+      return null;
+    }
+
+    // ERROR severity takes precedence over WARNING
+    const errorSeverityError = errorMessages.find(
+      (error) => error.severity === ERROR_SEVERITY.ERROR
+    );
+    return errorSeverityError || errorMessages[0];
+  }
+
+  /**
+   * Gets the appropriate border class based on error severity.
+   *
+   * @private
+   * @param {Object|null} mostSevereError - The most severe error or null
+   * @returns {string} The CSS class string for border styling
+   */
+  _getBorderClass(mostSevereError) {
+    if (!mostSevereError) {
+      return "";
+    }
+
+    const borderColor =
+      mostSevereError.severity === ERROR_SEVERITY.ERROR
+        ? "border-danger"
+        : "border-warning";
+    return `border-start ${borderColor} border-3 ps-2`;
+  }
+
+  /**
    * Handles heading type change events by reloading the structure.
-   * 
+   *
    * @private
    * @param {CustomEvent} event - The heading type change event
    */
   _handleHeadingTypeChange(event) {
     // Reload the entire structure to reflect changes
-    this.loadHeadingsTask.run();
+    this.loadContentTask.run();
   }
 
   /**
    * Selects heading elements from HTML content.
+   * Implementation of abstract method from AccessibilityStructureBase.
    *
    * @private
    * @param {string} htmlString - The HTML string to parse
    * @returns {NodeListOf<HTMLElement>} NodeList of heading elements
    */
-  _selectHeadings(htmlString) {
+  _selectElements(htmlString) {
     const parser = new DOMParser();
     return parser
       .parseFromString(htmlString, "text/html")
       .querySelectorAll("h1, h2, h3, h4, h5, h6");
-  }
-
-  /**
-   * Fetches preview content from the server with proper headers.
-   *
-   * @private
-   * @returns {Promise<string>} The HTML content
-   */
-  async _fetchPreview() {
-    const response = await new AjaxRequest(this.previewUrl).get({
-      headers: {
-        "Mindfula11y-Structure-Analysis": "1",
-      },
-    });
-
-    return await response.resolve();
   }
 
   /**
@@ -513,109 +588,163 @@ export class HeadingStructure extends LitElement {
    */
   _buildErrorList(headings) {
     const errors = [];
-    
+
     // Check for missing H1
     this._checkMissingH1(headings, errors);
-    
+
+    // Check for multiple H1 elements
+    this._checkMultipleH1(headings, errors);
+
+    // Check for empty headings
+    this._checkEmptyHeadings(headings, errors);
+
     // Check for skipped levels
     this._checkSkippedLevels(headings, errors);
-    
+
     return errors;
   }
 
   /**
    * Checks for missing H1 element and adds error if needed.
-   * 
+   *
    * @private
    * @param {Array<HTMLElement>} headings - Array of heading elements
    * @param {Array} errors - Error array to modify
    */
   _checkMissingH1(headings, errors) {
     const hasH1 = headings.some((h) => h.tagName === "H1");
-    
+
     if (!hasH1) {
-      errors.push({
-        count: 1,
-        title: TYPO3.lang["mindfula11y.features.headingStructure.error.missingH1"],
-        description: TYPO3.lang["mindfula11y.features.headingStructure.error.missingH1.description"]
-      });
+      errors.push(
+        this._createError(
+          ERROR_SEVERITY.ERROR,
+          1, // Missing H1 is always a single issue
+          "mindfula11y.features.headingStructure.error.missingH1",
+          "mindfula11y.features.headingStructure.error.missingH1.description"
+        )
+      );
+    }
+  }
+
+  /**
+   * Checks for multiple H1 elements and adds warning if needed.
+   *
+   * @private
+   * @param {Array<HTMLElement>} headings - Array of heading elements
+   * @param {Array} errors - Error array to modify
+   */
+  _checkMultipleH1(headings, errors) {
+    const h1Elements = headings.filter((h) => h.tagName === "H1");
+
+    if (h1Elements.length > 1) {
+      const extraH1Count = h1Elements.length - 1; // Count additional H1s beyond the first
+      errors.push(
+        this._createError(
+          ERROR_SEVERITY.WARNING,
+          extraH1Count,
+          "mindfula11y.features.headingStructure.error.multipleH1",
+          "mindfula11y.features.headingStructure.error.multipleH1.description"
+        )
+      );
+    }
+  }
+
+  /**
+   * Checks for empty headings and adds error if needed.
+   *
+   * @private
+   * @param {Array<HTMLElement>} headings - Array of heading elements
+   * @param {Array} errors - Error array to modify
+   */
+  _checkEmptyHeadings(headings, errors) {
+    const emptyHeadings = headings.filter((h) => {
+      const text = h.innerText?.trim() || "";
+      return text.length === 0;
+    });
+
+    if (emptyHeadings.length > 0) {
+      errors.push(
+        this._createError(
+          ERROR_SEVERITY.ERROR,
+          emptyHeadings.length, // Count total number of empty headings
+          "mindfula11y.features.headingStructure.error.emptyHeadings",
+          "mindfula11y.features.headingStructure.error.emptyHeadings.description"
+        )
+      );
     }
   }
 
   /**
    * Checks for skipped heading levels and adds error if needed.
-   * 
+   *
    * @private
    * @param {Array<HTMLElement>} headings - Array of heading elements
    * @param {Array} errors - Error array to modify
    */
   _checkSkippedLevels(headings, errors) {
     const headingTree = this._buildHeadingTree(headings);
-    let skippedErrorCount = 0;
-    
-    const countSkippedHeadings = (nodes) => {
+    let skippedLocationCount = 0;
+
+    const countSkippedLocations = (nodes) => {
       nodes.forEach((node) => {
         if (node.skippedLevels > 0) {
-          skippedErrorCount++;
+          skippedLocationCount++; // Count locations where skipping occurs, not total skipped levels
         }
         if (node.children && node.children.length > 0) {
-          countSkippedHeadings(node.children);
+          countSkippedLocations(node.children);
         }
       });
     };
-    
-    countSkippedHeadings(headingTree);
 
-    if (skippedErrorCount > 0) {
-      errors.push({
-        count: skippedErrorCount,
-        title: TYPO3.lang["mindfula11y.features.headingStructure.error.skippedLevel"],
-        description: TYPO3.lang["mindfula11y.features.headingStructure.error.skippedLevel.description"]
-      });
+    countSkippedLocations(headingTree);
+
+    if (skippedLocationCount > 0) {
+      errors.push(
+        this._createError(
+          ERROR_SEVERITY.ERROR,
+          skippedLocationCount, // Count number of locations where levels are skipped
+          "mindfula11y.features.headingStructure.error.skippedLevel",
+          "mindfula11y.features.headingStructure.error.skippedLevel.description"
+        )
+      );
     }
   }
 
   /**
-   * Renders error alerts for accessibility issues.
+   * Gets the translation key for a heading error message.
+   * Follows the same pattern as landmark-structure for consistency.
    *
    * @private
-   * @param {Array<HeadingStructureError>} errors - Array of error objects
-   * @returns {import('lit').TemplateResult} Rendered error section
+   * @param {string} errorKey - The error type key
+   * @returns {string} The translation key
    */
-  _renderErrors(errors) {
-    if (errors.length === 0) {
-      return html``;
-    }
+  _getErrorMessageKey(errorKey) {
+    const errorCalloutMap = {
+      emptyHeading: "mindfula11y.features.headingStructure.error.emptyHeadings",
+      multipleH1: "mindfula11y.features.headingStructure.error.multipleH1",
+      skippedLevel: "mindfula11y.features.headingStructure.error.skippedLevel",
+    };
 
-    return html`
-      <section
-        class="mindfula11y-heading-structure__errors"
-        role="${this.firstRun ? '' : 'alert'}"
-      >
-        <ul class="list-unstyled">
-          ${errors.map(error => this._renderSingleError(error))}
-        </ul>
-      </section>
-    `;
+    return errorCalloutMap[errorKey] || errorKey;
   }
 
   /**
-   * Renders a single error item.
-   * 
-   * @private
-   * @param {HeadingStructureError} error - The error to render
-   * @returns {import('lit').TemplateResult} The rendered error item
+   * Gets the severity for a heading error type.
+   * Overrides the base class to provide heading-specific severity mappings.
+   *
+   * @protected
+   * @param {string} errorKey - The error type key
+   * @returns {string} The error severity
    */
-  _renderSingleError(error) {
-    return html`
-      <li class="alert alert-danger">
-        <p class="lead mb-2">
-          ${error.title}
-          <span class="badge rounded-pill">${error.count}</span>
-        </p>
-        <p class="mb-0">${error.description}</p>
-      </li>
-    `;
+  _getErrorSeverity(errorKey) {
+    const severityMap = {
+      emptyHeading: ERROR_SEVERITY.ERROR,
+      multipleH1: ERROR_SEVERITY.WARNING,
+      skippedLevel: ERROR_SEVERITY.ERROR,
+      missingH1: ERROR_SEVERITY.ERROR,
+    };
+
+    return severityMap[errorKey] || ERROR_SEVERITY.ERROR;
   }
 }
 
