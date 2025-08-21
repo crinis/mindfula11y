@@ -98,19 +98,14 @@ export class LandmarkStructure extends AccessibilityStructureBase {
         ${this.constructor.styles}
       </style>
       ${this.loadContentTask.render({
-        complete: (landmarks) => {
+        complete: (landmarkElements) => {
           if (this.firstRun) {
             this.firstRun = false;
           }
-          const landmarkData = this.buildLandmarkList(
-            Array.from(landmarks || [])
-          );
+          const landmarkData = this.buildLandmarkList(landmarkElements || []);
 
           // Run error checking on the landmark data to attach error reasons
-          const errors = this._buildErrorList(
-            Array.from(landmarks || []),
-            landmarkData
-          );
+          const errors = this._buildErrorList(Array.from(landmarkElements || []));
 
           return html`
             ${this._renderErrors(errors)}
@@ -153,7 +148,7 @@ export class LandmarkStructure extends AccessibilityStructureBase {
    *
    * @private
    * @param {string} htmlString - The HTML string to parse for landmarks.
-   * @returns {NodeListOf<HTMLElement>} A NodeList of landmark elements.
+   * @returns {NodeListOf<HTMLElement>} NodeList of landmark elements.
    */
   _selectElements(htmlString) {
     const parser = new DOMParser();
@@ -175,8 +170,9 @@ export class LandmarkStructure extends AccessibilityStructureBase {
       "nav",
       "aside",
       "form",
-      "header",
-      "footer",
+      // Header/footer only when NOT nested inside sectioning content
+      "header:not(article header, aside header, footer header, header header, main header, nav header, section header)",
+      "footer:not(article footer, aside footer, footer footer, header footer, main footer, nav footer, section footer)",
       // Section only when labeled (becomes implicit role=region)
       "section[aria-label]",
       "section[aria-labelledby]",
@@ -186,14 +182,14 @@ export class LandmarkStructure extends AccessibilityStructureBase {
   }
 
   /**
-   * Build a list of landmark data objects from DOM elements.
+   * Build a list of landmark data objects from elements.
    *
-   * @param {Array<HTMLElement>} landmarks - Array of landmark elements.
+   * @param {NodeListOf<HTMLElement>} landmarkElements - NodeList of landmark elements.
    * @returns {Array<LandmarkData>} Array of landmark data objects with hierarchical structure.
    */
-  buildLandmarkList(landmarks) {
-    const landmarkData = landmarks.map((element) => ({
-      element,
+  buildLandmarkList(landmarkElements) {
+    const landmarkData = Array.from(landmarkElements).map((element) => ({
+      element: element,
       role: this.getLandmarkRole(element),
       label: this.getLandmarkLabel(element),
       isEditable: element.hasAttribute("data-mindfula11y-record-uid"),
@@ -483,16 +479,14 @@ export class LandmarkStructure extends AccessibilityStructureBase {
    * Implementation of abstract method from AccessibilityStructureBase.
    *
    * @private
-   * @param {Array<HTMLElement>} elements - The raw landmark elements from the DOM.
-   * @param {Array<LandmarkData>} landmarkData - The processed landmark data (optional, will build if not provided).
-   * @returns {Array<LandmarkStructureError>} List of error messages for the landmark structure.
+   * @param {Array<HTMLElement>} landmarkElements - Array of landmark elements to check.
+   * @returns {Array<LandmarkStructureError>} Array of error objects for the landmark structure.
    */
-  _buildErrorList(elements, landmarkData = null) {
-    // Use provided landmark data or build it from elements
-    const processedLandmarkData =
-      landmarkData || this.buildLandmarkList(Array.from(elements || []));
+  _buildErrorList(landmarkElements) {
+    // Build landmark data from elements
+    const landmarkData = this.buildLandmarkList(landmarkElements || []);
     const errors = [];
-    const allLandmarks = this._flattenLandmarks(processedLandmarkData);
+    const allLandmarks = this._flattenLandmarks(landmarkData);
 
     // Check for various landmark validation errors
     this._checkMissingMainLandmark(allLandmarks, errors);
