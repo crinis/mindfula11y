@@ -292,6 +292,19 @@ Landmarks are displayed in a hierarchical layout within the Accessibility backen
 
 To apply landmarks in the frontend, use the provided `LandmarkViewHelper`. The ViewHelper renders the appropriate HTML element based on the landmark type and integrates with the backend module for inline editing capabilities.
 
+The ViewHelper automatically selects semantic HTML elements for each landmark role:
+
+- **navigation** → `<nav>`
+- **main** → `<main>`
+- **banner** → `<header>`
+- **contentinfo** → `<footer>`
+- **complementary** → `<aside>`
+- **search** → `<search>`
+- **form** → `<form>`
+- **region** → `<section>`
+
+You can override the automatically selected tag using the optional `tagName` argument. When `tagName` is provided, the ViewHelper will use that element and add the appropriate `role` attribute.
+
 #### Basic Usage for tt_content Records
 
 ```html
@@ -312,10 +325,31 @@ To apply landmarks in the frontend, use the provided `LandmarkViewHelper`. The V
     recordTableName="tt_content" 
     recordColumnName="tx_mindfula11y_landmark" 
     role="{data.tx_mindfula11y_landmark}" 
-    fallbackTag="div"
     aria="{ariaAttributes}">
     {data.bodytext}
 </mindfula11y:landmark>
+```
+
+#### Using the tagName Override
+
+The `tagName` argument allows you to override the automatically selected HTML element while preserving the landmark semantics:
+
+```html
+<!-- Default behavior: navigation role uses <nav> element -->
+<mindfula11y:landmark role="navigation">Navigation content</mindfula11y:landmark>
+<!-- Outputs: <nav>Navigation content</nav> -->
+
+<!-- Override with tagName: navigation role uses <div> element with role attribute -->
+<mindfula11y:landmark role="navigation" tagName="div">Navigation content</mindfula11y:landmark>
+<!-- Outputs: <div role="navigation">Navigation content</div> -->
+
+<!-- Custom element without landmark role -->
+<mindfula11y:landmark tagName="article">Regular content</mindfula11y:landmark>
+<!-- Outputs: <article>Regular content</article> -->
+
+<!-- Default when no role is specified -->
+<mindfula11y:landmark>Content without landmark</mindfula11y:landmark>
+<!-- Outputs: <div>Content without landmark</div> -->
 ```
 
 ### Extending Custom Record Types
@@ -444,7 +478,6 @@ In your Fluid templates, use the ViewHelper with your custom table:
     recordTableName="tx_myext_records" 
     recordColumnName="landmark" 
     role="{record.landmark}" 
-    fallbackTag="div"
     aria="{ariaAttributes}">
     {record.content}
 </mindfula11y:landmark>

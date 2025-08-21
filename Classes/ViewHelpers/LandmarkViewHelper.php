@@ -44,7 +44,7 @@ use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractTagBasedViewHelper;
  * Usage examples:
  *
  * Basic usage with database fields:
- * <mindfula11y:landmark recordUid="{data.uid}" role="{data.tx_mindfula11y_landmark}" fallbackTag="div" aria="{label: data.tx_mindfula11y_landmark_label, labelledby: data.tx_mindfula11y_landmark_labelledby}">{data.bodytext}</mindfula11y:landmark>
+ * <mindfula11y:landmark recordUid="{data.uid}" role="{data.tx_mindfula11y_landmark}" aria="{label: data.tx_mindfula11y_landmark_label, labelledby: data.tx_mindfula11y_landmark_labelledby}">{data.bodytext}</mindfula11y:landmark>
  *
  * Simple usage without database integration:
  * <mindfula11y:landmark role="main" aria="{label: 'Main content area'}">Main content</mindfula11y:landmark>
@@ -52,8 +52,14 @@ use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractTagBasedViewHelper;
  * Navigation landmark example:
  * <mindfula11y:landmark role="navigation" aria="{labelledby: 'nav-heading'}">Navigation content</mindfula11y:landmark>
  *
- * No landmark (uses fallback tag):
- * <mindfula11y:landmark fallbackTag="section">Regular content without landmark semantics</mindfula11y:landmark>
+ * Override the HTML tag while keeping the role:
+ * <mindfula11y:landmark role="navigation" tagName="div">Navigation content</mindfula11y:landmark>
+ *
+ * No landmark (uses div by default):
+ * <mindfula11y:landmark>Regular content without landmark semantics</mindfula11y:landmark>
+ *
+ * No landmark with custom tag:
+ * <mindfula11y:landmark tagName="section">Regular content without landmark semantics</mindfula11y:landmark>
  */
 class LandmarkViewHelper extends AbstractTagBasedViewHelper
 {
@@ -105,8 +111,8 @@ class LandmarkViewHelper extends AbstractTagBasedViewHelper
         $this->registerArgument('recordUid', 'int', 'The UID of the record', false, null);
         $this->registerArgument('recordTableName', 'string', 'Database table name', false, 'tt_content');
         $this->registerArgument('recordColumnName', 'string', 'Field name for landmark', false, 'tx_mindfula11y_landmark');
-        $this->registerArgument('fallbackTag', 'string', 'The fallback tag to use if no landmark role is defined. Defaults to div', false, 'div');
-        $this->registerArgument('role', 'string', 'The landmark role value', false, null);
+        $this->registerArgument('role', 'string', 'The landmark role value', false, "");
+        $this->registerArgument('tagName', 'string', 'Override the HTML tag name regardless of the role', false, "");
     }
 
     /**
@@ -161,15 +167,20 @@ class LandmarkViewHelper extends AbstractTagBasedViewHelper
     /**
      * Determine the appropriate HTML element and role based on landmark type.
      * Always prefers native HTML elements over role attributes.
-     * Uses fallback tag when no landmark role is defined.
+     * Uses div tag when no landmark role is defined.
      */
     protected function determineElementAndRole(): void
     {
         $role = $this->arguments['role'];
+        $tagNameOverride = $this->arguments['tagName'];
 
-        // Use fallback tag if no role is defined
-        if (empty($role)) {
-            $this->tag->setTagName($this->arguments['fallbackTag']);
+        // Use tag name override if provided, regardless of role
+        if (!empty($tagNameOverride)) {
+            $this->tag->setTagName($tagNameOverride);
+            // Add role attribute if a role is specified
+            if (!empty($role)) {
+                $this->tag->addAttribute('role', $role);
+            }
             return;
         }
 
@@ -178,53 +189,39 @@ class LandmarkViewHelper extends AbstractTagBasedViewHelper
         switch ($landmarkType) {
             case AriaLandmark::NAVIGATION:
                 $this->tag->setTagName('nav');
-                // No role needed - <nav> is semantically correct
                 break;
 
             case AriaLandmark::MAIN:
                 $this->tag->setTagName('main');
-                // No role needed - <main> is semantically correct
                 break;
 
             case AriaLandmark::BANNER:
                 $this->tag->setTagName('header');
-                // No explicit role - let HTML5 semantics determine landmark behavior
-                // Will be banner landmark only when direct child of <body>
                 break;
 
             case AriaLandmark::CONTENTINFO:
                 $this->tag->setTagName('footer');
-                // No explicit role - let HTML5 semantics determine landmark behavior  
-                // Will be contentinfo landmark only when direct child of <body>
                 break;
 
             case AriaLandmark::COMPLEMENTARY:
                 $this->tag->setTagName('aside');
-                // No role needed - <aside> is semantically correct
                 break;
 
             case AriaLandmark::SEARCH:
-                // Use <search> element if available, fallback to div with role
                 $this->tag->setTagName('search');
-                // Add role for older browsers that don't support <search>
-                $this->tag->addAttribute('role', 'search');
                 break;
 
             case AriaLandmark::FORM:
                 $this->tag->setTagName('form');
-                // No role needed - <form> is semantically correct
                 break;
 
             case AriaLandmark::REGION:
                 $this->tag->setTagName('section');
-                // No explicit role needed - <section> with aria-label/aria-labelledby 
-                // automatically becomes role="region" per HTML5 semantics
                 break;
 
             case AriaLandmark::NONE:
             default:
-                $this->tag->setTagName($this->arguments['fallbackTag']);
-                // No role attribute for NONE
+                $this->tag->setTagName('div');
                 break;
         }
     }

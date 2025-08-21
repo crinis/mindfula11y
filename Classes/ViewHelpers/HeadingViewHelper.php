@@ -108,16 +108,7 @@ class HeadingViewHelper extends AbstractTagBasedViewHelper
     public function initialize(): void
     {
         parent::initialize();
-
-        $type = $this->arguments['type'];
-        
-        // Check if it's a heading tag (h1-h6)
-        if (preg_match('/^h[1-6]$/', $type)) {
-            $this->tag->setTagName($type);
-        } else {
-            // For non-heading tags, use the tag as-is (p, div, span, etc.)
-            $this->tag->setTagName($type);
-        }
+        $this->tag->setTagName($this->arguments['type']);
     }
 
     /**

@@ -5,7 +5,7 @@
 
         <f:if condition="{data.tx_mindfula11y_landmark}">
             <f:then>
-                <mindfula11y:landmark recordUid="{data.uid}" role="{data.tx_mindfula11y_landmark}" fallbackTag="div"
+                <mindfula11y:landmark recordUid="{data.uid}" role="{data.tx_mindfula11y_landmark}"
                     id="c{data.uid}"
                     class="frame frame-{data.frame_class} frame-type-{data.CType} frame-layout-{data.layout}{f:if(condition: data.space_before_class, then: ' frame-space-before-{data.space_before_class}')}{f:if(condition: data.space_after_class, then: ' frame-space-after-{data.space_after_class}')}"
                     aria="{f:if(condition: '{data.tx_mindfula11y_arialabelledby} && {data.header}', then: '{labelledby: \'c{data.uid}-heading\'}', else: '{label: data.tx_mindfula11y_arialabel}')}">
@@ -28,7 +28,7 @@
                 </mindfula11y:landmark>
             </f:then>
             <f:else>
-                <mindfula11y:landmark recordUid="{data.uid}" fallbackTag="div" id="c{data.uid}"
+                <mindfula11y:landmark recordUid="{data.uid}" id="c{data.uid}"
                     class="frame frame-{data.frame_class} frame-type-{data.CType} frame-layout-{data.layout}{f:if(condition: data.space_before_class, then: ' frame-space-before-{data.space_before_class}')}{f:if(condition: data.space_after_class, then: ' frame-space-after-{data.space_after_class}')}">
                     <f:if condition="{data._LOCALIZED_UID}">
                         <a id="c{data._LOCALIZED_UID}"></a>
@@ -62,7 +62,7 @@
         </f:if>
         <f:if condition="{data.tx_mindfula11y_landmark}">
             <f:then>
-                <mindfula11y:landmark recordUid="{data.uid}" role="{data.tx_mindfula11y_landmark}" fallbackTag="div"
+                <mindfula11y:landmark recordUid="{data.uid}" role="{data.tx_mindfula11y_landmark}"
                     aria="{f:if(condition: '{data.tx_mindfula11y_arialabelledby} && {data.header}', then: '{labelledby: \'c{data.uid}-heading\'}', else: '{label: data.tx_mindfula11y_arialabel}')}">
                     <f:render section="Before" optional="true">
                         <f:render partial="DropIn/Before/All" arguments="{_all}" />
@@ -80,7 +80,7 @@
                 </mindfula11y:landmark>
             </f:then>
             <f:else>
-                <mindfula11y:landmark recordUid="{data.uid}" fallbackTag="div">
+                <mindfula11y:landmark recordUid="{data.uid}">
                     <f:render section="Before" optional="true">
                         <f:render partial="DropIn/Before/All" arguments="{_all}" />
                     </f:render>
