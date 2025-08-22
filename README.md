@@ -159,8 +159,7 @@ For child headings that should automatically adjust based on their parent headin
     <f:else>
         <f:comment><!--Semantic heading parent: increment level--></f:comment>
         <f:variable name="parentLevel" value="{f:replace(value: data.tx_mindfula11y_headingtype, search: 'h', replace: '')}" />
-        <f:variable name="childLevel" value="{f:if(condition: '{parentLevel} < 6', then: '{parentLevel + 1}', else: '6')}" />
-        <f:variable name="childType" value="h{childLevel}" />
+        <f:variable name="childType" value="{f:if(condition: '{parentLevel} < 6', then: 'h{parentLevel + 1}', else: 'p')}" />
     </f:else>
 </f:if>
 
