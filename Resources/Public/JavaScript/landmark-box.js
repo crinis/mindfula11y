@@ -470,9 +470,9 @@ export class LandmarkBox extends LitElement {
       <input
         id="${uniqueId}"
         type="text"
-        class="badge rounded-pill w-auto"
+        class="badge rounded-pill w-auto pe-none ${this._getInputBorderClass()}"
         style="max-width: 12rem;"
-        value="${this.getRoleDisplayName(this.role)}"
+        value="${this._getRoleDisplayName(this.role)}"
         readonly
         aria-labelledby="${labelId}"
         ?aria-invalid="${this.errorMessages && this.errorMessages.length > 0}"
@@ -492,7 +492,7 @@ export class LandmarkBox extends LitElement {
     return html`
       <select
         id="${uniqueId}"
-        class="form-select form-select-sm w-auto"
+        class="form-select form-select-sm w-auto ${this._getInputBorderClass()}"
         style="max-width: 12rem;"
         @change="${this._handleRoleSelectChange}"
         aria-labelledby="${labelId}"
@@ -511,26 +511,13 @@ export class LandmarkBox extends LitElement {
    */
   _renderRoleSelectOptions() {
     return Object.keys(this.availableRoles).map((value) => {
-      const translatedLabel = this._getRoleOptionLabel(value);
+      const translatedLabel = this._getRoleDisplayName(value);
       return html`
         <option value="${value}" ?selected="${this.role === value}">
           ${translatedLabel}
         </option>
       `;
     });
-  }
-
-  /**
-   * Gets the translated label for a role option.
-   *
-   * @private
-   * @param {string} value - The role value
-   * @returns {string} The translated label
-   */
-  _getRoleOptionLabel(value) {
-    const keySuffix = value === "" ? "none" : value;
-    const translationKey = `landmarkStructure.role.${keySuffix}`;
-    return TYPO3.lang[translationKey] || this.availableRoles[value] || value;
   }
 
   /**
@@ -668,17 +655,19 @@ export class LandmarkBox extends LitElement {
   /**
    * Get the display name for a landmark role with improved organization.
    *
-   * Provides human-readable labels for landmark roles, primarily used for readonly inputs.
-   * Uses constants and improved fallback handling for consistent display.
+   * Provides human-readable labels for landmark roles, used for both readonly inputs
+   * and select dropdown options. Uses constants and improved fallback handling for 
+   * consistent display across the component.
    *
+   * @private
    * @param {string} role - The landmark role value.
    * @returns {string} The human-readable display name for the role.
    */
-  getRoleDisplayName(role) {
+  _getRoleDisplayName(role) {
     if (role === "") {
       return TYPO3.lang[LANDMARK_LABEL_KEYS.COMPONENT.ROLE_NONE] || "";
     }
-    const translationKey = `landmarkStructure.role.${role}`;
+    const translationKey = `mindfula11y.features.landmarkStructure.role.${role}`;
     return TYPO3.lang[translationKey] || role;
   }
 
@@ -714,6 +703,33 @@ export class LandmarkBox extends LitElement {
     });
 
     return hasWarning ? "warning" : "error";
+  }
+
+  /**
+   * Gets the appropriate CSS class for the input border based on error state.
+   *
+   * @private
+   * @returns {string} CSS class for border styling
+   */
+  _getInputBorderClass() {
+    // Check for errors first - they take priority
+    if (this.errorMessages?.length > 0) {
+      const hasError = this.errorMessages.some(errorObj => 
+        typeof errorObj === 'string' || errorObj.severity === 'error'
+      );
+      const hasWarning = this.errorMessages.some(errorObj => 
+        typeof errorObj === 'object' && errorObj.severity === 'warning'
+      );
+      
+      if (hasError) {
+        return "border-danger";
+      } else if (hasWarning) {
+        return "border-warning";
+      }
+    }
+
+    // No errors - use success border
+    return "border-success";
   }
 }
 

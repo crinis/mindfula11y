@@ -198,7 +198,7 @@ export class HeadingType extends LitElement {
     return html`
       <select
         id="${uniqueId}"
-        class="form-select form-select-sm w-auto"
+        class="form-select form-select-sm w-auto ${this._getInputBorderClass()}"
         style="max-width: 6rem;"
         @change="${this._handleTypeChange}"
         ?aria-invalid="${this.errorMessages?.length > 0}"
@@ -221,7 +221,7 @@ export class HeadingType extends LitElement {
       <input
         id="${uniqueId}"
         type="text"
-        class="form-control form-control-sm w-auto text-center fw-bold ${this._getTypeInputClass()}"
+        class="form-control form-control-sm w-auto text-center fw-bold pe-none ${this._getInputBorderClass()}"
         style="max-width: 6rem;"
         value="${this.type.toUpperCase()}"
         readonly
@@ -231,24 +231,30 @@ export class HeadingType extends LitElement {
   }
 
   /**
-   * Gets the appropriate CSS class for the type input based on heading level.
-   * Error severity styling is handled at the structure level via border-start.
+   * Gets the appropriate CSS class for the input border based on error state.
    *
    * @private
-   * @returns {string} CSS class for styling
+   * @returns {string} CSS class for border styling
    */
-  _getTypeInputClass() {
-    // No error-based border styling here - that's handled by the heading structure wrapper
-
-    // Add subtle styling based on heading level without affecting accessibility
-    if (this.type.startsWith("h")) {
-      const level = parseInt(this.type.charAt(1), 10);
-      if (level === 1) return "border-primary";
-      if (level === 2) return "border-info";
-      if (level === 3) return "border-success";
+  _getInputBorderClass() {
+    // Check for errors first - they take priority
+    if (this.errorMessages?.length > 0) {
+      const hasError = this.errorMessages.some(error => 
+        typeof error === 'string' || error.severity === 'error'
+      );
+      const hasWarning = this.errorMessages.some(error => 
+        typeof error === 'object' && error.severity === 'warning'
+      );
+      
+      if (hasError) {
+        return "border-danger";
+      } else if (hasWarning) {
+        return "border-warning";
+      }
     }
 
-    return "";
+    // No errors - use success border
+    return "border-success";
   }
 
   /**

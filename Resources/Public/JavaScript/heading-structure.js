@@ -462,12 +462,10 @@ export class HeadingStructure extends AccessibilityStructureBase {
   _createHeadingType(node) {
     const availableTypes = this._parseAvailableTypes(node.element);
     const errorMessages = this._getErrorMessages(node.errorReasons || []);
-    const mostSevereError = this._getMostSevereError(errorMessages);
-    const borderClass = this._getBorderClass(mostSevereError);
 
     return html`
       <mindfula11y-heading-type
-        class="d-flex align-items-center gap-3 py-2 ${borderClass}"
+        class="d-flex align-items-center gap-3 py-2"
         .type="${node.element.dataset.mindfula11yType ||
         node.element.tagName.toLowerCase()}"
         .availableTypes="${availableTypes}"
@@ -532,25 +530,6 @@ export class HeadingStructure extends AccessibilityStructureBase {
       (error) => error.severity === ERROR_SEVERITY.ERROR
     );
     return errorSeverityError || errorMessages[0];
-  }
-
-  /**
-   * Gets the appropriate border class based on error severity.
-   *
-   * @private
-   * @param {Object|null} mostSevereError - The most severe error or null
-   * @returns {string} The CSS class string for border styling
-   */
-  _getBorderClass(mostSevereError) {
-    if (!mostSevereError) {
-      return "";
-    }
-
-    const borderColor =
-      mostSevereError.severity === ERROR_SEVERITY.ERROR
-        ? "border-danger"
-        : "border-warning";
-    return `border-start ${borderColor} border-3 ps-2`;
   }
 
   /**
