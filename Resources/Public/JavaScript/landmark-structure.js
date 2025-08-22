@@ -148,7 +148,7 @@ export class LandmarkStructure extends AccessibilityStructureBase {
    *
    * @private
    * @param {string} htmlString - The HTML string to parse for landmarks.
-   * @returns {NodeListOf<HTMLElement>} NodeList of landmark elements.
+   * @returns {Array<HTMLElement>} Array of landmark elements.
    */
   _selectElements(htmlString) {
     const parser = new DOMParser();
@@ -173,18 +173,26 @@ export class LandmarkStructure extends AccessibilityStructureBase {
       // Header/footer only when NOT nested inside sectioning content
       "header:not(article header, aside header, footer header, header header, main header, nav header, section header)",
       "footer:not(article footer, aside footer, footer footer, header footer, main footer, nav footer, section footer)",
-      // Section only when labeled (becomes implicit role=region)
+      // Section elements (need to be filtered for valid accessible names)
       "section[aria-label]",
       "section[aria-labelledby]",
     ].join(", ");
 
-    return doc.querySelectorAll(landmarkSelector);
+    const elements = doc.querySelectorAll(landmarkSelector);
+    
+    // Filter out section elements that don't have valid accessible names
+    return Array.from(elements).filter(element => {
+      if (element.tagName.toLowerCase() === 'section') {
+        return this._hasAccessibleName(element);
+      }
+      return true;
+    });
   }
 
   /**
    * Build a list of landmark data objects from elements.
    *
-   * @param {NodeListOf<HTMLElement>} landmarkElements - NodeList of landmark elements.
+   * @param {Array<HTMLElement>} landmarkElements - Array of landmark elements.
    * @returns {Array<LandmarkData>} Array of landmark data objects with hierarchical structure.
    */
   buildLandmarkList(landmarkElements) {

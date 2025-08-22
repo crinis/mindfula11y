@@ -79,7 +79,7 @@ export class AccessibilityStructureBase extends LitElement {
    * 
    * @private
    * @param {Array} args - Task arguments containing [previewUrl]
-   * @returns {Promise<NodeListOf<HTMLElement>|null>} The elements found or null on error
+   * @returns {Promise<Array<HTMLElement>|null>} The elements found or null on error
    */
   async _analyzeContent([previewUrl]) {
     try {
@@ -97,7 +97,7 @@ export class AccessibilityStructureBase extends LitElement {
    * 
    * @private
    * @param {string} htmlString - The HTML string to parse
-   * @returns {NodeListOf<HTMLElement>} NodeList of elements
+   * @returns {Array<HTMLElement>} Array of elements
    */
   _selectElements(htmlString) {
     throw new Error('_selectElements must be implemented by subclass');

@@ -751,13 +751,13 @@ export class HeadingStructure extends AccessibilityStructureBase {
    *
    * @private
    * @param {string} htmlString - The HTML string to parse
-   * @returns {NodeListOf<HTMLElement>} NodeList of heading elements
+   * @returns {Array<HTMLElement>} Array of heading elements
    */
   _selectElements(htmlString) {
     const parser = new DOMParser();
-    return parser
+    return Array.from(parser
       .parseFromString(htmlString, "text/html")
-      .querySelectorAll("h1, h2, h3, h4, h5, h6");
+      .querySelectorAll("h1, h2, h3, h4, h5, h6"));
   }
 
   /**
