@@ -1,14 +1,14 @@
 <?php
 
 $EM_CONF[$_EXTKEY] = [
-    'title' => 'Mindful A11y',
-    'description' => 'Comprehensive accessibility extension for TYPO3 providing backend tools for content editors and integrators. Features include missing alternative text detection with AI-powered generation via ChatGPT, semantic heading structure management with ViewHelper integration, ARIA landmark configuration for improved navigation, and inline editing capabilities within a unified accessibility backend module.',
+    'title' => 'WFA Accessibility Module',
+    'description' => 'Find, fix and improve accessibility in TYPO3 — AI-assisted alt text, semantic headings, ARIA landmarks and inline remediation.',
     'category' => 'module',
     'author' => 'Felix Spittel',
     'author_email' => 'felix@mindfulmarkup.de',
-    'author_company' => 'Mindful Markup',
+    'author_company' => 'Websites für Alle',
     'state' => 'alpha',
-    'version' => '0.3.1',
+    'version' => '0.4.0',
     'constraints' => [
         'depends' => [
             'typo3' => '13.4.0-13.4.99',

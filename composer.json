@@ -1,6 +1,6 @@
 {
     "name": "mindfulmarkup/mindfula11y",
-    "description": "Comprehensive TYPO3 accessibility extension providing backend tools for content editors and integrators. Features include missing alternative text detection with AI-powered generation via ChatGPT, semantic heading structure management with ViewHelper integration, ARIA landmark configuration for improved navigation, and inline editing capabilities within a unified accessibility backend module.",
+    "description": "Find, fix and improve accessibility in TYPO3 — AI-assisted alt text, semantic headings, ARIA landmarks and inline remediation.",
     "type": "typo3-cms-extension",
     "license": [
         "GPL-2.0-or-later"
@@ -9,7 +9,7 @@
         {
             "name": "Felix Spittel",
             "role": "Developer",
-            "homepage": "https://www.mindfulmarkup.de"
+            "homepage": "https://www.websites-fuer-alle.de"
         }
     ],
     "support": {
