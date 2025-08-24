@@ -145,7 +145,7 @@ To apply heading types in the frontend, use the provided `HeadingViewHelper`. Th
     recordUid="{data.uid}"
     recordTableName="tt_content"
     recordColumnName="tx_mindfula11y_headingtype"
-    type="{data.tx_mindfula_headingtype}"
+    type="{data.tx_mindfula11y_headingtype}"
     relationId="relation-{data.uid}">
     {data.header}
 </mindfula11y:heading>
