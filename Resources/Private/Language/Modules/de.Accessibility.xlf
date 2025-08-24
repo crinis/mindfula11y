@@ -526,6 +526,18 @@
                 <source>Heading type</source>
                 <target>Überschriftentyp</target>
             </trans-unit>
+            <trans-unit id="headingStructure.relation.descendantMessage" resname="headingStructure.relation.descendantMessage">
+                <source>Related to parent heading</source>
+                <target>Bezieht sich auf übergeordnete Überschrift</target>
+            </trans-unit>
+            <trans-unit id="headingStructure.relation.notFound" resname="headingStructure.relation.notFound">
+                <source>Ancestor not found</source>
+                <target>Übergeordnete Überschrift nicht gefunden</target>
+            </trans-unit>
+            <trans-unit id="headingStructure.relation.notFound.description" resname="headingStructure.relation.notFound.description">
+                <source>The referenced ancestor heading could not be found in the document.</source>
+                <target>Die referenzierte übergeordnete Überschrift konnte im Dokument nicht gefunden werden.</target>
+            </trans-unit>
             <trans-unit id="headingStructure.noHeadings" resname="headingStructure.noHeadings">
                 <source>No headings found</source>
                 <target>Keine Überschriften gefunden</target>

@@ -265,7 +265,10 @@ export class HeadingStructure extends AccessibilityStructureBase {
     const state = this._initializeTreeBuildingState();
 
     headings.forEach((element) => {
-      const headingData = this._analyzeHeadingElement(element, state.parentStack);
+      const headingData = this._analyzeHeadingElement(
+        element,
+        state.parentStack
+      );
       const node = this._processHeadingForTree(headingData, state);
       this._addNodeToTree(node, state.parentStack, state.rootNodes);
     });
@@ -319,12 +322,13 @@ export class HeadingStructure extends AccessibilityStructureBase {
    * @returns {Object} The processed heading tree node
    */
   _processHeadingForTree(headingData, state) {
-    const { element, level, parentLevel, skippedLevels, errorReasons } = headingData;
-    
+    const { element, level, parentLevel, skippedLevels, errorReasons } =
+      headingData;
+
     const skippedLevelStatus = this._determineSkippedLevelStatus(
-      level, 
-      parentLevel, 
-      skippedLevels, 
+      level,
+      parentLevel,
+      skippedLevels,
       state.skippedCombinations
     );
 
@@ -332,7 +336,12 @@ export class HeadingStructure extends AccessibilityStructureBase {
       errorReasons.push("skippedLevel");
     }
 
-    return this._createHeadingNode(element, level, skippedLevelStatus.visualSkips, errorReasons);
+    return this._createHeadingNode(
+      element,
+      level,
+      skippedLevelStatus.visualSkips,
+      errorReasons
+    );
   }
 
   /**
@@ -359,12 +368,17 @@ export class HeadingStructure extends AccessibilityStructureBase {
    *
    * @private
    * @param {number} level - Current heading level
-   * @param {number} parentLevel - Hierarchical parent level  
+   * @param {number} parentLevel - Hierarchical parent level
    * @param {number} directSkips - Number of directly skipped levels
    * @param {Map} skippedCombinations - Map tracking problematic combinations
    * @returns {Object} Object with shouldFlag and visualSkips properties
    */
-  _determineSkippedLevelStatus(level, parentLevel, directSkips, skippedCombinations) {
+  _determineSkippedLevelStatus(
+    level,
+    parentLevel,
+    directSkips,
+    skippedCombinations
+  ) {
     // Case 1: Direct skip - this heading skips levels from its parent
     if (directSkips > 0) {
       this._trackSkippedCombination(parentLevel, level, skippedCombinations);
@@ -406,8 +420,10 @@ export class HeadingStructure extends AccessibilityStructureBase {
    * @returns {boolean} True if this combination has skipped levels
    */
   _isSkippedCombination(parentLevel, childLevel, skippedCombinations) {
-    return skippedCombinations.has(parentLevel) && 
-           skippedCombinations.get(parentLevel).has(childLevel);
+    return (
+      skippedCombinations.has(parentLevel) &&
+      skippedCombinations.get(parentLevel).has(childLevel)
+    );
   }
 
   /**
@@ -500,7 +516,7 @@ export class HeadingStructure extends AccessibilityStructureBase {
     if (element.tagName !== "H1") {
       return false;
     }
-    
+
     const allH1s = element.ownerDocument.querySelectorAll("h1");
     return allH1s.length > 1;
   }
@@ -544,7 +560,7 @@ export class HeadingStructure extends AccessibilityStructureBase {
     if (parentStack.length === 0) {
       return HeadingStructure.HEADING_CONSTANTS.MIN_HEADING_LEVEL; // First heading should be H1
     }
-    
+
     const lastParentLevel = parentStack[parentStack.length - 1].level;
     return lastParentLevel + 1; // Next level should be parent + 1
   }
@@ -668,9 +684,10 @@ export class HeadingStructure extends AccessibilityStructureBase {
     return html`
       <mindfula11y-heading-type
         class="d-flex align-items-center gap-3 py-2"
-        .type="${node.element.dataset.mindfula11yType ||
-        node.element.tagName.toLowerCase()}"
+        .type="${node.element.tagName.toLowerCase()}"
         .availableTypes="${availableTypes}"
+        relationId="${node.element.dataset.mindfula11yRelationId || ""}"
+        ancestorId="${node.element.dataset.mindfula11yAncestorId || ""}"
         recordTableName="${node.element.dataset.mindfula11yRecordTableName ||
         ""}"
         recordColumnName="${node.element.dataset.mindfula11yRecordColumnName ||
@@ -755,9 +772,11 @@ export class HeadingStructure extends AccessibilityStructureBase {
    */
   _selectElements(htmlString) {
     const parser = new DOMParser();
-    return Array.from(parser
-      .parseFromString(htmlString, "text/html")
-      .querySelectorAll("h1, h2, h3, h4, h5, h6"));
+    return Array.from(
+      parser
+        .parseFromString(htmlString, "text/html")
+        .querySelectorAll("h1, h2, h3, h4, h5, h6")
+    );
   }
 
   /**

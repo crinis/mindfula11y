@@ -136,39 +136,35 @@ To apply heading types in the frontend, use the provided `HeadingViewHelper`. Th
 </mindfula11y:heading>
 ```
 
-#### Dependent Child Headings
+#### Descendant Headings
 
-For child headings that should automatically adjust based on their parent heading level, you can use Fluid's mathematical operations with the `f:variable` ViewHelper:
+1) Parent: provide a `relationId` when rendering the parent heading. This can be any stable string (for example the record UID or a generated identifier):
 
 ```html
-<f:comment><!--Parent heading--></f:comment>
-<mindfula11y:heading 
-    recordUid="{data.uid}" 
-    recordTableName="tt_content" 
-    recordColumnName="tx_mindfula11y_headingtype" 
-    type="{data.tx_mindfula11y_headingtype}">
+<mindfula11y:heading
+    recordUid="{data.uid}"
+    recordTableName="tt_content"
+    recordColumnName="tx_mindfula11y_headingtype"
+    type="{data.tx_mindfula_headingtype}"
+    relationId="relation-{data.uid}">
     {data.header}
-</mindfula11y:heading>
-
-<f:comment><!--Child heading that adapts to parent level--></f:comment>
-<f:if condition="{data.tx_mindfula11y_headingtype} == 'p' || {data.tx_mindfula11y_headingtype} == 'div'">
-    <f:then>
-        <f:comment><!--Non-semantic parent: use same type for child--></f:comment>
-        <f:variable name="childType" value="{data.tx_mindfula11y_headingtype}" />
-    </f:then>
-    <f:else>
-        <f:comment><!--Semantic heading parent: increment level--></f:comment>
-        <f:variable name="parentLevel" value="{f:replace(value: data.tx_mindfula11y_headingtype, search: 'h', replace: '')}" />
-        <f:variable name="childType" value="{f:if(condition: '{parentLevel} < 6', then: 'h{parentLevel + 1}', else: 'p')}" />
-    </f:else>
-</f:if>
-
-<mindfula11y:heading type="{childType}">
-    {data.subheader}
 </mindfula11y:heading>
 ```
 
-This example handles both semantic headings (h1-h6) and non-semantic elements (p, div). For semantic headings, it increments the level by 1. For non-semantic elements, the child uses the same type as the parent.
+2) Descendant: reference the same identifier from the descendant ViewHelper using the `ancestorId` argument. The ViewHelper will compute the correct tag based on the parent's heading type and the `levels` offset:
+
+```html
+<mindfula11y:heading.descendant
+    ancestorId="relation-{data.uid}"
+    levels="1">
+    {data.subheader}
+</mindfula11y:heading.descendant>
+```
+
+Behavior notes:
+- If the ancestor is a semantic heading (`h1`–`h6`), the descendant will be the incremented heading level (respecting the `levels` argument). If the increment would exceed `h6`, the descendant becomes a paragraph (`p`).
+- If the ancestor is non-semantic (`p` or `div`), the descendant inherits the same tag as the ancestor.
+- You may override the computed tag by supplying a `type` argument to the descendant ViewHelper.
 
 ### Extending Custom Record Types
 

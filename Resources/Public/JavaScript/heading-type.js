@@ -68,6 +68,8 @@ export class HeadingType extends LitElement {
       recordEditLink: { type: String },
       errorMessages: { type: Array },
       label: { type: String },
+      relationId: { type: String },
+      ancestorId: { type: String },
     };
   }
 
@@ -81,6 +83,8 @@ export class HeadingType extends LitElement {
     super();
     this._initializeProperties();
     this.id = this._createUniqueId("mindfula11y-heading-type");
+    // Visual highlight styles were moved to the heading-structure component's styles
+    // to keep component CSS consolidated and avoid injecting global styles here.
   }
 
   /**
@@ -97,6 +101,8 @@ export class HeadingType extends LitElement {
     this.availableTypes = {};
     this.errorMessages = [];
     this.label = "";
+    this.relationId = "";
+    this.ancestorId = "";
   }
 
   /**
@@ -146,8 +152,14 @@ export class HeadingType extends LitElement {
    * @returns {Object} Component analysis object
    */
   _analyzeComponent() {
+    // A heading is considered a descendant only when an ancestorId is present.
+    // relationId is only relevant for the parent side and must not be required here.
+    const isDescendant = !!this.ancestorId;
+
     return {
-      isEditable: this.recordEditLink !== "",
+      // Descendants are never editable even when a recordEditLink exists
+      isEditable: !isDescendant && this.recordEditLink !== "",
+      isDescendant,
       hasValidType: this.type && this.type.trim() !== "",
       displayLabel: this._getDisplayLabel(),
     };
@@ -239,13 +251,13 @@ export class HeadingType extends LitElement {
   _getInputBorderClass() {
     // Check for errors first - they take priority
     if (this.errorMessages?.length > 0) {
-      const hasError = this.errorMessages.some(error => 
-        typeof error === 'string' || error.severity === 'error'
+      const hasError = this.errorMessages.some(
+        (error) => typeof error === "string" || error.severity === "error"
       );
-      const hasWarning = this.errorMessages.some(error => 
-        typeof error === 'object' && error.severity === 'warning'
+      const hasWarning = this.errorMessages.some(
+        (error) => typeof error === "object" && error.severity === "warning"
       );
-      
+
       if (hasError) {
         return "border-danger";
       } else if (hasWarning) {
@@ -305,6 +317,27 @@ export class HeadingType extends LitElement {
         </a>
       `;
     }
+    // If this heading is a descendant (relation -> ancestor), show a link icon
+    if (componentInfo.isDescendant) {
+      const ancestorId = this.ancestorId;
+
+      if (ancestorId) {
+        return html`
+          <button
+            type="button"
+            class="btn btn-sm d-flex align-items-center gap-1"
+            @click="${this._handleRelationClick}"
+          >
+            ${this._renderRelationIcon()}
+            <span
+              >${TYPO3.lang[
+                "mindfula11y.features.headingStructure.relation.descendantMessage"
+              ] || "Related to parent heading"}</span
+            >
+          </button>
+        `;
+      }
+    }
 
     return html`
       <span class="text-muted d-flex align-items-center gap-1">
@@ -330,8 +363,8 @@ export class HeadingType extends LitElement {
         class="t3js-icon icon icon-size-small"
         xmlns="http://www.w3.org/2000/svg"
         viewBox="0 0 16 16"
-        width="14"
-        height="14"
+        width="16"
+        height="16"
         aria-hidden="true"
       >
         <g fill="currentColor">
@@ -355,8 +388,8 @@ export class HeadingType extends LitElement {
         class="t3js-icon icon icon-size-small"
         xmlns="http://www.w3.org/2000/svg"
         viewBox="0 0 16 16"
-        width="14"
-        height="14"
+        width="16"
+        height="16"
         aria-hidden="true"
       >
         <g fill="currentColor">
@@ -367,6 +400,83 @@ export class HeadingType extends LitElement {
         </g>
       </svg>
     `;
+  }
+
+  /**
+   * Renders the relation/link icon (used for descendants pointing to an ancestor).
+   * @private
+   */
+  _renderRelationIcon() {
+    return html`
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="16"
+        height="16"
+        fill="currentColor"
+        class="t3js-icon icon icon-size-small"
+        viewBox="0 0 16 16"
+        aria-hidden="true"
+      >
+        <path
+          d="M4.715 6.542 3.343 7.914a3 3 0 1 0 4.243 4.243l1.828-1.829A3 3 0 0 0 8.586 5.5L8 6.086a1 1 0 0 0-.154.199 2 2 0 0 1 .861 3.337L6.88 11.45a2 2 0 1 1-2.83-2.83l.793-.792a4 4 0 0 1-.128-1.287z"
+        />
+        <path
+          d="M6.586 4.672A3 3 0 0 0 7.414 9.5l.775-.776a2 2 0 0 1-.896-3.346L9.12 3.55a2 2 0 1 1 2.83 2.83l-.793.792c.112.42.155.855.128 1.287l1.372-1.372a3 3 0 1 0-4.243-4.243z"
+        />
+      </svg>
+    `;
+  }
+
+  /**
+   * Finds an ancestor element in the document given an ancestor id string.
+   * Tries a small set of plausible data-attribute selectors to be resilient.
+   * @private
+   * @param {string} ancestorId
+   * @returns {Element|null}
+   */
+  _findAncestorElement(ancestorId) {
+    if (!ancestorId) return null;
+
+    return document.querySelector(`[relationId="${ancestorId}"]`);
+  }
+
+  /**
+   * Click handler for relation icon: focuses and highlights the ancestor heading.
+   * @private
+   */
+  _handleRelationClick(event) {
+    event.preventDefault();
+    const ancestorId = this.ancestorId;
+    if (!ancestorId) {
+      Notification.error(
+        TYPO3.lang["mindfula11y.features.headingStructure.relation.notFound"] ||
+          "Ancestor not found",
+        TYPO3.lang[
+          "mindfula11y.features.headingStructure.relation.notFound.description"
+        ] || ""
+      );
+      return;
+    }
+
+    const ancestor = this._findAncestorElement(ancestorId);
+    if (!ancestor) {
+      Notification.warning(
+        TYPO3.lang["mindfula11y.features.headingStructure.relation.notFound"] ||
+          "Ancestor not found",
+        TYPO3.lang[
+          "mindfula11y.features.headingStructure.relation.notFound.description"
+        ] || ""
+      );
+      return;
+    }
+
+    const focusable = ancestor.querySelector("select, input");
+
+    if (null !== focusable) {
+      focusable.focus();
+    }
+
+    ancestor.scrollIntoView({ behavior: "smooth", block: "center" });
   }
 
   /**

@@ -112,7 +112,6 @@ class AltTextAjaxController extends ActionController
         $languageCode = $this->siteLanguageService->getLanguageCode($demand->getLanguageUid(), $demand->getPageUid());
         $file = $this->resourceFactory->getFileObject($demand->getFileUid());
 
-
         $altText = $this->altTextGeneratorService->generate($file, $languageCode);
 
         if (null === $altText) {

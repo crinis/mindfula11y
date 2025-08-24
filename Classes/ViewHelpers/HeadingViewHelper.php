@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 /*
@@ -22,13 +23,11 @@ declare(strict_types=1);
 
 namespace MindfulMarkup\MindfulA11y\ViewHelpers;
 
+use TYPO3\CMS\Core\Database\ConnectionPool;
 use MindfulMarkup\MindfulA11y\Service\PermissionService;
-use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
-use TYPO3\CMS\Core\Context\Context;
 use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
-use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractTagBasedViewHelper;
 
 /**
  * Heading ViewHelper to allow editing heading types using the heading structure module.
@@ -38,23 +37,26 @@ use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractTagBasedViewHelper;
  * 
  * Usage examples:
  *
- * Basic usage with ability to edit heading type from backend module. Outputting the default heading field for a tt_content record:
+ * Basic usage with ability to edit heading type from backend module. The heading type will be fetched from the database:
+ * <mindfula11y:heading recordUid="{data.uid}" recordTableName="tt_content" recordColumnName="tx_mindfula11y_headingtype">{data.header}</mindfula11y:heading>
+ *
+ * Recommended: Set the heading type directly (saves a database query):
  * <mindfula11y:heading recordUid="{data.uid}" recordTableName="tt_content" recordColumnName="tx_mindfula11y_headingtype" type="{data.tx_mindfula11y_headingtype}">{data.header}</mindfula11y:heading>
  *
  * Specify heading type without way to edit it: Use for dependent headings like child headings.
  * <mindfula11y:heading type="h2">{data.header}</mindfula11y:heading>
  */
-class HeadingViewHelper extends AbstractTagBasedViewHelper
+class HeadingViewHelper extends AbstractHeadingViewHelper
 {
+    /**
+     * ConnectionPool instance for database access.
+     */
+    protected ConnectionPool $connectionPool;
+
     /**
      * Permission service instance.
      */
     protected readonly PermissionService $permissionService;
-
-    /**
-     * Context object with information about the current request and user.
-     */
-    protected readonly Context $context;
 
     /**
      * Backend Uri Builder instance.
@@ -62,16 +64,11 @@ class HeadingViewHelper extends AbstractTagBasedViewHelper
     protected readonly UriBuilder $backendUriBuilder;
 
     /**
-     * The default heading type if not specified and not found in the record.
+     * Inject the ConnectionPool.
      */
-    public const DEFAULT_TYPE = 'h2';
-
-    /**
-     * Inject Context object.
-     */
-    public function injectContext(Context $context): void
+    public function injectConnectionPool(ConnectionPool $connectionPool): void
     {
-        $this->context = $context;
+        $this->connectionPool = $connectionPool;
     }
 
     /**
@@ -99,7 +96,8 @@ class HeadingViewHelper extends AbstractTagBasedViewHelper
         $this->registerArgument('recordTableName', 'string', 'The name of the database table with the heading. Defaults to tt_content', false, 'tt_content');
         $this->registerArgument('recordColumnName', 'string', 'The name of the field to store the heading type. Defaults to tx_mindfula11y_headingtype.', false, 'tx_mindfula11y_headingtype');
         $this->registerArgument('recordUid', 'int', 'The UID of the record to edit the heading type.', false, null);
-        $this->registerArgument('type', 'string', 'The heading type to use (h1, h2, h3, h4, h5, h6, p, div, etc.).', true);
+        $this->registerArgument('type', 'string', 'The heading type to use (h1, h2, h3, h4, h5, h6, p, div, etc.). If not provided, the value will be fetched from the database record.', false, null);
+        $this->registerArgument('relationId', 'string', 'The relation identifier for this heading (used for caching and relationships).', false, null);
     }
 
     /**
@@ -108,7 +106,26 @@ class HeadingViewHelper extends AbstractTagBasedViewHelper
     public function initialize(): void
     {
         parent::initialize();
-        $this->tag->setTagName($this->arguments['type']);
+
+        if (empty($this->arguments['type']) && $this->hasRecordInformation()) {
+            $headingType = $this->getHeadingType(
+                $this->arguments['recordUid'],
+                $this->arguments['recordTableName'],
+                $this->arguments['recordColumnName']
+            );
+        } else {
+            $headingType = $this->arguments['type'];
+        }
+
+        if (empty($headingType)) {
+            $headingType = self::DEFAULT_TYPE;
+        }
+
+        if (!empty($this->arguments['relationId'])) {
+            $this->runtimeCache->set('mindfula11y_heading_type_' . $this->arguments['relationId'], $headingType);
+        }
+
+        $this->tag->setTagName($headingType);
     }
 
     /**
@@ -121,37 +138,51 @@ class HeadingViewHelper extends AbstractTagBasedViewHelper
      */
     public function render(): string
     {
-        $request = $this->getRequest();
         if (
-            null !== $request
-            && $request->hasHeader('Mindfula11y-Structure-Analysis')
-            && $this->context->getPropertyFromAspect('backend.user', 'isLoggedIn', false)
-            && null !== $this->arguments['recordUid']
-            && $this->hasPermissionToModifyHeadingType(
-                $this->arguments['recordUid'],
-                $this->arguments['recordTableName'],
-                $this->arguments['recordColumnName']
-            )
+            $this->isStructureAnalysisRequest()
         ) {
-            $this->tag->addAttribute('data-mindfula11y-record-table-name', $this->arguments['recordTableName']);
-            $this->tag->addAttribute('data-mindfula11y-record-column-name', $this->arguments['recordColumnName']);
-            $this->tag->addAttribute('data-mindfula11y-record-uid', $this->arguments['recordUid']);
-            $this->tag->addAttribute('data-mindfula11y-record-edit-link', $this->backendUriBuilder->buildUriFromRoute('record_edit', [
-                'edit' => [
-                    $this->arguments['recordTableName'] => [
-                        $this->arguments['recordUid'] => 'edit',
-                    ],
-                ],
-            ]));
-            $this->tag->addAttribute('data-mindfula11y-type', $this->arguments['type']);
-            $this->tag->addAttribute('data-mindfula11y-available-types', json_encode($this->getHeadingTypes(
-                $this->arguments['recordTableName'],
-                $this->arguments['recordColumnName']
-            )));
-        }
+            if (!empty($this->arguments['relationId'])) {
+                $this->tag->addAttribute('data-mindfula11y-relation-id', $this->arguments['relationId']);
+            }
 
+            if ($this->hasRecordInformation()) {
+                $this->tag->addAttribute('data-mindfula11y-record-table-name', $this->arguments['recordTableName']);
+                $this->tag->addAttribute('data-mindfula11y-record-column-name', $this->arguments['recordColumnName']);
+                $this->tag->addAttribute('data-mindfula11y-record-uid', $this->arguments['recordUid']);
+                if ($this->hasPermissionToModifyHeadingType(
+                    $this->arguments['recordUid'],
+                    $this->arguments['recordTableName'],
+                    $this->arguments['recordColumnName']
+                )) {
+                    $this->tag->addAttribute('data-mindfula11y-record-edit-link', $this->backendUriBuilder->buildUriFromRoute('record_edit', [
+                        'edit' => [
+                            $this->arguments['recordTableName'] => [
+                                $this->arguments['recordUid'] => 'edit',
+                            ],
+                        ],
+                    ]));
+
+                    $this->tag->addAttribute('data-mindfula11y-available-types', json_encode($this->getHeadingTypes(
+                        $this->arguments['recordTableName'],
+                        $this->arguments['recordColumnName']
+                    )));
+                }
+            }
+        }
         $this->tag->setContent($this->renderChildren());
         return $this->tag->render();
+    }
+
+    /**
+     * Check if data to fetch the record information is available.
+     * 
+     * @return bool True if record information is available, false otherwise.
+     */
+    protected function hasRecordInformation(): bool
+    {
+        return !empty($this->arguments['recordUid'])
+            && !empty($this->arguments['recordTableName'])
+            && !empty($this->arguments['recordColumnName']);
     }
 
     /**
@@ -206,15 +237,62 @@ class HeadingViewHelper extends AbstractTagBasedViewHelper
     }
 
     /**
-     * Get the current request from the rendering context.
-     * 
-     * @return ServerRequestInterface|null The current request or null if not available.
+     * Determine the heading type to use for the tag.
+     *
+     * @param int $recordUid The UID of the record to fetch the type from.
+     * @param string $recordTableName The name of the database table with the heading.
+     * @param string $recordColumnName The name of the field to store the heading type.
+     * @return string|null The heading type to use or null if not found.
      */
-    protected function getRequest(): ?ServerRequestInterface
-    {
-        if ($this->renderingContext->hasAttribute(ServerRequestInterface::class)) {
-            return $this->renderingContext->getAttribute(ServerRequestInterface::class);
+    protected function getHeadingType(
+        int $recordUid,
+        string $recordTableName,
+        string $recordColumnName,
+    ): ?string {
+        $record = $this->getCachedRecord(
+            $recordTableName,
+            $recordUid,
+            [$recordColumnName],
+        );
+        if (null !== $record && !empty($record[$recordColumnName])) {
+            return $record[$recordColumnName];
         }
+
         return null;
+    }
+
+    /**
+     * Fetch a record from cache or database, optionally using a provided cache identifier.
+     *
+     * @param string $tableName The name of the table to fetch from.
+     * @param int $uid The UID of the record.
+     * @param array $fields The fields to select.
+     * @return array|null The fetched record, or null if not found.
+     */
+    protected function getCachedRecord(
+        string $tableName,
+        int $uid,
+        array $fields = ['*'],
+    ): ?array {
+        $cacheIdentifier = 'mindfula11y_record_' . $tableName . '_' . $uid . '_' . implode('_', $fields);
+
+        if ($this->runtimeCache->has($cacheIdentifier)) {
+            return $this->runtimeCache->get($cacheIdentifier);
+        }
+
+        $queryBuilder = $this->connectionPool->getQueryBuilderForTable($tableName);
+
+        $queryBuilder
+            ->select(...$fields)
+            ->from($tableName)
+            ->where(
+                $queryBuilder->expr()->eq('uid', $queryBuilder->createNamedParameter($uid, \TYPO3\CMS\Core\Database\Connection::PARAM_INT))
+            )
+            ->setMaxResults(1);
+
+        $record = $queryBuilder->executeQuery()->fetchAssociative();
+        $this->runtimeCache->set($cacheIdentifier, $record);
+
+        return $record ?: null;
     }
 }

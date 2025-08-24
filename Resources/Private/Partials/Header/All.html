@@ -3,9 +3,24 @@
 <f:if condition="{data.header_layout} != 100">
   <f:if condition="{data.header} || {data.subheader} || {data.date}">
 
-    <mindfula11y:heading recordUid="{f:if(condition: data._LOCALIZED_UID, then: data._LOCALIZED_UID, else: data.uid)}"
-      type="{data.tx_mindfula11y_headingtype}" id="c{data.uid}-heading">
-      {data.header}</mindfula11y:heading>
+    <!-- Render the main heading with a relationId -->
+    <mindfula11y:heading
+      recordUid="{f:if(condition: data._LOCALIZED_UID, then: data._LOCALIZED_UID, else: data.uid)}"
+      type="{data.tx_mindfula11y_headingtype}"
+      id="c{data.uid}-heading"
+      relationId="{data.uid}"
+    >
+      {data.header}
+    </mindfula11y:heading>
+
+    <!-- Render a descendant heading linked to the main heading using ancestorId -->
+    <mindfula11y:heading.descendant
+      ancestorId="{data.uid}"
+      levels="1"
+    >
+      Descendant of {data.header}
+    </mindfula11y:heading.descendant>
+
   </f:if>
 </f:if>
 

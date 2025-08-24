@@ -98,8 +98,34 @@ enum HeadingType: string
             4 => self::H4,
             5 => self::H5,
             6 => self::H6,
-            -1 => self::P, // Legacy "no heading" value
-            default => null,
+            default => self::P, // Fallback to paragraph for non-heading levels
         };
+    }
+
+    /**
+     * Increment this heading type by a number of levels.
+     * - If this value is a heading (h1-h6), return the incremented heading,
+     *   unless the new level is > 6, in which case return 'p'.
+     * - If this is not a heading (p/div), return the original value.
+     *
+     * @param int $levels
+     * @return self
+     */
+    public function increment(int $levels = 1): self
+    {
+        $level = $this->getNumericLevel();
+        if ($level === null) {
+            // Not a heading element (p/div) - keep original value
+            return $this;
+        }
+
+        $newLevel = $level + $levels;
+        if ($newLevel >= 1 && $newLevel <= 6) {
+            $new = self::fromNumericLevel($newLevel);
+            return $new ?? self::P;
+        }
+
+        // Above h6 -> use paragraph
+        return self::P;
     }
 }
