@@ -526,9 +526,13 @@
                 <source>Heading type</source>
                 <target>Überschriftentyp</target>
             </trans-unit>
-            <trans-unit id="headingStructure.relation.descendantMessage" resname="headingStructure.relation.descendantMessage">
+            <trans-unit id="headingStructure.relation.descendant" resname="headingStructure.relation.descendant">
                 <source>Related to parent heading</source>
                 <target>Bezieht sich auf übergeordnete Überschrift</target>
+            </trans-unit>
+            <trans-unit id="headingStructure.relation.sibling" resname="headingStructure.relation.sibling">
+                <source>Related to sibling heading</source>
+                <target>Bezieht sich auf Überschrift auf gleicher Ebene</target>
             </trans-unit>
             <trans-unit id="headingStructure.relation.notFound" resname="headingStructure.relation.notFound">
                 <source>Ancestor not found</source>

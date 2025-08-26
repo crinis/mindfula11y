@@ -688,6 +688,7 @@ export class HeadingStructure extends AccessibilityStructureBase {
         .availableTypes="${availableTypes}"
         relationId="${node.element.dataset.mindfula11yRelationId || ""}"
         ancestorId="${node.element.dataset.mindfula11yAncestorId || ""}"
+        siblingId="${node.element.dataset.mindfula11ySiblingId || ""}"
         recordTableName="${node.element.dataset.mindfula11yRecordTableName ||
         ""}"
         recordColumnName="${node.element.dataset.mindfula11yRecordColumnName ||

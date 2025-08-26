@@ -292,8 +292,11 @@
             <trans-unit id="headingStructure.type.label" resname="headingStructure.type.label">
                 <source>Heading type</source>
             </trans-unit>
-            <trans-unit id="headingStructure.relation.descendantMessage" resname="headingStructure.relation.descendantMessage">
+            <trans-unit id="headingStructure.relation.descendant" resname="headingStructure.relation.descendant">
                 <source>Related to parent heading</source>
+            </trans-unit>
+            <trans-unit id="headingStructure.relation.sibling" resname="headingStructure.relation.sibling">
+                <source>Related to sibling heading</source>
             </trans-unit>
             <trans-unit id="headingStructure.relation.notFound" resname="headingStructure.relation.notFound">
                 <source>Ancestor not found</source>

@@ -26,31 +26,48 @@ use MindfulMarkup\MindfulA11y\ViewHelpers\AbstractHeadingViewHelper;
 use MindfulMarkup\MindfulA11y\Enum\HeadingType;
 
 /**
- * Descendant ViewHelper for rendering a heading tag as a descendant of an ancestor heading.
+ * Renders a heading tag as a descendant of a referenced ancestor heading, incrementing the heading level as needed.
  *
- * This ViewHelper receives an ancestorId and a levels argument. It tries to get the heading type from the cache and increments it by levels.
- * If the ancestor is not a heading (hX), the descendant uses the same tag as the ancestor. If the descendant would become a <h7>, it becomes a <p> instead.
- * The tag can also be overridden with the tagName argument. If the request has the Mindfula11y-Structure-Analysis header set and the backend user is logged in,
- * a data attribute with the ancestorId is added to the tag.
+ * This ViewHelper uses the `ancestorId` argument to fetch the heading type previously cached for that ancestor. This only works if the ancestor
+ * (referenced by `ancestorId`) appears before the current record in the template. If the ancestor comes after, the heading type cannot be determined
+ * from the cache, and you must provide the `type` argument or the record arguments (`recordUid`, `recordTableName`, `recordColumnName`).
  *
- * Usage example:
+ * The ancestor's heading type is incremented by the specified number of levels (e.g., h2 → h3). If the increment would exceed h6, it falls back to <p>.
+ * The tag can be overridden with the `type` argument. If the request has the Mindfula11y-Structure-Analysis header set and the backend user is logged in,
+ * a data attribute with the ancestorId is added to the tag for analysis purposes.
+ *
+ * Example usage:
  * <mindfula11y:heading.descendant ancestorId="{relationId}" levels="1">Content</mindfula11y:heading.descendant>
  */
 class DescendantViewHelper extends AbstractHeadingViewHelper
 {
     /**
-     * Initialize the ViewHelper arguments.
+     * Registers all arguments for the DescendantViewHelper, including ancestor reference and heading increment.
+     *
+     * @return void
      */
     public function initializeArguments(): void
     {
         parent::initializeArguments();
         $this->registerArgument('ancestorId', 'string', 'The relationId of the ancestor heading.', true);
         $this->registerArgument('levels', 'int', 'How many levels to increment the heading type.', false, 1);
-        $this->registerArgument('type', 'string', 'The heading type to use (h1, h2, h3, h4, h5, h6, p, div, etc.). Takes precedence over calculated descendant heading type.', false, null);
+        $this->registerCommonHeadingArguments();
     }
 
     /**
-     * Set the current tag name based on the ancestor heading type and levels.
+     * Initializes the tag name for the descendant heading based on the ancestor's type and the increment level.
+     *
+     * Logic:
+     * - If the `type` argument is provided, it is used directly as the tag name.
+     * - Otherwise, if the `ancestorId` argument refers to an ancestor that appears before this ViewHelper in the template,
+     *   the heading type is fetched from the runtime cache, incremented by the specified number of levels, and used as the tag name.
+     * - If neither of the above applies, but record arguments are provided, the heading type is resolved from the database, incremented, and used as the tag name.
+     * - If none of these sources are available, the default tag is used.
+     *
+     * Note: The cache lookup for `ancestorId` only works if the referenced ancestor appears before this ViewHelper in the template.
+     * If the ancestor comes after, you must provide the `type` or record arguments to ensure the correct tag is used.
+     *
+     * @return void
      */
     public function initialize(): void
     {
@@ -58,37 +75,32 @@ class DescendantViewHelper extends AbstractHeadingViewHelper
 
         if (!empty($this->arguments['type'])) {
             $this->tag->setTagName($this->arguments['type']);
-            return;
-        }
+        } else if ($this->runtimeCache->has('mindfula11y_heading_type_' . $this->arguments['ancestorId'])) {
+            $cachedAncestorType = $this->runtimeCache->get('mindfula11y_heading_type_' . $this->arguments['ancestorId']);
+            $headingType = HeadingType::tryFrom($cachedAncestorType);
+            if (null !== $headingType) {
+                $this->tag->setTagName($headingType->increment($this->arguments['levels'])->value);
+            }
+        } else if($this->hasRecordInformation()) {
+            $headingType = $this->resolveHeadingType(
+                $this->arguments['recordUid'],
+                $this->arguments['recordTableName'],
+                $this->arguments['recordColumnName']
+            );
 
-        $ancestorId = $this->arguments['ancestorId'];
-
-        if ($this->runtimeCache->has('mindfula11y_heading_type_' . $ancestorId)) {
-            $ancestorType = $this->runtimeCache->get('mindfula11y_heading_type_' . $ancestorId);
-        } else {
-            $ancestorType = null;
-        }
-
-        if (!empty($ancestorType)) {
-            // Try to use the HeadingType enum to compute the incremented value.
-            $enum = HeadingType::tryFrom(strtolower($ancestorType));
-            if (null !== $enum) {
-                $descendantType = $enum->increment($this->arguments['levels'] ?? 1);
-                $this->tag->setTagName($descendantType->value);
-                return;
+            if (null !== $headingType) {
+                $this->tag->setTagName($headingType->increment($this->arguments['levels'])->value);
             }
         }
-
-        $this->tag->setTagName(self::DEFAULT_TYPE);
     }
 
     /**
-     * Render the descendant heading tag.
+     * Renders the descendant heading tag, optionally adding a data attribute for structure analysis.
      *
      * If the Mindfula11y-Structure-Analysis header is set and the backend user is logged in,
-     * adds a data attribute with the ancestorId to the tag.
+     * adds a data-mindfula11y-ancestor-id attribute to the tag for analysis purposes.
      *
-     * @return string The rendered tag HTML.
+     * @return string The rendered HTML for the descendant heading tag.
      */
     public function render(): string
     {

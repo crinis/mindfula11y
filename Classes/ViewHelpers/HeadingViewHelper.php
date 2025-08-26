@@ -31,10 +31,11 @@ use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
 
 /**
  * Heading ViewHelper to allow editing heading types using the heading structure module.
- * 
- * This ViewHelper renders a heading element and adds data attributes with DB information 
- * in case we use the heading structure backend module.
- * 
+ *
+ * This ViewHelper renders a heading element and adds data attributes with DB information
+ * in case we use the heading structure backend module. The `relationId` argument can be used to cache and reference
+ * the heading type for use by sibling or descendant headings.
+ *
  * Usage examples:
  *
  * Basic usage with ability to edit heading type from backend module. The heading type will be fetched from the database:
@@ -45,6 +46,11 @@ use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
  *
  * Specify heading type without way to edit it: Use for dependent headings like child headings.
  * <mindfula11y:heading type="h2">{data.header}</mindfula11y:heading>
+ *
+ * Example using relationId for referencing in siblings/descendants:
+ * <mindfula11y:heading relationId="mainHeading" type="h2">Main heading</mindfula11y:heading>
+ * <mindfula11y:heading.sibling siblingId="mainHeading">Sibling at same level</mindfula11y:heading.sibling>
+ * <mindfula11y:heading.descendant ancestorId="mainHeading" levels="1">Child heading</mindfula11y:heading.descendant>
  */
 class HeadingViewHelper extends AbstractHeadingViewHelper
 {
@@ -57,6 +63,8 @@ class HeadingViewHelper extends AbstractHeadingViewHelper
      * Permission service instance.
      */
     protected readonly PermissionService $permissionService;
+
+
 
     /**
      * Backend Uri Builder instance.
@@ -93,11 +101,8 @@ class HeadingViewHelper extends AbstractHeadingViewHelper
     public function initializeArguments(): void
     {
         parent::initializeArguments();
-        $this->registerArgument('recordTableName', 'string', 'The name of the database table with the heading. Defaults to tt_content', false, 'tt_content');
-        $this->registerArgument('recordColumnName', 'string', 'The name of the field to store the heading type. Defaults to tx_mindfula11y_headingtype.', false, 'tx_mindfula11y_headingtype');
-        $this->registerArgument('recordUid', 'int', 'The UID of the record to edit the heading type.', false, null);
-        $this->registerArgument('type', 'string', 'The heading type to use (h1, h2, h3, h4, h5, h6, p, div, etc.). If not provided, the value will be fetched from the database record.', false, null);
         $this->registerArgument('relationId', 'string', 'The relation identifier for this heading (used for caching and relationships).', false, null);
+        $this->registerCommonHeadingArguments();
     }
 
     /**
@@ -106,26 +111,24 @@ class HeadingViewHelper extends AbstractHeadingViewHelper
     public function initialize(): void
     {
         parent::initialize();
-
-        if (empty($this->arguments['type']) && $this->hasRecordInformation()) {
-            $headingType = $this->getHeadingType(
+        
+        if (!empty($this->arguments['type'])) {
+            $this->tag->setTagName($this->arguments['type']);
+        } else if($this->hasRecordInformation()) {
+            $headingType = $this->resolveHeadingType(
                 $this->arguments['recordUid'],
                 $this->arguments['recordTableName'],
                 $this->arguments['recordColumnName']
             );
-        } else {
-            $headingType = $this->arguments['type'];
-        }
 
-        if (empty($headingType)) {
-            $headingType = self::DEFAULT_TYPE;
+            if (null !== $headingType) {
+                $this->tag->setTagName($headingType->value);
+            }
         }
 
         if (!empty($this->arguments['relationId'])) {
-            $this->runtimeCache->set('mindfula11y_heading_type_' . $this->arguments['relationId'], $headingType);
+            $this->runtimeCache->set('mindfula11y_heading_type_' . $this->arguments['relationId'], $this->tag->getTagName());
         }
-
-        $this->tag->setTagName($headingType);
     }
 
     /**
@@ -171,18 +174,6 @@ class HeadingViewHelper extends AbstractHeadingViewHelper
         }
         $this->tag->setContent($this->renderChildren());
         return $this->tag->render();
-    }
-
-    /**
-     * Check if data to fetch the record information is available.
-     * 
-     * @return bool True if record information is available, false otherwise.
-     */
-    protected function hasRecordInformation(): bool
-    {
-        return !empty($this->arguments['recordUid'])
-            && !empty($this->arguments['recordTableName'])
-            && !empty($this->arguments['recordColumnName']);
     }
 
     /**
@@ -236,63 +227,5 @@ class HeadingViewHelper extends AbstractHeadingViewHelper
         return $headingTypes;
     }
 
-    /**
-     * Determine the heading type to use for the tag.
-     *
-     * @param int $recordUid The UID of the record to fetch the type from.
-     * @param string $recordTableName The name of the database table with the heading.
-     * @param string $recordColumnName The name of the field to store the heading type.
-     * @return string|null The heading type to use or null if not found.
-     */
-    protected function getHeadingType(
-        int $recordUid,
-        string $recordTableName,
-        string $recordColumnName,
-    ): ?string {
-        $record = $this->getCachedRecord(
-            $recordTableName,
-            $recordUid,
-            [$recordColumnName],
-        );
-        if (null !== $record && !empty($record[$recordColumnName])) {
-            return $record[$recordColumnName];
-        }
-
-        return null;
-    }
-
-    /**
-     * Fetch a record from cache or database, optionally using a provided cache identifier.
-     *
-     * @param string $tableName The name of the table to fetch from.
-     * @param int $uid The UID of the record.
-     * @param array $fields The fields to select.
-     * @return array|null The fetched record, or null if not found.
-     */
-    protected function getCachedRecord(
-        string $tableName,
-        int $uid,
-        array $fields = ['*'],
-    ): ?array {
-        $cacheIdentifier = 'mindfula11y_record_' . $tableName . '_' . $uid . '_' . implode('_', $fields);
-
-        if ($this->runtimeCache->has($cacheIdentifier)) {
-            return $this->runtimeCache->get($cacheIdentifier);
-        }
-
-        $queryBuilder = $this->connectionPool->getQueryBuilderForTable($tableName);
-
-        $queryBuilder
-            ->select(...$fields)
-            ->from($tableName)
-            ->where(
-                $queryBuilder->expr()->eq('uid', $queryBuilder->createNamedParameter($uid, \TYPO3\CMS\Core\Database\Connection::PARAM_INT))
-            )
-            ->setMaxResults(1);
-
-        $record = $queryBuilder->executeQuery()->fetchAssociative();
-        $this->runtimeCache->set($cacheIdentifier, $record);
-
-        return $record ?: null;
-    }
+    // ...existing code...
 }

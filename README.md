@@ -120,25 +120,39 @@ Headings are displayed in a tree structure within the Accessibility backend modu
 ![Screenshot of the accessibility backend module showing a heading tree with an error shown due to a skipped heading level](Resources/Public/Images/Screenshots/HeadingTreeModule.png)
 *The Heading Structure module showing the hierarchical tree of headings with inline editing capabilities. Helping editors to catch errors.*
 
-### Using the Heading ViewHelper
 
-To apply heading types in the frontend, use the provided `HeadingViewHelper`. The ViewHelper renders the appropriate HTML element based on the stored heading type and integrates with the backend module for inline editing capabilities.
+### Using the Heading ViewHelpers in Fluid Templates
 
-#### Basic Usage for tt_content Records
+The Mindful A11y extension provides three ViewHelpers for rendering accessible, semantically correct headings in your Fluid templates:
+
+#### 1. `HeadingViewHelper` (`<mindfula11y:heading>`) – Main/Standalone Headings
+
+Renders a heading element (e.g., `<h2>`, `<h3>`, `<p>`) for a content record or static content. The tag is determined by the stored heading type, a provided type, or a default. Optionally, you can provide a `relationId` to allow descendant or sibling headings to reference this heading's type.
+
+**Basic usage for tt_content records:**
 
 ```html
-<mindfula11y:heading 
-    recordUid="{data.uid}" 
-    recordTableName="tt_content" 
-    recordColumnName="tx_mindfula11y_headingtype" 
+<mindfula11y:heading
+    recordUid="{data.uid}"
+    recordTableName="tt_content"
+    recordColumnName="tx_mindfula11y_headingtype"
     type="{data.tx_mindfula11y_headingtype}">
     {data.header}
 </mindfula11y:heading>
 ```
+> **Note:** If the `type` parameter is provided to the viewhelper, it uses this value directly and avoids an additional database lookup. This can improve performance by reducing unnecessary queries.
 
-#### Descendant Headings
+**Static heading (no editing, no DB lookup):**
 
-1) Parent: provide a `relationId` when rendering the parent heading. This can be any stable string (for example the record UID or a generated identifier):
+```html
+<mindfula11y:heading type="h2">Static heading</mindfula11y:heading>
+```
+
+#### 2. `DescendantViewHelper` (`<mindfula11y:heading.descendant>`) – Child/Incremented Headings
+
+Renders a heading as a descendant of a referenced ancestor heading, incrementing the heading level as needed. The ancestor is referenced by `ancestorId` (which must match a `relationId` set on a parent heading). The tag is computed by incrementing the ancestor's heading level by the `levels` argument (default: 1).
+
+**Usage:**
 
 ```html
 <mindfula11y:heading
@@ -146,25 +160,47 @@ To apply heading types in the frontend, use the provided `HeadingViewHelper`. Th
     recordTableName="tt_content"
     recordColumnName="tx_mindfula11y_headingtype"
     type="{data.tx_mindfula11y_headingtype}"
-    relationId="relation-{data.uid}">
-    {data.header}
+    relationId="mainHeading">
+    Parent heading
 </mindfula11y:heading>
-```
 
-2) Descendant: reference the same identifier from the descendant ViewHelper using the `ancestorId` argument. The ViewHelper will compute the correct tag based on the parent's heading type and the `levels` offset:
-
-```html
 <mindfula11y:heading.descendant
-    ancestorId="relation-{data.uid}"
+    ancestorId="mainHeading"
     levels="1">
-    {data.subheader}
+    Child heading
 </mindfula11y:heading.descendant>
 ```
 
-Behavior notes:
-- If the ancestor is a semantic heading (`h1`–`h6`), the descendant will be the incremented heading level (respecting the `levels` argument). If the increment would exceed `h6`, the descendant becomes a paragraph (`p`).
-- If the ancestor is non-semantic (`p` or `div`), the descendant inherits the same tag as the ancestor.
+**Behavior notes:**
+- If the ancestor is a semantic heading (`h1`–`h6`), the descendant will be the incremented heading level (e.g., `h2` → `h3`). If the increment would exceed `h6`, the descendant becomes a paragraph (`p`).
 - You may override the computed tag by supplying a `type` argument to the descendant ViewHelper.
+- The ancestor must appear before the descendant in the template for the reference to work. If not, provide the `type` or `recordX` arguments directly.
+
+#### 3. `SiblingViewHelper` (`<mindfula11y:heading.sibling>`) – Sibling Headings at the Same Level
+
+Renders a heading at the same level as a referenced sibling heading. The sibling is referenced by `siblingId` (which must match a `relationId` set on another heading). The tag is determined by the cached heading type of the sibling.
+
+**Usage:**
+
+```html
+<mindfula11y:heading
+    recordUid="{data.uid}"
+    recordTableName="tt_content"
+    recordColumnName="tx_mindfula11y_headingtype"
+    type="{data.tx_mindfula11y_headingtype}"
+    relationId="mainHeading">
+    First heading
+</mindfula11y:heading>
+
+<mindfula11y:heading.sibling siblingId="mainHeading">
+    Sibling at same level
+</mindfula11y:heading.sibling>
+```
+
+**Behavior notes:**
+- The referenced sibling must appear before this ViewHelper in the template for the reference to work. If not, provide the `type` or `recordX` arguments.
+- You may override the computed tag by supplying a `type` argument to the sibling ViewHelper.
+- If the referenced sibling is not a heading, the same tag is used.
 
 ### Extending Custom Record Types
 

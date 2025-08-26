@@ -70,6 +70,7 @@ export class HeadingType extends LitElement {
       label: { type: String },
       relationId: { type: String },
       ancestorId: { type: String },
+      siblingId: { type: String },
     };
   }
 
@@ -103,6 +104,7 @@ export class HeadingType extends LitElement {
     this.label = "";
     this.relationId = "";
     this.ancestorId = "";
+    this.siblingId = "";
   }
 
   /**
@@ -153,13 +155,16 @@ export class HeadingType extends LitElement {
    */
   _analyzeComponent() {
     // A heading is considered a descendant only when an ancestorId is present.
-    // relationId is only relevant for the parent side and must not be required here.
+    // A heading is considered a sibling only when a siblingId is present.
+    // relationId is only relevant for the parent/sibling side and must not be required here.
     const isDescendant = !!this.ancestorId;
+    const isSibling = !!this.siblingId;
 
     return {
-      // Descendants are never editable even when a recordEditLink exists
-      isEditable: !isDescendant && this.recordEditLink !== "",
+      // Descendants and siblings are never editable even when a recordEditLink exists
+      isEditable: !isDescendant && !isSibling && this.recordEditLink !== "",
       isDescendant,
+      isSibling,
       hasValidType: this.type && this.type.trim() !== "",
       displayLabel: this._getDisplayLabel(),
     };
@@ -316,27 +321,26 @@ export class HeadingType extends LitElement {
           >
         </a>
       `;
-    }
-    // If this heading is a descendant (relation -> ancestor), show a link icon
-    if (componentInfo.isDescendant) {
-      const ancestorId = this.ancestorId;
-
-      if (ancestorId) {
-        return html`
-          <button
-            type="button"
-            class="btn btn-sm d-flex align-items-center gap-1"
-            @click="${this._handleRelationClick}"
-          >
-            ${this._renderRelationIcon()}
-            <span
-              >${TYPO3.lang[
-                "mindfula11y.features.headingStructure.relation.descendantMessage"
-              ] || "Related to parent heading"}</span
-            >
-          </button>
-        `;
-      }
+    } else if (componentInfo.isDescendant || componentInfo.isSibling) {
+      return html`
+        <button
+          type="button"
+          class="btn btn-sm d-flex align-items-center gap-1"
+          @click="${this._handleRelationClick}"
+          data-relation-id="${componentInfo.isDescendant ? this.ancestorId : this.siblingId}"
+        >
+          ${this._renderRelationIcon()}
+          <span>
+            ${componentInfo.isDescendant
+              ? TYPO3.lang[
+                  "mindfula11y.features.headingStructure.relation.descendant"
+                ]
+              : TYPO3.lang[
+                  "mindfula11y.features.headingStructure.relation.sibling"
+                ]}
+          </span>
+        </button>
+      `;
     }
 
     return html`
@@ -428,55 +432,52 @@ export class HeadingType extends LitElement {
   }
 
   /**
-   * Finds an ancestor element in the document given an ancestor id string.
-   * Tries a small set of plausible data-attribute selectors to be resilient.
+   * Finds a related element in the document given a relation id string.
+   * Used for both ancestor and sibling relations.
    * @private
-   * @param {string} ancestorId
+   * @param {string} relationId
    * @returns {Element|null}
    */
-  _findAncestorElement(ancestorId) {
-    if (!ancestorId) return null;
-
-    return document.querySelector(`[relationId="${ancestorId}"]`);
+  _findRelatedElement(relationId) {
+    if (!relationId) return null;
+    return document.querySelector(`[relationId="${relationId}"]`);
   }
 
   /**
-   * Click handler for relation icon: focuses and highlights the ancestor heading.
+   * Click handler for relation icon: focuses and highlights the related heading (ancestor or sibling).
    * @private
+   * @param {Event} event
    */
   _handleRelationClick(event) {
     event.preventDefault();
-    const ancestorId = this.ancestorId;
-    if (!ancestorId) {
+    const relationId = event.currentTarget.getAttribute("data-relation-id");
+    
+    if (!relationId) {
       Notification.error(
-        TYPO3.lang["mindfula11y.features.headingStructure.relation.notFound"] ||
-          "Ancestor not found",
+        TYPO3.lang["mindfula11y.features.headingStructure.relation.notFound"],
         TYPO3.lang[
           "mindfula11y.features.headingStructure.relation.notFound.description"
-        ] || ""
+        ]
       );
       return;
     }
 
-    const ancestor = this._findAncestorElement(ancestorId);
-    if (!ancestor) {
+    const related = this._findRelatedElement(relationId);
+    if (!related) {
       Notification.warning(
-        TYPO3.lang["mindfula11y.features.headingStructure.relation.notFound"] ||
-          "Ancestor not found",
+        TYPO3.lang["mindfula11y.features.headingStructure.relation.notFound"],
         TYPO3.lang[
           "mindfula11y.features.headingStructure.relation.notFound.description"
-        ] || ""
+        ]
       );
       return;
     }
 
-    const focusable = ancestor.querySelector("select, input");
-
+    const focusable = related.querySelector("select, input");
     if (null !== focusable) {
       focusable.focus();
     }
-
-    ancestor.scrollIntoView({ behavior: "smooth", block: "center" });
+    related.scrollIntoView({ behavior: "smooth", block: "center" });
   }
 
   /**
