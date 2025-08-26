@@ -1,20 +1,49 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!--
 version: "2.28"
 unicode: "fb6f"
 -->
+
 <svg
-  xmlns="http://www.w3.org/2000/svg"
-  width="68"
-  height="68"
-  viewBox="0 0 24 24"
-  fill="none"
-  stroke="#26a269"
-  stroke-width="1.25"
-  stroke-linecap="round"
-  stroke-linejoin="round"
->
-  <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
-  <path d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
-  <path d="M20 21l2 -2l-2 -2" />
-  <path d="M17 17l-2 2l2 2" />
+   width="68"
+   height="68"
+   viewBox="0 0 24 24"
+   fill="none"
+   stroke="#26a269"
+   stroke-width="1.25"
+   stroke-linecap="round"
+   stroke-linejoin="round"
+   version="1.1"
+   id="svg4"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs4" />
+  <g
+     id="layer1"
+     style="opacity:1;mix-blend-mode:normal;fill:#550080;fill-opacity:1">
+    <rect
+       style="fill:#b3005f;fill-opacity:1;stroke-width:0;stroke-dasharray:none"
+       id="rect5"
+       width="24.289658"
+       height="24.16552"
+       x="-0.12413863"
+       y="-0.082759336" />
+  </g>
+  <path
+     d="m 10,12 c 0,2.666666 4,2.666666 4,0 C 14,10.494986 12.725899,9.8393729 11.615853,10.033159 10.759058,10.182735 10,10.838348 10,12"
+     id="path1"
+     style="display:inline;stroke:#ffffff;stroke-opacity:1" />
+  <path
+     d="M 11.11,17.958 C 7.901,17.651 5.2,15.665 3,12 5.4,8 8.4,6 12,6 c 3.6,0 6.6,2 9,6 -0.21,0.352 -0.427,0.688 -0.647,1.008"
+     id="path2"
+     style="display:inline;stroke:#ffffff;stroke-opacity:1" />
+  <path
+     d="m 20,21 2,-2 -2,-2"
+     id="path3"
+     style="display:inline;stroke:#ffffff;stroke-opacity:1" />
+  <path
+     d="m 17,17 -2,2 2,2"
+     id="path4"
+     style="display:inline;stroke:#ffffff;stroke-opacity:1" />
 </svg>

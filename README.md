@@ -1,6 +1,6 @@
-# Mindful A11y TYPO3 Extension
+# WFA Accessibility Toolkit for TYPO3
 
-Mindful A11y is a TYPO3 extension that integrates accessibility tools directly into the TYPO3 backend, helping editors and integrators improve the accessibility of their content.
+The WFA Accessibility Toolkit is a TYPO3 extension that integrates accessibility tools directly into the TYPO3 backend, helping editors and integrators improve the accessibility of their content.
 
 > **Note:** This extension is in an early stage of development. I do not recommend using it in production environments at this time.
 
@@ -16,12 +16,13 @@ composer require mindfulmarkup/mindfula11y
 
 - **Alternative Text Checker**: Backend module that lists all `sys_file_reference` records (e.g., images) without alternative text, making it easy to find and fix missing alt attributes.
 - **AI-Powered Alt Text Generation**: Supports generating alternative texts for images using ChatGPT.
-- **Heading Structure Overview**: Backend module that visualizes the heading structure of content elements and allows editors to easily review and edit heading types for records using the custom ViewHelper.
-- **Landmark Structure Overview**: Backend module that displays ARIA landmarks on the page in a visual, hierarchical layout. Editors can review landmark structure, identify accessibility issues, and edit landmark roles directly from the backend to improve page navigation and semantic structure.
+- **Viewhelpers and TCA columns for heading types and landmarks**: Various viewhelpers and a new accessibility tab for content elements to make it easy for editors to use accessible heading types and create ARIA landmarks. 
+- **Heading Structure Overview**: Backend module that visualizes the heading structure of the selected page and allows editors to easily identify issues and edit heading types for records using the custom ViewHelper.
+- **Landmark Structure Overview**: Backend module that displays ARIA landmarks on the selected page. Editors can review landmark structure, identify accessibility issues, and edit landmark roles directly from the module to improve page navigation and semantic structure.
 
 ## Planned Features
 
-- **Automated Accessibility Scanners**: Integration of automated accessibility testing tools to review and report accessibility problems directly in the backend.
+- **Automated Accessibility Scanners**: Integration of remote accessibility testing tools to review more issues directly in the backend.
 
 ## Extension Settings
 
