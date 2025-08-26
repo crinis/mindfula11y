@@ -32,7 +32,6 @@ use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Context\Context;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
-use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractTagBasedViewHelper;
 
 /**
@@ -79,6 +78,11 @@ class LandmarkViewHelper extends AbstractTagBasedViewHelper
     protected readonly UriBuilder $backendUriBuilder;
 
     /**
+     * Form data compiler instance.
+     */
+    protected readonly FormDataCompiler $formDataCompiler;
+
+    /**
      * Inject Context object.
      */
     public function injectContext(Context $context): void
@@ -100,6 +104,14 @@ class LandmarkViewHelper extends AbstractTagBasedViewHelper
     public function injectBackendUriBuilder(UriBuilder $backendUriBuilder): void
     {
         $this->backendUriBuilder = $backendUriBuilder;
+    }
+
+    /**
+     * Inject the FormDataCompiler.
+     */
+    public function injectFormDataCompiler(FormDataCompiler $formDataCompiler): void
+    {
+        $this->formDataCompiler = $formDataCompiler;
     }
 
     /**
@@ -134,32 +146,37 @@ class LandmarkViewHelper extends AbstractTagBasedViewHelper
      */
     public function render(): string
     {
-        // Add backend module data attributes if needed
-        $request = $this->getRequest();
-        if (
-            null !== $request
-            && $request->hasHeader('Mindfula11y-Structure-Analysis')
-            && $this->context->getPropertyFromAspect('backend.user', 'isLoggedIn', false)
-            && null !== $this->arguments['recordUid']
-            && $this->hasPermissionToModifyLandmark(
-                $this->arguments['recordUid'],
-                $this->arguments['recordTableName'],
-                $this->arguments['recordColumnName']
-            )
-        ) {
+        // If no role and no explicit tagName were provided, remove aria attributes
+        // to avoid exposing aria-label/aria-labelledby without landmark semantics.
+        if (empty($this->arguments['role']) && empty($this->arguments['tagName'])) {
+            $this->tag->removeAttribute('aria-label');
+            $this->tag->removeAttribute('aria-labelledby');
+        }
+
+        if ($this->isStructureAnalysisRequest() && $this->hasRecordInformation()) {
             $this->tag->addAttribute('data-mindfula11y-record-table-name', $this->arguments['recordTableName']);
             $this->tag->addAttribute('data-mindfula11y-record-column-name', $this->arguments['recordColumnName']);
             $this->tag->addAttribute('data-mindfula11y-record-uid', $this->arguments['recordUid']);
-            $this->tag->addAttribute('data-mindfula11y-record-edit-link', $this->backendUriBuilder->buildUriFromRoute('record_edit', [
-                'edit' => [
-                    $this->arguments['recordTableName'] => [
-                        $this->arguments['recordUid'] => 'edit',
+            if ($this->hasPermissionToModifyLandmark(
+                $this->arguments['recordUid'],
+                $this->arguments['recordTableName'],
+                $this->arguments['recordColumnName']
+            )) {
+                $this->tag->addAttribute('data-mindfula11y-record-edit-link', $this->backendUriBuilder->buildUriFromRoute('record_edit', [
+                    'edit' => [
+                        $this->arguments['recordTableName'] => [
+                            $this->arguments['recordUid'] => 'edit',
+                        ],
                     ],
-                ],
-            ]));
-            $this->tag->addAttribute('data-mindfula11y-available-roles', json_encode($this->getAvailableLandmarks($request)));
-        }
+                ]));
 
+                $this->tag->addAttribute('data-mindfula11y-available-roles', json_encode($this->getAvailableLandmarks(
+                    $this->arguments['recordUid'],
+                    $this->arguments['recordTableName'],
+                    $this->arguments['recordColumnName'],
+                )));
+            }
+        }
         $this->tag->setContent($this->renderChildren());
         return $this->tag->render();
     }
@@ -184,7 +201,7 @@ class LandmarkViewHelper extends AbstractTagBasedViewHelper
             return;
         }
 
-        $landmarkType = AriaLandmark::from($role);
+        $landmarkType = AriaLandmark::tryFrom($role);
 
         switch ($landmarkType) {
             case AriaLandmark::NAVIGATION:
@@ -227,6 +244,18 @@ class LandmarkViewHelper extends AbstractTagBasedViewHelper
     }
 
     /**
+     * Check if data to fetch the record information is available.
+     * 
+     * @return bool True if record information is available, false otherwise.
+     */
+    protected function hasRecordInformation(): bool
+    {
+        return !empty($this->arguments['recordUid'])
+            && !empty($this->arguments['recordTableName'])
+            && !empty($this->arguments['recordColumnName']);
+    }
+
+    /**
      * Check permissions to modify the landmark.
      * 
      * Checks if the user has permission to modify the landmark of the given record.
@@ -261,28 +290,29 @@ class LandmarkViewHelper extends AbstractTagBasedViewHelper
 
     /**
      * Get available landmark types from the TCA configuration.
-     * Uses TYPO3's FormDataCompiler to apply all processing including TSconfig filtering.
+     *
+     * This compiles the FormData for the provided record and reads the
+     * processed TCA to extract the configured select items for the landmark
+     * field. The resulting array maps the configured select value to the
+     * already-processed, human-readable label.
+     *
+     * @param int    $recordUid       UID of the record to compile FormData for
+     * @param string $recordTableName Database table name (e.g. `tt_content`)
+     * @param string $recordColumnName The column name that stores the landmark role
      * 
-     * @param ServerRequestInterface $request The current request.
-     * @return array The available landmark types as an associative array.
+     * @return array<string,string> Associative array of available landmark types (value => label)
      */
-    protected function getAvailableLandmarks(ServerRequestInterface $request): array
+    protected function getAvailableLandmarks(int $recordUid, string $recordTableName, string $recordColumnName): array
     {
-        $landmarks = [];
-        $recordTableName = $this->arguments['recordTableName'];
-        $recordColumnName = $this->arguments['recordColumnName'];
-        $recordUid = (int)$this->arguments['recordUid'];
-
         $formDataCompilerInput = [
-            'request' => $request,
+            'request' => $this->getRequest(),
             'tableName' => $recordTableName,
             'vanillaUid' => $recordUid,
             'command' => 'edit',
         ];
+        $formData = $this->formDataCompiler->compile($formDataCompilerInput, GeneralUtility::makeInstance(TcaDatabaseRecord::class));
 
-        $formDataCompiler = GeneralUtility::makeInstance(FormDataCompiler::class);
-        $formData = $formDataCompiler->compile($formDataCompilerInput, GeneralUtility::makeInstance(TcaDatabaseRecord::class));
-
+        $landmarks = [];
         // Access the processed select items for the field
         if (isset($formData['processedTca']['columns'][$recordColumnName]['config']['items'])) {
             $items = $formData['processedTca']['columns'][$recordColumnName]['config']['items'];
@@ -292,7 +322,6 @@ class LandmarkViewHelper extends AbstractTagBasedViewHelper
                 $landmarks[$item['value']] = $item['label'];
             }
         }
-
         return $landmarks;
     }
 
@@ -307,5 +336,17 @@ class LandmarkViewHelper extends AbstractTagBasedViewHelper
             return $this->renderingContext->getAttribute(ServerRequestInterface::class);
         }
         return null;
+    }
+
+    /**
+     * Checks if this is a structure analysis request and the backend user is logged in.
+     *
+     * @return bool True if the Mindfula11y-Structure-Analysis header is set and the user is logged in, false otherwise.
+     */
+    protected function isStructureAnalysisRequest(): bool
+    {
+        $request = $this->getRequest();
+        return $request !== null && $request->hasHeader('Mindfula11y-Structure-Analysis')
+            && $this->context->getPropertyFromAspect('backend.user', 'isLoggedIn', false);
     }
 }

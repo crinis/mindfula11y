@@ -27,7 +27,9 @@ use TYPO3\CMS\Core\Database\ConnectionPool;
 use MindfulMarkup\MindfulA11y\Service\PermissionService;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
-use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
+use TYPO3\CMS\Backend\Form\FormDataCompiler;
+use TYPO3\CMS\Backend\Form\FormDataGroup\TcaDatabaseRecord;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
  * Heading ViewHelper to allow editing heading types using the heading structure module.
@@ -64,12 +66,15 @@ class HeadingViewHelper extends AbstractHeadingViewHelper
      */
     protected readonly PermissionService $permissionService;
 
-
-
     /**
      * Backend Uri Builder instance.
      */
     protected readonly UriBuilder $backendUriBuilder;
+
+    /**
+     * FormDataCompiler instance.
+     */
+    protected FormDataCompiler $formDataCompiler;
 
     /**
      * Inject the ConnectionPool.
@@ -96,6 +101,15 @@ class HeadingViewHelper extends AbstractHeadingViewHelper
     }
 
     /**
+     * Inject the FormDataCompiler.
+     */
+    public function injectFormDataCompiler(FormDataCompiler $formDataCompiler): void
+    {
+        $this->formDataCompiler = $formDataCompiler;
+    }
+
+
+    /**
      * Initialize the ViewHelper arguments.
      */
     public function initializeArguments(): void
@@ -107,6 +121,12 @@ class HeadingViewHelper extends AbstractHeadingViewHelper
 
     /**
      * Set the current tag name based on the heading type.
+    *
+    * This method prefers an explicitly provided `type` argument. If no `type` is
+    * provided and record information is available, it resolves the heading type
+    * from the database record and sets the tag name accordingly. When a
+    * `relationId` is present, the chosen tag name is stored in the runtime cache
+    * to be available for sibling/descendant view helpers.
      */
     public function initialize(): void
     {
@@ -134,10 +154,13 @@ class HeadingViewHelper extends AbstractHeadingViewHelper
     /**
      * Render the heading tag.
      * 
-     * This method checks if the MindfulA11y heading structure module is active and if the user has permission to modify the heading type.
-     * If so, it adds data attributes to the tag with information about the record.
-     * 
-     * @return string The rendered tag HTML.
+    * This method checks if the MindfulA11y heading structure module is active and
+    * if the backend user is logged in. When a record is available and the user
+    * has permission to modify the heading type, it exposes several
+    * `data-mindfula11y-*` attributes for the backend tooling, including an
+    * edit link and the list of available types (from TCA).
+    *
+    * @return string Rendered HTML of the heading tag
      */
     public function render(): string
     {
@@ -147,7 +170,7 @@ class HeadingViewHelper extends AbstractHeadingViewHelper
             if (!empty($this->arguments['relationId'])) {
                 $this->tag->addAttribute('data-mindfula11y-relation-id', $this->arguments['relationId']);
             }
-
+            
             if ($this->hasRecordInformation()) {
                 $this->tag->addAttribute('data-mindfula11y-record-table-name', $this->arguments['recordTableName']);
                 $this->tag->addAttribute('data-mindfula11y-record-column-name', $this->arguments['recordColumnName']);
@@ -165,7 +188,8 @@ class HeadingViewHelper extends AbstractHeadingViewHelper
                         ],
                     ]));
 
-                    $this->tag->addAttribute('data-mindfula11y-available-types', json_encode($this->getHeadingTypes(
+                    $this->tag->addAttribute('data-mindfula11y-available-types', json_encode($this->getAvailableHeadingTypes(
+                        $this->arguments['recordUid'],
                         $this->arguments['recordTableName'],
                         $this->arguments['recordColumnName']
                     )));
@@ -178,17 +202,17 @@ class HeadingViewHelper extends AbstractHeadingViewHelper
 
     /**
      * Check permissions to modify the heading type.
-     * 
-     * Checks if the user has permission to modify the heading type of the given record.
-     * This has no impact on the actual modification as those permissions are checked by DataHandler on
-     * save. We still don't want to show the heading type select box if the user has no
-     * permissions to modify the heading type.
-     * 
-     * @param int $recordUid The UID of the record.
-     * @param string $recordTableName The name of the database table with the heading.
-     * @param string $recordColumnName The name of the field to store the heading type.
-     * 
-     * @return bool True if the user has permission, false otherwise.
+     *
+     * Determine whether the current backend user is allowed to edit the given
+     * field of the record. This is used to hide the inline select box in the
+     * frontend when the user cannot perform the edit; actual write permissions
+     * are enforced by TYPO3's DataHandler during save.
+     *
+     * @param int    $recordUid        UID of the record to check
+     * @param string $recordTableName  Table name (for example `tt_content`)
+     * @param string $recordColumnName Column name that stores the heading type
+     *
+     * @return bool True if the current backend user has edit permission for the field
      */
     protected function hasPermissionToModifyHeadingType(
         int $recordUid,
@@ -211,21 +235,34 @@ class HeadingViewHelper extends AbstractHeadingViewHelper
 
     /**
      * Get available heading types from the TCA configuration.
-     * 
-     * @param string $recordTableName The name of the database table with the heading.
-     * @param string $recordColumnName The name of the field to store the heading type.
-     * @return array The available heading types as an associative array.
+    *
+    * This compiles the FormData for the given record and reads the processed
+    * TCA for the configured select items of the heading type column. The
+    * returned array maps the select value => human-readable label.
+    *
+    * @param int    $recordUid       UID of the record to compile FormData for
+    * @param string $recordTableName Database table name
+    * @param string $recordColumnName The column name holding the heading type
+    *
+    * @return array<string,string> Associative array of available heading types (value => label)
      */
-    protected function getHeadingTypes(string $recordTableName, string $recordColumnName): array
+    protected function getAvailableHeadingTypes(int $recordUid, string $recordTableName, string $recordColumnName): array
     {
+        $formDataCompilerInput = [
+            'request' => $this->getRequest(),
+            'tableName' => $recordTableName,
+            'vanillaUid' => $recordUid,
+            'command' => 'edit',
+        ];
+        $formData = $this->formDataCompiler->compile($formDataCompilerInput, GeneralUtility::makeInstance(TcaDatabaseRecord::class));
+
         $headingTypes = [];
-        if (isset($GLOBALS['TCA'][$recordTableName]['columns'][$recordColumnName]['config']['items'])) {
-            foreach ($GLOBALS['TCA'][$recordTableName]['columns'][$recordColumnName]['config']['items'] as $item) {
-                $headingTypes[$item['value']] = LocalizationUtility::translate($item['label']);
+        if (isset($formData['processedTca']['columns'][$recordColumnName]['config']['items'])) {
+            $items = $formData['processedTca']['columns'][$recordColumnName]['config']['items'];
+            foreach ($items as $item) {
+                $headingTypes[$item['value']] = $item['label'];
             }
         }
         return $headingTypes;
     }
-
-    // ...existing code...
 }
