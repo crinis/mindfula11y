@@ -74,12 +74,17 @@ class DescendantViewHelper extends AbstractHeadingViewHelper
         parent::initialize();
 
         if (!empty($this->arguments['type'])) {
-            $this->tag->setTagName($this->arguments['type']);
+            $headingType = HeadingType::tryFrom($this->arguments['type']);
+            if (null !== $headingType) {
+                $this->tag->setTagName($headingType->increment($this->arguments['levels'] ?? 1)->value);
+            } else {
+                $this->tag->setTagName($this->arguments['type']);
+            }
         } else if ($this->runtimeCache->has('mindfula11y_heading_type_' . $this->arguments['ancestorId'])) {
             $cachedAncestorType = $this->runtimeCache->get('mindfula11y_heading_type_' . $this->arguments['ancestorId']);
             $headingType = HeadingType::tryFrom($cachedAncestorType);
             if (null !== $headingType) {
-                $this->tag->setTagName($headingType->increment($this->arguments['levels'])->value);
+                $this->tag->setTagName($headingType->increment($this->arguments['levels'] ?? 1)->value);
             }
         } else if($this->hasRecordInformation()) {
             $headingType = $this->resolveHeadingType(
@@ -89,7 +94,7 @@ class DescendantViewHelper extends AbstractHeadingViewHelper
             );
 
             if (null !== $headingType) {
-                $this->tag->setTagName($headingType->increment($this->arguments['levels'])->value);
+                $this->tag->setTagName($headingType->increment($this->arguments['levels'] ?? 1)->value);
             }
         }
     }
