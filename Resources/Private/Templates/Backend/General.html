@@ -14,7 +14,7 @@
       />
     </h1>
 
-    <f:if condition="{enableHeadingStructure}">
+    <f:if condition="{enableHeadingStructure} && {previewUrl}">
       <section class="callout callout-notice">
         <div class="callout-content">
           <div class="callout-title">
@@ -31,7 +31,7 @@
       </section>
     </f:if>
 
-    <f:if condition="{enableLandmarkStructure}">
+    <f:if condition="{enableLandmarkStructure} && {previewUrl}">
       <section class="callout callout-notice">
         <div class="callout-content">
           <div class="callout-title">

@@ -43,6 +43,7 @@ use TYPO3\CMS\Backend\Template\ModuleTemplate;
 use TYPO3\CMS\Backend\Template\ModuleTemplateFactory;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
+use TYPO3\CMS\Core\Domain\Repository\PageRepository;
 use TYPO3\CMS\Core\Http\AllowedMethodsTrait;
 use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Messaging\FlashMessage;
@@ -229,16 +230,17 @@ class AccessibilityModuleController
             $fileReferences = [];
         }
 
+        $previewEnabled = $this->isPreviewEnabledForDoktype($this->pageInfo['doktype'] ?? PageRepository::DOKTYPE_DEFAULT);
         $this->moduleTemplate->assignMultiple([
             'moduleData' => array_merge($this->moduleData->toArray(), [
                 'id' => $this->pageId,
             ]),
             'fileReferences' => $fileReferences,
-            'previewUrl' => (string)PreviewUriBuilder::create($this->pageId)
+            'previewUrl' => $previewEnabled ? (string)PreviewUriBuilder::create($this->pageId)
                 ->withLanguage($this->languageId)
-                ->buildUri(),
-            'enableHeadingStructure' => $this->pageTsConfig['mod']['mindfula11y_accessibility']['headingStructure']['enable'] ?? false,
-            'enableLandmarkStructure' => $this->pageTsConfig['mod']['mindfula11y_accessibility']['landmarkStructure']['enable'] ?? false,
+                ->buildUri() : null,
+            'enableHeadingStructure' => ($this->pageTsConfig['mod']['mindfula11y_accessibility']['headingStructure']['enable'] ?? false) && $previewEnabled,
+            'enableLandmarkStructure' => ($this->pageTsConfig['mod']['mindfula11y_accessibility']['landmarkStructure']['enable'] ?? false) && $previewEnabled,
             'enableMissingAltText' => $this->pageTsConfig['mod']['mindfula11y_accessibility']['missingAltText']['enable'] ?? false,
         ]);
 
@@ -250,17 +252,43 @@ class AccessibilityModuleController
     }
 
     /**
+     * Check if preview is enabled for a given doktype.
+     *
+     * @param int $doktype
+     * @return bool
+     */
+    protected function isPreviewEnabledForDoktype(int $doktype): bool
+    {
+        if (isset($this->pageTsConfig['TCEMAIN']['preview']['disableButtonForDokType'])) {
+            return !in_array($doktype, GeneralUtility::intExplode(',', (string)$this->pageTsConfig['TCEMAIN']['preview']['disableButtonForDokType'], true));
+        } else {
+            return !in_array($doktype, [PageRepository::DOKTYPE_SYSFOLDER, PageRepository::DOKTYPE_SPACER, PageRepository::DOKTYPE_LINK]);
+        }
+    }
+
+    /**
      * Handle the heading structure feature.
      */
     protected function handleHeadingStructureFeature(): ResponseInterface
     {
+        $previewEnabled = $this->isPreviewEnabledForDoktype($this->pageInfo['doktype'] ?? PageRepository::DOKTYPE_DEFAULT);
+
+        if (!$previewEnabled) {
+            $this->addFlashMessage(
+                $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:wrongPageTypeSelected'),
+                $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:wrongPageTypeSelected.description'),
+                ContextualFeedbackSeverity::INFO
+            );
+            return $this->moduleTemplate->renderResponse('Backend/Info')->withStatus(403);
+        }
+
         $this->moduleTemplate->assignMultiple([
             'moduleData' => array_merge($this->moduleData->toArray(), [
                 'id' => $this->pageId,
             ]),
-            'previewUrl' => (string)PreviewUriBuilder::create($this->pageId)
+            'previewUrl' => $previewEnabled ? (string)PreviewUriBuilder::create($this->pageId)
                 ->withLanguage($this->languageId)
-                ->buildUri(),
+                ->buildUri() : null,
         ]);
 
         $this->pageRenderer->loadJavaScriptModule('@mindfulmarkup/mindfula11y/heading-structure.js');
@@ -273,13 +301,24 @@ class AccessibilityModuleController
      */
     protected function handleLandmarkStructureFeature(): ResponseInterface
     {
+        $previewEnabled = $this->isPreviewEnabledForDoktype($this->pageInfo['doktype'] ?? PageRepository::DOKTYPE_DEFAULT);
+
+        if (!$previewEnabled) {
+            $this->addFlashMessage(
+                $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:wrongPageTypeSelected'),
+                $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:wrongPageTypeSelected.description'),
+                ContextualFeedbackSeverity::INFO
+            );
+            return $this->moduleTemplate->renderResponse('Backend/Info')->withStatus(403);
+        }
+
         $this->moduleTemplate->assignMultiple([
             'moduleData' => array_merge($this->moduleData->toArray(), [
                 'id' => $this->pageId,
             ]),
-            'previewUrl' => (string)PreviewUriBuilder::create($this->pageId)
+            'previewUrl' => $previewEnabled ? (string)PreviewUriBuilder::create($this->pageId)
                 ->withLanguage($this->languageId)
-                ->buildUri(),
+                ->buildUri() : null,
         ]);
 
         $this->pageRenderer->loadJavaScriptModule('@mindfulmarkup/mindfula11y/landmark-structure.js');

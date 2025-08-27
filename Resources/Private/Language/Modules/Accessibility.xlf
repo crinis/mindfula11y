@@ -29,6 +29,19 @@
                     Please select a page in the page tree to check for accessibility issues.
                 </source>
             </trans-unit>
+
+            <trans-unit id="wrongPageTypeSelected" resname="wrongPageTypeSelected">
+                <source>
+                    Wrong page type selected.
+                </source>
+            </trans-unit>
+            <trans-unit id="wrongPageTypeSelected.description"
+                resname="wrongPageTypeSelected.description">
+                <source>
+                    The selected page type cannot be analyzed for accessibility issues. Select a page type
+                    that can be previewed.
+                </source>
+            </trans-unit>
             <trans-unit id="noLanguageAccess" resname="noLanguageAccess">
                 <source>
                     No access to the selected language.

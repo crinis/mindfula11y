@@ -41,6 +41,24 @@
                     Bitte wählen Sie eine Seite im Seitenbaum aus, um auf Barrierefreiheitsprobleme zu überprüfen.
                 </target>
             </trans-unit>
+            <trans-unit id="wrongPageTypeSelected" resname="wrongPageTypeSelected">
+                <source>
+                    Wrong page type selected.
+                </source>
+                <target>
+                    Falscher Seitentyp ausgewählt.
+                </target>
+            </trans-unit>
+            <trans-unit id="wrongPageTypeSelected.description"
+                resname="wrongPageTypeSelected.description">
+                <source>
+                    The selected page type cannot be analyzed for accessibility issues. Select a page type
+                    that can be previewed.
+                </source>
+                <target>
+                    Der ausgewählte Seitentyp kann nicht auf Barrierefreiheitsprobleme analysiert werden. Wählen Sie einen Seitentyp aus, der in der Vorschau angezeigt werden kann.
+                </target>
+            </trans-unit>
             <trans-unit id="noLanguageAccess" resname="noLanguageAccess">
                 <source>
                     No access to the selected language.
@@ -131,21 +149,6 @@
                 <source>The main landmark must appear exactly once per page. Multiple main landmarks can confuse assistive technology users.</source>
                 <target>Das Main-Landmark muss genau einmal pro Seite vorhanden sein. Mehrere Main-Landmarks können Benutzer assistiver Technologien verwirren.</target>
             </trans-unit>
-            <!-- Deprecated: unlabeledRegion keys replaced by multipleUnlabeledLandmarks -->
-            <!--
-            <trans-unit id="landmarkStructure.error.unlabeledRegion" resname="landmarkStructure.error.unlabeledRegion">
-                <source>Multiple unlabeled region/complementary landmarks.</source>
-                <target>Mehrere unbenannte Region-/Complementary-Landmarks.</target>
-            </trans-unit>
-            <trans-unit id="landmarkStructure.error.unlabeledRegion.description" resname="landmarkStructure.error.unlabeledRegion.description">
-                <source>More than one region or complementary landmark lacks an accessible name. When multiple landmarks share the same role, each should have a unique label so users can distinguish them.</source>
-                <target>Mehr als ein Region- oder Complementary-Landmark hat keinen barrierefreien Namen. Wenn mehrere Landmarks dieselbe Rolle teilen, sollte jedes eine eindeutige Bezeichnung erhalten, um sie unterscheidbar zu machen.</target>
-            </trans-unit>
-            <trans-unit id="landmarkStructure.error.unlabeledRegion.callout" resname="landmarkStructure.error.unlabeledRegion.callout">
-                <source>Add a label to distinguish this from other unlabeled region/complementary landmarks.</source>
-                <target>Fügen Sie eine Bezeichnung hinzu, um dieses Landmark von anderen unbenannten Region-/Complementary-Landmarks zu unterscheiden.</target>
-            </trans-unit>
-            -->
             <trans-unit id="landmarkStructure.success.roleUpdated"
                 resname="landmarkStructure.success.roleUpdated">
                 <source>Landmark role updated.</source>
