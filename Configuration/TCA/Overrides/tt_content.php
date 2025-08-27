@@ -103,11 +103,9 @@ ExtensionManagementUtility::addTCAcolumns(
             'config' => [
                 'type' => 'check',
                 'renderType' => 'checkboxToggle',
-                'default' => 1,
                 'items' => [
                     [
                         'label' => '',
-                        'value' => '',
                     ],
                 ],
             ],
