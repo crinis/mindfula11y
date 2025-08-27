@@ -15,10 +15,18 @@ composer require mindfulmarkup/mindfula11y
 ## Features
 
 - **Alternative Text Checker**: Backend module that lists all `sys_file_reference` records (e.g., images) without alternative text, making it easy to find and fix missing alt attributes.
+
+  ![Screenshot of the accessibility backend module listing images missing an alternative text with an input field, a generate and a save button.](Resources/Public/Images/Screenshots/MissingAltTextModule.png)
 - **AI-Powered Alt Text Generation**: Supports generating alternative texts for images using ChatGPT.
+
 - **Viewhelpers and TCA columns for heading types and landmarks**: Various viewhelpers and a new accessibility tab for content elements to make it easy for editors to use accessible heading types and create ARIA landmarks. 
 - **Heading Structure Overview**: Backend module that visualizes the heading structure of the selected page and allows editors to easily identify issues and edit heading types for records using the custom ViewHelper.
+
+  ![Screenshot of the accessibility backend module showing a heading tree with an error shown due to a skipped heading level](Resources/Public/Images/Screenshots/HeadingTreeModule.png)
+
 - **Landmark Structure Overview**: Backend module that displays ARIA landmarks on the selected page. Editors can review landmark structure, identify accessibility issues, and edit landmark roles directly from the module to improve page navigation and semantic structure.
+
+  ![Screenshot of the landmark structure of a page in the accessibility module showing an error due to a duplicated "search" landmark sharing the same label.](Resources/Public/Images/Screenshots/LandmarkModule.png)
 
 ## Planned Features
 
@@ -68,9 +76,6 @@ The Missing Alt Text checker is integrated into the main Accessibility backend m
 - **Language**: Filter results by specific languages
 - **Recursive Depth**: Choose how many page levels to scan (1, 5, 10, or 99 levels deep)
 
-![Screenshot of the accessibility backend module listing images missing an alternative text with an input field, a generate and a save button.](Resources/Public/Images/Screenshots/MissingAltTextModule.png)
-*The Missing Alt Text module showing the list of images without alternative text with inline editing capabilities. Also allowing to generate an alternative text using ChatGPT if configured.*
-
 ### Inline Editing
 
 Each missing alternative text entry provides:
@@ -117,10 +122,6 @@ The extension provides the following heading type options:
 ### Backend Module Integration
 
 Headings are displayed in a tree structure within the Accessibility backend module, providing editors with a clear overview of the page's heading hierarchy. The module identifies accessibility issues such as missing H1 elements or skipped heading levels, and allows for easy editing of heading types directly from the tree view.
-
-![Screenshot of the accessibility backend module showing a heading tree with an error shown due to a skipped heading level](Resources/Public/Images/Screenshots/HeadingTreeModule.png)
-*The Heading Structure module showing the hierarchical tree of headings with inline editing capabilities. Helping editors to catch errors.*
-
 
 ### Using the Heading ViewHelpers in Fluid Templates
 
@@ -316,9 +317,6 @@ The extension adds three columns to support landmarks:
 ### Backend Module Integration
 
 Landmarks are displayed in a hierarchical layout within the Accessibility backend module, providing editors with a clear overview of the page's landmark structure. The module identifies many accessibility issues and allows for easy editing of landmark roles and names directly from the structure view.
-
-![Screenshot of the landmark structure of a page in the accessibility module showing an error due to a duplicated "search" landmark sharing the same label.](Resources/Public/Images/Screenshots/LandmarkModule.png)
-*The Landmark Structure module showing the hierarchical layout of landmarks with inline editing capabilities listing errors on the top.*
 
 ### Using the Landmark ViewHelper
 
