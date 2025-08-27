@@ -179,20 +179,6 @@ export const LANDMARK_LABEL_KEYS = {
   },
 };
 
-/**
- * User interface constants for consistent display values and styling in landmark components.
- * Provides default text values and configuration settings.
- *
- * @constant {Object}
- */
-export const LANDMARK_UI_CONSTANTS = {
-  BADGE_NESTED_TEXT: "nested",
-  DEFAULT_UNLABELED_TEXT: "Unlabelled Landmark",
-  DEFAULT_NO_LANDMARK_TEXT: "No Landmark",
-  ICON_SIZE: "14",
-  MAX_ROLE_WIDTH: "12rem",
-};
-
 // ============================================================================
 // JSDOC TYPEDEFS
 // ============================================================================

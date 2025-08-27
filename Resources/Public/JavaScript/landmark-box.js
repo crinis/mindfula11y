@@ -471,7 +471,7 @@ export class LandmarkBox extends LitElement {
         id="${uniqueId}"
         type="text"
         class="badge rounded-pill w-auto pe-none ${this._getInputBorderClass()}"
-        style="max-width: 12rem;"
+        style="max-width: 16rem;"
         value="${this._getRoleDisplayName(this.role)}"
         readonly
         aria-labelledby="${labelId}"
@@ -493,7 +493,7 @@ export class LandmarkBox extends LitElement {
       <select
         id="${uniqueId}"
         class="form-select form-select-sm w-auto ${this._getInputBorderClass()}"
-        style="max-width: 12rem;"
+        style="max-width: 16rem;"
         @change="${this._handleRoleSelectChange}"
         aria-labelledby="${labelId}"
         ?aria-invalid="${this.errorMessages && this.errorMessages.length > 0}"
