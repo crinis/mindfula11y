@@ -134,6 +134,11 @@ Renders a heading element (e.g., `<h2>`, `<h3>`, `<p>`) for a content record or 
 **Basic usage for tt_content records:**
 
 ```html
+<html
+	xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
+	xmlns:mindfula11y="http://typo3.org/ns/MindfulMarkup/MindfulA11y/ViewHelpers"
+	data-namespace-typo3-fluid="true"
+>
 <mindfula11y:heading
     recordUid="{data.uid}"
     recordTableName="tt_content"
@@ -141,6 +146,7 @@ Renders a heading element (e.g., `<h2>`, `<h3>`, `<p>`) for a content record or 
     type="{data.tx_mindfula11y_headingtype}">
     {data.header}
 </mindfula11y:heading>
+</html>
 ```
 > **Note:** If the `type` parameter is provided to the viewhelper, it uses this value directly and avoids an additional database lookup. This can improve performance by reducing unnecessary queries.
 
@@ -157,6 +163,11 @@ Renders a heading as a descendant of a referenced ancestor heading, incrementing
 **Usage:**
 
 ```html
+<html
+	xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
+	xmlns:mindfula11y="http://typo3.org/ns/MindfulMarkup/MindfulA11y/ViewHelpers"
+	data-namespace-typo3-fluid="true"
+>
 <mindfula11y:heading
     recordUid="{data.uid}"
     recordTableName="tt_content"
@@ -171,6 +182,7 @@ Renders a heading as a descendant of a referenced ancestor heading, incrementing
     levels="1">
     Child heading
 </mindfula11y:heading.descendant>
+</html>
 ```
 
 **Behavior notes:**
@@ -185,6 +197,11 @@ Renders a heading at the same level as a referenced sibling heading. The sibling
 **Usage:**
 
 ```html
+<html
+	xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
+	xmlns:mindfula11y="http://typo3.org/ns/MindfulMarkup/MindfulA11y/ViewHelpers"
+	data-namespace-typo3-fluid="true"
+>
 <mindfula11y:heading
     recordUid="{data.uid}"
     recordTableName="tt_content"
@@ -197,6 +214,7 @@ Renders a heading at the same level as a referenced sibling heading. The sibling
 <mindfula11y:heading.sibling siblingId="mainHeading">
     Sibling at same level
 </mindfula11y:heading.sibling>
+</html>
 ```
 
 **Behavior notes:**
@@ -273,6 +291,11 @@ CREATE TABLE tx_myext_records (
 In your Fluid templates, use the ViewHelper with your custom table:
 
 ```html
+<html
+	xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
+	xmlns:mindfula11y="http://typo3.org/ns/MindfulMarkup/MindfulA11y/ViewHelpers"
+	data-namespace-typo3-fluid="true"
+>
 <mindfula11y:heading 
     recordUid="{record.uid}" 
     recordTableName="tx_myext_records" 
@@ -280,6 +303,7 @@ In your Fluid templates, use the ViewHelper with your custom table:
     type="{record.headingtype}">
     {record.title}
 </mindfula11y:heading>
+</html>
 ```
 
 This integration allows your custom records to benefit from the same heading structure analysis and inline editing capabilities provided by the Accessibility backend module.
@@ -338,15 +362,20 @@ You can override the automatically selected tag using the optional `tagName` arg
 #### Basic Usage for tt_content Records
 
 ```html
-<f:variable name="ariaAttributes" value="{}" />
+<html
+	xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
+	xmlns:mindfula11y="http://typo3.org/ns/MindfulMarkup/MindfulA11y/ViewHelpers"
+	data-namespace-typo3-fluid="true"
+>
 <f:if condition="{data.tx_mindfula11y_arialabelledby} && {data.header}">
     <f:then>
         <f:variable name="ariaAttributes" value="{labelledby: 'c{data.uid}-heading'}" />
     </f:then>
+    <f:else if="{data.tx_mindfula11y_arialabel">
+        <f:variable name="ariaAttributes" value="{label: data.tx_mindfula11y_arialabel}" />
+    </f:else>
     <f:else>
-        <f:if condition="{data.tx_mindfula11y_arialabel}">
-            <f:variable name="ariaAttributes" value="{label: data.tx_mindfula11y_arialabel}" />
-        </f:if>
+        <f:variable name="ariaAttributes" value="{}" />
     </f:else>
 </f:if>
 
@@ -358,6 +387,7 @@ You can override the automatically selected tag using the optional `tagName` arg
     aria="{ariaAttributes}">
     {data.bodytext}
 </mindfula11y:landmark>
+</html>
 ```
 
 #### Using the tagName Override
@@ -365,6 +395,11 @@ You can override the automatically selected tag using the optional `tagName` arg
 The `tagName` argument allows you to override the automatically selected HTML element while preserving the landmark semantics:
 
 ```html
+<html
+	xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
+	xmlns:mindfula11y="http://typo3.org/ns/MindfulMarkup/MindfulA11y/ViewHelpers"
+	data-namespace-typo3-fluid="true"
+>
 <!-- Default behavior: navigation role uses <nav> element -->
 <mindfula11y:landmark role="navigation">Navigation content</mindfula11y:landmark>
 <!-- Outputs: <nav>Navigation content</nav> -->
@@ -380,6 +415,7 @@ The `tagName` argument allows you to override the automatically selected HTML el
 <!-- Default when no role is specified -->
 <mindfula11y:landmark>Content without landmark</mindfula11y:landmark>
 <!-- Outputs: <div>Content without landmark</div> -->
+</html>
 ```
 
 ### Extending Custom Record Types
@@ -491,15 +527,20 @@ CREATE TABLE tx_myext_records (
 In your Fluid templates, use the ViewHelper with your custom table:
 
 ```html
-<f:variable name="ariaAttributes" value="{}" />
+<html
+	xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
+	xmlns:mindfula11y="http://typo3.org/ns/MindfulMarkup/MindfulA11y/ViewHelpers"
+	data-namespace-typo3-fluid="true"
+>
 <f:if condition="{record.aria_labelledby} && {record.title}">
     <f:then>
         <f:variable name="ariaAttributes" value="{labelledby: 'record-{record.uid}-title'}" />
     </f:then>
+    <f:else if="{record.aria_label">
+        <f:variable name="ariaAttributes" value="{label: record.aria_label}" />
+    </f:else>
     <f:else>
-        <f:if condition="{record.aria_label}">
-            <f:variable name="ariaAttributes" value="{label: record.aria_label}" />
-        </f:if>
+        <f:variable name="ariaAttributes" value="{}" />
     </f:else>
 </f:if>
 
@@ -511,6 +552,7 @@ In your Fluid templates, use the ViewHelper with your custom table:
     aria="{ariaAttributes}">
     {record.content}
 </mindfula11y:landmark>
+</html>
 ```
 
 This integration allows your custom records to benefit from the same landmark structure analysis and inline editing capabilities provided by the Accessibility backend module.
