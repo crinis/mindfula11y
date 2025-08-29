@@ -127,7 +127,16 @@ Headings are displayed in a tree structure within the Accessibility backend modu
 
 The Mindful A11y extension provides three ViewHelpers for rendering accessible, semantically correct headings in your Fluid templates:
 
+## Arguments for Heading and Landmark ViewHelpers
+
+
 #### 1. `HeadingViewHelper` (`<mindfula11y:heading>`) – Main/Standalone Headings
+**Arguments:**
+- `recordUid` (int, optional): The UID of the record with the heading.
+- `recordTableName` (string, optional, default: `tt_content`): Database table name of the record with the heading.
+- `recordColumnName` (string, optional, default: `tx_mindfula11y_headingtype`): Name of field that stores the heading type.
+- `type` (string, optional): The heading type to use (`h1`, `h2`, ..., `h6`, `p`, `div`, etc.). If not provided, the value will be fetched from the database record or set to `"h2"`.
+- `relationId` (string, optional): The relation identifier for this heading (used for referencing in sibling/descendant headings).
 
 Renders a heading element (e.g., `<h2>`, `<h3>`, `<p>`) for a content record or static content. The tag is determined by the stored heading type, a provided type, or a default. Optionally, you can provide a `relationId` to allow descendant or sibling headings to reference this heading's type.
 
@@ -157,6 +166,11 @@ Renders a heading element (e.g., `<h2>`, `<h3>`, `<p>`) for a content record or 
 ```
 
 #### 2. `DescendantViewHelper` (`<mindfula11y:heading.descendant>`) – Child/Incremented Headings
+**Arguments:**
+- `ancestorId` (string, required): The `relationId` of the heading ancestor.
+- `levels` (int, optional, default: `1`): How many levels to increment the heading type.
+- `type` (string, optional): The heading type to use. If provided, overrides the computed tag and adds `levels`.
+- `recordUid`, `recordTableName`, `recordColumnName` (optional): These arguments should only be used if the referenced ancestor (by `ancestorId`) appears after this ViewHelper in the template, or if the cache lookup does not work. In normal usage, prefer using `ancestorId`.
 
 Renders a heading as a descendant of a referenced ancestor heading, incrementing the heading level as needed. The ancestor is referenced by `ancestorId` (which must match a `relationId` set on a parent heading). The tag is computed by incrementing the ancestor's heading level by the `levels` argument (default: 1).
 
@@ -191,6 +205,10 @@ Renders a heading as a descendant of a referenced ancestor heading, incrementing
 - The ancestor must appear before the descendant in the template for the reference to work. If not, provide the `type` or `recordX` arguments directly.
 
 #### 3. `SiblingViewHelper` (`<mindfula11y:heading.sibling>`) – Sibling Headings at the Same Level
+**Arguments:**
+- `siblingId` (string, required): The `relationId` of the heading sibling.
+- `type` (string, optional): The heading type to use. If provided, overrides the computed tag.
+- `recordUid`, `recordTableName`, `recordColumnName` (optional): These arguments should only be used if the referenced sibling (by `siblingId`) appears after this ViewHelper in the template, or if the cache lookup does not work. In normal usage, prefer using `siblingId`.
 
 Renders a heading at the same level as a referenced sibling heading. The sibling is referenced by `siblingId` (which must match a `relationId` set on another heading). The tag is determined by the cached heading type of the sibling.
 
@@ -344,6 +362,13 @@ Landmarks are displayed in a hierarchical layout within the Accessibility backen
 
 ### Using the Landmark ViewHelper
 
+**Arguments:**
+- `recordUid` (int, optional): The UID of the record that is being rendered.
+- `recordTableName` (string, optional, default: `tt_content`): Database table name of the record being rendered.
+- `recordColumnName` (string, optional, default: `tx_mindfula11y_landmark`): Name of field that stores the role.
+- `role` (string, optional): The landmark role value.
+- `tagName` (string, optional): Override the HTML tag name regardless of the role. The role attribute will still be applied.
+
 To apply landmarks in the frontend, use the provided `LandmarkViewHelper`. The ViewHelper renders the appropriate HTML element based on the landmark type and integrates with the backend module for inline editing capabilities.
 
 The ViewHelper automatically selects semantic HTML elements for each landmark role:
@@ -367,6 +392,7 @@ You can override the automatically selected tag using the optional `tagName` arg
 	xmlns:mindfula11y="http://typo3.org/ns/MindfulMarkup/MindfulA11y/ViewHelpers"
 	data-namespace-typo3-fluid="true"
 >
+<!-- If aria-labelledby is active and a header is set prefer over aria-label. Change based on your requirements. -->
 <f:if condition="{data.tx_mindfula11y_arialabelledby} && {data.header}">
     <f:then>
         <f:variable name="ariaAttributes" value="{labelledby: 'c{data.uid}-heading'}" />
@@ -387,34 +413,6 @@ You can override the automatically selected tag using the optional `tagName` arg
     aria="{ariaAttributes}">
     {data.bodytext}
 </mindfula11y:landmark>
-</html>
-```
-
-#### Using the tagName Override
-
-The `tagName` argument allows you to override the automatically selected HTML element while preserving the landmark semantics:
-
-```html
-<html
-	xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
-	xmlns:mindfula11y="http://typo3.org/ns/MindfulMarkup/MindfulA11y/ViewHelpers"
-	data-namespace-typo3-fluid="true"
->
-<!-- Default behavior: navigation role uses <nav> element -->
-<mindfula11y:landmark role="navigation">Navigation content</mindfula11y:landmark>
-<!-- Outputs: <nav>Navigation content</nav> -->
-
-<!-- Override with tagName: navigation role uses <div> element with role attribute -->
-<mindfula11y:landmark role="navigation" tagName="div">Navigation content</mindfula11y:landmark>
-<!-- Outputs: <div role="navigation">Navigation content</div> -->
-
-<!-- Custom element without landmark role -->
-<mindfula11y:landmark tagName="article">Regular content</mindfula11y:landmark>
-<!-- Outputs: <article>Regular content</article> -->
-
-<!-- Default when no role is specified -->
-<mindfula11y:landmark>Content without landmark</mindfula11y:landmark>
-<!-- Outputs: <div>Content without landmark</div> -->
 </html>
 ```
 
@@ -532,6 +530,7 @@ In your Fluid templates, use the ViewHelper with your custom table:
 	xmlns:mindfula11y="http://typo3.org/ns/MindfulMarkup/MindfulA11y/ViewHelpers"
 	data-namespace-typo3-fluid="true"
 >
+<!-- If aria-labelledby is active and a header is set prefer over aria-label. Change based on your requirements. -->
 <f:if condition="{record.aria_labelledby} && {record.title}">
     <f:then>
         <f:variable name="ariaAttributes" value="{labelledby: 'record-{record.uid}-title'}" />

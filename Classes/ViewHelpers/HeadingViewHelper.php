@@ -115,7 +115,7 @@ class HeadingViewHelper extends AbstractHeadingViewHelper
     public function initializeArguments(): void
     {
         parent::initializeArguments();
-        $this->registerArgument('relationId', 'string', 'The relation identifier for this heading (used for caching and relationships).', false, null);
+        $this->registerArgument('relationId', 'string', 'The relation identifier for this heading (used for rendering related headings).', false, null);
         $this->registerCommonHeadingArguments();
     }
 

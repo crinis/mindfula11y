@@ -49,7 +49,7 @@ class DescendantViewHelper extends AbstractHeadingViewHelper
     public function initializeArguments(): void
     {
         parent::initializeArguments();
-        $this->registerArgument('ancestorId', 'string', 'The relationId of the ancestor heading.', true);
+        $this->registerArgument('ancestorId', 'string', 'The relationId of the heading ancestor.', true);
         $this->registerArgument('levels', 'int', 'How many levels to increment the heading type.', false, 1);
         $this->registerCommonHeadingArguments();
     }

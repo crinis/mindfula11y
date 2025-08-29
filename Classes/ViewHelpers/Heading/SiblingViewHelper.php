@@ -29,7 +29,7 @@ class SiblingViewHelper extends AbstractHeadingViewHelper
     public function initializeArguments(): void
     {
         parent::initializeArguments();
-        $this->registerArgument('siblingId', 'string', 'The relationId of the sibling heading.', true);
+        $this->registerArgument('siblingId', 'string', 'The relationId of the heading sibling.', true);
         $this->registerCommonHeadingArguments();
     }
 
