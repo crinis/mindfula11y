@@ -115,11 +115,7 @@ ExtensionManagementUtility::addTCAcolumns(
             'exclude' => true,
             'label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.ariaLabel',
             'description' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.ariaLabel.description',
-            'displayCond' => [
-                'AND' => [
-                    'FIELD:tx_mindfula11y_landmark:!=:',
-                ]
-            ],
+            'displayCond' => 'FIELD:tx_mindfula11y_landmark:!=:',
             'config' => [
                 'type' => 'input',
                 'size' => 50,

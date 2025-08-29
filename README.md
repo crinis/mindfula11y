@@ -469,19 +469,14 @@ ExtensionManagementUtility::addTCAcolumns(
                 'type' => 'check',
                 'renderType' => 'checkboxToggle',
                 'default' => 1,
-                'items' => [['label' => '', 'value' => '']],
+                'items' => [['label' => '']],
             ],
         ],
         'aria_label' => [
             'exclude' => true,
             'label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.ariaLabel',
             'description' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.ariaLabel.description',
-            'displayCond' => [
-                'AND' => [
-                    'FIELD:landmark:!=:',
-                    'FIELD:aria_labelledby:=:0'
-                ]
-            ],
+            'displayCond' => 'FIELD:landmark:!=:',
             'config' => [
                 'type' => 'input',
                 'size' => 50,
