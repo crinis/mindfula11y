@@ -103,6 +103,7 @@ ExtensionManagementUtility::addTCAcolumns(
             'config' => [
                 'type' => 'check',
                 'renderType' => 'checkboxToggle',
+                'default' => 1,
                 'items' => [
                     [
                         'label' => '',
@@ -117,7 +118,6 @@ ExtensionManagementUtility::addTCAcolumns(
             'displayCond' => [
                 'AND' => [
                     'FIELD:tx_mindfula11y_landmark:!=:',
-                    'FIELD:tx_mindfula11y_arialabelledby:=:0'
                 ]
             ],
             'config' => [
@@ -125,7 +125,6 @@ ExtensionManagementUtility::addTCAcolumns(
                 'size' => 50,
                 'max' => 255,
                 'eval' => 'trim',
-                'required' => true,
             ],
         ],
     ]
