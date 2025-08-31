@@ -44,6 +44,15 @@ import {
  */
 export class AccessibilityStructureBase extends LitElement {
   /**
+   * Static cache for preview content, shared across all instances.
+   * Keyed by previewUrl.
+   */
+  /**
+   * Static cache for preview content or in-flight Promises, shared across all instances.
+   * Keyed by previewUrl. Value is either a string (HTML) or a Promise resolving to string.
+   */
+  static _previewCache = new Map();
+  /**
    * Component properties definition.
    *
    * @returns {Object} The properties definition object for LitElement.
@@ -131,19 +140,47 @@ export class AccessibilityStructureBase extends LitElement {
   }
 
   /**
-   * Fetches preview content from the server with proper headers.
+   * Fetches preview content from the server with proper headers, using a static cache.
+   *
+   * Caching and concurrency details:
+   * - Uses a static Map to cache preview HTML by URL, shared across all instances.
+   * - If a fetch is already in progress for a URL, returns the same in-flight Promise to all callers,
+   *   ensuring only one network request is made for concurrent calls.
+   * - Once the fetch completes, the resolved HTML is stored in the cache for future calls.
+   * - If the cache contains the HTML, returns it immediately.
    *
    * @private
-   * @returns {Promise<string>} The HTML content
+   * @returns {Promise<string>} Resolves to the preview HTML content for the current previewUrl.
    */
   async _fetchPreview() {
-    const response = await new AjaxRequest(this.previewUrl).get({
-      headers: {
-        "Mindfula11y-Structure-Analysis": "1",
-      },
-    });
+    // Use static cache to avoid duplicate fetches for the same URL
+    const cache = AccessibilityStructureBase._previewCache;
+    const url = this.previewUrl;
 
-    return await response.resolve();
+    if (cache.has(url)) {
+      const cached = cache.get(url);
+      // If cached value is a Promise (fetch in progress), return it
+      if (cached && typeof cached.then === 'function') {
+        return cached;
+      }
+      // If cached value is HTML, return it
+      return cached;
+    }
+
+    // Start fetch and store the Promise immediately
+    const fetchPromise = (async () => {
+      const response = await new AjaxRequest(url).get({
+        headers: {
+          "Mindfula11y-Structure-Analysis": "1",
+        },
+      });
+      const html = await response.resolve();
+      // Replace the Promise in the cache with the resolved HTML
+      cache.set(url, html);
+      return html;
+    })();
+    cache.set(url, fetchPromise);
+    return fetchPromise;
   }
 
   /**
