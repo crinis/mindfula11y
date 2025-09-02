@@ -116,6 +116,30 @@ export class ErrorRegistry {
   }
 
   /**
+   * Gets all aggregated errors across all tags.
+   * Consolidates duplicate error types and accumulates counts.
+   *
+   * @returns {Array<StructureError>} Array of all aggregated error objects
+   */
+  static getAllAggregatedErrors() {
+    const errorMap = new Map();
+
+    for (const elementErrors of ErrorRegistry._errors.values()) {
+      for (const error of elementErrors) {
+        const existingError = errorMap.get(error.id);
+        if (existingError) {
+          // Count instances for duplicate error types
+          existingError.count += 1;
+        } else {
+          errorMap.set(error.id, { ...error, count: 1 });
+        }
+      }
+    }
+
+    return Array.from(errorMap.values());
+  }
+
+  /**
    * Gets all errors for a specific element filtered by tag.
    *
    * @param {HTMLElement} element - The element to get errors for
@@ -141,6 +165,13 @@ export class ErrorRegistry {
         ErrorRegistry._errors.set(element, filteredErrors);
       }
     }
+  }
+
+  /**
+   * Clears all errors from the registry.
+   */
+  static clearAll() {
+    ErrorRegistry._errors.clear();
   }
 }
 

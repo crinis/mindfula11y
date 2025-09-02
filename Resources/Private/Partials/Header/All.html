@@ -13,20 +13,22 @@
       {data.header}
     </mindfula11y:heading>
 
-    <!-- Render a descendant heading linked to the main heading using ancestorId -->
-    <mindfula11y:heading.descendant
-      ancestorId="{data.uid}"
-      levels="1"
-    >
-      Descendant of {data.header}
-    </mindfula11y:heading.descendant>
+    <f:comment>
+      <!-- Render a descendant heading linked to the main heading using ancestorId -->
+      <mindfula11y:heading.descendant
+        ancestorId="{data.uid}"
+        levels="1"
+      >
+        Descendant of {data.header}
+      </mindfula11y:heading.descendant>
 
-    <!-- Render a sibling heading linked to the main heading using siblingId -->
-    <mindfula11y:heading.sibling
-      siblingId="{data.uid}"
-    >
-      Sibling of {data.header}
-    </mindfula11y:heading.sibling>
+      <!-- Render a sibling heading linked to the main heading using siblingId -->
+      <mindfula11y:heading.sibling
+        siblingId="{data.uid}"
+      >
+        Sibling of {data.header}
+      </mindfula11y:heading.sibling>
+    </f:comment>
 
   </f:if>
 </f:if>

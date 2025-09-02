@@ -39,28 +39,6 @@ export const ERROR_SEVERITY = {
   WARNING: "warning",
 };
 
-/**
- * CSS classes for different error severity levels.
- * Maps severity levels to Bootstrap alert classes.
- *
- * @constant {Object}
- */
-export const SEVERITY_CLASSES = {
-  [ERROR_SEVERITY.ERROR]: "alert-danger",
-  [ERROR_SEVERITY.WARNING]: "alert-warning",
-};
-
-/**
- * Badge styles for different error severity levels.
- * Used in error summaries and individual component messages.
- *
- * @constant {Object}
- */
-export const SEVERITY_BADGE_CLASSES = {
-  [ERROR_SEVERITY.ERROR]: "bg-danger",
-  [ERROR_SEVERITY.WARNING]: "bg-warning",
-};
-
 // ============================================================================
 // JSDOC TYPEDEFS
 // ============================================================================
@@ -92,29 +70,6 @@ export const SEVERITY_BADGE_CLASSES = {
 // ============================================================================
 // SHARED UTILITIES
 // ============================================================================
-
-/**
- * Gets the appropriate CSS class for error severity.
- *
- * @param {string} severity - Error severity level
- * @returns {string} CSS class name
- */
-export function getSeverityClass(severity) {
-  return SEVERITY_CLASSES[severity] || SEVERITY_CLASSES[ERROR_SEVERITY.ERROR];
-}
-
-/**
- * Gets the appropriate badge CSS class for error severity.
- *
- * @param {string} severity - Error severity level
- * @returns {string} CSS class name
- */
-export function getSeverityBadgeClass(severity) {
-  return (
-    SEVERITY_BADGE_CLASSES[severity] ||
-    SEVERITY_BADGE_CLASSES[ERROR_SEVERITY.ERROR]
-  );
-}
 
 /**
  * Gets the localized severity label.

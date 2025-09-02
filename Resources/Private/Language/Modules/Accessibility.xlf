@@ -68,13 +68,16 @@
                 <source>Language</source>
             </trans-unit>
             <trans-unit id="missingAltText" resname="missingAltText">
-                <source>Images without alternative text</source>
+                <source>File references without alternative text</source>
             </trans-unit>
             <trans-unit id="headingStructure" resname="headingStructure">
                 <source>Heading structure</source>
             </trans-unit>
             <trans-unit id="landmarkStructure" resname="landmarkStructure">
                 <source>Landmark structure</source>
+            </trans-unit>
+            <trans-unit id="structureErrors" resname="structureErrors">
+                <source>Structure errors</source>
             </trans-unit>
 
             <trans-unit id="menu.pageLevels" resname="menu.pageLevels">
@@ -116,7 +119,7 @@
                 <source>General</source>
             </trans-unit>
             <trans-unit id="menu.features.missingAltText" resname="menu.features.missingAltText">
-                <source>Images without alternative text</source>
+                <source>File references without alternative text</source>
             </trans-unit>
             <trans-unit id="menu.features.headingStructure" resname="menu.features.headingStructure">
                 <source>Heading structure</source>
@@ -126,13 +129,12 @@
             </trans-unit>
 
             <trans-unit id="missingAltText" resname="missingAltText">
-                <source>Images without alternative text</source>
+                <source>File references without alternative text</source>
             </trans-unit>
             <trans-unit id="missingAltText.description" resname="missingAltText.description">
                 <source>
-                    Listing records of tables that are missing alternative text in their
-                    associated file references. Allows filtering by the type and language of the
-                    record and can function recursively for all subpages of the currently selected page.
+                    Shows a count of File references without alternative text and provides a link to
+                    the detailed view where you can manage and fix missing alternative texts.
                 </source>
             </trans-unit>
             <trans-unit id="missingAltText.generate.button" resname="missingAltText.generate.button">
@@ -212,7 +214,13 @@
             </trans-unit>
             <trans-unit id="missingAltText.noMissingAltText"
                 resname="missingAltText.noMissingAltText">
-                <source>No images without alternative text found.</source>
+                <source>No file references without alternative text found.</source>
+            </trans-unit>
+            <trans-unit id="missingAltText.count" resname="missingAltText.count">
+                <source>%1$d file references without alternative text found.</source>
+            </trans-unit>
+            <trans-unit id="missingAltText.viewAll" resname="missingAltText.viewAll">
+                <source>View all</source>
             </trans-unit>
 
             <!-- Heading Structure Section -->
@@ -464,6 +472,13 @@
             
             <trans-unit id="landmarkStructure.unlabelledLandmark" resname="landmarkStructure.unlabelledLandmark">
                 <source>Unlabelled Landmark</source>
+            </trans-unit>
+
+            <trans-unit id="structureErrors.viewHeadingStructure" resname="structureErrors.viewHeadingStructure">
+                <source>View Heading Structure</source>
+            </trans-unit>
+            <trans-unit id="structureErrors.viewLandmarkStructure" resname="structureErrors.viewLandmarkStructure">
+                <source>View Landmark Structure</source>
             </trans-unit>
         </body>
     </file>

@@ -29,6 +29,7 @@ import AccessibilityStructureBase from "./accessibility-structure-base.js";
 import LandmarkStructureService from "./landmark-structure-service.js";
 import ContentFetcher from "./content-fetcher.js";
 import { ErrorRegistry } from "./error-registry.js";
+import ErrorList from "./error-list.js";
 
 /**
  * Web component for visualizing and editing the landmark structure of an HTML document in TYPO3.
@@ -120,7 +121,7 @@ export class LandmarkStructure extends AccessibilityStructureBase {
           const errors = this.structureService.buildErrorList(landmarkData);
 
           return html`
-            ${this._renderErrors(errors)}
+            <mindfula11y-error-list .errors="${errors}" .firstRun="${this.firstRun}"></mindfula11y-error-list>
             ${this._renderLandmarkContent(landmarkData)}
           `;
         },

@@ -14,74 +14,28 @@
       />
     </h1>
 
-    <f:if condition="{enableHeadingStructure} && {previewUrl}">
-      <section class="callout callout-notice">
-        <div class="callout-content">
-          <div class="callout-title">
-            <h2>
-              <f:translate
-                key="LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:headingStructure"
-              />
-            </h2>
-          </div>
-          <div class="callout-body">
-            <mindfula11y-heading-structure previewUrl="{previewUrl}" />
-          </div>
-        </div>
-      </section>
-    </f:if>
-
-    <f:if condition="{enableLandmarkStructure} && {previewUrl}">
-      <section class="callout callout-notice">
-        <div class="callout-content">
-          <div class="callout-title">
-            <h2>
-              <f:translate
-                key="LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure"
-              />
-            </h2>
-          </div>
-          <div class="callout-body">
-            <mindfula11y-landmark-structure previewUrl="{previewUrl}" />
-          </div>
-        </div>
-      </section>
-    </f:if>
-
     <f:if condition="{enableMissingAltText}">
       <section class="callout callout-notice">
         <div class="callout-content">
-          <div class="callout-title">
-            <h2>
-              <f:translate
-                key="LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:missingAltText"
-              />
-            </h2>
-          </div>
           <div class="callout-body">
-            <f:if condition="{fileReferences -> f:count()} > 0">
+            <f:if condition="{fileReferenceCount} > 0">
               <f:then>
-                <ul class="list-unstyled mb-0">
-                  <f:for
-                    each="{fileReferences}"
-                    as="fileReference"
-                    iteration="iterator"
-                  >
-                    <li
-                      class="{f:if(condition: iterator.isFirst, else: 'mb-3')}"
+                <p>
+                  <f:translate
+                    key="LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:missingAltText.count"
+                    arguments="{0: fileReferenceCount}"
+                  />
+                  <f:if condition="{missingAltTextUri}">
+                    <a
+                      href="{missingAltTextUri}"
+                      class="btn btn-sm btn-default"
                     >
-                      <f:alias
-                        map="{originalResource: fileReference.originalResource}"
-                      >
-                        <mindfula11y:altlessFileReference
-                          fileReference="{fileReference}"
-                          previewUrl="{f:uri.image(image: originalResource, maxHeight: 150)}"
-                          originalUrl="{f:uri.image(image: originalResource)}"
-                        />
-                      </f:alias>
-                    </li>
-                  </f:for>
-                </ul>
+                      <f:translate
+                        key="LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:missingAltText.viewAll"
+                      />
+                    </a>
+                  </f:if>
+                </p>
               </f:then>
               <f:else>
                 <f:translate
@@ -93,5 +47,29 @@
         </div>
       </section>
     </f:if>
+  
+    <f:if condition="{enableHeadingStructure} || {enableLandmarkStructure}">
+      <section class="callout callout-notice">
+        <div class="callout-content">
+          <div class="callout-title">
+            <h2>
+              <f:translate
+                key="LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:structureErrors"
+              />
+            </h2>
+          </div>
+          <div class="callout-body">
+            <mindfula11y-structure-errors
+              previewUrl="{previewUrl}"
+              headingStructureUrl="{headingStructureUri}"
+              landmarkStructureUrl="{landmarkStructureUri}"
+              enableHeadingStructure="{enableHeadingStructure}"
+              enableLandmarkStructure="{enableLandmarkStructure}"
+            />
+          </div>
+        </div>
+      </section>
+    </f:if>
+
   </f:section>
 </html>

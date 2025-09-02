@@ -24,11 +24,6 @@
 import { LitElement, html } from "lit";
 import { Task } from "@lit/task";
 import Notification from "@typo3/backend/notification.js";
-import { 
-  getSeverityClass, 
-  getSeverityBadgeClass, 
-  getSeverityLabel 
-} from "./types.js";
 
 /**
  * Base class for accessibility structure components.
@@ -103,7 +98,7 @@ export class AccessibilityStructureBase extends LitElement {
    * @param {Error} error - The error that occurred during loading
    */
   _handleLoadingError(error) {
-    console.error('Failed to load accessibility structure:', error);
+    console.warn('Accessibility structure could not be loaded.');
     
     Notification.notice(
       TYPO3.lang["mindfula11y.features.accessibility.error.loading"],
@@ -118,54 +113,6 @@ export class AccessibilityStructureBase extends LitElement {
    */
   createRenderRoot() {
     return this;
-  }
-
-  /**
-   * Renders error alerts for accessibility issues.
-   *
-   * @protected
-   * @param {Array} errors - Array of error objects
-   * @returns {import('lit').TemplateResult} Rendered error section
-   */
-  _renderErrors(errors) {
-    if (errors.length === 0) {
-      return html``;
-    }
-
-    return html`
-      <section
-        class="mindfula11y-accessibility-structure__errors"
-        role="${this.firstRun ? '' : 'alert'}"
-      >
-        <ul class="list-unstyled">
-          ${errors.map(error => this._renderSingleError(error))}
-        </ul>
-      </section>
-    `;
-  }
-
-  /**
-   * Renders a single error item with unified styling.
-   * 
-   * @protected
-   * @param {Object} error - The error to render
-   * @returns {import('lit').TemplateResult} The rendered error item
-   */
-  _renderSingleError(error) {
-    const alertClass = getSeverityClass(error.severity);
-    const badgeClass = getSeverityBadgeClass(error.severity);
-    const severityLabel = getSeverityLabel(error.severity);
-    
-    return html`
-      <li class="alert ${alertClass}">
-        <p class="lead mb-2">
-          <span class="badge ${badgeClass} me-2">${severityLabel}</span>
-          ${TYPO3.lang[error.id]}
-          <span class="badge rounded-pill ms-2">${error.count}</span>
-        </p>
-        <p class="mb-0">${TYPO3.lang[`${error.id}.description`]}</p>
-      </li>
-    `;
   }
 
   /**

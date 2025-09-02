@@ -83,7 +83,7 @@
                 <target>Sprache</target>
             </trans-unit>
             <trans-unit id="missingAltText" resname="missingAltText">
-                <source>Images without alternative text</source>
+                <source>File references without alternative text</source>
                 <target>Bilder ohne Alternativtext</target>
             </trans-unit>
             <trans-unit id="headingStructure" resname="headingStructure">
@@ -93,6 +93,10 @@
             <trans-unit id="landmarkStructure" resname="landmarkStructure">
                 <source>Landmark structure</source>
                 <target>Landmark-Struktur</target>
+            </trans-unit>
+            <trans-unit id="structureErrors" resname="structureErrors">
+                <source>Structure errors</source>
+                <target>Strukturfehler</target>
             </trans-unit>
             <trans-unit id="menu.features.landmarkStructure" resname="menu.features.landmarkStructure">
                 <source>Landmark structure</source>
@@ -297,7 +301,7 @@
                 <target>Allgemein</target>
             </trans-unit>
             <trans-unit id="menu.features.missingAltText" resname="menu.features.missingAltText">
-                <source>Images without alternative text</source>
+                <source>File references without alternative text</source>
                 <target>Bilder ohne Alternativtext</target>
             </trans-unit>
             <trans-unit id="menu.features.headingStructure" resname="menu.features.headingStructure">
@@ -312,12 +316,12 @@
             <!-- Missing Alt Text feature (all keys) -->
             <trans-unit id="missingAltText.description" resname="missingAltText.description">
                 <source>
-                    Listing records of tables that are missing alternative text in their
-                    associated file references. Allows filtering by the type and language of the
-                    record and can function recursively for all subpages of the currently selected page.
+                    Shows a count of File references without alternative text and provides a link to
+                    the detailed view where you can manage and fix missing alternative texts.
                 </source>
                 <target>
-                    Listet Datensätze von Tabellen auf, denen in den zugehörigen Dateireferenzen Alternativtexte fehlen. Ermöglicht das Filtern nach Typ und Sprache des Datensatzes und kann rekursiv für alle Unterseiten der aktuell ausgewählten Seite arbeiten.
+                    Zeigt die Anzahl der Bilder ohne Alternativtext an und bietet einen Link zur
+                    Detailansicht, wo Sie fehlende Alternativtexte verwalten und korrigieren können.
                 </target>
             </trans-unit>
             <trans-unit id="missingAltText.generate.button" resname="missingAltText.generate.button">
@@ -407,8 +411,16 @@
                 <target>(aktuelle Seite)</target>
             </trans-unit>
             <trans-unit id="missingAltText.noMissingAltText" resname="missingAltText.noMissingAltText">
-                <source>No images without alternative text found.</source>
-                <target>Keine Bilder ohne Alternativtext gefunden.</target>
+                <source>No file references without alternative text found.</source>
+                <target>Keine Datei-Referenzen ohne Alternativtext gefunden.</target>
+            </trans-unit>
+            <trans-unit id="missingAltText.count" resname="missingAltText.count">
+                <source>%1$d file references without alternative text found.</source>
+                <target>%1$d Datei-Referenzen ohne Alternativtext gefunden.</target>
+            </trans-unit>
+            <trans-unit id="missingAltText.viewAll" resname="missingAltText.viewAll">
+                <source>View all</source>
+                <target>Alle anzeigen</target>
             </trans-unit>
 
             <!-- Heading Structure translations -->
@@ -636,6 +648,15 @@
             <trans-unit id="landmarkStructure.unlabelledLandmark" resname="landmarkStructure.unlabelledLandmark">
                 <source>Unlabelled Landmark</source>
                 <target>Unbenanntes Landmark</target>
+            </trans-unit>
+
+            <trans-unit id="structureErrors.viewHeadingStructure" resname="structureErrors.viewHeadingStructure">
+                <source>View Heading Structure</source>
+                <target>Überschriftenstruktur anzeigen</target>
+            </trans-unit>
+            <trans-unit id="structureErrors.viewLandmarkStructure" resname="structureErrors.viewLandmarkStructure">
+                <source>View Landmark Structure</source>
+                <target>Landmark-Struktur anzeigen</target>
             </trans-unit>
         </body>
     </file>

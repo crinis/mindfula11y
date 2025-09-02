@@ -55,6 +55,7 @@ use TYPO3\CMS\Core\Type\Bitmask\Permission;
 use TYPO3\CMS\Core\Type\ContextualFeedbackSeverity;
 use TYPO3\CMS\Core\TypoScript\TypoScriptService;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Core\Database\ConnectionPool;
 
 /**
  * Class AccessibilityModuleController.
@@ -120,6 +121,7 @@ class AccessibilityModuleController
         protected readonly FlashMessageService $flashMessageService,
         protected readonly PermissionService $permissionService,
         protected readonly AltTextFinderService $altTextFinderService,
+        protected readonly ConnectionPool $connectionPool,
     ) {}
 
     /**
@@ -213,40 +215,77 @@ class AccessibilityModuleController
      */
     protected function handleGeneralFeature(): ResponseInterface
     {
+        $fileReferenceCount = 0;
         if (
             $this->permissionService->checkTableWriteAccess('sys_file_reference')
             && $this->permissionService->checkNonExcludeFields('sys_file_reference', ['alternative'])
         ) {
-            $fileReferences = $this->altTextFinderService->getAltlessFileReferences(
+            $fileReferenceCount = $this->altTextFinderService->countAltlessFileReferences(
                 $this->pageId,
-                1,
+                0,
                 $this->languageId,
                 $this->pageTsConfig,
-                0,
-                100,
                 true
             );
-        } else {
-            $fileReferences = [];
         }
 
         $previewEnabled = $this->isPreviewEnabledForDoktype($this->pageInfo['doktype'] ?? PageRepository::DOKTYPE_DEFAULT);
+        
+        // Build URIs for structure links
+        $headingStructureUri = null;
+        $landmarkStructureUri = null;
+        $missingAltTextUri = null;
+        if ($previewEnabled) {
+            if ($this->pageTsConfig['mod']['mindfula11y_accessibility']['headingStructure']['enable'] ?? false) {
+                $headingStructureUri = $this->backendUriBuilder->buildUriFromRoute(
+                    'mindfula11y_accessibility',
+                    [
+                        'id' => $this->pageId,
+                        'feature' => Feature::HEADING_STRUCTURE->value,
+                        'languageId' => $this->languageId,
+                    ]
+                );
+            }
+            if ($this->pageTsConfig['mod']['mindfula11y_accessibility']['landmarkStructure']['enable'] ?? false) {
+                $landmarkStructureUri = $this->backendUriBuilder->buildUriFromRoute(
+                    'mindfula11y_accessibility',
+                    [
+                        'id' => $this->pageId,
+                        'feature' => Feature::LANDMARK_STRUCTURE->value,
+                        'languageId' => $this->languageId,
+                    ]
+                );
+            }
+        }
+        
+        if ($this->pageTsConfig['mod']['mindfula11y_accessibility']['missingAltText']['enable'] ?? false) {
+            $missingAltTextUri = $this->backendUriBuilder->buildUriFromRoute(
+                'mindfula11y_accessibility',
+                [
+                    'id' => $this->pageId,
+                    'feature' => Feature::MISSING_ALT_TEXT->value,
+                    'languageId' => $this->languageId,
+                ]
+            );
+        }
+        
         $this->moduleTemplate->assignMultiple([
             'moduleData' => array_merge($this->moduleData->toArray(), [
                 'id' => $this->pageId,
             ]),
-            'fileReferences' => $fileReferences,
+            'fileReferenceCount' => $fileReferenceCount,
             'previewUrl' => $previewEnabled ? (string)PreviewUriBuilder::create($this->pageId)
                 ->withLanguage($this->languageId)
                 ->buildUri() : null,
             'enableHeadingStructure' => ($this->pageTsConfig['mod']['mindfula11y_accessibility']['headingStructure']['enable'] ?? false) && $previewEnabled,
             'enableLandmarkStructure' => ($this->pageTsConfig['mod']['mindfula11y_accessibility']['landmarkStructure']['enable'] ?? false) && $previewEnabled,
             'enableMissingAltText' => $this->pageTsConfig['mod']['mindfula11y_accessibility']['missingAltText']['enable'] ?? false,
+            'headingStructureUri' => $headingStructureUri,
+            'landmarkStructureUri' => $landmarkStructureUri,
+            'missingAltTextUri' => $missingAltTextUri,
         ]);
 
-        $this->pageRenderer->loadJavaScriptModule('@mindfulmarkup/mindfula11y/altless-file-reference.js');
-        $this->pageRenderer->loadJavaScriptModule('@mindfulmarkup/mindfula11y/heading-structure.js');
-        $this->pageRenderer->loadJavaScriptModule('@mindfulmarkup/mindfula11y/landmark-structure.js');
+        $this->pageRenderer->loadJavaScriptModule('@mindfulmarkup/mindfula11y/structure-errors.js');
 
         return $this->moduleTemplate->renderResponse('Backend/General');
     }
@@ -594,14 +633,22 @@ class AccessibilityModuleController
      * Build a language menu for the module.
      * 
      * Add menu listing all available languages for the user based on the active site
-     * configuration for the current page. This menu must be manually added by subclasses as
-     * it might need additional parameters.
+     * configuration for the current page, but only for languages where the page is translated.
      * 
      * @return Menu|null The language menu or null if no languages are available.
      */
     protected function buildLanguageMenu(): ?Menu
     {
         $allowedLanguages = $this->getAllowedSiteLanguages();
+
+        if (empty($allowedLanguages)) {
+            return null;
+        }
+
+        $translatedLanguageIds = $this->getTranslatedLanguageIds($this->pageId);
+        $allowedLanguages = array_filter($allowedLanguages, function($language) use ($translatedLanguageIds) {
+            return in_array($language->getLanguageId(), $translatedLanguageIds);
+        });
 
         if (empty($allowedLanguages)) {
             return null;
@@ -716,6 +763,9 @@ class AccessibilityModuleController
             // No landmarks message
             'mindfula11y.features.landmarkStructure.noLandmarks.title' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.noLandmarks.title'),
             'mindfula11y.features.landmarkStructure.noLandmarks.description' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.noLandmarks.description'),
+            // Structure Errors labels
+            'mindfula11y.features.structureErrors.viewHeadingStructure' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:structureErrors.viewHeadingStructure'),
+            'mindfula11y.features.structureErrors.viewLandmarkStructure' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:structureErrors.viewLandmarkStructure'),
             // Missing Alt Text labels
             'mindfula11y.features.missingAltText.generate.button' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:missingAltText.generate.button'),
             'mindfula11y.features.missingAltText.generate.loading' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:missingAltText.generate.loading'),
@@ -799,5 +849,30 @@ class AccessibilityModuleController
         }
 
         return $site->getAvailableLanguages($this->getBackendUserAuthentication(), false, $this->pageId);
+    }
+
+    /**
+     * Get the language IDs for which the page has translations.
+     * 
+     * @param int $pageId The page ID.
+     * @return array The list of language IDs including 0 for default.
+     */
+    protected function getTranslatedLanguageIds(int $pageId): array
+    {
+        $connection = $this->connectionPool->getConnectionForTable('pages');
+        $queryBuilder = $connection->createQueryBuilder();
+        $result = $queryBuilder
+            ->select('sys_language_uid')
+            ->from('pages')
+            ->where(
+                $queryBuilder->expr()->eq('pid', $queryBuilder->createNamedParameter($pageId)),
+                $queryBuilder->expr()->gt('sys_language_uid', 0)
+            )
+            ->executeQuery();
+        $languageIds = [0]; // default language
+        while ($row = $result->fetchAssociative()) {
+            $languageIds[] = (int)$row['sys_language_uid'];
+        }
+        return $languageIds;
     }
 }

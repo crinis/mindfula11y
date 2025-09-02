@@ -30,6 +30,7 @@ import HeadingStructureService from "./heading-structure-service.js";
 import ContentFetcher from "./content-fetcher.js";
 import { ErrorRegistry } from "./error-registry.js";
 import { ERROR_SEVERITY } from "./types.js";
+import ErrorList from "./error-list.js";
 
 /**
  * Web component for visualizing and editing the heading structure of an HTML document in TYPO3.
@@ -197,7 +198,7 @@ export class HeadingStructure extends AccessibilityStructureBase {
           const headingTree = this.structureService._buildHeadingTree(headingArray);
 
           return html`
-            ${this._renderErrors(errors)}
+            <mindfula11y-error-list .errors="${errors}" .firstRun="${this.firstRun}"></mindfula11y-error-list>
             ${this._renderHeadingContent(headingTree)}
           `;
         },
