@@ -21,11 +21,14 @@
  * @file heading-structure.js
  * @description Web component for visualizing and editing the heading structure of an HTML document in TYPO3.
  * @typedef {import('./types.js').HeadingTreeNode} HeadingTreeNode
- * @typedef {import('./types.js').HeadingStructureError} HeadingStructureError
+ * @typedef {import('./types.js').StructureError} StructureError
  */
 import { html, css } from "lit";
 import HeadingType from "./heading-type.js";
 import AccessibilityStructureBase from "./accessibility-structure-base.js";
+import HeadingStructureService from "./heading-structure-service.js";
+import ContentFetcher from "./content-fetcher.js";
+import { ErrorRegistry } from "./error-registry.js";
 import { ERROR_SEVERITY } from "./types.js";
 
 /**
@@ -33,29 +36,27 @@ import { ERROR_SEVERITY } from "./types.js";
  *
  * This component analyzes HTML content for heading elements (h1-h6), displays them in a
  * hierarchical tree structure, and validates their accessibility compliance. It provides
- * error reporting for missing H1 elements and skipped heading levels.
+ * error reporting for missing H1 elements, multiple H1 elements, empty headings, and
+ * skipped heading levels.
  *
- * Features:
+ * Key features:
  * - Hierarchical heading tree visualization with connecting lines
- * - Accessibility error detection and reporting
+ * - Real-time accessibility error detection and reporting
  * - Inline heading type editing with AJAX persistence
  * - Bootstrap-styled error alerts and status indicators
- * - Real-time structure updates on heading changes
+ * - Responsive tree layout with proper nesting indicators
+ * - Integration with TYPO3 backend notification system
+ *
+ * Error types detected:
+ * - Missing H1 element (error)
+ * - Multiple H1 elements (warning)
+ * - Empty heading content (error)
+ * - Skipped heading levels (error)
  *
  * @class HeadingStructure
  * @extends AccessibilityStructureBase
  */
 export class HeadingStructure extends AccessibilityStructureBase {
-  /**
-   * Constants for heading validation.
-   */
-  static get HEADING_CONSTANTS() {
-    return {
-      MIN_HEADING_LEVEL: 1,
-      MAX_HEADING_LEVEL: 6,
-      ROOT_PARENT_LEVEL: 0,
-    };
-  }
 
   /**
    * CSS styles for the component tree visualization.
@@ -149,49 +150,30 @@ export class HeadingStructure extends AccessibilityStructureBase {
   }
 
   /**
-   * Component properties definition.
-   *
-   * @returns {Object} The properties definition object for LitElement.
-   */
-  static get properties() {
-    return {
-      previewUrl: { type: String },
-    };
-  }
-
-  /**
    * Creates an instance of HeadingStructure.
    *
    * Inherits the task system from AccessibilityStructureBase for loading and analyzing headings.
    */
   constructor() {
     super(); // This initializes the base class task system
+    this.structureService = new HeadingStructureService();
   }
 
   /**
-   * Analyzes headings from the preview URL.
+   * Analyzes content from the preview URL using the heading structure service.
    *
    * @private
    * @param {Array} args - Task arguments containing [previewUrl]
-   * @returns {Promise<NodeListOf<HTMLElement>|null>} The headings found or null on error
+   * @returns {Promise<Array<HTMLElement>|null>} The elements found or null on error
    */
-  async _analyzeHeadings([previewUrl]) {
+  async _analyzeContent([previewUrl]) {
     try {
-      const previewHtml = await this._fetchPreview(previewUrl);
-      return this._selectHeadings(previewHtml);
+      const previewHtml = await ContentFetcher.fetchContent(previewUrl);
+      return this.structureService.selectElements(previewHtml);
     } catch (error) {
       this._handleLoadingError(error);
       return null;
     }
-  }
-
-  /**
-   * Disables the default shadow DOM and renders into the light DOM.
-   *
-   * @returns {HTMLElement} The root element for the component (this).
-   */
-  createRenderRoot() {
-    return this;
   }
 
   /**
@@ -211,8 +193,8 @@ export class HeadingStructure extends AccessibilityStructureBase {
           }
 
           const headingArray = Array.from(headings || []);
-          const errors = this._buildErrorList(headingArray);
-          const headingTree = this._buildHeadingTree(headingArray);
+          const errors = this.structureService.buildErrorList(headingArray);
+          const headingTree = this.structureService._buildHeadingTree(headingArray);
 
           return html`
             ${this._renderErrors(errors)}
@@ -249,347 +231,6 @@ export class HeadingStructure extends AccessibilityStructureBase {
     return this._renderHeadingTree(headingTree);
   }
 
-  /**
-   * Builds a tree structure from a flat array of heading elements.
-   * Also detects skipped heading levels for accessibility validation.
-   *
-   * @private
-   * @param {Array<HTMLElement>} headings - Array of heading elements
-   * @returns {Array<HeadingTreeNode>} Tree structure of headings
-   */
-  _buildHeadingTree(headings) {
-    if (!headings || headings.length === 0) {
-      return [];
-    }
-
-    const state = this._initializeTreeBuildingState();
-
-    headings.forEach((element) => {
-      const headingData = this._analyzeHeadingElement(
-        element,
-        state.parentStack
-      );
-      const node = this._processHeadingForTree(headingData, state);
-      this._addNodeToTree(node, state.parentStack, state.rootNodes);
-    });
-
-    return state.rootNodes;
-  }
-
-  /**
-   * Initializes the state object for tree building.
-   *
-   * @private
-   * @returns {Object} Initial state for tree building
-   */
-  _initializeTreeBuildingState() {
-    return {
-      rootNodes: [],
-      parentStack: [],
-      skippedCombinations: new Map(), // parentLevel -> Set<childLevel>
-    };
-  }
-
-  /**
-   * Analyzes a heading element to extract all relevant data.
-   *
-   * @private
-   * @param {HTMLElement} element - The heading element
-   * @param {Array} parentStack - Current parent stack
-   * @returns {Object} Comprehensive heading analysis data
-   */
-  _analyzeHeadingElement(element, parentStack) {
-    const level = this._extractHeadingLevel(element);
-    const parentLevel = this._findHierarchicalParentLevel(level, parentStack);
-    const skippedLevels = this._calculateSkippedLevels(level, parentStack);
-    const errorReasons = this._getHeadingErrors(element);
-
-    return {
-      element,
-      level,
-      parentLevel,
-      skippedLevels,
-      errorReasons,
-    };
-  }
-
-  /**
-   * Processes heading data to determine error status and create the tree node.
-   *
-   * @private
-   * @param {Object} headingData - Data from _analyzeHeadingElement
-   * @param {Object} state - Tree building state
-   * @returns {Object} The processed heading tree node
-   */
-  _processHeadingForTree(headingData, state) {
-    const { element, level, parentLevel, skippedLevels, errorReasons } =
-      headingData;
-
-    const skippedLevelStatus = this._determineSkippedLevelStatus(
-      level,
-      parentLevel,
-      skippedLevels,
-      state.skippedCombinations
-    );
-
-    if (skippedLevelStatus.shouldFlag) {
-      errorReasons.push("skippedLevel");
-    }
-
-    return this._createHeadingNode(
-      element,
-      level,
-      skippedLevelStatus.visualSkips,
-      errorReasons
-    );
-  }
-
-  /**
-   * Finds the hierarchical parent level for a given heading level.
-   *
-   * @private
-   * @param {number} currentLevel - The current heading level
-   * @param {Array} parentStack - Stack of parent headings
-   * @returns {number} The hierarchical parent level (0 if no parent)
-   */
-  _findHierarchicalParentLevel(currentLevel, parentStack) {
-    // Iterate backwards to find the closest parent with a lower level
-    for (let i = parentStack.length - 1; i >= 0; i--) {
-      const parentLevel = parentStack[i].level;
-      if (parentLevel < currentLevel) {
-        return parentLevel;
-      }
-    }
-    return HeadingStructure.HEADING_CONSTANTS.ROOT_PARENT_LEVEL;
-  }
-
-  /**
-   * Determines if a heading should be flagged for skipped levels and calculates visual skips.
-   *
-   * @private
-   * @param {number} level - Current heading level
-   * @param {number} parentLevel - Hierarchical parent level
-   * @param {number} directSkips - Number of directly skipped levels
-   * @param {Map} skippedCombinations - Map tracking problematic combinations
-   * @returns {Object} Object with shouldFlag and visualSkips properties
-   */
-  _determineSkippedLevelStatus(
-    level,
-    parentLevel,
-    directSkips,
-    skippedCombinations
-  ) {
-    // Case 1: Direct skip - this heading skips levels from its parent
-    if (directSkips > 0) {
-      this._trackSkippedCombination(parentLevel, level, skippedCombinations);
-      return { shouldFlag: true, visualSkips: directSkips };
-    }
-
-    // Case 2: Same problematic combination - flag with calculated skips for visual consistency
-    if (this._isSkippedCombination(parentLevel, level, skippedCombinations)) {
-      const calculatedSkips = level - parentLevel - 1;
-      return { shouldFlag: true, visualSkips: calculatedSkips };
-    }
-
-    // Case 3: No skipped levels
-    return { shouldFlag: false, visualSkips: 0 };
-  }
-
-  /**
-   * Tracks a parent-child level combination as having skipped levels.
-   *
-   * @private
-   * @param {number} parentLevel - The parent level
-   * @param {number} childLevel - The child level that skips
-   * @param {Map} skippedCombinations - Map to update
-   */
-  _trackSkippedCombination(parentLevel, childLevel, skippedCombinations) {
-    if (!skippedCombinations.has(parentLevel)) {
-      skippedCombinations.set(parentLevel, new Set());
-    }
-    skippedCombinations.get(parentLevel).add(childLevel);
-  }
-
-  /**
-   * Checks if a parent-child level combination is known to have skipped levels.
-   *
-   * @private
-   * @param {number} parentLevel - The parent level
-   * @param {number} childLevel - The child level
-   * @param {Map} skippedCombinations - Map of tracked combinations
-   * @returns {boolean} True if this combination has skipped levels
-   */
-  _isSkippedCombination(parentLevel, childLevel, skippedCombinations) {
-    return (
-      skippedCombinations.has(parentLevel) &&
-      skippedCombinations.get(parentLevel).has(childLevel)
-    );
-  }
-
-  /**
-   * Creates a heading tree node with the given properties.
-   *
-   * @private
-   * @param {HTMLElement} element - The heading element
-   * @param {number} level - The heading level
-   * @param {number} skippedLevels - Number of skipped levels for visual display
-   * @param {Array<string>} errorReasons - Array of error reason keys
-   * @returns {Object} The heading tree node
-   */
-  _createHeadingNode(element, level, skippedLevels, errorReasons) {
-    return {
-      element,
-      level,
-      children: [],
-      skippedLevels,
-      hasError: errorReasons.length > 0,
-      errorReasons,
-    };
-  }
-
-  /**
-   * Adds a node to the tree structure and updates the parent stack.
-   *
-   * @private
-   * @param {Object} node - The heading node to add
-   * @param {Array} parentStack - Stack of parent headings to modify
-   * @param {Array} rootNodes - Root nodes array to modify if needed
-   */
-  _addNodeToTree(node, parentStack, rootNodes) {
-    // Update parent stack first to determine proper nesting
-    this._updateParentStack(node.level, parentStack);
-
-    // Add to appropriate parent or root
-    if (parentStack.length === 0) {
-      rootNodes.push(node);
-    } else {
-      parentStack[parentStack.length - 1].children.push(node);
-    }
-
-    // Add current node to parent stack
-    parentStack.push(node);
-  }
-
-  /**
-   * Gets specific errors for a heading element.
-   *
-   * @private
-   * @param {HTMLElement} element - The heading element
-   * @returns {Array<string>} Array of error message keys
-   */
-  _getHeadingErrors(element) {
-    const errors = [];
-
-    // Check for empty heading
-    if (this._isEmptyHeading(element)) {
-      errors.push("emptyHeading");
-    }
-
-    // Check for multiple H1s
-    if (this._isMultipleH1(element)) {
-      errors.push("multipleH1");
-    }
-
-    return errors;
-  }
-
-  /**
-   * Checks if a heading element is empty.
-   *
-   * @private
-   * @param {HTMLElement} element - The heading element
-   * @returns {boolean} True if the heading is empty
-   */
-  _isEmptyHeading(element) {
-    const text = element.innerText?.trim() || "";
-    return text.length === 0;
-  }
-
-  /**
-   * Checks if a heading is one of multiple H1 elements.
-   *
-   * @private
-   * @param {HTMLElement} element - The heading element
-   * @returns {boolean} True if this is a duplicate H1
-   */
-  _isMultipleH1(element) {
-    if (element.tagName !== "H1") {
-      return false;
-    }
-
-    const allH1s = element.ownerDocument.querySelectorAll("h1");
-    return allH1s.length > 1;
-  }
-
-  /**
-   * Extracts the heading level from an HTML element.
-   *
-   * @private
-   * @param {HTMLElement} element - The heading element
-   * @returns {number} The heading level (1-6)
-   */
-  _extractHeadingLevel(element) {
-    const tagName = element.tagName.toLowerCase();
-    if (tagName.startsWith("h") && tagName.length === 2) {
-      return parseInt(tagName.charAt(1), 10);
-    }
-    return 0; // Not a heading
-  }
-
-  /**
-   * Calculates skipped heading levels for accessibility validation.
-   *
-   * @private
-   * @param {number} currentLevel - The current heading level
-   * @param {Array} parentStack - Stack of parent headings
-   * @returns {number} Number of skipped levels
-   */
-  _calculateSkippedLevels(currentLevel, parentStack) {
-    const expectedLevel = this._getExpectedHeadingLevel(parentStack);
-    return Math.max(0, currentLevel - expectedLevel);
-  }
-
-  /**
-   * Gets the expected next heading level based on the parent stack.
-   *
-   * @private
-   * @param {Array} parentStack - Stack of parent headings
-   * @returns {number} The expected next heading level
-   */
-  _getExpectedHeadingLevel(parentStack) {
-    if (parentStack.length === 0) {
-      return HeadingStructure.HEADING_CONSTANTS.MIN_HEADING_LEVEL; // First heading should be H1
-    }
-
-    const lastParentLevel = parentStack[parentStack.length - 1].level;
-    return lastParentLevel + 1; // Next level should be parent + 1
-  }
-
-  /**
-   * Updates the parent stack for proper tree nesting.
-   *
-   * @private
-   * @param {number} currentLevel - The current heading level
-   * @param {Array} parentStack - Stack of parent headings to modify
-   */
-  _updateParentStack(currentLevel, parentStack) {
-    // Remove parents that are at the same level or deeper
-    while (
-      parentStack.length &&
-      parentStack[parentStack.length - 1].level >= currentLevel
-    ) {
-      parentStack.pop();
-    }
-  }
-
-  /**
-   * Recursively renders the heading tree as nested lists with connecting lines.
-   *
-   * @private
-   * @param {Array<HeadingTreeNode>} nodes - The heading tree nodes
-   * @param {boolean} [isRoot=true] - Whether this is the root level
-   * @returns {import('lit').TemplateResult|null} The rendered heading tree
-   */
   _renderHeadingTree(nodes, isRoot = true) {
     if (!nodes || !nodes.length) return null;
 
@@ -610,10 +251,15 @@ export class HeadingStructure extends AccessibilityStructureBase {
    * @returns {import('lit').TemplateResult} The rendered node
    */
   _renderHeadingNode(node) {
-    const hasError = node.errorReasons && node.errorReasons.length > 0;
-    const errorMessages = hasError
-      ? this._getErrorMessages(node.errorReasons)
-      : [];
+    const errors = ErrorRegistry.getErrors(node.element);
+    const hasError = errors && errors.length > 0;
+    const errorMessages = hasError ? errors.map((error) => {
+      return {
+        message: TYPO3.lang[error.id] || error.id,
+        severity: error.severity,
+        count: error.count,
+      };
+    }) : [];
     const mostSevereError = this._getMostSevereError(errorMessages);
 
     // Determine the appropriate CSS class based on error severity
@@ -679,7 +325,14 @@ export class HeadingStructure extends AccessibilityStructureBase {
    */
   _createHeadingType(node) {
     const availableTypes = this._parseAvailableTypes(node.element);
-    const errorMessages = this._getErrorMessages(node.errorReasons || []);
+    const errors = ErrorRegistry.getErrors(node.element);
+    const errorMessages = errors ? errors.map((error) => {
+      return {
+        message: TYPO3.lang[error.id] || error.id,
+        severity: error.severity,
+        count: error.count,
+      };
+    }) : [];
 
     return html`
       <mindfula11y-heading-type
@@ -753,200 +406,19 @@ export class HeadingStructure extends AccessibilityStructureBase {
   }
 
   /**
-   * Handles heading type change events by reloading the structure.
+   * Handles heading type change events by clearing the cache and reloading content.
    *
    * @private
    * @param {CustomEvent} event - The heading type change event
    */
   _handleHeadingTypeChange(event) {
+    // Clear the cached preview content since the content has changed on the server
+    if (this.previewUrl) {
+      ContentFetcher.clearCache(this.previewUrl);
+    }
+
     // Reload the entire structure to reflect changes
     this.loadContentTask.run();
-  }
-
-  /**
-   * Selects heading elements from HTML content.
-   * Implementation of abstract method from AccessibilityStructureBase.
-   *
-   * @private
-   * @param {string} htmlString - The HTML string to parse
-   * @returns {Array<HTMLElement>} Array of heading elements
-   */
-  _selectElements(htmlString) {
-    const parser = new DOMParser();
-    return Array.from(
-      parser
-        .parseFromString(htmlString, "text/html")
-        .querySelectorAll("h1, h2, h3, h4, h5, h6")
-    );
-  }
-
-  /**
-   * Builds a list of accessibility errors for the heading structure.
-   *
-   * @private
-   * @param {Array<HTMLElement>} headings - Array of heading elements
-   * @returns {Array<HeadingStructureError>} Array of error objects
-   */
-  _buildErrorList(headings) {
-    if (!headings || headings.length === 0) {
-      return [];
-    }
-
-    const errors = [];
-    const h1Elements = headings.filter((h) => h.tagName === "H1");
-
-    // Check for missing H1
-    this._checkMissingH1(h1Elements, errors);
-
-    // Check for multiple H1 elements
-    this._checkMultipleH1(h1Elements, errors);
-
-    // Check for empty headings
-    this._checkEmptyHeadings(headings, errors);
-
-    // Check for skipped levels
-    this._checkSkippedLevels(headings, errors);
-
-    return errors;
-  }
-
-  /**
-   * Checks for missing H1 element and adds error if needed.
-   *
-   * @private
-   * @param {Array<HTMLElement>} h1Elements - Array of H1 elements (pre-filtered)
-   * @param {Array} errors - Error array to modify
-   */
-  _checkMissingH1(h1Elements, errors) {
-    if (h1Elements.length === 0) {
-      errors.push(
-        this._createError(
-          ERROR_SEVERITY.ERROR,
-          1, // Missing H1 is always a single issue
-          "mindfula11y.features.headingStructure.error.missingH1",
-          "mindfula11y.features.headingStructure.error.missingH1.description"
-        )
-      );
-    }
-  }
-
-  /**
-   * Checks for multiple H1 elements and adds warning if needed.
-   *
-   * @private
-   * @param {Array<HTMLElement>} h1Elements - Array of H1 elements (pre-filtered)
-   * @param {Array} errors - Error array to modify
-   */
-  _checkMultipleH1(h1Elements, errors) {
-    if (h1Elements.length > 1) {
-      const extraH1Count = h1Elements.length - 1; // Count additional H1s beyond the first
-      errors.push(
-        this._createError(
-          ERROR_SEVERITY.WARNING,
-          extraH1Count,
-          "mindfula11y.features.headingStructure.error.multipleH1",
-          "mindfula11y.features.headingStructure.error.multipleH1.description"
-        )
-      );
-    }
-  }
-
-  /**
-   * Checks for empty headings and adds error if needed.
-   *
-   * @private
-   * @param {Array<HTMLElement>} headings - Array of heading elements
-   * @param {Array} errors - Error array to modify
-   */
-  _checkEmptyHeadings(headings, errors) {
-    const emptyHeadings = headings.filter((h) => {
-      const text = h.innerText?.trim() || "";
-      return text.length === 0;
-    });
-
-    if (emptyHeadings.length > 0) {
-      errors.push(
-        this._createError(
-          ERROR_SEVERITY.ERROR,
-          emptyHeadings.length, // Count total number of empty headings
-          "mindfula11y.features.headingStructure.error.emptyHeadings",
-          "mindfula11y.features.headingStructure.error.emptyHeadings.description"
-        )
-      );
-    }
-  }
-
-  /**
-   * Checks for skipped heading levels and adds error if needed.
-   *
-   * @private
-   * @param {Array<HTMLElement>} headings - Array of heading elements
-   * @param {Array} errors - Error array to modify
-   */
-  _checkSkippedLevels(headings, errors) {
-    const headingTree = this._buildHeadingTree(headings);
-    let skippedLocationCount = 0;
-
-    const countSkippedLocations = (nodes) => {
-      nodes.forEach((node) => {
-        if (node.skippedLevels > 0) {
-          skippedLocationCount++; // Count locations where skipping occurs, not total skipped levels
-        }
-        if (node.children && node.children.length > 0) {
-          countSkippedLocations(node.children);
-        }
-      });
-    };
-
-    countSkippedLocations(headingTree);
-
-    if (skippedLocationCount > 0) {
-      errors.push(
-        this._createError(
-          ERROR_SEVERITY.ERROR,
-          skippedLocationCount, // Count number of locations where levels are skipped
-          "mindfula11y.features.headingStructure.error.skippedLevel",
-          "mindfula11y.features.headingStructure.error.skippedLevel.description"
-        )
-      );
-    }
-  }
-
-  /**
-   * Gets the translation key for a heading error message.
-   * Follows the same pattern as landmark-structure for consistency.
-   *
-   * @private
-   * @param {string} errorKey - The error type key
-   * @returns {string} The translation key
-   */
-  _getErrorMessageKey(errorKey) {
-    const errorCalloutMap = {
-      emptyHeading: "mindfula11y.features.headingStructure.error.emptyHeadings",
-      multipleH1: "mindfula11y.features.headingStructure.error.multipleH1",
-      skippedLevel: "mindfula11y.features.headingStructure.error.skippedLevel",
-    };
-
-    return errorCalloutMap[errorKey] || errorKey;
-  }
-
-  /**
-   * Gets the severity for a heading error type.
-   * Overrides the base class to provide heading-specific severity mappings.
-   *
-   * @protected
-   * @param {string} errorKey - The error type key
-   * @returns {string} The error severity
-   */
-  _getErrorSeverity(errorKey) {
-    const severityMap = {
-      emptyHeading: ERROR_SEVERITY.ERROR,
-      multipleH1: ERROR_SEVERITY.WARNING,
-      skippedLevel: ERROR_SEVERITY.ERROR,
-      missingH1: ERROR_SEVERITY.ERROR,
-    };
-
-    return severityMap[errorKey] || ERROR_SEVERITY.ERROR;
   }
 }
 

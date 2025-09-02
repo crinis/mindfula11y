@@ -34,9 +34,6 @@
 import { LitElement, html, css } from "lit";
 import AjaxDataHandler from "@typo3/backend/ajax-data-handler.js";
 import Notification from "@typo3/backend/notification.js";
-import {
-  LANDMARK_LABEL_KEYS,
-} from "./types.js";
 
 /**
  * Web component for displaying and editing a single landmark in TYPO3.
@@ -176,7 +173,7 @@ export class LandmarkBox extends LitElement {
     if (this.label?.trim()) {
       return this.label;
     }
-    return TYPO3.lang[LANDMARK_LABEL_KEYS.COMPONENT.UNLABELED_LANDMARK] || "";
+    return TYPO3.lang["mindfula11y.features.landmarkStructure.unlabelledLandmark"] || "";
   }
 
   /**
@@ -273,7 +270,7 @@ export class LandmarkBox extends LitElement {
           ? html`
               <span class="badge rounded-pill">
                 ${this.children.length}
-                ${TYPO3.lang[LANDMARK_LABEL_KEYS.UI.NESTED_LANDMARKS]}
+                ${TYPO3.lang["mindfula11y.features.landmarkStructure.nestedLandmarks"]}
               </span>
             `
           : ""}
@@ -309,7 +306,7 @@ export class LandmarkBox extends LitElement {
         class="btn btn-outline-primary btn-sm d-flex align-items-center gap-1"
       >
         ${this._renderEditIcon()}
-        <span>${TYPO3.lang[LANDMARK_LABEL_KEYS.COMPONENT.EDIT]}</span>
+        <span>${TYPO3.lang["mindfula11y.features.landmarkStructure.edit"]}</span>
       </a>
     `;
   }
@@ -325,7 +322,7 @@ export class LandmarkBox extends LitElement {
       <span class="text-muted d-flex align-items-center gap-1">
         ${this._renderLockIcon()}
         <span class="fs-7"
-          >${TYPO3.lang[LANDMARK_LABEL_KEYS.COMPONENT.EDIT_LOCKED]}</span
+          >${TYPO3.lang["mindfula11y.features.landmarkStructure.edit.locked"]}</span
         >
       </span>
     `;
@@ -442,7 +439,7 @@ export class LandmarkBox extends LitElement {
 
       return html`
         <label id="${labelId}" for="${uniqueId}" class="visually-hidden">
-          ${TYPO3.lang[LANDMARK_LABEL_KEYS.COMPONENT.ROLE_LABEL]}
+          ${TYPO3.lang["mindfula11y.features.landmarkStructure.role"]}
         </label>
         ${disabled
           ? this._renderRoleInput(uniqueId, labelId)
@@ -540,7 +537,7 @@ export class LandmarkBox extends LitElement {
   _renderRoleSelectError() {
     return html`
       <div class="alert alert-danger alert-sm">
-        ${TYPO3.lang[LANDMARK_LABEL_KEYS.ERROR_HANDLING.ROLE_SELECT_ERROR]}
+        ${TYPO3.lang["mindfula11y.features.landmarkStructure.error.roleSelect"]}
       </div>
     `;
   }
@@ -567,7 +564,6 @@ export class LandmarkBox extends LitElement {
         `Error saving role for landmark ${this.landmarkId}:`,
         error
       );
-      this._showSaveError();
     }
   }
 
@@ -636,20 +632,9 @@ export class LandmarkBox extends LitElement {
    */
   _handleSaveError() {
     Notification.error(
-      TYPO3.lang[LANDMARK_LABEL_KEYS.ERROR_HANDLING.STORE_FAILED],
-      TYPO3.lang[LANDMARK_LABEL_KEYS.ERROR_HANDLING.STORE_FAILED_DESC]
+      TYPO3.lang["mindfula11y.features.landmarkStructure.error.store"],
+      TYPO3.lang["mindfula11y.features.landmarkStructure.error.store.description"]
     );
-  }
-
-  /**
-   * Shows a general save error message.
-   *
-   * @private
-   */
-  _showSaveError() {
-    const errorMessage =
-      TYPO3.lang[LANDMARK_LABEL_KEYS.ERROR_HANDLING.STORE_FAILED];
-    console.error(errorMessage);
   }
 
   /**
@@ -665,7 +650,7 @@ export class LandmarkBox extends LitElement {
    */
   _getRoleDisplayName(role) {
     if (role === "") {
-      return TYPO3.lang[LANDMARK_LABEL_KEYS.COMPONENT.ROLE_NONE] || "";
+      return TYPO3.lang["mindfula11y.features.landmarkStructure.role.none"] || "";
     }
     const translationKey = `mindfula11y.features.landmarkStructure.role.${role}`;
     return TYPO3.lang[translationKey] || role;

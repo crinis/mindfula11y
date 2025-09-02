@@ -413,13 +413,13 @@
                 <source>Every page should have exactly one main landmark to identify the main content area. 
                     This helps screenreader users quickly navigate to the primary content.</source>
             </trans-unit>
-            <trans-unit id="landmarkStructure.error.duplicateLandmark"
-                resname="landmarkStructure.error.duplicateLandmark">
-                <source>Duplicate unique landmark.</source>
+            <trans-unit id="landmarkStructure.error.duplicateMain"
+                resname="landmarkStructure.error.duplicateMain">
+                <source>Multiple main landmarks found.</source>
             </trans-unit>
-            <trans-unit id="landmarkStructure.error.duplicateLandmark.description"
-                resname="landmarkStructure.error.duplicateLandmark.description">
-                <source>The main landmark must appear exactly once per page. Multiple main landmarks can confuse assistive technology users.</source>
+            <trans-unit id="landmarkStructure.error.duplicateMain.description"
+                resname="landmarkStructure.error.duplicateMain.description">
+                <source>Only one main landmark is allowed per page. Multiple main landmarks can confuse screen reader users.</source>
             </trans-unit>
             <trans-unit id="landmarkStructure.error.duplicateSameLabel" resname="landmarkStructure.error.duplicateSameLabel">
                 <source>Landmarks with identical labels.</source>

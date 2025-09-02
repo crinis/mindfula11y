@@ -139,15 +139,15 @@
                 <target>Jede Seite sollte genau ein Main-Landmark haben, um den Hauptinhaltsbereich zu kennzeichnen. 
                     Dies hilft Screenreader-Benutzern, schnell zum primären Inhalt zu navigieren.</target>
             </trans-unit>
-            <trans-unit id="landmarkStructure.error.duplicateLandmark"
-                resname="landmarkStructure.error.duplicateLandmark">
-                <source>Duplicate unique landmark.</source>
-                <target>Doppeltes eindeutiges Landmark.</target>
+            <trans-unit id="landmarkStructure.error.duplicateMain"
+                resname="landmarkStructure.error.duplicateMain">
+                <source>Multiple main landmarks found.</source>
+                <target>Mehrere Main-Landmarks gefunden.</target>
             </trans-unit>
-            <trans-unit id="landmarkStructure.error.duplicateLandmark.description"
-                resname="landmarkStructure.error.duplicateLandmark.description">
-                <source>The main landmark must appear exactly once per page. Multiple main landmarks can confuse assistive technology users.</source>
-                <target>Das Main-Landmark muss genau einmal pro Seite vorhanden sein. Mehrere Main-Landmarks können Benutzer assistiver Technologien verwirren.</target>
+            <trans-unit id="landmarkStructure.error.duplicateMain.description"
+                resname="landmarkStructure.error.duplicateMain.description">
+                <source>Only one main landmark is allowed per page. Multiple main landmarks can confuse screen reader users.</source>
+                <target>Nur ein Main-Landmark ist pro Seite erlaubt. Mehrere Main-Landmarks können Screenreader-Benutzer verwirren.</target>
             </trans-unit>
             <trans-unit id="landmarkStructure.success.roleUpdated"
                 resname="landmarkStructure.success.roleUpdated">

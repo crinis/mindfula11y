@@ -3,7 +3,7 @@
  * Copyright (C) 2025  Mindful Markup, Felix Spittel
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
+ * it under the terms of blic License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
@@ -23,11 +23,8 @@
  */
 import { LitElement, html } from "lit";
 import { Task } from "@lit/task";
-import AjaxRequest from "@typo3/core/ajax/ajax-request.js";
 import Notification from "@typo3/backend/notification.js";
 import { 
-  ERROR_SEVERITY, 
-  createError, 
   getSeverityClass, 
   getSeverityBadgeClass, 
   getSeverityLabel 
@@ -35,23 +32,28 @@ import {
 
 /**
  * Base class for accessibility structure components.
- * 
+ *
  * Provides common functionality for analyzing HTML content, detecting accessibility
  * errors, and rendering error messages with consistent styling and severity levels.
- * 
+ * This abstract base class defines the contract that all accessibility structure
+ * components must follow.
+ *
+ * Key features:
+ * - Unified error handling and notification system
+ * - Consistent styling for error messages and severity levels
+ * - Task-based content loading with proper error recovery
+ * - Bootstrap-styled alert components for user feedback
+ *
+ * Subclasses must implement:
+ * - `_analyzeContent()` method for specific content analysis
+ * - Component-specific rendering logic
+ * - Error detection and reporting
+ *
+ * @abstract
  * @class AccessibilityStructureBase
  * @extends LitElement
  */
 export class AccessibilityStructureBase extends LitElement {
-  /**
-   * Static cache for preview content, shared across all instances.
-   * Keyed by previewUrl.
-   */
-  /**
-   * Static cache for preview content or in-flight Promises, shared across all instances.
-   * Keyed by previewUrl. Value is either a string (HTML) or a Promise resolving to string.
-   */
-  static _previewCache = new Map();
   /**
    * Component properties definition.
    *
@@ -84,44 +86,14 @@ export class AccessibilityStructureBase extends LitElement {
 
   /**
    * Analyzes content from the preview URL.
-   * Subclasses should override this method to implement specific analysis logic.
+   * Subclasses must override this method to implement specific analysis logic.
    * 
    * @private
    * @param {Array} args - Task arguments containing [previewUrl]
    * @returns {Promise<Array<HTMLElement>|null>} The elements found or null on error
    */
   async _analyzeContent([previewUrl]) {
-    try {
-      const previewHtml = await this._fetchPreview(previewUrl);
-      return this._selectElements(previewHtml);
-    } catch (error) {
-      this._handleLoadingError(error);
-      return null;
-    }
-  }
-
-  /**
-   * Selects elements from HTML content.
-   * Subclasses should override this method to implement specific element selection.
-   * 
-   * @private
-   * @param {string} htmlString - The HTML string to parse
-   * @returns {Array<HTMLElement>} Array of elements
-   */
-  _selectElements(htmlString) {
-    throw new Error('_selectElements must be implemented by subclass');
-  }
-
-  /**
-   * Builds error list from elements.
-   * Subclasses should override this method to implement specific error detection.
-   * 
-   * @private
-   * @param {Array<HTMLElement>} elements - Array of elements to check
-   * @returns {Array} Array of error objects
-   */
-  _buildErrorList(elements) {
-    throw new Error('_buildErrorList must be implemented by subclass');
+    throw new Error('_analyzeContent must be implemented by subclass');
   }
 
   /**
@@ -137,50 +109,6 @@ export class AccessibilityStructureBase extends LitElement {
       TYPO3.lang["mindfula11y.features.accessibility.error.loading"],
       TYPO3.lang["mindfula11y.features.accessibility.error.loading.description"]
     );
-  }
-
-  /**
-   * Fetches preview content from the server with proper headers, using a static cache.
-   *
-   * Caching and concurrency details:
-   * - Uses a static Map to cache preview HTML by URL, shared across all instances.
-   * - If a fetch is already in progress for a URL, returns the same in-flight Promise to all callers,
-   *   ensuring only one network request is made for concurrent calls.
-   * - Once the fetch completes, the resolved HTML is stored in the cache for future calls.
-   * - If the cache contains the HTML, returns it immediately.
-   *
-   * @private
-   * @returns {Promise<string>} Resolves to the preview HTML content for the current previewUrl.
-   */
-  async _fetchPreview() {
-    // Use static cache to avoid duplicate fetches for the same URL
-    const cache = AccessibilityStructureBase._previewCache;
-    const url = this.previewUrl;
-
-    if (cache.has(url)) {
-      const cached = cache.get(url);
-      // If cached value is a Promise (fetch in progress), return it
-      if (cached && typeof cached.then === 'function') {
-        return cached;
-      }
-      // If cached value is HTML, return it
-      return cached;
-    }
-
-    // Start fetch and store the Promise immediately
-    const fetchPromise = (async () => {
-      const response = await new AjaxRequest(url).get({
-        headers: {
-          "Mindfula11y-Structure-Analysis": "1",
-        },
-      });
-      const html = await response.resolve();
-      // Replace the Promise in the cache with the resolved HTML
-      cache.set(url, html);
-      return html;
-    })();
-    cache.set(url, fetchPromise);
-    return fetchPromise;
   }
 
   /**
@@ -232,48 +160,12 @@ export class AccessibilityStructureBase extends LitElement {
       <li class="alert ${alertClass}">
         <p class="lead mb-2">
           <span class="badge ${badgeClass} me-2">${severityLabel}</span>
-          ${error.title}
+          ${TYPO3.lang[error.id]}
           <span class="badge rounded-pill ms-2">${error.count}</span>
         </p>
-        <p class="mb-0">${error.description}</p>
+        <p class="mb-0">${TYPO3.lang[`${error.id}.description`]}</p>
       </li>
     `;
-  }
-
-  /**
-   * Creates a standardized error object with severity.
-   * 
-   * @protected
-   * @param {string} severity - Error severity (ERROR_SEVERITY.ERROR or ERROR_SEVERITY.WARNING)
-   * @param {number} count - Number of occurrences of this error
-   * @param {string} titleKey - Translation key for error title
-   * @param {string} descKey - Translation key for error description
-   * @returns {Object} Standardized error object
-   */
-  _createError(severity, count, titleKey, descKey) {
-    return createError(
-      severity,
-      count,
-      TYPO3.lang[titleKey],
-      TYPO3.lang[descKey]
-    );
-  }
-
-  /**
-   * Gets error messages with severity for an element.
-   * 
-   * @protected
-   * @param {Array<string>} errorKeys - Array of error type keys
-   * @returns {Array<Object>} Array of error message objects with severity
-   */
-  _getErrorMessages(errorKeys) {
-    return errorKeys.map(errorKey => {
-      const messageKey = this._getErrorMessageKey(errorKey);
-      return {
-        message: TYPO3.lang[messageKey] || errorKey,
-        severity: this._getErrorSeverity(errorKey)
-      };
-    });
   }
 
   /**
@@ -293,42 +185,6 @@ export class AccessibilityStructureBase extends LitElement {
         ${errorMessages.map(message => html`<li>${message}</li>`)}
       </ul>
     `;
-  }
-
-  /**
-   * Gets the severity for an error type.
-   * Subclasses can override this to define specific severity mappings.
-   * 
-   * @protected
-   * @param {string} errorKey - The error type key
-   * @returns {string} The error severity
-   */
-  _getErrorSeverity(errorKey) {
-    // Default mapping - subclasses can override
-    const severityMap = {
-      'emptyHeading': ERROR_SEVERITY.ERROR,
-      'multipleH1': ERROR_SEVERITY.WARNING,
-      'skippedLevel': ERROR_SEVERITY.ERROR,
-      'missingH1': ERROR_SEVERITY.ERROR,
-      'duplicateMain': ERROR_SEVERITY.ERROR,
-      'duplicateRoleSameLabel': ERROR_SEVERITY.WARNING,
-      'multipleUnlabeledSameRole': ERROR_SEVERITY.WARNING
-    };
-    
-    return severityMap[errorKey] || ERROR_SEVERITY.ERROR;
-  }
-
-  /**
-   * Gets the translation key for an error message.
-   * Subclasses should override this to define specific message key mappings.
-   * 
-   * @protected
-   * @param {string} errorKey - The error type key
-   * @returns {string} The translation key
-   */
-  _getErrorMessageKey(errorKey) {
-    // Base implementation - subclasses should override with their specific mappings
-    return errorKey;
   }
 }
 
