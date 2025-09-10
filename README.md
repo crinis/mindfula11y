@@ -18,7 +18,7 @@ composer require mindfulmarkup/mindfula11y
 - **AI-Powered Alt Text Generation**: Supports generating alternative texts for images using ChatGPT.
 
 - **Viewhelpers and TCA columns for heading types and landmarks**: Various viewhelpers and a new accessibility tab for content elements to make it easy for editors to use accessible heading types and create ARIA landmarks. 
-- **Heading Structure Overview**: Backend module that visualizes the heading structure of the selected page and allows editors to easily identify issues and edit heading types for records using the custom ViewHelper.
+- **Heading Structure Overview**: Backend module that visualizes the heading structure of the selected page and allows editors to easily identify issues and edit heading types for records using the custom ViewHelper. Also available directly in the page module for immediate feedback while editing content.
 
   ![Screenshot of the accessibility backend module showing a heading tree with an error shown due to a skipped heading level](Resources/Public/Images/Screenshots/HeadingTreeModule.png)
 
@@ -45,18 +45,20 @@ Configure module behavior per page using Page TSconfig (`Configuration/page.tsco
 
 ```
 mod {
-    mindfula11y_missingalttext {
-        enable = 1
-        ignoreColumns {
-            # Do not include column `image` from table `tt_content` in the alternative text check.
-            tt_content = image
+    mindfula11y_accessibility {
+        missingAltText {
+            enable = 1
+            ignoreColumns {
+                # Do not include column `image` from table `tt_content` in the alternative text check.
+                tt_content = image
+            }
         }
-    }
-    mindfula11y_headingstructure {
-        enable = 1
-    }
-    mindfula11y_landmarkstructure {
-        enable = 1
+        headingStructure {
+            enable = 1
+        }
+        landmarkStructure {
+            enable = 1
+        }
     }
 }
 ```

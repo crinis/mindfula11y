@@ -148,7 +148,7 @@ class AccessibilityModuleController
         $backendUser = $this->getBackendUserAuthentication();
         $this->pageId = (int)($this->request->getParsedBody()['id'] ?? $this->request->getQueryParams()['id'] ?? 0);
 
-        if ($this->pageId === 0) {
+        if (0 === $this->pageId) {
             $this->addFlashMessage(
                 $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:noPageSelected'),
                 $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:noPageSelected.description'),
@@ -191,20 +191,8 @@ class AccessibilityModuleController
         switch ($this->feature) {
             case Feature::GENERAL:
                 return $this->handleGeneralFeature();
-            case Feature::HEADING_STRUCTURE:
-                if ($this->pageTsConfig['mod']['mindfula11y_accessibility']['headingStructure']['enable'] ?? false) {
-                    return $this->handleHeadingStructureFeature();
-                }
-                break;
-            case Feature::LANDMARK_STRUCTURE:
-                if ($this->pageTsConfig['mod']['mindfula11y_accessibility']['landmarkStructure']['enable'] ?? false) {
-                    return $this->handleLandmarkStructureFeature();
-                }
-                break;
             case Feature::MISSING_ALT_TEXT:
-                if ($this->pageTsConfig['mod']['mindfula11y_accessibility']['missingAltText']['enable'] ?? false) {
-                    return $this->handleMissingAltTextFeature();
-                }
+                return $this->handleMissingAltTextFeature();
                 break;
         }
         throw new InvalidArgumentException('Invalid feature: ' . ($this->feature->value ?? ''), 1748518675);
@@ -215,50 +203,27 @@ class AccessibilityModuleController
      */
     protected function handleGeneralFeature(): ResponseInterface
     {
-        $fileReferenceCount = 0;
+        $previewEnabled = $this->isPreviewEnabledForDoktype($this->pageInfo['doktype'] ?? PageRepository::DOKTYPE_DEFAULT);
+
+        $missingAltTextUri = null;
+        $fileReferenceCount = null;
+
+        $hasMissingAltTextAccess = $this->hasMissingAltTextAccess();
+        $hasHeadingStructureAccess = $this->hasHeadingStructureAccess();
+        $hasLandmarkStructureAccess = $this->hasLandmarkStructureAccess();
+
         if (
-            $this->permissionService->checkTableWriteAccess('sys_file_reference')
-            && $this->permissionService->checkNonExcludeFields('sys_file_reference', ['alternative'])
+            $hasMissingAltTextAccess
         ) {
+            $filterFileMetaData = $this->permissionService->checkTableReadAccess('sys_file_metadata') && $this->permissionService->checkNonExcludeFields('sys_file_metadata', ['alternative']);
             $fileReferenceCount = $this->altTextFinderService->countAltlessFileReferences(
                 $this->pageId,
                 0,
                 $this->languageId,
                 $this->pageTsConfig,
-                true
+                $filterFileMetaData
             );
-        }
 
-        $previewEnabled = $this->isPreviewEnabledForDoktype($this->pageInfo['doktype'] ?? PageRepository::DOKTYPE_DEFAULT);
-        
-        // Build URIs for structure links
-        $headingStructureUri = null;
-        $landmarkStructureUri = null;
-        $missingAltTextUri = null;
-        if ($previewEnabled) {
-            if ($this->pageTsConfig['mod']['mindfula11y_accessibility']['headingStructure']['enable'] ?? false) {
-                $headingStructureUri = $this->backendUriBuilder->buildUriFromRoute(
-                    'mindfula11y_accessibility',
-                    [
-                        'id' => $this->pageId,
-                        'feature' => Feature::HEADING_STRUCTURE->value,
-                        'languageId' => $this->languageId,
-                    ]
-                );
-            }
-            if ($this->pageTsConfig['mod']['mindfula11y_accessibility']['landmarkStructure']['enable'] ?? false) {
-                $landmarkStructureUri = $this->backendUriBuilder->buildUriFromRoute(
-                    'mindfula11y_accessibility',
-                    [
-                        'id' => $this->pageId,
-                        'feature' => Feature::LANDMARK_STRUCTURE->value,
-                        'languageId' => $this->languageId,
-                    ]
-                );
-            }
-        }
-        
-        if ($this->pageTsConfig['mod']['mindfula11y_accessibility']['missingAltText']['enable'] ?? false) {
             $missingAltTextUri = $this->backendUriBuilder->buildUriFromRoute(
                 'mindfula11y_accessibility',
                 [
@@ -268,7 +233,7 @@ class AccessibilityModuleController
                 ]
             );
         }
-        
+
         $this->moduleTemplate->assignMultiple([
             'moduleData' => array_merge($this->moduleData->toArray(), [
                 'id' => $this->pageId,
@@ -277,12 +242,10 @@ class AccessibilityModuleController
             'previewUrl' => $previewEnabled ? (string)PreviewUriBuilder::create($this->pageId)
                 ->withLanguage($this->languageId)
                 ->buildUri() : null,
-            'enableHeadingStructure' => ($this->pageTsConfig['mod']['mindfula11y_accessibility']['headingStructure']['enable'] ?? false) && $previewEnabled,
-            'enableLandmarkStructure' => ($this->pageTsConfig['mod']['mindfula11y_accessibility']['landmarkStructure']['enable'] ?? false) && $previewEnabled,
-            'enableMissingAltText' => $this->pageTsConfig['mod']['mindfula11y_accessibility']['missingAltText']['enable'] ?? false,
-            'headingStructureUri' => $headingStructureUri,
-            'landmarkStructureUri' => $landmarkStructureUri,
             'missingAltTextUri' => $missingAltTextUri,
+            'hasMissingAltTextAccess' => $hasMissingAltTextAccess,
+            'hasHeadingStructureAccess' => $hasHeadingStructureAccess,
+            'hasLandmarkStructureAccess' => $hasLandmarkStructureAccess,
         ]);
 
         $this->pageRenderer->loadJavaScriptModule('@mindfulmarkup/mindfula11y/structure-errors.js');
@@ -306,70 +269,19 @@ class AccessibilityModuleController
     }
 
     /**
-     * Handle the heading structure feature.
-     */
-    protected function handleHeadingStructureFeature(): ResponseInterface
-    {
-        $previewEnabled = $this->isPreviewEnabledForDoktype($this->pageInfo['doktype'] ?? PageRepository::DOKTYPE_DEFAULT);
-
-        if (!$previewEnabled) {
-            $this->addFlashMessage(
-                $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:wrongPageTypeSelected'),
-                $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:wrongPageTypeSelected.description'),
-                ContextualFeedbackSeverity::INFO
-            );
-            return $this->moduleTemplate->renderResponse('Backend/Info')->withStatus(403);
-        }
-
-        $this->moduleTemplate->assignMultiple([
-            'moduleData' => array_merge($this->moduleData->toArray(), [
-                'id' => $this->pageId,
-            ]),
-            'previewUrl' => $previewEnabled ? (string)PreviewUriBuilder::create($this->pageId)
-                ->withLanguage($this->languageId)
-                ->buildUri() : null,
-        ]);
-
-        $this->pageRenderer->loadJavaScriptModule('@mindfulmarkup/mindfula11y/heading-structure.js');
-
-        return $this->moduleTemplate->renderResponse('Backend/HeadingStructure');
-    }
-
-    /**
-     * Handle the landmark structure feature.
-     */
-    protected function handleLandmarkStructureFeature(): ResponseInterface
-    {
-        $previewEnabled = $this->isPreviewEnabledForDoktype($this->pageInfo['doktype'] ?? PageRepository::DOKTYPE_DEFAULT);
-
-        if (!$previewEnabled) {
-            $this->addFlashMessage(
-                $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:wrongPageTypeSelected'),
-                $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:wrongPageTypeSelected.description'),
-                ContextualFeedbackSeverity::INFO
-            );
-            return $this->moduleTemplate->renderResponse('Backend/Info')->withStatus(403);
-        }
-
-        $this->moduleTemplate->assignMultiple([
-            'moduleData' => array_merge($this->moduleData->toArray(), [
-                'id' => $this->pageId,
-            ]),
-            'previewUrl' => $previewEnabled ? (string)PreviewUriBuilder::create($this->pageId)
-                ->withLanguage($this->languageId)
-                ->buildUri() : null,
-        ]);
-
-        $this->pageRenderer->loadJavaScriptModule('@mindfulmarkup/mindfula11y/landmark-structure.js');
-
-        return $this->moduleTemplate->renderResponse('Backend/LandmarkStructure');
-    }
-
-    /**
      * Handle the missing alt text feature.
      */
     protected function handleMissingAltTextFeature(): ResponseInterface
     {
+        if (!$this->hasMissingAltTextAccess()) {
+            $this->addFlashMessage(
+                $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:missingAltText.noAccess'),
+                $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:missingAltText.noAccess.description'),
+                ContextualFeedbackSeverity::ERROR
+            );
+            return $this->moduleTemplate->renderResponse('Backend/Info')->withStatus(403);
+        }
+
         $currentPage = (int)$this->moduleData->get('currentPage', 1);
         $pageLevels = (int)$this->moduleData->get('pageLevels', 1);
         $tableName = $this->moduleData->get('tableName', '');
@@ -383,8 +295,8 @@ class AccessibilityModuleController
         ));
 
         if (
-            $this->permissionService->checkTableReadAccess('sys_file_metadata') &&
-            $this->permissionService->checkNonExcludeFields('sys_file_metadata', ['alternative'])
+            $this->permissionService->checkTableReadAccess('sys_file_metadata')
+            && $this->permissionService->checkNonExcludeFields('sys_file_metadata', ['alternative'])
         ) {
             $this->moduleTemplate->getDocHeaderComponent()->getButtonBar()->addButton(
                 $this->buildFilterDropdown(
@@ -400,30 +312,14 @@ class AccessibilityModuleController
 
         /**
          * Protect table records from being shown if the user does not have
-         * write access to the table. Subsequent methods won't do this.
+         * read access to the table. Subsequent methods won't do this.
          * We intentionally ignore "hideTable" as inline records should
          * be shown even if the table is hidden.
          */
-        if (!empty($tableName) && !$this->permissionService->checkTableWriteAccess($tableName)) {
+        if (empty($tableName) && !$this->permissionService->checkTableReadAccess($tableName)) {
             $this->addFlashMessage(
                 $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:missingAltText.noTableAccess'),
                 $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:missingAltText.noTableAccess.description'),
-                ContextualFeedbackSeverity::ERROR
-            );
-            return $this->moduleTemplate->renderResponse('Backend/Info')->withStatus(403);
-        }
-
-        /**
-         * If the user does not have write access to the sys_file_reference table
-         * we cannot show any file references.
-         */
-        if (
-            !$this->permissionService->checkTableWriteAccess('sys_file_reference')
-            || !$this->permissionService->checkNonExcludeFields('sys_file_reference', ['alternative'])
-        ) {
-            $this->addFlashMessage(
-                $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:missingAltText.noFileReferenceAccess'),
-                $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:missingAltText.noFileReferenceAccess.description'),
                 ContextualFeedbackSeverity::ERROR
             );
             return $this->moduleTemplate->renderResponse('Backend/Info')->withStatus(403);
@@ -484,7 +380,7 @@ class AccessibilityModuleController
                 'id' => $this->pageId,
             ]),
             'pagination' => $pagination,
-            'paginator' => $paginator,
+            'paginator' => $paginator
         ]);
 
         $this->pageRenderer->loadJavaScriptModule('@mindfulmarkup/mindfula11y/altless-file-reference.js');
@@ -519,15 +415,21 @@ class AccessibilityModuleController
         $menu = $this->moduleTemplate->getDocHeaderComponent()->getMenuRegistry()->makeMenu()
             ->setIdentifier('MindfulA11yFeatures')
             ->setLabel($this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:menu.features'));
-        foreach ([Feature::GENERAL, Feature::HEADING_STRUCTURE, Feature::LANDMARK_STRUCTURE, Feature::MISSING_ALT_TEXT] as $feature) {
-            $menuItem = $menu->makeMenuItem()->setTitle(
-                $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:menu.features.' . $feature->value)
-            )->setHref(
-                $this->getMenuItemUri(['feature' => $feature->value])
-            )->setActive(
-                $this->feature === $feature
-            );
-            $menu->addMenuItem($menuItem);
+        foreach ([Feature::GENERAL, Feature::MISSING_ALT_TEXT] as $feature) {
+            $enabled = match ($feature) {
+                Feature::GENERAL => true,
+                Feature::MISSING_ALT_TEXT => $this->hasMissingAltTextAccess(),
+            };
+            if ($enabled) {
+                $menuItem = $menu->makeMenuItem()->setTitle(
+                    $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:menu.features.' . $feature->value)
+                )->setHref(
+                    $this->getMenuItemUri(['feature' => $feature->value])
+                )->setActive(
+                    $this->feature === $feature
+                );
+                $menu->addMenuItem($menuItem);
+            }
         }
 
         return $menu;
@@ -641,17 +543,16 @@ class AccessibilityModuleController
     {
         $allowedLanguages = $this->getAllowedSiteLanguages();
 
-        if (empty($allowedLanguages)) {
+        if (empty($allowedLanguages) || 0 === $this->pageId) {
             return null;
         }
 
-        $translatedLanguageIds = $this->getTranslatedLanguageIds($this->pageId);
-        $allowedLanguages = array_filter($allowedLanguages, function($language) use ($translatedLanguageIds) {
-            return in_array($language->getLanguageId(), $translatedLanguageIds);
-        });
+        $pageTranslations = BackendUtility::getExistingPageTranslations($this->pageId);
 
-        if (empty($allowedLanguages)) {
-            return null;
+        $availableLanguageIds = [];
+        foreach ($pageTranslations as $pageTranslation) {
+            $languageId = $pageTranslation[$GLOBALS['TCA']['pages']['ctrl']['languageField']];
+            $availableLanguageIds[] = (int)$languageId;
         }
 
         $menu = $this->moduleTemplate->getDocHeaderComponent()->getMenuRegistry()->makeMenu();
@@ -661,6 +562,11 @@ class AccessibilityModuleController
             );
 
         foreach ($allowedLanguages as $language) {
+            // Only show languages where the page is actually translated
+            if (0 !== $language->getLanguageId() && !in_array($language->getLanguageId(), $availableLanguageIds, true)) {
+                continue;
+            }
+
             $menuItem = $menu->makeMenuItem()->setTitle(
                 $language->getTitle()
             )->setHref(
@@ -701,7 +607,7 @@ class AccessibilityModuleController
      */
     protected function getInlineLanguageLabels(): array
     {
-    $labels = [
+        $labels = [
             // Heading Structure labels
             'mindfula11y.features.headingStructure.edit' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:headingStructure.edit'),
             'mindfula11y.features.headingStructure.edit.locked' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:headingStructure.edit.locked'),
@@ -766,6 +672,8 @@ class AccessibilityModuleController
             // Structure Errors labels
             'mindfula11y.features.structureErrors.viewHeadingStructure' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:structureErrors.viewHeadingStructure'),
             'mindfula11y.features.structureErrors.viewLandmarkStructure' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:structureErrors.viewLandmarkStructure'),
+            'mindfula11y.features.structureErrors.headingsTab' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:structureErrors.headingsTab'),
+            'mindfula11y.features.structureErrors.landmarksTab' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:structureErrors.landmarksTab'),
             // Missing Alt Text labels
             'mindfula11y.features.missingAltText.generate.button' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:missingAltText.generate.button'),
             'mindfula11y.features.missingAltText.generate.loading' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:missingAltText.generate.loading'),
@@ -843,7 +751,7 @@ class AccessibilityModuleController
      */
     protected function getAllowedSiteLanguages(): array
     {
-        $site = $this->request->getAttribute('site');
+        $site = $this->request->getAttribute('site', null);
         if (null === $site) {
             return [];
         }
@@ -852,27 +760,34 @@ class AccessibilityModuleController
     }
 
     /**
-     * Get the language IDs for which the page has translations.
-     * 
-     * @param int $pageId The page ID.
-     * @return array The list of language IDs including 0 for default.
+     * Check if the user has access to the heading structure feature.
+     *
+     * @return bool
      */
-    protected function getTranslatedLanguageIds(int $pageId): array
+    protected function hasHeadingStructureAccess(): bool
     {
-        $connection = $this->connectionPool->getConnectionForTable('pages');
-        $queryBuilder = $connection->createQueryBuilder();
-        $result = $queryBuilder
-            ->select('sys_language_uid')
-            ->from('pages')
-            ->where(
-                $queryBuilder->expr()->eq('pid', $queryBuilder->createNamedParameter($pageId)),
-                $queryBuilder->expr()->gt('sys_language_uid', 0)
-            )
-            ->executeQuery();
-        $languageIds = [0]; // default language
-        while ($row = $result->fetchAssociative()) {
-            $languageIds[] = (int)$row['sys_language_uid'];
-        }
-        return $languageIds;
+        return !!($this->pageTsConfig['mod']['mindfula11y_accessibility']['headingStructure']['enable'] ?? false);
+    }
+
+    /**
+     * Check if the user has access to the landmark structure feature.
+     *
+     * @return bool
+     */
+    protected function hasLandmarkStructureAccess(): bool
+    {
+        return !!($this->pageTsConfig['mod']['mindfula11y_accessibility']['landmarkStructure']['enable'] ?? false);
+    }
+
+    /**
+     * Check if the user has access to the missing alt text feature.
+     *
+     * @return bool
+     */
+    protected function hasMissingAltTextAccess(): bool
+    {
+        return $this->permissionService->checkTableReadAccess('sys_file_reference')
+            && $this->permissionService->checkNonExcludeFields('sys_file_reference', ['alternative'])
+            && !!($this->pageTsConfig['mod']['mindfula11y_accessibility']['missingAltText']['enable'] ?? false);
     }
 }

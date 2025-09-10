@@ -183,7 +183,9 @@ export class AltlessFileReference extends LitElement {
       })
       .catch(() => {
         Notification.error(
-          TYPO3.lang["mindfula11y.features.missingAltText.generate.error.unknown"],
+          TYPO3.lang[
+            "mindfula11y.features.missingAltText.generate.error.unknown"
+          ],
           TYPO3.lang[
             "mindfula11y.features.missingAltText.generate.error.unknown.description"
           ]
@@ -217,58 +219,65 @@ export class AltlessFileReference extends LitElement {
               TYPO3.lang["mindfula11y.features.missingAltText.imagePreview"]}"
             />
           </a>
-          <label class="form-label" for="${this._inputId}">
-            ${TYPO3.lang["mindfula11y.features.missingAltText.altLabel"]}
-          </label>
-          <textarea
-            id="${this._inputId}"
-            class="form-control"
-            placeholder="${TYPO3.lang[
-              "mindfula11y.features.missingAltText.altPlaceholder"
-            ]}"
-            rows="3"
-            .value="${this.alternative}"
-            ?readonly="${this._loading}"
-            @input="${this.handleAlternativeInput}"
-          ></textarea>
+          ${this.recordEditLink
+            ? html`<label class="form-label" for="${this._inputId}">
+                  ${TYPO3.lang["mindfula11y.features.missingAltText.altLabel"]}
+                </label>
+                <textarea
+                  id="${this._inputId}"
+                  class="form-control"
+                  placeholder="${TYPO3.lang[
+                    "mindfula11y.features.missingAltText.altPlaceholder"
+                  ]}"
+                  rows="3"
+                  .value="${this.alternative}"
+                  ?readonly="${this._loading}"
+                  @input="${this.handleAlternativeInput}"
+                ></textarea>
 
-          <div class="d-flex gap-2 mt-2">
-            ${null !== this.altTextDemand
-              ? html`
-                  <button
-                    class="btn btn-secondary"
-                    type="button"
-                    @click="${this.handleGenerate}"
-                    ?disabled="${this._loading}"
-                  >
-                    ${TYPO3.lang[
-                      "mindfula11y.features.missingAltText.generate.button"
-                    ]}
-                  </button>
-                `
-              : null}
-            <button
-              class="btn btn-primary"
-              type="button"
-              @click="${this.handleSave}"
-              ?disabled="${this.isSaveDisabled()}"
-            >
-              ${TYPO3.lang["mindfula11y.features.missingAltText.save"]}
-            </button>
-          </div>
-          <div class="mt-2" role="status" aria-live="polite" aria-atomic="true">
-            ${this._statusMessage
-              ? html`<p class="alert alert-info">
-                  ${this._loading
-                    ? html`<span
-                        class="spinner-border spinner-border-sm"
-                        aria-hidden="true"
-                      ></span>`
+                <div class="d-flex gap-2 mt-2">
+                  ${null !== this.altTextDemand
+                    ? html`
+                        <button
+                          class="btn btn-secondary"
+                          type="button"
+                          @click="${this.handleGenerate}"
+                          ?disabled="${this._loading}"
+                        >
+                          ${TYPO3.lang[
+                            "mindfula11y.features.missingAltText.generate.button"
+                          ]}
+                        </button>
+                      `
                     : null}
-                  ${this._statusMessage}
-                </p>`
-              : null}
-          </div>
+                  <button
+                    class="btn btn-primary"
+                    type="button"
+                    @click="${this.handleSave}"
+                    ?disabled="${this.isSaveDisabled()}"
+                  >
+                    ${TYPO3.lang["mindfula11y.features.missingAltText.save"]}
+                  </button>
+                </div>
+                <div
+                  class="mt-2"
+                  role="status"
+                  aria-live="polite"
+                  aria-atomic="true"
+                >
+                  ${this._statusMessage
+                    ? html`<p class="alert alert-info">
+                        ${this._loading
+                          ? html`<span
+                              class="spinner-border spinner-border-sm"
+                              aria-hidden="true"
+                            ></span>`
+                          : null}
+                        ${this._statusMessage}
+                      </p>`
+                    : null}
+                </div> `
+            : null}
           ${this.fallbackAlternative
             ? html`
                 <p class="mt-2 alert alert-secondary">
@@ -280,15 +289,19 @@ export class AltlessFileReference extends LitElement {
               `
             : ""}
         </div>
-        <div class="card-footer text-end">
-          <a
-            href="${this.recordEditLink}"
-            class="link-secondary"
-            rel="noopener"
-          >
-            ${this.recordEditLinkLabel}
-          </a>
-        </div>
+        ${this.recordEditLink
+          ? html`
+              <div class="card-footer text-end">
+                <a
+                  href="${this.recordEditLink}"
+                  class="link-secondary"
+                  rel="noopener"
+                >
+                  ${this.recordEditLinkLabel}
+                </a>
+              </div>
+            `
+          : ""}
       </div>
     `;
   }

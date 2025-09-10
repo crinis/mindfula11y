@@ -22,25 +22,29 @@
  * @description Web component for displaying combined accessibility errors from heading and landmark structures.
  * @typedef {import('./types.js').StructureError} StructureError
  */
-import { html, css } from "lit";
-import AccessibilityStructureBase from "./accessibility-structure-base.js";
+import { html, css, LitElement } from "lit";
+import { Task } from "@lit/task";
 import HeadingStructureService from "./heading-structure-service.js";
 import LandmarkStructureService from "./landmark-structure-service.js";
 import ContentFetcher from "./content-fetcher.js";
 import { ErrorRegistry } from "./error-registry.js";
 import ErrorList from "./error-list.js";
+import HeadingStructure from "./heading-structure.js";
+import LandmarkStructure from "./landmark-structure.js";
+import Notification from "@typo3/backend/notification.js";
 
 /**
  * Web component for displaying combined accessibility errors from heading and landmark structures.
  *
  * This component analyzes HTML content for both heading and landmark accessibility issues,
- * displays them in a unified error list, and provides navigation links to detailed views.
+ * displays them in separate tabs with error count badges, and provides detailed views
+ * for each structure type.
  *
  * Key features:
- * - Combined error detection from headings and landmarks
- * - Unified error list display with severity levels
- * - Navigation links to detailed structure views
- * - Bootstrap-styled error alerts and status indicators
+ * - Combined error list above tabs
+ * - Tabbed interface with Bootstrap styling
+ * - Error count badges in tab titles
+ * - Separate heading and landmark structure analysis
  * - Integration with TYPO3 backend notification system
  *
  * Error types detected:
@@ -48,9 +52,9 @@ import ErrorList from "./error-list.js";
  * - Landmark structure errors (missing main, multiple main, duplicate labels, unlabeled groups)
  *
  * @class StructureErrors
- * @extends AccessibilityStructureBase
+ * @extends LitElement
  */
-export class StructureErrors extends AccessibilityStructureBase {
+export class StructureErrors extends LitElement {
 
   /**
    * CSS styles for the component.
@@ -68,27 +72,120 @@ export class StructureErrors extends AccessibilityStructureBase {
    */
   static get properties() {
     return {
-      ...super.properties,
-      headingStructureUrl: { type: String },
-      landmarkStructureUrl: { type: String },
-      enableHeadingStructure: { type: Boolean },
-      enableLandmarkStructure: { type: Boolean },
+      previewUrl: { type: String },
+      hasHeadingStructureAccess: { type: Boolean },
+      hasLandmarkStructureAccess: { type: Boolean },
+      _currentTab: { type: String, state: true },
+      _headingTree: { type: Array, state: true },
+      _headingErrors: { type: Array, state: true },
+      _landmarkData: { type: Array, state: true },
+      _landmarkErrors: { type: Array, state: true },
+      _firstRun: { type: Boolean, state: true },
     };
   }
 
   /**
    * Creates an instance of StructureErrors.
-   *
-   * Inherits the task system from AccessibilityStructureBase for loading and analyzing content.
    */
   constructor() {
     super();
+    this.previewUrl = "";
+    this.hasHeadingStructureAccess = false;
+    this.hasLandmarkStructureAccess = false;
+    this._currentTab = this._getDefaultActiveTab();
+    this._headingTree = [];
+    this._headingErrors = [];
+    this._landmarkData = [];
+    this._landmarkErrors = [];
+    this._firstRun = true;
+
     this.headingService = new HeadingStructureService();
     this.landmarkService = new LandmarkStructureService();
-    this.headingStructureUrl = "";
-    this.landmarkStructureUrl = "";
-    this.enableHeadingStructure = false;
-    this.enableLandmarkStructure = false;
+
+    this.loadContentTask = new Task(
+      this,
+      this._analyzeContent.bind(this),
+      () => [this.previewUrl],
+      { autoRun: false }
+    );
+  }
+
+  /**
+   * Gets the default active tab based on enabled structures.
+   *
+   * @private
+   * @returns {string} The default active tab
+   */
+  _getDefaultActiveTab() {
+    if (this.hasHeadingStructureAccess) {
+      return "headings";
+    } else if (this.hasLandmarkStructureAccess) {
+      return "landmarks";
+    }
+    return "headings"; // fallback
+  }
+
+  /**
+   * Handles loading errors with user notification.
+   *
+   * @private
+   * @param {Error} error - The error that occurred during loading
+   */
+  _handleLoadingError(error) {
+    console.error('Accessibility structure could not be loaded.');
+
+    Notification.error(
+      TYPO3.lang["mindfula11y.features.accessibility.error.loading"],
+      TYPO3.lang["mindfula11y.features.accessibility.error.loading.description"]
+    );
+  }
+
+  /**
+   * Handles property updates and adjusts active tab if necessary.
+   *
+   * @param {Map} changedProperties - Map of changed properties
+   */
+  updated(changedProperties) {
+    super.updated(changedProperties);
+
+    if (changedProperties.has('hasHeadingStructureAccess') || changedProperties.has('hasLandmarkStructureAccess')) {
+      const newDefaultTab = this._getDefaultActiveTab();
+      if (!this._isTabEnabled(this._currentTab)) {
+        this._currentTab = newDefaultTab;
+      }
+    }
+
+    // Reload content when previewUrl changes
+    if (changedProperties.has('previewUrl') && this.previewUrl) {
+      this.loadContentTask.run();
+    }
+  }
+
+  /**
+   * Checks if a tab is currently enabled.
+   *
+   * @private
+   * @param {string} tabName - The tab name to check
+   * @returns {boolean} Whether the tab is enabled
+   */
+  _isTabEnabled(tabName) {
+    if (tabName === 'headings') {
+      return this.hasHeadingStructureAccess;
+    } else if (tabName === 'landmarks') {
+      return this.hasLandmarkStructureAccess;
+    }
+    return false;
+  }
+
+  /**
+   * Handles tab change events.
+   *
+   * @private
+   * @param {string} tabName - The name of the tab to activate
+   */
+  _handleTabChange(tabName) {
+    this._currentTab = tabName;
+    this.requestUpdate();
   }
 
   /**
@@ -101,8 +198,8 @@ export class StructureErrors extends AccessibilityStructureBase {
   async _analyzeContent([previewUrl]) {
     try {
       const previewHtml = await ContentFetcher.fetchContent(previewUrl);
-      const headings = this.enableHeadingStructure ? this.headingService.selectElements(previewHtml) : [];
-      const landmarkElements = this.enableLandmarkStructure ? this.landmarkService.selectElements(previewHtml) : [];
+      const headings = this.hasHeadingStructureAccess ? this.headingService.selectElements(previewHtml) : [];
+      const landmarkElements = this.hasLandmarkStructureAccess ? this.landmarkService.selectElements(previewHtml) : [];
 
       return {
         headings,
@@ -115,7 +212,7 @@ export class StructureErrors extends AccessibilityStructureBase {
   }
 
   /**
-   * Renders the structure errors component, including errors and navigation links.
+   * Renders the structure errors component with combined error list and tabbed interface.
    *
    * @returns {import('lit').TemplateResult} The rendered template for the component.
    */
@@ -126,30 +223,52 @@ export class StructureErrors extends AccessibilityStructureBase {
       </style>
       ${this.loadContentTask.render({
         complete: (elements) => {
-          if (this.firstRun) {
-            this.firstRun = false;
+          if (this._firstRun) {
+            this._firstRun = false;
           }
 
           // Clear all previous errors
           ErrorRegistry.clearAll();
 
           // Analyze headings if enabled and present
-          if (this.enableHeadingStructure && elements?.headings?.length) {
+          if (this.hasHeadingStructureAccess && elements?.headings?.length) {
             this.headingService.detectAllHeadingErrors(elements.headings);
+            this._headingErrors = ErrorRegistry.getAllAggregatedErrors().filter(error =>
+              error.tag === 'headings'
+            );
+            this._headingTree = this.headingService._buildHeadingTree(elements.headings);
+          } else {
+            this._headingErrors = [];
+            this._headingTree = [];
           }
 
           // Analyze landmarks if enabled and present
-          if (this.enableLandmarkStructure && elements?.landmarkElements?.length) {
-            const landmarkData = this.landmarkService.buildLandmarkList(elements.landmarkElements);
-            this.landmarkService.detectAllLandmarkErrors(landmarkData);
+          if (this.hasLandmarkStructureAccess && elements?.landmarkElements?.length) {
+            this._landmarkData = this.landmarkService.buildLandmarkList(elements.landmarkElements);
+            this.landmarkService.detectAllLandmarkErrors(this._landmarkData);
+            this._landmarkErrors = ErrorRegistry.getAllAggregatedErrors().filter(error =>
+              error.tag === 'landmarks'
+            );
+          } else {
+            this._landmarkErrors = [];
+            this._landmarkData = [];
           }
 
-          // Get all aggregated errors
-          const errors = ErrorRegistry.getAllAggregatedErrors();
+          // Force re-render to update badges
+          this.requestUpdate();
+
+          // Combine all errors for the top error list
+          const allErrors = [...this._headingErrors, ...this._landmarkErrors];
 
           return html`
-            ${this._renderNavigationLinks()}
-            <mindfula11y-error-list .errors="${errors}" .firstRun="${this.firstRun}"></mindfula11y-error-list>
+            ${allErrors.length > 0 ? html`
+              <mindfula11y-error-list .errors="${allErrors}" .firstRun="${this._firstRun}"></mindfula11y-error-list>
+            ` : ''}
+            ${this._renderTabs(
+              this._headingErrors.reduce((sum, error) => sum + error.count, 0),
+              this._landmarkErrors.reduce((sum, error) => sum + error.count, 0)
+            )}
+            ${this._renderTabContent()}
           `;
         },
       })}
@@ -166,27 +285,107 @@ export class StructureErrors extends AccessibilityStructureBase {
   }
 
   /**
-   * Renders navigation links to detailed structure views.
+   * Handles structure change events by clearing cache and reloading.
    *
    * @private
-   * @returns {import('lit').TemplateResult} The rendered navigation links
+   * @param {CustomEvent} event - The structure change event
    */
-  _renderNavigationLinks() {
-    if ((!this.enableHeadingStructure || !this.headingStructureUrl) && (!this.enableLandmarkStructure || !this.landmarkStructureUrl)) {
-      return html``;
+  _handleStructureChanged(event) {
+    // Clear the cache for the current preview URL to ensure fresh content
+    if (this.previewUrl) {
+      ContentFetcher.clearCache(this.previewUrl);
     }
+    // Reload the content
+    this.loadContentTask.run();
+  }
 
+  /**
+   * Renders the Bootstrap tab navigation with error count badges.
+   *
+   * @private
+   * @param {number} headingErrorCount - Number of heading errors
+   * @param {number} landmarkErrorCount - Number of landmark errors
+   * @returns {import('lit').TemplateResult} The rendered tab navigation
+   */
+  _renderTabs(headingErrorCount, landmarkErrorCount) {
     return html`
-      <div class="mb-3">
-        ${this.enableHeadingStructure && this.headingStructureUrl ? html`
-          <a href="${this.headingStructureUrl}" class="btn btn-default btn-sm">
-            ${TYPO3.lang["mindfula11y.features.structureErrors.viewHeadingStructure"]}
-          </a>
+      <ul class="nav nav-tabs" id="mindfula11y-structure-tabs" role="tablist">
+        ${this.hasHeadingStructureAccess ? html`
+          <li class="nav-item">
+            <button
+              class="nav-link ${this._currentTab === 'headings' ? 'active' : ''}"
+              id="mindfula11y-headings-tab"
+              data-bs-toggle="tab"
+              data-bs-target="#mindfula11y-headings"
+              type="button"
+              role="tab"
+              aria-controls="mindfula11y-headings"
+              aria-selected="${this._currentTab === 'headings'}"
+              @click="${() => this._handleTabChange('headings')}"
+            >
+              ${TYPO3.lang["mindfula11y.features.structureErrors.headingsTab"] || "Headings"}
+              ${headingErrorCount > 0 ? html`<span class="badge badge-danger ms-2">${headingErrorCount}</span>` : ''}
+            </button>
+          </li>
         ` : ''}
-        ${this.enableLandmarkStructure && this.landmarkStructureUrl ? html`
-          <a href="${this.landmarkStructureUrl}" class="btn btn-default btn-sm">
-            ${TYPO3.lang["mindfula11y.features.structureErrors.viewLandmarkStructure"]}
-          </a>
+        ${this.hasLandmarkStructureAccess ? html`
+          <li class="nav-item">
+            <button
+              class="nav-link ${this._currentTab === 'landmarks' ? 'active' : ''}"
+              id="mindfula11y-landmarks-tab"
+              data-bs-toggle="tab"
+              data-bs-target="#mindfula11y-landmarks"
+              type="button"
+              role="tab"
+              aria-controls="mindfula11y-landmarks"
+              aria-selected="${this._currentTab === 'landmarks'}"
+              @click="${() => this._handleTabChange('landmarks')}"
+            >
+              ${TYPO3.lang["mindfula11y.features.structureErrors.landmarksTab"] || "Landmarks"}
+              ${landmarkErrorCount > 0 ? html`<span class="badge badge-danger ms-2">${landmarkErrorCount}</span>` : ''}
+            </button>
+          </li>
+        ` : ''}
+      </ul>
+    `;
+  }
+
+  /**
+   * Renders the tab content with heading and landmark structure components.
+   *
+   * @private
+   * @returns {import('lit').TemplateResult} The rendered tab content
+   */
+  _renderTabContent() {
+    return html`
+      <div class="tab-content mt-3" id="mindfula11y-structure-tab-content"
+           @mindfula11y-heading-type-changed="${this._handleStructureChanged}"
+           @mindfula11y-landmark-changed="${this._handleStructureChanged}">
+        ${this.hasHeadingStructureAccess ? html`
+          <div
+            class="tab-pane fade ${this._currentTab === 'headings' ? 'show active' : ''}"
+            id="mindfula11y-headings"
+            role="tabpanel"
+            aria-labelledby="mindfula11y-headings-tab"
+          >
+            <mindfula11y-heading-structure
+              .headingTree="${this._headingTree}"
+              .errors="${this._headingErrors}"
+            ></mindfula11y-heading-structure>
+          </div>
+        ` : ''}
+        ${this.hasLandmarkStructureAccess ? html`
+          <div
+            class="tab-pane fade ${this._currentTab === 'landmarks' ? 'show active' : ''}"
+            id="mindfula11y-landmarks"
+            role="tabpanel"
+            aria-labelledby="mindfula11y-landmarks-tab"
+          >
+            <mindfula11y-landmark-structure
+              .landmarkData="${this._landmarkData}"
+              .errors="${this._landmarkErrors}"
+            ></mindfula11y-landmark-structure>
+          </div>
         ` : ''}
       </div>
     `;

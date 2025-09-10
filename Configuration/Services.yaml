@@ -7,3 +7,11 @@ services:
   MindfulMarkup\MindfulA11y\:
     resource: "../Classes/*"
     exclude: "../Classes/Domain/Model/*"
+
+  # Event listeners
+  MindfulMarkup\MindfulA11y\EventListener\AccessibilityNotice:
+    tags:
+      - name: event.listener
+        identifier: 'mindfula11y-accessibility-notice'
+        event: TYPO3\CMS\Backend\Controller\Event\ModifyPageLayoutContentEvent
+        method: __invoke

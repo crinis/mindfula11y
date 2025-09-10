@@ -98,6 +98,14 @@
                 <source>Structure errors</source>
                 <target>Strukturfehler</target>
             </trans-unit>
+            <trans-unit id="structureErrors.headingsTab" resname="structureErrors.headingsTab">
+                <source>Headings</source>
+                <target>Überschriften</target>
+            </trans-unit>
+            <trans-unit id="structureErrors.landmarksTab" resname="structureErrors.landmarksTab">
+                <source>Landmarks</source>
+                <target>Landmarks</target>
+            </trans-unit>
             <trans-unit id="menu.features.landmarkStructure" resname="menu.features.landmarkStructure">
                 <source>Landmark structure</source>
                 <target>Landmark-Struktur</target>
@@ -110,6 +118,19 @@
                 <target>
                     Auflistung der Landmark-Struktur der aktuell ausgewählten Seite mit
                     Optionen zur Korrektur.
+                </target>
+            </trans-unit>
+            <trans-unit id="landmarkStructure.noAccess" resname="landmarkStructure.noAccess">
+                <source>No access to landmark structure.</source>
+                <target>Kein Zugriff auf Landmark-Struktur.</target>
+            </trans-unit>
+            <trans-unit id="landmarkStructure.noAccess.description"
+                resname="landmarkStructure.noAccess.description">
+                <source>
+                    You do not have permission to access the landmark structure feature. Please contact your administrator.
+                </source>
+                <target>
+                    Sie haben keine Berechtigung, auf die Landmark-Struktur-Funktion zuzugreifen. Bitte kontaktieren Sie Ihren Administrator.
                 </target>
             </trans-unit>
             <trans-unit id="landmarkStructure.error.loading" resname="landmarkStructure.error.loading">
@@ -422,6 +443,19 @@
                 <source>View all</source>
                 <target>Alle anzeigen</target>
             </trans-unit>
+            <trans-unit id="missingAltText.noAccess" resname="missingAltText.noAccess">
+                <source>No access to missing alternative text feature.</source>
+                <target>Kein Zugriff auf die Funktion für fehlende Alternativtexte.</target>
+            </trans-unit>
+            <trans-unit id="missingAltText.noAccess.description"
+                resname="missingAltText.noAccess.description">
+                <source>
+                    You do not have permission to access file references. Please contact your administrator.
+                </source>
+                <target>
+                    Sie haben keine Berechtigung, auf Datei-Referenzen zuzugreifen. Bitte kontaktieren Sie Ihren Administrator.
+                </target>
+            </trans-unit>
 
             <!-- Heading Structure translations -->
             <trans-unit id="headingStructure.description" resname="headingStructure.description">
@@ -431,6 +465,19 @@
                 </source>
                 <target>
                     Auflistung der Überschriftenstruktur der aktuell ausgewählten Seite mit Optionen zur Korrektur.
+                </target>
+            </trans-unit>
+            <trans-unit id="headingStructure.noAccess" resname="headingStructure.noAccess">
+                <source>No access to heading structure.</source>
+                <target>Kein Zugriff auf Überschriftenstruktur.</target>
+            </trans-unit>
+            <trans-unit id="headingStructure.noAccess.description"
+                resname="headingStructure.noAccess.description">
+                <source>
+                    You do not have permission to access the heading structure feature. Please contact your administrator.
+                </source>
+                <target>
+                    Sie haben keine Berechtigung, auf die Überschriftenstruktur-Funktion zuzugreifen. Bitte kontaktieren Sie Ihren Administrator.
                 </target>
             </trans-unit>
             <trans-unit id="headingStructure.error.loading" resname="headingStructure.error.loading">

@@ -79,6 +79,12 @@
             <trans-unit id="structureErrors" resname="structureErrors">
                 <source>Structure errors</source>
             </trans-unit>
+            <trans-unit id="structureErrors.headingsTab" resname="structureErrors.headingsTab">
+                <source>Headings</source>
+            </trans-unit>
+            <trans-unit id="structureErrors.landmarksTab" resname="structureErrors.landmarksTab">
+                <source>Landmarks</source>
+            </trans-unit>
 
             <trans-unit id="menu.pageLevels" resname="menu.pageLevels">
                 <source>Check Recursive</source>
@@ -222,12 +228,30 @@
             <trans-unit id="missingAltText.viewAll" resname="missingAltText.viewAll">
                 <source>View all</source>
             </trans-unit>
+            <trans-unit id="missingAltText.noAccess" resname="missingAltText.noAccess">
+                <source>No access to missing alternative text feature.</source>
+            </trans-unit>
+            <trans-unit id="missingAltText.noAccess.description"
+                resname="missingAltText.noAccess.description">
+                <source>
+                    You do not have permission to access file references. Please contact your administrator.
+                </source>
+            </trans-unit>
 
             <!-- Heading Structure Section -->
             <trans-unit id="headingStructure.description" resname="headingStructure.description">
                 <source>
                     Listing the heading structure of the currently selected page and
                     providing options to fix it.
+                </source>
+            </trans-unit>
+            <trans-unit id="headingStructure.noAccess" resname="headingStructure.noAccess">
+                <source>No access to heading structure.</source>
+            </trans-unit>
+            <trans-unit id="headingStructure.noAccess.description"
+                resname="headingStructure.noAccess.description">
+                <source>
+                    You do not have permission to access the heading structure feature. Please contact your administrator.
                 </source>
             </trans-unit>
             <trans-unit id="headingStructure.error.loading" resname="headingStructure.error.loading">
@@ -339,6 +363,15 @@
                 <source>
                     Listing the landmark structure of the currently selected page and
                     providing options to fix it.
+                </source>
+            </trans-unit>
+            <trans-unit id="landmarkStructure.noAccess" resname="landmarkStructure.noAccess">
+                <source>No access to landmark structure.</source>
+            </trans-unit>
+            <trans-unit id="landmarkStructure.noAccess.description"
+                resname="landmarkStructure.noAccess.description">
+                <source>
+                    You do not have permission to access the landmark structure feature. Please contact your administrator.
                 </source>
             </trans-unit>
             <trans-unit id="landmarkStructure.edit" resname="landmarkStructure.edit">
