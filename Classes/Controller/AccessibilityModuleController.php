@@ -25,6 +25,7 @@ namespace MindfulMarkup\MindfulA11y\Controller;
 
 use MindfulMarkup\MindfulA11y\Enum\Feature;
 use MindfulMarkup\MindfulA11y\Service\AltTextFinderService;
+use MindfulMarkup\MindfulA11y\Service\GeneralModuleService;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Backend\Attribute\AsController;
@@ -42,7 +43,6 @@ use TYPO3\CMS\Backend\Template\Components\ButtonBar;
 use TYPO3\CMS\Backend\Template\ModuleTemplate;
 use TYPO3\CMS\Backend\Template\ModuleTemplateFactory;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
-use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Domain\Repository\PageRepository;
 use TYPO3\CMS\Core\Http\AllowedMethodsTrait;
 use TYPO3\CMS\Core\Localization\LanguageService;
@@ -53,7 +53,6 @@ use TYPO3\CMS\Core\Pagination\ArrayPaginator;
 use TYPO3\CMS\Core\Pagination\SimplePagination;
 use TYPO3\CMS\Core\Type\Bitmask\Permission;
 use TYPO3\CMS\Core\Type\ContextualFeedbackSeverity;
-use TYPO3\CMS\Core\TypoScript\TypoScriptService;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 
@@ -115,13 +114,13 @@ class AccessibilityModuleController
     public function __construct(
         protected readonly ModuleTemplateFactory $moduleTemplateFactory,
         protected readonly UriBuilder $backendUriBuilder,
-        protected readonly TypoScriptService $typoScriptService,
         protected readonly PageRenderer $pageRenderer,
         protected readonly ModuleProvider $moduleProvider,
         protected readonly FlashMessageService $flashMessageService,
         protected readonly PermissionService $permissionService,
         protected readonly AltTextFinderService $altTextFinderService,
         protected readonly ConnectionPool $connectionPool,
+        protected readonly GeneralModuleService $generalModuleService,
     ) {}
 
     /**
@@ -143,15 +142,15 @@ class AccessibilityModuleController
         $this->request = $request;
         $this->assertAllowedHttpMethod($this->request, 'GET');
         $this->moduleTemplate = $this->moduleTemplateFactory->create($this->request);
-        $this->moduleTemplate->setTitle($this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:mlang_tabs_tab'));
+        $this->moduleTemplate->setTitle($this->generalModuleService->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:mlang_tabs_tab'));
 
-        $backendUser = $this->getBackendUserAuthentication();
+        $backendUser = $this->generalModuleService->getBackendUserAuthentication();
         $this->pageId = (int)($this->request->getParsedBody()['id'] ?? $this->request->getQueryParams()['id'] ?? 0);
 
         if (0 === $this->pageId) {
             $this->addFlashMessage(
-                $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:noPageSelected'),
-                $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:noPageSelected.description'),
+                $this->generalModuleService->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:noPageSelected'),
+                $this->generalModuleService->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:noPageSelected.description'),
                 ContextualFeedbackSeverity::INFO
             );
             return $this->moduleTemplate->renderResponse('Backend/Info')->withStatus(403);
@@ -160,8 +159,8 @@ class AccessibilityModuleController
         $this->pageInfo = BackendUtility::readPageAccess($this->pageId, $backendUser->getPagePermsClause(Permission::PAGE_SHOW));
         if ($this->pageInfo === false) {
             $this->addFlashMessage(
-                $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:noPageAccess'),
-                $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:noPageAccess.description'),
+                $this->generalModuleService->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:noPageAccess'),
+                $this->generalModuleService->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:noPageAccess.description'),
                 ContextualFeedbackSeverity::ERROR
             );
             return $this->moduleTemplate->renderResponse('Backend/Info')->withStatus(403);
@@ -175,18 +174,18 @@ class AccessibilityModuleController
         $this->languageId = (int)$this->moduleData->get('languageId', 0);
         if (!$backendUser->checkLanguageAccess($this->languageId)) {
             $this->addFlashMessage(
-                $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:noLanguageAccess'),
-                $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:noLanguageAccess.description'),
+                $this->generalModuleService->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:noLanguageAccess'),
+                $this->generalModuleService->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:noLanguageAccess.description'),
                 ContextualFeedbackSeverity::ERROR
             );
             return $this->moduleTemplate->renderResponse('Backend/Info')->withStatus(403);
         }
 
         $this->feature = Feature::tryFrom($this->moduleData->get('feature', Feature::GENERAL->value)) ?? Feature::GENERAL;
-        $this->pageTsConfig = $this->typoScriptService->convertTypoScriptArrayToPlainArray($this->getPageTsConfig());
+        $this->pageTsConfig = $this->generalModuleService->getConvertedPageTsConfig($this->pageId);
         $this->moduleTemplate->getDocHeaderComponent()->getMenuRegistry()->addMenu($this->buildFeatureMenu());
         $this->moduleTemplate->getDocHeaderComponent()->getMenuRegistry()->addMenu($this->buildLanguageMenu());
-        $this->pageRenderer->addInlineLanguageLabelArray($this->getInlineLanguageLabels());
+        $this->pageRenderer->addInlineLanguageLabelArray($this->generalModuleService->getInlineLanguageLabels());
 
         switch ($this->feature) {
             case Feature::GENERAL:
@@ -203,14 +202,16 @@ class AccessibilityModuleController
      */
     protected function handleGeneralFeature(): ResponseInterface
     {
-        $previewEnabled = $this->isPreviewEnabledForDoktype($this->pageInfo['doktype'] ?? PageRepository::DOKTYPE_DEFAULT);
+        $localizedPageInfo = $this->generalModuleService->getLocalizedPageRecord($this->pageId, $this->languageId);
+        $doktype = $localizedPageInfo['doktype'] ?? $this->pageInfo['doktype'] ?? PageRepository::DOKTYPE_DEFAULT;
+        $previewEnabled = $this->generalModuleService->isPreviewEnabledForDoktype($doktype, $this->pageTsConfig);
 
         $missingAltTextUri = null;
         $fileReferenceCount = null;
 
-        $hasMissingAltTextAccess = $this->hasMissingAltTextAccess();
-        $hasHeadingStructureAccess = $this->hasHeadingStructureAccess();
-        $hasLandmarkStructureAccess = $this->hasLandmarkStructureAccess();
+        $hasMissingAltTextAccess = $this->generalModuleService->hasMissingAltTextAccess($this->pageTsConfig);
+        $hasHeadingStructureAccess = $this->generalModuleService->hasHeadingStructureAccess($this->pageTsConfig);
+        $hasLandmarkStructureAccess = $this->generalModuleService->hasLandmarkStructureAccess($this->pageTsConfig);
 
         if (
             $hasMissingAltTextAccess
@@ -254,29 +255,14 @@ class AccessibilityModuleController
     }
 
     /**
-     * Check if preview is enabled for a given doktype.
-     *
-     * @param int $doktype
-     * @return bool
-     */
-    protected function isPreviewEnabledForDoktype(int $doktype): bool
-    {
-        if (isset($this->pageTsConfig['TCEMAIN']['preview']['disableButtonForDokType'])) {
-            return !in_array($doktype, GeneralUtility::intExplode(',', (string)$this->pageTsConfig['TCEMAIN']['preview']['disableButtonForDokType'], true));
-        } else {
-            return !in_array($doktype, [PageRepository::DOKTYPE_SYSFOLDER, PageRepository::DOKTYPE_SPACER, PageRepository::DOKTYPE_LINK]);
-        }
-    }
-
-    /**
      * Handle the missing alt text feature.
      */
     protected function handleMissingAltTextFeature(): ResponseInterface
     {
-        if (!$this->hasMissingAltTextAccess()) {
+        if (!$this->generalModuleService->hasMissingAltTextAccess($this->pageTsConfig)) {
             $this->addFlashMessage(
-                $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:missingAltText.noAccess'),
-                $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:missingAltText.noAccess.description'),
+                $this->generalModuleService->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:missingAltText.noAccess'),
+                $this->generalModuleService->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:missingAltText.noAccess.description'),
                 ContextualFeedbackSeverity::ERROR
             );
             return $this->moduleTemplate->renderResponse('Backend/Info')->withStatus(403);
@@ -318,8 +304,8 @@ class AccessibilityModuleController
          */
         if (empty($tableName) && !$this->permissionService->checkTableReadAccess($tableName)) {
             $this->addFlashMessage(
-                $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:missingAltText.noTableAccess'),
-                $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:missingAltText.noTableAccess.description'),
+                $this->generalModuleService->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:missingAltText.noTableAccess'),
+                $this->generalModuleService->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:missingAltText.noTableAccess.description'),
                 ContextualFeedbackSeverity::ERROR
             );
             return $this->moduleTemplate->renderResponse('Backend/Info')->withStatus(403);
@@ -414,15 +400,15 @@ class AccessibilityModuleController
     {
         $menu = $this->moduleTemplate->getDocHeaderComponent()->getMenuRegistry()->makeMenu()
             ->setIdentifier('MindfulA11yFeatures')
-            ->setLabel($this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:menu.features'));
+            ->setLabel($this->generalModuleService->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:menu.features'));
         foreach ([Feature::GENERAL, Feature::MISSING_ALT_TEXT] as $feature) {
             $enabled = match ($feature) {
                 Feature::GENERAL => true,
-                Feature::MISSING_ALT_TEXT => $this->hasMissingAltTextAccess(),
+                Feature::MISSING_ALT_TEXT => $this->generalModuleService->hasMissingAltTextAccess($this->pageTsConfig),
             };
             if ($enabled) {
                 $menuItem = $menu->makeMenuItem()->setTitle(
-                    $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:menu.features.' . $feature->value)
+                    $this->generalModuleService->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:menu.features.' . $feature->value)
                 )->setHref(
                     $this->getMenuItemUri(['feature' => $feature->value])
                 )->setActive(
@@ -487,7 +473,7 @@ class AccessibilityModuleController
 
         foreach ([1, 5, 10, 99] as $pageLevels) {
             $menuItem = $menu->makeMenuItem()->setTitle(
-                $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:menu.pageLevels.' . $pageLevels)
+                $this->generalModuleService->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:menu.pageLevels.' . $pageLevels)
             )->setHref(
                 $this->getMenuItemUri(
                     [
@@ -513,7 +499,7 @@ class AccessibilityModuleController
     protected function buildFilterDropdown(string $currentTableName, int $currentPageLevels, bool $filterFileMetaData): DropDownButton
     {
         $button = $this->moduleTemplate->getDocHeaderComponent()->getButtonBar()->makeDropDownButton()
-            ->setLabel($this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:menu.filter'))
+            ->setLabel($this->generalModuleService->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:menu.filter'))
             ->setShowLabelText(true);
 
         /** @var DropDownToggle $filterFileMetaDataToggle */
@@ -523,7 +509,7 @@ class AccessibilityModuleController
                 'tableName' => $currentTableName,
                 'pageLevels' => $currentPageLevels,
                 'filterFileMetaData' => !$filterFileMetaData,
-            ]))->setLabel($this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:menu.filter.fileMetaData'))
+            ]))->setLabel($this->generalModuleService->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:menu.filter.fileMetaData'))
             ->setIcon(null);
 
         $button->addItem($filterFileMetaDataToggle);
@@ -551,7 +537,12 @@ class AccessibilityModuleController
 
         $availableLanguageIds = [];
         foreach ($pageTranslations as $pageTranslation) {
-            $languageId = $pageTranslation[$GLOBALS['TCA']['pages']['ctrl']['languageField']];
+            $languageId = $pageTranslation[$GLOBALS['TCA']['pages']['ctrl']['languageField']] ?? null;
+
+            if (null === $languageId) {
+                continue;
+            }
+
             $availableLanguageIds[] = (int)$languageId;
         }
 
@@ -592,118 +583,17 @@ class AccessibilityModuleController
     protected function getTableTitle(string $tableName): string
     {
         if (empty($tableName)) {
-            return $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:menu.tables.all');
+            return $this->generalModuleService->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:menu.tables.all');
         }
         if (isset($GLOBALS['TCA'][$tableName]['ctrl']['title'])) {
-            return $this->getLanguageService()->sL($GLOBALS['TCA'][$tableName]['ctrl']['title']);
+            return $this->generalModuleService->getLanguageService()->sL($GLOBALS['TCA'][$tableName]['ctrl']['title']);
         }
         return $tableName;
     }
 
     /**
-     * Returns all inline language labels used in the module.
-     *
-     * @return array
-     */
-    protected function getInlineLanguageLabels(): array
-    {
-        $labels = [
-            // Heading Structure labels
-            'mindfula11y.features.headingStructure.edit' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:headingStructure.edit'),
-            'mindfula11y.features.headingStructure.edit.locked' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:headingStructure.edit.locked'),
-            'mindfula11y.features.headingStructure.error.loading' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:headingStructure.error.loading'),
-            'mindfula11y.features.headingStructure.error.loading.description' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:headingStructure.error.loading.description'),
-            'mindfula11y.features.headingStructure.error.store' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:headingStructure.error.store'),
-            'mindfula11y.features.headingStructure.error.store.description' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:headingStructure.error.store.description'),
-            'mindfula11y.features.headingStructure.relation.descendant' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:headingStructure.relation.descendant'),
-            'mindfula11y.features.headingStructure.relation.sibling' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:headingStructure.relation.sibling'),
-            'mindfula11y.features.headingStructure.relation.notFound' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:headingStructure.relation.notFound'),
-            'mindfula11y.features.headingStructure.relation.notFound.description' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:headingStructure.relation.notFound.description'),
-            'mindfula11y.features.headingStructure.error.skippedLevel' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:headingStructure.error.skippedLevel'),
-            'mindfula11y.features.headingStructure.error.skippedLevel.description' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:headingStructure.error.skippedLevel.description'),
-            'mindfula11y.features.headingStructure.error.skippedLevel.inline' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:headingStructure.error.skippedLevel.inline'),
-            'mindfula11y.features.headingStructure.error.missingH1' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:headingStructure.error.missingH1'),
-            'mindfula11y.features.headingStructure.error.missingH1.description' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:headingStructure.error.missingH1.description'),
-            'mindfula11y.features.headingStructure.error.multipleH1' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:headingStructure.error.multipleH1'),
-            'mindfula11y.features.headingStructure.error.multipleH1.description' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:headingStructure.error.multipleH1.description'),
-            'mindfula11y.features.headingStructure.error.emptyHeadings' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:headingStructure.error.emptyHeadings'),
-            'mindfula11y.features.headingStructure.error.emptyHeadings.description' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:headingStructure.error.emptyHeadings.description'),
-            // Global severity labels (used by multiple components)
-            'mindfula11y.features.severity.error' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:severity.error'),
-            'mindfula11y.features.severity.warning' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:severity.warning'),
-            // Unified error messages
-            'mindfula11y.features.accessibility.error.loading' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:accessibility.error.loading'),
-            'mindfula11y.features.accessibility.error.loading.description' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:accessibility.error.loading.description'),
-            'mindfula11y.features.headingStructure.unlabeled' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:headingStructure.unlabeled'),
-            'mindfula11y.features.headingStructure.type.label' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:headingStructure.type.label'),
-            'mindfula11y.features.headingStructure.noHeadings' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:headingStructure.noHeadings'),
-            'mindfula11y.features.headingStructure.noHeadings.description' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:headingStructure.noHeadings.description'),
-            // Landmark Structure labels
-            'mindfula11y.features.landmarkStructure.edit' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.edit'),
-            'mindfula11y.features.landmarkStructure.edit.locked' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.edit.locked'),
-            'mindfula11y.features.landmarkStructure.nestedLandmarks' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.nestedLandmarks'),
-            'mindfula11y.features.landmarkStructure.role' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.role'),
-            'mindfula11y.features.landmarkStructure.unlabelledLandmark' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.unlabelledLandmark'),
-            'mindfula11y.features.landmarkStructure.error.loading' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.error.loading'),
-            'mindfula11y.features.landmarkStructure.error.loading.description' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.error.loading.description'),
-            'mindfula11y.features.landmarkStructure.error.store' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.error.store'),
-            'mindfula11y.features.landmarkStructure.error.store.description' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.error.store.description'),
-            'mindfula11y.features.landmarkStructure.error.missingMain' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.error.missingMain'),
-            'mindfula11y.features.landmarkStructure.error.missingMain.description' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.error.missingMain.description'),
-            'mindfula11y.features.landmarkStructure.error.duplicateMain' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.error.duplicateMain'),
-            'mindfula11y.features.landmarkStructure.error.duplicateMain.description' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.error.duplicateMain.description'),
-            'mindfula11y.features.landmarkStructure.error.duplicateSameLabel' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.error.duplicateSameLabel'),
-            'mindfula11y.features.landmarkStructure.error.duplicateSameLabel.description' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.error.duplicateSameLabel.description'),
-            'mindfula11y.features.landmarkStructure.error.multipleUnlabeledLandmarks' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.error.multipleUnlabeledLandmarks'),
-            'mindfula11y.features.landmarkStructure.error.multipleUnlabeledLandmarks.description' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.error.multipleUnlabeledLandmarks.description'),
-            // Default landmark labels
-            'mindfula11y.features.landmarkStructure.role.banner' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.role.banner'),
-            'mindfula11y.features.landmarkStructure.role.main' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.role.main'),
-            'mindfula11y.features.landmarkStructure.role.navigation' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.role.navigation'),
-            'mindfula11y.features.landmarkStructure.role.complementary' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.role.complementary'),
-            'mindfula11y.features.landmarkStructure.role.contentinfo' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.role.contentinfo'),
-            'mindfula11y.features.landmarkStructure.role.region' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.role.region'),
-            'mindfula11y.features.landmarkStructure.role.search' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.role.search'),
-            'mindfula11y.features.landmarkStructure.role.form' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.role.form'),
-            'mindfula11y.features.landmarkStructure.role.none' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.role.none'),
-            // No landmarks message
-            'mindfula11y.features.landmarkStructure.noLandmarks.title' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.noLandmarks.title'),
-            'mindfula11y.features.landmarkStructure.noLandmarks.description' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.noLandmarks.description'),
-            // Structure Errors labels
-            'mindfula11y.features.structureErrors.viewHeadingStructure' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:structureErrors.viewHeadingStructure'),
-            'mindfula11y.features.structureErrors.viewLandmarkStructure' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:structureErrors.viewLandmarkStructure'),
-            'mindfula11y.features.structureErrors.headingsTab' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:structureErrors.headingsTab'),
-            'mindfula11y.features.structureErrors.landmarksTab' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:structureErrors.landmarksTab'),
-            // Missing Alt Text labels
-            'mindfula11y.features.missingAltText.generate.button' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:missingAltText.generate.button'),
-            'mindfula11y.features.missingAltText.generate.loading' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:missingAltText.generate.loading'),
-            'mindfula11y.features.missingAltText.generate.success' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:missingAltText.generate.success'),
-            'mindfula11y.features.missingAltText.generate.success.description' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:missingAltText.generate.success.description'),
-            'mindfula11y.features.missingAltText.generate.error.unknown' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:missingAltText.generate.error.unknown'),
-            'mindfula11y.features.missingAltText.generate.error.unknown.description' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:missingAltText.generate.error.unknown.description'),
-            'mindfula11y.features.missingAltText.generate.error.openAIConnection' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:missingAltText.generate.error.openAIConnection'),
-            'mindfula11y.features.missingAltText.generate.error.openAIConnection.description' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:missingAltText.generate.error.openAIConnection.description'),
-            'mindfula11y.features.missingAltText.altLabel' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:missingAltText.altLabel'),
-            'mindfula11y.features.missingAltText.altPlaceholder' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:missingAltText.altPlaceholder'),
-            'mindfula11y.features.missingAltText.save' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:missingAltText.save'),
-            'mindfula11y.features.missingAltText.imagePreview' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:missingAltText.imagePreview'),
-            'mindfula11y.features.missingAltText.fallbackAltLabel' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:missingAltText.fallbackAltLabel'),
-            // Error badge label
-            'mindfula11y.features.landmarkStructure.error.badge' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.error.badge'),
-            'mindfula11y.features.landmarkStructure.intro' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.intro'),
-            'mindfula11y.features.landmarkStructure.intro.roles' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.intro.roles'),
-            // Individual landmark callout messages (shown on specific landmarks)
-            'mindfula11y.features.landmarkStructure.callout.duplicateMain' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.callout.duplicateMain'),
-            'mindfula11y.features.landmarkStructure.callout.duplicateRoleSameLabel' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.callout.duplicateRoleSameLabel'),
-            'mindfula11y.features.landmarkStructure.callout.multipleUnlabeledSameRole' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.callout.multipleUnlabeledSameRole'),
-        ];
-
-        return $labels;
-    }
-
-    /**
      * Add a flash message.
-     * 
+     *
      * @param string $title The title of the message.
      * @param string $message The message content.
      * @param ContextualFeedbackSeverity $severity The severity of the message.
@@ -721,30 +611,6 @@ class AccessibilityModuleController
     }
 
     /**
-     * Get backend user authentication.
-     */
-    protected function getBackendUserAuthentication(): BackendUserAuthentication
-    {
-        return $GLOBALS['BE_USER'];
-    }
-
-    /**
-     * Get page tsconfig.
-     */
-    protected function getPageTsConfig(): array
-    {
-        return BackendUtility::getPagesTSconfig($this->pageId) ?? [];
-    }
-
-    /**
-     * Get language service.
-     */
-    protected function getLanguageService(): LanguageService
-    {
-        return $GLOBALS['LANG'];
-    }
-
-    /**
      * Get allowed site languages for the backend user.
      * 
      * @return array
@@ -756,38 +622,6 @@ class AccessibilityModuleController
             return [];
         }
 
-        return $site->getAvailableLanguages($this->getBackendUserAuthentication(), false, $this->pageId);
-    }
-
-    /**
-     * Check if the user has access to the heading structure feature.
-     *
-     * @return bool
-     */
-    protected function hasHeadingStructureAccess(): bool
-    {
-        return !!($this->pageTsConfig['mod']['mindfula11y_accessibility']['headingStructure']['enable'] ?? false);
-    }
-
-    /**
-     * Check if the user has access to the landmark structure feature.
-     *
-     * @return bool
-     */
-    protected function hasLandmarkStructureAccess(): bool
-    {
-        return !!($this->pageTsConfig['mod']['mindfula11y_accessibility']['landmarkStructure']['enable'] ?? false);
-    }
-
-    /**
-     * Check if the user has access to the missing alt text feature.
-     *
-     * @return bool
-     */
-    protected function hasMissingAltTextAccess(): bool
-    {
-        return $this->permissionService->checkTableReadAccess('sys_file_reference')
-            && $this->permissionService->checkNonExcludeFields('sys_file_reference', ['alternative'])
-            && !!($this->pageTsConfig['mod']['mindfula11y_accessibility']['missingAltText']['enable'] ?? false);
+        return $site->getAvailableLanguages($this->generalModuleService->getBackendUserAuthentication(), false, $this->pageId);
     }
 }
