@@ -127,7 +127,7 @@ export class LandmarkStructureService {
 
     if (mainLandmarks.length === 0) {
       const missingMainError = ErrorRegistry.createError(
-        "mindfula11y.features.landmarkStructure.error.missingMain",
+        "mindfula11y.landmarkStructure.error.missingMain",
         ERROR_SEVERITY.ERROR,
         "landmarks"
       );
@@ -146,7 +146,7 @@ export class LandmarkStructureService {
 
     if (mainLandmarks.length > 1) {
       const duplicateMainError = ErrorRegistry.createError(
-        "mindfula11y.features.landmarkStructure.error.duplicateMain",
+        "mindfula11y.landmarkStructure.error.duplicateMain",
         ERROR_SEVERITY.ERROR,
         "landmarks"
       );
@@ -177,7 +177,7 @@ export class LandmarkStructureService {
     if (duplicateGroups.length > 0) {
       // Create an error for each duplicate landmark (count = 1 per duplicate)
       const duplicateLabelsError = ErrorRegistry.createError(
-        "mindfula11y.features.landmarkStructure.error.duplicateSameLabel",
+        "mindfula11y.landmarkStructure.error.duplicateSameLabel",
         ERROR_SEVERITY.ERROR,
         "landmarks"
       );
@@ -216,7 +216,7 @@ export class LandmarkStructureService {
     if (unlabeledGroups.length > 0) {
       // Create an error for each unlabeled landmark
       const multipleUnlabeledError = ErrorRegistry.createError(
-        "mindfula11y.features.landmarkStructure.error.multipleUnlabeledLandmarks",
+        "mindfula11y.landmarkStructure.error.multipleUnlabeledLandmarks",
         ERROR_SEVERITY.WARNING,
         "landmarks"
       );

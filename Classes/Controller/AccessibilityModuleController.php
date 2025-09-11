@@ -157,7 +157,7 @@ class AccessibilityModuleController
         }
 
         $this->pageInfo = BackendUtility::readPageAccess($this->pageId, $backendUser->getPagePermsClause(Permission::PAGE_SHOW));
-        if ($this->pageInfo === false) {
+        if (false === $this->pageInfo) {
             $this->addFlashMessage(
                 $this->generalModuleService->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:noPageAccess'),
                 $this->generalModuleService->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:noPageAccess.description'),
@@ -249,7 +249,7 @@ class AccessibilityModuleController
             'hasLandmarkStructureAccess' => $hasLandmarkStructureAccess,
         ]);
 
-        $this->pageRenderer->loadJavaScriptModule('@mindfulmarkup/mindfula11y/structure-errors.js');
+        $this->pageRenderer->loadJavaScriptModule('@mindfulmarkup/mindfula11y/structure.js');
 
         return $this->moduleTemplate->renderResponse('Backend/General');
     }

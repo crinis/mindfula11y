@@ -9,9 +9,9 @@ services:
     exclude: "../Classes/Domain/Model/*"
 
   # Event listeners
-  MindfulMarkup\MindfulA11y\EventListener\AccessibilityNotice:
+  MindfulMarkup\MindfulA11y\EventListener\WebLayoutInfo:
     tags:
       - name: event.listener
-        identifier: 'mindfula11y-accessibility-notice'
+        identifier: 'mindfula11y-web-layout-info'
         event: TYPO3\CMS\Backend\Controller\Event\ModifyPageLayoutContentEvent
         method: __invoke

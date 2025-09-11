@@ -8,66 +8,8 @@
   <f:layout name="Module" />
 
   <f:section name="Content">
-    <h1>
-      <f:translate
-        key="LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:mlang_tabs_tab"
-      />
-    </h1>
-
-    <f:if condition="{hasMissingAltTextAccess}">
-      <section class="callout callout-notice">
-        <div class="callout-content">
-          <div class="callout-body">
-            <f:if condition="{fileReferenceCount} > 0">
-              <f:then>
-                <p>
-                  <f:translate
-                    key="LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:missingAltText.count"
-                    arguments="{0: fileReferenceCount}"
-                  />
-                  <f:if condition="{missingAltTextUri}">
-                    <a
-                      href="{missingAltTextUri}"
-                      class="btn btn-sm btn-default"
-                    >
-                      <f:translate
-                        key="LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:missingAltText.viewAll"
-                      />
-                    </a>
-                  </f:if>
-                </p>
-              </f:then>
-              <f:else>
-                <f:translate
-                  key="LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:missingAltText.noMissingAltText"
-                />
-              </f:else>
-            </f:if>
-          </div>
-        </div>
-      </section>
-    </f:if>
-
-    <f:if condition="{previewUrl} && ({hasHeadingStructureAccess} || {hasLandmarkStructureAccess})">
-      <section class="callout callout-notice">
-        <div class="callout-content">
-          <div class="callout-title">
-            <h2>
-              <f:translate
-                key="LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:structureErrors"
-              />
-            </h2>
-          </div>
-          <div class="callout-body">
-            <mindfula11y-structure-errors
-              previewUrl="{previewUrl}"
-              hasHeadingStructureAccess="{hasHeadingStructureAccess}"
-              hasLandmarkStructureAccess="{hasLandmarkStructureAccess}"
-            />
-          </div>
-        </div>
-      </section>
-    </f:if>
-
+    <f:alias map="{headingLevel: 1}">
+      <f:render partial="Backend/GeneralAccessibility" arguments="{_all}" />
+    </f:alias>
   </f:section>
 </html>

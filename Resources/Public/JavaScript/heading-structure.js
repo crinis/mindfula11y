@@ -191,11 +191,11 @@ export class HeadingStructure extends LitElement {
       return html`
         <div class="alert alert-info">
           <h4 class="alert-heading">
-            ${TYPO3.lang["mindfula11y.features.headingStructure.noHeadings"]}
+            ${TYPO3.lang["mindfula11y.headingStructure.noHeadings"]}
           </h4>
           <p class="mb-0">
             ${TYPO3.lang[
-              "mindfula11y.features.headingStructure.noHeadings.description"
+              "mindfula11y.headingStructure.noHeadings.description"
             ]}
           </p>
         </div>
@@ -276,7 +276,7 @@ export class HeadingStructure extends LitElement {
           <div class="alert alert-danger py-2 px-3 mb-2">
             <span class="fw-bold">
               ${TYPO3.lang[
-                "mindfula11y.features.headingStructure.error.skippedLevel.inline"
+                "mindfula11y.headingStructure.error.skippedLevel.inline"
               ]?.replace("%1$d", skippedLevel)}
             </span>
           </div>
@@ -339,7 +339,7 @@ export class HeadingStructure extends LitElement {
   _extractHeadingLabel(element) {
     return (
       element.innerText?.trim() ||
-      TYPO3.lang["mindfula11y.features.headingStructure.unlabeled"]
+      TYPO3.lang["mindfula11y.headingStructure.unlabeled"]
     );
   }
 

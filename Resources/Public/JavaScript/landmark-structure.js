@@ -116,9 +116,9 @@ export class LandmarkStructure extends LitElement {
       return html`
         <div class="alert alert-info">
           <strong
-            >${TYPO3.lang["mindfula11y.features.landmarkStructure.noLandmarks.title"]}</strong
+            >${TYPO3.lang["mindfula11y.landmarkStructure.noLandmarks"]}</strong
           >
-          <p>${TYPO3.lang["mindfula11y.features.landmarkStructure.noLandmarks.description"]}</p>
+          <p>${TYPO3.lang["mindfula11y.landmarkStructure.noLandmarks.description"]}</p>
         </div>
       `;
     }
@@ -253,7 +253,7 @@ export class LandmarkStructure extends LitElement {
         ${this._renderSimpleLandmark(props)}
         <div class="ms-4 mt-3">
           <div class="fw-bold text-muted text-uppercase fs-7 mb-2">
-            ${TYPO3.lang["mindfula11y.features.landmarkStructure.nestedLandmarks"]}
+            ${TYPO3.lang["mindfula11y.landmarkStructure.nested"]}
           </div>
           <div class="d-flex flex-column gap-3">${nestedChildren}</div>
         </div>

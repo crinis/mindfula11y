@@ -34,11 +34,12 @@ use TYPO3\CMS\Core\Page\PageRenderer;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Fluid\View\StandaloneView;
 use TYPO3\CMS\Core\Domain\Repository\PageRepository;
+use TYPO3\CMS\Core\Type\Bitmask\Permission;
 
 /**
  * Event listener to add heading structure analysis to the page module
  */
-class AccessibilityNotice
+class WebLayoutInfo
 {
     public function __construct(
         protected readonly PermissionService $permissionService,
@@ -62,13 +63,17 @@ class AccessibilityNotice
         $site = $request->getAttribute('site', null);
         $moduleData = $request->getAttribute('moduleData', null);
         $languageId = (int)$moduleData->get('language', 0);
+        if ($languageId === -1) {
+            $languageId = 0;
+        }
+
         $backendUser = $this->generalModuleService->getBackendUserAuthentication();
 
-        if (0 === $pageId || null === $moduleData || null === $site || !$backendUser->checkLanguageAccess($languageId)) {
+        if (!$backendUser->check('modules', 'mindfula11y_accessibility') || 0 === $pageId || null === $moduleData || null === $site || !$backendUser->checkLanguageAccess($languageId)) {
             return;
         }
 
-        $pageInfo = BackendUtility::getRecord('pages', $pageId);
+        $pageInfo = BackendUtility::readPageAccess($pageId, $backendUser->getPagePermsClause(Permission::PAGE_SHOW));
         if (!$pageInfo) {
             return;
         }
@@ -122,7 +127,7 @@ class AccessibilityNotice
         $view->setTemplateRootPaths(['EXT:mindfula11y/Resources/Private/Templates/']);
         $view->setLayoutRootPaths(['EXT:mindfula11y/Resources/Private/Layouts/']);
         $view->setPartialRootPaths(['EXT:mindfula11y/Resources/Private/Partials/']);
-        $view->setTemplate('Backend/General');
+        $view->setTemplate('Backend/WebLayout/GeneralAccessibility');
         $view->assignMultiple([
             'fileReferenceCount' => $fileReferenceCount,
             'previewUrl' => $previewUrl,
@@ -130,7 +135,6 @@ class AccessibilityNotice
             'hasMissingAltTextAccess' => $hasMissingAltTextAccess,
             'hasHeadingStructureAccess' => $hasHeadingStructureAccess,
             'hasLandmarkStructureAccess' => $hasLandmarkStructureAccess,
-            'isNotice' => true,
         ]);
 
         $renderedContent = $view->render();
@@ -142,7 +146,6 @@ class AccessibilityNotice
         $this->pageRenderer->addInlineLanguageLabelArray($this->generalModuleService->getInlineLanguageLabels());
 
         // Load the JavaScript module
-        $this->pageRenderer->loadJavaScriptModule('@mindfulmarkup/mindfula11y/structure-errors.js');
+        $this->pageRenderer->loadJavaScriptModule('@mindfulmarkup/mindfula11y/structure.js');
     }
-
 }

@@ -179,7 +179,7 @@ export class HeadingType extends LitElement {
   _getDisplayLabel() {
     return (
       this.label?.trim() ||
-      TYPO3.lang["mindfula11y.features.headingStructure.unlabeled"]
+      TYPO3.lang["mindfula11y.headingStructure.unlabeled"]
     );
   }
 
@@ -195,7 +195,7 @@ export class HeadingType extends LitElement {
 
     return html`
       <label for="${uniqueId}" class="visually-hidden">
-        ${TYPO3.lang["mindfula11y.features.headingStructure.type.label"]}
+        ${TYPO3.lang["mindfula11y.headingStructure.type"]}
       </label>
       ${componentInfo.isEditable
         ? this._renderTypeSelect(uniqueId, componentInfo)
@@ -317,7 +317,7 @@ export class HeadingType extends LitElement {
         >
           ${this._renderEditIcon()}
           <span
-            >${TYPO3.lang["mindfula11y.features.headingStructure.edit"]}</span
+            >${TYPO3.lang["mindfula11y.headingStructure.edit"]}</span
           >
         </a>
       `;
@@ -333,10 +333,10 @@ export class HeadingType extends LitElement {
           <span>
             ${componentInfo.isDescendant
               ? TYPO3.lang[
-                  "mindfula11y.features.headingStructure.relation.descendant"
+                  "mindfula11y.headingStructure.relation.descendant"
                 ]
               : TYPO3.lang[
-                  "mindfula11y.features.headingStructure.relation.sibling"
+                  "mindfula11y.headingStructure.relation.sibling"
                 ]}
           </span>
         </button>
@@ -348,7 +348,7 @@ export class HeadingType extends LitElement {
         ${this._renderLockIcon()}
         <span class="fs-7"
           >${TYPO3.lang[
-            "mindfula11y.features.headingStructure.edit.locked"
+            "mindfula11y.headingStructure.edit.locked"
           ]}</span
         >
       </span>
@@ -454,9 +454,9 @@ export class HeadingType extends LitElement {
     
     if (!relationId) {
       Notification.error(
-        TYPO3.lang["mindfula11y.features.headingStructure.relation.notFound"],
+        TYPO3.lang["mindfula11y.headingStructure.relation.notFound"],
         TYPO3.lang[
-          "mindfula11y.features.headingStructure.relation.notFound.description"
+          "mindfula11y.headingStructure.relation.notFound.description"
         ]
       );
       return;
@@ -465,9 +465,9 @@ export class HeadingType extends LitElement {
     const related = this._findRelatedElement(relationId);
     if (!related) {
       Notification.warning(
-        TYPO3.lang["mindfula11y.features.headingStructure.relation.notFound"],
+        TYPO3.lang["mindfula11y.headingStructure.relation.notFound"],
         TYPO3.lang[
-          "mindfula11y.features.headingStructure.relation.notFound.description"
+          "mindfula11y.headingStructure.relation.notFound.description"
         ]
       );
       return;
@@ -545,9 +545,9 @@ export class HeadingType extends LitElement {
     console.error("Failed to save heading type:", error);
 
     Notification.error(
-      TYPO3.lang["mindfula11y.features.headingStructure.error.store"],
+      TYPO3.lang["mindfula11y.headingStructure.error.store"],
       TYPO3.lang[
-        "mindfula11y.features.headingStructure.error.store.description"
+        "mindfula11y.headingStructure.error.store.description"
       ]
     );
   }

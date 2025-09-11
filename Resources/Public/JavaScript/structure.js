@@ -18,8 +18,8 @@
  */
 
 /**
- * @file structure-errors.js
- * @description Web component for displaying combined accessibility errors from heading and landmark structures.
+ * @file structure.js
+ * @description Web component for displaying combined heading and landmark structures.
  * @typedef {import('./types.js').StructureError} StructureError
  */
 import { html, css, LitElement } from "lit";
@@ -34,7 +34,7 @@ import LandmarkStructure from "./landmark-structure.js";
 import Notification from "@typo3/backend/notification.js";
 
 /**
- * Web component for displaying combined accessibility errors from heading and landmark structures.
+ * Web component for displaying combined heading and landmark structures.
  *
  * This component analyzes HTML content for both heading and landmark accessibility issues,
  * displays them in separate tabs with error count badges, and provides detailed views
@@ -51,11 +51,10 @@ import Notification from "@typo3/backend/notification.js";
  * - Heading structure errors (missing H1, multiple H1, empty headings, skipped levels)
  * - Landmark structure errors (missing main, multiple main, duplicate labels, unlabeled groups)
  *
- * @class StructureErrors
+ * @class Structure
  * @extends LitElement
  */
-export class StructureErrors extends LitElement {
-
+export class Structure extends LitElement {
   /**
    * CSS styles for the component.
    *
@@ -75,6 +74,7 @@ export class StructureErrors extends LitElement {
       previewUrl: { type: String },
       hasHeadingStructureAccess: { type: Boolean },
       hasLandmarkStructureAccess: { type: Boolean },
+      headingLevel: { type: Number },
       _currentTab: { type: String, state: true },
       _headingTree: { type: Array, state: true },
       _headingErrors: { type: Array, state: true },
@@ -85,13 +85,14 @@ export class StructureErrors extends LitElement {
   }
 
   /**
-   * Creates an instance of StructureErrors.
+   * Creates an instance of Structure.
    */
   constructor() {
     super();
     this.previewUrl = "";
     this.hasHeadingStructureAccess = false;
     this.hasLandmarkStructureAccess = false;
+    this.headingLevel = 2; // Default heading level for titles
     this._currentTab = this._getDefaultActiveTab();
     this._headingTree = [];
     this._headingErrors = [];
@@ -132,11 +133,11 @@ export class StructureErrors extends LitElement {
    * @param {Error} error - The error that occurred during loading
    */
   _handleLoadingError(error) {
-    console.error('Accessibility structure could not be loaded.');
+    console.error("Accessibility structure could not be loaded.");
 
     Notification.error(
-      TYPO3.lang["mindfula11y.features.accessibility.error.loading"],
-      TYPO3.lang["mindfula11y.features.accessibility.error.loading.description"]
+      TYPO3.lang["mindfula11y.accessibility.error.loading"],
+      TYPO3.lang["mindfula11y.accessibility.error.loading.description"]
     );
   }
 
@@ -148,7 +149,10 @@ export class StructureErrors extends LitElement {
   updated(changedProperties) {
     super.updated(changedProperties);
 
-    if (changedProperties.has('hasHeadingStructureAccess') || changedProperties.has('hasLandmarkStructureAccess')) {
+    if (
+      changedProperties.has("hasHeadingStructureAccess") ||
+      changedProperties.has("hasLandmarkStructureAccess")
+    ) {
       const newDefaultTab = this._getDefaultActiveTab();
       if (!this._isTabEnabled(this._currentTab)) {
         this._currentTab = newDefaultTab;
@@ -156,7 +160,7 @@ export class StructureErrors extends LitElement {
     }
 
     // Reload content when previewUrl changes
-    if (changedProperties.has('previewUrl') && this.previewUrl) {
+    if (changedProperties.has("previewUrl") && this.previewUrl) {
       this.loadContentTask.run();
     }
   }
@@ -169,9 +173,9 @@ export class StructureErrors extends LitElement {
    * @returns {boolean} Whether the tab is enabled
    */
   _isTabEnabled(tabName) {
-    if (tabName === 'headings') {
+    if (tabName === "headings") {
       return this.hasHeadingStructureAccess;
-    } else if (tabName === 'landmarks') {
+    } else if (tabName === "landmarks") {
       return this.hasLandmarkStructureAccess;
     }
     return false;
@@ -198,12 +202,16 @@ export class StructureErrors extends LitElement {
   async _analyzeContent([previewUrl]) {
     try {
       const previewHtml = await ContentFetcher.fetchContent(previewUrl);
-      const headings = this.hasHeadingStructureAccess ? this.headingService.selectElements(previewHtml) : [];
-      const landmarkElements = this.hasLandmarkStructureAccess ? this.landmarkService.selectElements(previewHtml) : [];
+      const headings = this.hasHeadingStructureAccess
+        ? this.headingService.selectElements(previewHtml)
+        : [];
+      const landmarkElements = this.hasLandmarkStructureAccess
+        ? this.landmarkService.selectElements(previewHtml)
+        : [];
 
       return {
         headings,
-        landmarkElements
+        landmarkElements,
       };
     } catch (error) {
       this._handleLoadingError(error);
@@ -233,22 +241,30 @@ export class StructureErrors extends LitElement {
           // Analyze headings if enabled and present
           if (this.hasHeadingStructureAccess && elements?.headings?.length) {
             this.headingService.detectAllHeadingErrors(elements.headings);
-            this._headingErrors = ErrorRegistry.getAllAggregatedErrors().filter(error =>
-              error.tag === 'headings'
+            this._headingErrors = ErrorRegistry.getAllAggregatedErrors().filter(
+              (error) => error.tag === "headings"
             );
-            this._headingTree = this.headingService._buildHeadingTree(elements.headings);
+            this._headingTree = this.headingService._buildHeadingTree(
+              elements.headings
+            );
           } else {
             this._headingErrors = [];
             this._headingTree = [];
           }
 
           // Analyze landmarks if enabled and present
-          if (this.hasLandmarkStructureAccess && elements?.landmarkElements?.length) {
-            this._landmarkData = this.landmarkService.buildLandmarkList(elements.landmarkElements);
-            this.landmarkService.detectAllLandmarkErrors(this._landmarkData);
-            this._landmarkErrors = ErrorRegistry.getAllAggregatedErrors().filter(error =>
-              error.tag === 'landmarks'
+          if (
+            this.hasLandmarkStructureAccess &&
+            elements?.landmarkElements?.length
+          ) {
+            this._landmarkData = this.landmarkService.buildLandmarkList(
+              elements.landmarkElements
             );
+            this.landmarkService.detectAllLandmarkErrors(this._landmarkData);
+            this._landmarkErrors =
+              ErrorRegistry.getAllAggregatedErrors().filter(
+                (error) => error.tag === "landmarks"
+              );
           } else {
             this._landmarkErrors = [];
             this._landmarkData = [];
@@ -261,9 +277,19 @@ export class StructureErrors extends LitElement {
           const allErrors = [...this._headingErrors, ...this._landmarkErrors];
 
           return html`
-            ${allErrors.length > 0 ? html`
-              <mindfula11y-error-list .errors="${allErrors}" .firstRun="${this._firstRun}"></mindfula11y-error-list>
-            ` : ''}
+            ${allErrors.length > 0
+              ? this._renderHeading(
+                  TYPO3.lang["mindfula11y.structureErrors"],
+                  "mt-0"
+                )
+              : ""}
+            ${allErrors.length > 0
+              ? html`<mindfula11y-error-list
+                  .errors="${allErrors}"
+                  .firstRun="${this._firstRun}"
+                ></mindfula11y-error-list>`
+              : ""}
+            ${this._renderHeading(TYPO3.lang["mindfula11y.structure"])}
             ${this._renderTabs(
               this._headingErrors.reduce((sum, error) => sum + error.count, 0),
               this._landmarkErrors.reduce((sum, error) => sum + error.count, 0)
@@ -273,6 +299,33 @@ export class StructureErrors extends LitElement {
         },
       })}
     `;
+  }
+
+  /**
+   * Renders a single heading dynamically based on headingLevel.
+   *
+   * @private
+   * @param {string} content - The text content of the heading
+   * @param {string} className - The CSS class for the heading
+   * @returns {import('lit').TemplateResult} The rendered heading
+   */
+  _renderHeading(content, className = "") {
+    switch (this.headingLevel) {
+      case 1:
+        return html`<h1 class="${className}">${content}</h1>`;
+      case 2:
+        return html`<h2 class="${className}">${content}</h2>`;
+      case 3:
+        return html`<h3 class="${className}">${content}</h3>`;
+      case 4:
+        return html`<h4 class="${className}">${content}</h4>`;
+      case 5:
+        return html`<h5 class="${className}">${content}</h5>`;
+      case 6:
+        return html`<h6 class="${className}">${content}</h6>`;
+      default:
+        return html`<h2 class="${className}">${content}</h2>`;
+    }
   }
 
   /**
@@ -310,42 +363,58 @@ export class StructureErrors extends LitElement {
   _renderTabs(headingErrorCount, landmarkErrorCount) {
     return html`
       <ul class="nav nav-tabs" id="mindfula11y-structure-tabs" role="tablist">
-        ${this.hasHeadingStructureAccess ? html`
-          <li class="nav-item">
-            <button
-              class="nav-link ${this._currentTab === 'headings' ? 'active' : ''}"
-              id="mindfula11y-headings-tab"
-              data-bs-toggle="tab"
-              data-bs-target="#mindfula11y-headings"
-              type="button"
-              role="tab"
-              aria-controls="mindfula11y-headings"
-              aria-selected="${this._currentTab === 'headings'}"
-              @click="${() => this._handleTabChange('headings')}"
-            >
-              ${TYPO3.lang["mindfula11y.features.structureErrors.headingsTab"] || "Headings"}
-              ${headingErrorCount > 0 ? html`<span class="badge badge-danger ms-2">${headingErrorCount}</span>` : ''}
-            </button>
-          </li>
-        ` : ''}
-        ${this.hasLandmarkStructureAccess ? html`
-          <li class="nav-item">
-            <button
-              class="nav-link ${this._currentTab === 'landmarks' ? 'active' : ''}"
-              id="mindfula11y-landmarks-tab"
-              data-bs-toggle="tab"
-              data-bs-target="#mindfula11y-landmarks"
-              type="button"
-              role="tab"
-              aria-controls="mindfula11y-landmarks"
-              aria-selected="${this._currentTab === 'landmarks'}"
-              @click="${() => this._handleTabChange('landmarks')}"
-            >
-              ${TYPO3.lang["mindfula11y.features.structureErrors.landmarksTab"] || "Landmarks"}
-              ${landmarkErrorCount > 0 ? html`<span class="badge badge-danger ms-2">${landmarkErrorCount}</span>` : ''}
-            </button>
-          </li>
-        ` : ''}
+        ${this.hasHeadingStructureAccess
+          ? html`
+              <li class="nav-item">
+                <button
+                  class="nav-link ${this._currentTab === "headings"
+                    ? "active"
+                    : ""}"
+                  id="mindfula11y-headings-tab"
+                  data-bs-toggle="tab"
+                  data-bs-target="#mindfula11y-headings"
+                  type="button"
+                  role="tab"
+                  aria-controls="mindfula11y-headings"
+                  aria-selected="${this._currentTab === "headings"}"
+                  @click="${() => this._handleTabChange("headings")}"
+                >
+                  ${TYPO3.lang["mindfula11y.headingStructure"] || "Headings"}
+                  ${headingErrorCount > 0
+                    ? html`<span class="badge badge-danger ms-2"
+                        >${headingErrorCount}</span
+                      >`
+                    : ""}
+                </button>
+              </li>
+            `
+          : ""}
+        ${this.hasLandmarkStructureAccess
+          ? html`
+              <li class="nav-item">
+                <button
+                  class="nav-link ${this._currentTab === "landmarks"
+                    ? "active"
+                    : ""}"
+                  id="mindfula11y-landmarks-tab"
+                  data-bs-toggle="tab"
+                  data-bs-target="#mindfula11y-landmarks"
+                  type="button"
+                  role="tab"
+                  aria-controls="mindfula11y-landmarks"
+                  aria-selected="${this._currentTab === "landmarks"}"
+                  @click="${() => this._handleTabChange("landmarks")}"
+                >
+                  ${TYPO3.lang["mindfula11y.landmarkStructure"] || "Landmarks"}
+                  ${landmarkErrorCount > 0
+                    ? html`<span class="badge badge-danger ms-2"
+                        >${landmarkErrorCount}</span
+                      >`
+                    : ""}
+                </button>
+              </li>
+            `
+          : ""}
       </ul>
     `;
   }
@@ -358,40 +427,51 @@ export class StructureErrors extends LitElement {
    */
   _renderTabContent() {
     return html`
-      <div class="tab-content mt-3" id="mindfula11y-structure-tab-content"
-           @mindfula11y-heading-type-changed="${this._handleStructureChanged}"
-           @mindfula11y-landmark-changed="${this._handleStructureChanged}">
-        ${this.hasHeadingStructureAccess ? html`
-          <div
-            class="tab-pane fade ${this._currentTab === 'headings' ? 'show active' : ''}"
-            id="mindfula11y-headings"
-            role="tabpanel"
-            aria-labelledby="mindfula11y-headings-tab"
-          >
-            <mindfula11y-heading-structure
-              .headingTree="${this._headingTree}"
-              .errors="${this._headingErrors}"
-            ></mindfula11y-heading-structure>
-          </div>
-        ` : ''}
-        ${this.hasLandmarkStructureAccess ? html`
-          <div
-            class="tab-pane fade ${this._currentTab === 'landmarks' ? 'show active' : ''}"
-            id="mindfula11y-landmarks"
-            role="tabpanel"
-            aria-labelledby="mindfula11y-landmarks-tab"
-          >
-            <mindfula11y-landmark-structure
-              .landmarkData="${this._landmarkData}"
-              .errors="${this._landmarkErrors}"
-            ></mindfula11y-landmark-structure>
-          </div>
-        ` : ''}
+      <div
+        class="tab-content mt-3"
+        id="mindfula11y-structure-tab-content"
+        @mindfula11y-heading-type-changed="${this._handleStructureChanged}"
+        @mindfula11y-landmark-changed="${this._handleStructureChanged}"
+      >
+        ${this.hasHeadingStructureAccess
+          ? html`
+              <div
+                class="tab-pane fade ${this._currentTab === "headings"
+                  ? "show active"
+                  : ""}"
+                id="mindfula11y-headings"
+                role="tabpanel"
+                aria-labelledby="mindfula11y-headings-tab"
+              >
+                <mindfula11y-heading-structure
+                  .headingTree="${this._headingTree}"
+                  .errors="${this._headingErrors}"
+                ></mindfula11y-heading-structure>
+              </div>
+            `
+          : ""}
+        ${this.hasLandmarkStructureAccess
+          ? html`
+              <div
+                class="tab-pane fade ${this._currentTab === "landmarks"
+                  ? "show active"
+                  : ""}"
+                id="mindfula11y-landmarks"
+                role="tabpanel"
+                aria-labelledby="mindfula11y-landmarks-tab"
+              >
+                <mindfula11y-landmark-structure
+                  .landmarkData="${this._landmarkData}"
+                  .errors="${this._landmarkErrors}"
+                ></mindfula11y-landmark-structure>
+              </div>
+            `
+          : ""}
       </div>
     `;
   }
 }
 
-customElements.define("mindfula11y-structure-errors", StructureErrors);
+customElements.define("mindfula11y-structure", Structure);
 
-export default StructureErrors;
+export default Structure;
