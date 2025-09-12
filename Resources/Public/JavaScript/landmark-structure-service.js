@@ -41,13 +41,10 @@ export class LandmarkStructureService {
   /**
    * Selects landmark elements from HTML content.
    *
-   * @param {string} htmlString - The HTML string to parse
+   * @param {Document} doc - The parsed HTML document
    * @returns {Array<HTMLElement>} Array of landmark elements
    */
-  selectElements(htmlString) {
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(htmlString, "text/html");
-
+  selectElements(doc) {
     // CSS selector for landmark elements - includes explicit ARIA roles and semantic HTML
     const landmarkSelector = [
       // Explicit ARIA roles
@@ -347,19 +344,7 @@ export class LandmarkStructureService {
    * @returns {boolean} True if the element has an accessible name
    */
   _hasAccessibleName(element) {
-    if (!element) return false;
-
-    // Check for aria-label
-    if (element.getAttribute("aria-label")?.trim()) return true;
-
-    // Check for aria-labelledby
-    const labelledBy = element.getAttribute("aria-labelledby");
-    if (labelledBy) {
-      const labelElement = document.getElementById(labelledBy);
-      if (labelElement?.textContent?.trim()) return true;
-    }
-
-    return false;
+    return this.getLandmarkLabel(element).length > 0;
   }
 
   /**

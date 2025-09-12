@@ -49,15 +49,12 @@ export class HeadingStructureService {
   /**
    * Selects heading elements from HTML content.
    *
-   * @param {string} htmlString - The HTML string to parse
+   * @param {Document} doc - The parsed HTML document
    * @returns {Array<HTMLElement>} Array of heading elements (h1-h6)
    */
-  selectElements(htmlString) {
-    const parser = new DOMParser();
+  selectElements(doc) {
     return Array.from(
-      parser
-        .parseFromString(htmlString, "text/html")
-        .querySelectorAll("h1, h2, h3, h4, h5, h6")
+      doc.querySelectorAll("h1, h2, h3, h4, h5, h6")
     );
   }
 

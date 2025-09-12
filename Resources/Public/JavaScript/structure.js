@@ -202,12 +202,16 @@ export class Structure extends LitElement {
   async _analyzeContent([previewUrl]) {
     try {
       const previewHtml = await ContentFetcher.fetchContent(previewUrl);
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(previewHtml, "text/html");
       const headings = this.hasHeadingStructureAccess
-        ? this.headingService.selectElements(previewHtml)
+        ? this.headingService.selectElements(doc)
         : [];
       const landmarkElements = this.hasLandmarkStructureAccess
-        ? this.landmarkService.selectElements(previewHtml)
+        ? this.landmarkService.selectElements(doc)
         : [];
+      
+      console.debug("Analyzed Content:", { headings, landmarkElements });
 
       return {
         headings,
