@@ -211,8 +211,6 @@ export class Structure extends LitElement {
         ? this.landmarkService.selectElements(doc)
         : [];
       
-      console.debug("Analyzed Content:", { headings, landmarkElements });
-
       return {
         headings,
         landmarkElements,
