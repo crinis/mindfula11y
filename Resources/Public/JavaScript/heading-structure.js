@@ -23,22 +23,17 @@
  * @typedef {import('./types.js').HeadingTreeNode} HeadingTreeNode
  * @typedef {import('./types.js').StructureError} StructureError
  */
-import { html, css } from "lit";
+import { html, css, LitElement } from "lit";
 import HeadingType from "./heading-type.js";
-import AccessibilityStructureBase from "./accessibility-structure-base.js";
-import HeadingStructureService from "./heading-structure-service.js";
-import ContentFetcher from "./content-fetcher.js";
 import { ErrorRegistry } from "./error-registry.js";
 import { ERROR_SEVERITY } from "./types.js";
-import ErrorList from "./error-list.js";
 
 /**
  * Web component for visualizing and editing the heading structure of an HTML document in TYPO3.
  *
- * This component analyzes HTML content for heading elements (h1-h6), displays them in a
- * hierarchical tree structure, and validates their accessibility compliance. It provides
- * error reporting for missing H1 elements, multiple H1 elements, empty headings, and
- * skipped heading levels.
+ * This component renders the heading structure in a hierarchical tree structure
+ * and validates their accessibility compliance. It provides error reporting for
+ * missing H1 elements, multiple H1 elements, empty headings, and skipped heading levels.
  *
  * Key features:
  * - Hierarchical heading tree visualization with connecting lines
@@ -46,7 +41,6 @@ import ErrorList from "./error-list.js";
  * - Inline heading type editing with AJAX persistence
  * - Bootstrap-styled error alerts and status indicators
  * - Responsive tree layout with proper nesting indicators
- * - Integration with TYPO3 backend notification system
  *
  * Error types detected:
  * - Missing H1 element (error)
@@ -55,9 +49,9 @@ import ErrorList from "./error-list.js";
  * - Skipped heading levels (error)
  *
  * @class HeadingStructure
- * @extends AccessibilityStructureBase
+ * @extends LitElement
  */
-export class HeadingStructure extends AccessibilityStructureBase {
+export class HeadingStructure extends LitElement {
 
   /**
    * CSS styles for the component tree visualization.
@@ -151,34 +145,28 @@ export class HeadingStructure extends AccessibilityStructureBase {
   }
 
   /**
-   * Creates an instance of HeadingStructure.
+   * Component properties definition.
    *
-   * Inherits the task system from AccessibilityStructureBase for loading and analyzing headings.
+   * @returns {Object} The properties definition object for LitElement.
+   */
+  static get properties() {
+    return {
+      headingTree: { type: Array },
+      errors: { type: Array },
+    };
+  }
+
+  /**
+   * Creates an instance of HeadingStructure.
    */
   constructor() {
-    super(); // This initializes the base class task system
-    this.structureService = new HeadingStructureService();
+    super();
+    this.headingTree = [];
+    this.errors = [];
   }
 
   /**
-   * Analyzes content from the preview URL using the heading structure service.
-   *
-   * @private
-   * @param {Array} args - Task arguments containing [previewUrl]
-   * @returns {Promise<Array<HTMLElement>|null>} The elements found or null on error
-   */
-  async _analyzeContent([previewUrl]) {
-    try {
-      const previewHtml = await ContentFetcher.fetchContent(previewUrl);
-      return this.structureService.selectElements(previewHtml);
-    } catch (error) {
-      this._handleLoadingError(error);
-      return null;
-    }
-  }
-
-  /**
-   * Renders the heading structure component, including errors and the heading tree.
+   * Renders the heading structure component.
    *
    * @returns {import('lit').TemplateResult} The rendered template for the component.
    */
@@ -187,22 +175,7 @@ export class HeadingStructure extends AccessibilityStructureBase {
       <style>
         ${this.constructor.styles}
       </style>
-      ${this.loadContentTask.render({
-        complete: (headings) => {
-          if (this.firstRun) {
-            this.firstRun = false;
-          }
-
-          const headingArray = Array.from(headings || []);
-          const errors = this.structureService.buildErrorList(headingArray);
-          const headingTree = this.structureService._buildHeadingTree(headingArray);
-
-          return html`
-            <mindfula11y-error-list .errors="${errors}" .firstRun="${this.firstRun}"></mindfula11y-error-list>
-            ${this._renderHeadingContent(headingTree)}
-          `;
-        },
-      })}
+      ${this._renderHeadingContent(this.headingTree)}
     `;
   }
 
@@ -218,11 +191,11 @@ export class HeadingStructure extends AccessibilityStructureBase {
       return html`
         <div class="alert alert-info">
           <h4 class="alert-heading">
-            ${TYPO3.lang["mindfula11y.features.headingStructure.noHeadings"]}
+            ${TYPO3.lang["mindfula11y.headingStructure.noHeadings"]}
           </h4>
           <p class="mb-0">
             ${TYPO3.lang[
-              "mindfula11y.features.headingStructure.noHeadings.description"
+              "mindfula11y.headingStructure.noHeadings.description"
             ]}
           </p>
         </div>
@@ -303,7 +276,7 @@ export class HeadingStructure extends AccessibilityStructureBase {
           <div class="alert alert-danger py-2 px-3 mb-2">
             <span class="fw-bold">
               ${TYPO3.lang[
-                "mindfula11y.features.headingStructure.error.skippedLevel.inline"
+                "mindfula11y.headingStructure.error.skippedLevel.inline"
               ]?.replace("%1$d", skippedLevel)}
             </span>
           </div>
@@ -351,7 +324,6 @@ export class HeadingStructure extends AccessibilityStructureBase {
         recordEditLink="${node.element.dataset.mindfula11yRecordEditLink || ""}"
         .errorMessages="${errorMessages}"
         label="${this._extractHeadingLabel(node.element)}"
-        @mindfula11y-heading-type-changed="${this._handleHeadingTypeChange}"
       >
       </mindfula11y-heading-type>
     `;
@@ -367,7 +339,7 @@ export class HeadingStructure extends AccessibilityStructureBase {
   _extractHeadingLabel(element) {
     return (
       element.innerText?.trim() ||
-      TYPO3.lang["mindfula11y.features.headingStructure.unlabeled"]
+      TYPO3.lang["mindfula11y.headingStructure.unlabeled"]
     );
   }
 
@@ -407,19 +379,12 @@ export class HeadingStructure extends AccessibilityStructureBase {
   }
 
   /**
-   * Handles heading type change events by clearing the cache and reloading content.
+   * Disables the default shadow DOM and renders into the light DOM.
    *
-   * @private
-   * @param {CustomEvent} event - The heading type change event
+   * @returns {HTMLElement} The root element for the component (this).
    */
-  _handleHeadingTypeChange(event) {
-    // Clear the cached preview content since the content has changed on the server
-    if (this.previewUrl) {
-      ContentFetcher.clearCache(this.previewUrl);
-    }
-
-    // Reload the entire structure to reflect changes
-    this.loadContentTask.run();
+  createRenderRoot() {
+    return this;
   }
 }
 

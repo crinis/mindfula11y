@@ -244,7 +244,7 @@ class AltTextFinderService
      *
      * This method identifies all database tables that contain file reference fields
      * and returns them as an array. The method
-     * ensures that only tables accessible to the user (based on modify
+     * ensures that only tables accessible to the user (based on read
      * permissions) are included. Additionally, it respects Page TSConfig settings
      * that may exclude specific tables or fields from the results.
      *
@@ -257,7 +257,7 @@ class AltTextFinderService
     {
         $tableNames = [];
         foreach (array_keys($GLOBALS['TCA']) as $tableName) {
-            if (!$this->permissionService->checkTableWriteAccess($tableName)) {
+            if (!$this->permissionService->checkTableReadAccess($tableName)) {
                 continue;
             }
 

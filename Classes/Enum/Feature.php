@@ -9,7 +9,5 @@ namespace MindfulMarkup\MindfulA11y\Enum;
 enum Feature: string
 {
     case GENERAL = 'general';
-    case HEADING_STRUCTURE = 'headingStructure';
-    case LANDMARK_STRUCTURE = 'landmarkStructure';
     case MISSING_ALT_TEXT = 'missingAltText';
 }

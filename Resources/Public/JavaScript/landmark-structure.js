@@ -23,20 +23,16 @@
  * @typedef {import('./types.js').LandmarkData} LandmarkData
  * @typedef {import('./types.js').StructureError} StructureError
  */
-import { html, css } from "lit";
+import { html, css, LitElement } from "lit";
 import LandmarkBox from "./landmark-box.js";
-import AccessibilityStructureBase from "./accessibility-structure-base.js";
-import LandmarkStructureService from "./landmark-structure-service.js";
-import ContentFetcher from "./content-fetcher.js";
 import { ErrorRegistry } from "./error-registry.js";
-import ErrorList from "./error-list.js";
 
 /**
  * Web component for visualizing and editing the landmark structure of an HTML document in TYPO3.
  *
- * This component analyzes HTML content for ARIA landmarks and semantic HTML elements,
- * displays them in a hierarchical structure, and validates their accessibility compliance.
- * It provides error reporting for missing, duplicate, or improperly labeled landmarks.
+ * This component renders the landmark structure in a hierarchical structure
+ * and validates their accessibility compliance. It provides error reporting for
+ * missing, duplicate, or improperly labeled landmarks.
  *
  * Key features:
  * - Hierarchical landmark structure visualization
@@ -57,9 +53,9 @@ import ErrorList from "./error-list.js";
  * - search, region, form (with accessible names)
  *
  * @class LandmarkStructure
- * @extends AccessibilityStructureBase
+ * @extends LitElement
  */
-export class LandmarkStructure extends AccessibilityStructureBase {
+export class LandmarkStructure extends LitElement {
   /**
    * CSS styles for the component.
    *
@@ -74,34 +70,28 @@ export class LandmarkStructure extends AccessibilityStructureBase {
   }
 
   /**
-   * Creates an instance of LandmarkStructure.
+   * Component properties definition.
    *
-   * Inherits the task system from AccessibilityStructureBase for loading and analyzing landmarks.
+   * @returns {Object} The properties definition object for LitElement.
+   */
+  static get properties() {
+    return {
+      landmarkData: { type: Array },
+      errors: { type: Array },
+    };
+  }
+
+  /**
+   * Creates an instance of LandmarkStructure.
    */
   constructor() {
-    super(); // This initializes the base class task system
-    this.structureService = new LandmarkStructureService();
+    super();
+    this.landmarkData = [];
+    this.errors = [];
   }
 
   /**
-   * Analyzes content from the preview URL using the landmark structure service.
-   *
-   * @private
-   * @param {Array} args - Task arguments containing [previewUrl]
-   * @returns {Promise<Array<HTMLElement>|null>} The elements found or null on error
-   */
-  async _analyzeContent([previewUrl]) {
-    try {
-      const previewHtml = await ContentFetcher.fetchContent(previewUrl);
-      return this.structureService.selectElements(previewHtml);
-    } catch (error) {
-      this._handleLoadingError(error);
-      return null;
-    }
-  }
-
-  /**
-   * Renders the landmark structure component, including errors and the landmark boxes.
+   * Renders the landmark structure component.
    *
    * @returns {import('lit').TemplateResult} The rendered template for the component.
    */
@@ -110,22 +100,7 @@ export class LandmarkStructure extends AccessibilityStructureBase {
       <style>
         ${this.constructor.styles}
       </style>
-      ${this.loadContentTask.render({
-        complete: (landmarkElements) => {
-          if (this.firstRun) {
-            this.firstRun = false;
-          }
-          const landmarkData = this.structureService.buildLandmarkList(landmarkElements || []);
-
-          // Run error checking on the landmark data to attach error reasons
-          const errors = this.structureService.buildErrorList(landmarkData);
-
-          return html`
-            <mindfula11y-error-list .errors="${errors}" .firstRun="${this.firstRun}"></mindfula11y-error-list>
-            ${this._renderLandmarkContent(landmarkData)}
-          `;
-        },
-      })}
+      ${this._renderLandmarkContent(this.landmarkData)}
     `;
   }
 
@@ -141,9 +116,9 @@ export class LandmarkStructure extends AccessibilityStructureBase {
       return html`
         <div class="alert alert-info">
           <strong
-            >${TYPO3.lang["mindfula11y.features.landmarkStructure.noLandmarks.title"]}</strong
+            >${TYPO3.lang["mindfula11y.landmarkStructure.noLandmarks"]}</strong
           >
-          <p>${TYPO3.lang["mindfula11y.features.landmarkStructure.noLandmarks.description"]}</p>
+          <p>${TYPO3.lang["mindfula11y.landmarkStructure.noLandmarks.description"]}</p>
         </div>
       `;
     }
@@ -156,18 +131,12 @@ export class LandmarkStructure extends AccessibilityStructureBase {
   }
 
   /**
-   * Handles landmark change events by clearing the cache and reloading content.
+   * Disables the default shadow DOM and renders into the light DOM.
    *
-   * @private
-   * @param {CustomEvent} event - The landmark change event
+   * @returns {HTMLElement} The root element for the component (this).
    */
-  _handleLandmarkChange(event) {
-    // Clear the cache for the current preview URL to ensure fresh content
-    if (this.previewUrl) {
-      ContentFetcher.clearCache(this.previewUrl);
-    }
-    // Run the task to reload content
-    this.loadContentTask.run();
+  createRenderRoot() {
+    return this;
   }
 
   /**
@@ -187,11 +156,6 @@ export class LandmarkStructure extends AccessibilityStructureBase {
     return `mindfula11y-landmark-${rolePrefix}-${uid}`;
   }
 
-  /**
-   * Fetches the preview content from the server.
-   *
-   * Sends an AJAX request to the server to fetch the preview content.
-   * The response is expected to be HTML content for landmark analysis.
   /**
    * Renders a single landmark box component with its nested children.
    *
@@ -267,7 +231,6 @@ export class LandmarkStructure extends AccessibilityStructureBase {
         recordUid="${props.recordUid}"
         recordEditLink="${props.recordEditLink}"
         landmarkId="${props.landmarkId}"
-        @mindfula11y-landmark-changed="${this._handleLandmarkChange}"
       ></mindfula11y-landmark-box>
     `;
   }
@@ -290,7 +253,7 @@ export class LandmarkStructure extends AccessibilityStructureBase {
         ${this._renderSimpleLandmark(props)}
         <div class="ms-4 mt-3">
           <div class="fw-bold text-muted text-uppercase fs-7 mb-2">
-            ${TYPO3.lang["mindfula11y.features.landmarkStructure.nestedLandmarks"]}
+            ${TYPO3.lang["mindfula11y.landmarkStructure.nested"]}
           </div>
           <div class="d-flex flex-column gap-3">${nestedChildren}</div>
         </div>
@@ -298,20 +261,6 @@ export class LandmarkStructure extends AccessibilityStructureBase {
     `;
   }
 
-  /**
-   * Handles landmark change events by clearing the cache and reloading content.
-   *
-   * @private
-   * @param {CustomEvent} event - The landmark change event
-   */
-  _handleLandmarkChange(event) {
-    // Clear the cache for the current preview URL to ensure fresh content
-    if (this.previewUrl) {
-      ContentFetcher.clearCache(this.previewUrl);
-    }
-    // Run the task to reload content
-    this.loadContentTask.run();
-  }
 }
 
 // Register the custom element

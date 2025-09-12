@@ -45,19 +45,28 @@ Configure module behavior per page using Page TSconfig (`Configuration/page.tsco
 
 ```
 mod {
-    mindfula11y_missingalttext {
-        enable = 1
-        ignoreColumns {
-            # Do not include column `image` from table `tt_content` in the alternative text check.
-            tt_content = image
+    mindfula11y_accessibility {
+        missingAltText {
+            enable = 1
+            ignoreColumns {
+                # Do not include column `image` from table `tt_content` in the alternative text check.
+                tt_content = image
+            }
+        }
+        headingStructure {
+            enable = 1
+        }
+        landmarkStructure {
+            enable = 1
         }
     }
-    mindfula11y_headingstructure {
-        enable = 1
-    }
-    mindfula11y_landmarkstructure {
-        enable = 1
-    }
+
+    web_layout {
+        mindfula11y {
+            # Hide mindfula11y accessibility info in page module
+            hideInfo = 0
+        }
+    } 
 }
 ```
 

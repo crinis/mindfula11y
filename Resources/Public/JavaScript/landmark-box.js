@@ -173,7 +173,7 @@ export class LandmarkBox extends LitElement {
     if (this.label?.trim()) {
       return this.label;
     }
-    return TYPO3.lang["mindfula11y.features.landmarkStructure.unlabelledLandmark"] || "";
+    return TYPO3.lang["mindfula11y.landmarkStructure.unlabelledLandmark"] || "";
   }
 
   /**
@@ -270,7 +270,7 @@ export class LandmarkBox extends LitElement {
           ? html`
               <span class="badge rounded-pill">
                 ${this.children.length}
-                ${TYPO3.lang["mindfula11y.features.landmarkStructure.nestedLandmarks"]}
+                ${TYPO3.lang["mindfula11y.landmarkStructure.nested"]}
               </span>
             `
           : ""}
@@ -306,7 +306,7 @@ export class LandmarkBox extends LitElement {
         class="btn btn-outline-primary btn-sm d-flex align-items-center gap-1"
       >
         ${this._renderEditIcon()}
-        <span>${TYPO3.lang["mindfula11y.features.landmarkStructure.edit"]}</span>
+        <span>${TYPO3.lang["mindfula11y.landmarkStructure.edit"]}</span>
       </a>
     `;
   }
@@ -322,7 +322,7 @@ export class LandmarkBox extends LitElement {
       <span class="text-muted d-flex align-items-center gap-1">
         ${this._renderLockIcon()}
         <span class="fs-7"
-          >${TYPO3.lang["mindfula11y.features.landmarkStructure.edit.locked"]}</span
+          >${TYPO3.lang["mindfula11y.landmarkStructure.edit.locked"]}</span
         >
       </span>
     `;
@@ -439,7 +439,7 @@ export class LandmarkBox extends LitElement {
 
       return html`
         <label id="${labelId}" for="${uniqueId}" class="visually-hidden">
-          ${TYPO3.lang["mindfula11y.features.landmarkStructure.role"]}
+          ${TYPO3.lang["mindfula11y.landmarkStructure.role"]}
         </label>
         ${disabled
           ? this._renderRoleInput(uniqueId, labelId)
@@ -537,7 +537,7 @@ export class LandmarkBox extends LitElement {
   _renderRoleSelectError() {
     return html`
       <div class="alert alert-danger alert-sm">
-        ${TYPO3.lang["mindfula11y.features.landmarkStructure.error.roleSelect"]}
+        ${TYPO3.lang["mindfula11y.landmarkStructure.error.roleSelect"]}
       </div>
     `;
   }
@@ -632,8 +632,8 @@ export class LandmarkBox extends LitElement {
    */
   _handleSaveError() {
     Notification.error(
-      TYPO3.lang["mindfula11y.features.landmarkStructure.error.store"],
-      TYPO3.lang["mindfula11y.features.landmarkStructure.error.store.description"]
+      TYPO3.lang["mindfula11y.landmarkStructure.error.store"],
+      TYPO3.lang["mindfula11y.landmarkStructure.error.store.description"]
     );
   }
 
@@ -650,9 +650,9 @@ export class LandmarkBox extends LitElement {
    */
   _getRoleDisplayName(role) {
     if (role === "") {
-      return TYPO3.lang["mindfula11y.features.landmarkStructure.role.none"] || "";
+      return TYPO3.lang["mindfula11y.landmarkStructure.role.none"] || "";
     }
-    const translationKey = `mindfula11y.features.landmarkStructure.role.${role}`;
+    const translationKey = `mindfula11y.landmarkStructure.role.${role}`;
     return TYPO3.lang[translationKey] || role;
   }
 

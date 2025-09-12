@@ -1,0 +1,33 @@
+<f:if
+  condition="{hasMissingAltTextAccess} && {fileReferenceCount} > 0 || ({previewUrl} && ({hasHeadingStructureAccess} || {hasLandmarkStructureAccess}))">
+  <section class="callout callout-notice">
+    <div class="callout-content">
+      <div class="callout-title">
+        <h{headingLevel}>
+          <f:translate
+            key="LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:mlang_labels_tablabel" />
+        </h{headingLevel}>
+      </div>
+      <div class="callout-body">
+        <f:if condition="{hasMissingAltTextAccess} && {fileReferenceCount} > 0">
+          <p class="alert alert-warning">
+            <f:translate
+              key="LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:missingAltText.count"
+              arguments="{0: fileReferenceCount}" />
+            <f:if condition="{missingAltTextUri}">
+              <a href="{missingAltTextUri}" class="btn btn-sm btn-default">
+                <f:translate
+                  key="LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:missingAltText.viewAll" />
+              </a>
+            </f:if>
+          </p>
+        </f:if>
+        <f:if condition="{previewUrl} && ({hasHeadingStructureAccess} || {hasLandmarkStructureAccess})">
+          <mindfula11y-structure headingLevel="{headingLevel + 1}" previewUrl="{previewUrl}"
+            hasHeadingStructureAccess="{hasHeadingStructureAccess}"
+            hasLandmarkStructureAccess="{hasLandmarkStructureAccess}" />
+        </f:if>
+      </div>
+    </div>
+  </section>
+</f:if>

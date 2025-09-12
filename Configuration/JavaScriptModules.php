@@ -31,7 +31,7 @@ return [
         '@mindfulmarkup/mindfula11y/input-alt-element-service.js' => 'EXT:mindfula11y/Resources/Public/JavaScript/input-alt-element-service.js',
         '@mindfulmarkup/mindfula11y/heading-structure.js' => 'EXT:mindfula11y/Resources/Public/JavaScript/heading-structure.js',
         '@mindfulmarkup/mindfula11y/landmark-structure.js' => 'EXT:mindfula11y/Resources/Public/JavaScript/landmark-structure.js',
-        '@mindfulmarkup/mindfula11y/structure-errors.js' => 'EXT:mindfula11y/Resources/Public/JavaScript/structure-errors.js',
+        '@mindfulmarkup/mindfula11y/structure.js' => 'EXT:mindfula11y/Resources/Public/JavaScript/structure.js',
         '@mindfulmarkup/mindfula11y/altless-file-reference.js' => 'EXT:mindfula11y/Resources/Public/JavaScript/altless-file-reference.js',
     ],
 ];

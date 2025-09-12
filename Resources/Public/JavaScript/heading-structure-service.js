@@ -105,7 +105,7 @@ export class HeadingStructureService {
 
     if (h1Elements.length === 0) {
       const missingH1Error = ErrorRegistry.createError(
-        "mindfula11y.features.headingStructure.error.missingH1",
+        "mindfula11y.headingStructure.error.missingH1",
         ERROR_SEVERITY.ERROR,
         "headings"
       );
@@ -124,7 +124,7 @@ export class HeadingStructureService {
 
     if (h1Elements.length > 1) {
       const multipleH1Error = ErrorRegistry.createError(
-        "mindfula11y.features.headingStructure.error.multipleH1",
+        "mindfula11y.headingStructure.error.multipleH1",
         ERROR_SEVERITY.WARNING,
         "headings"
       );
@@ -145,7 +145,7 @@ export class HeadingStructureService {
     headings.forEach((heading) => {
       if (!heading?.textContent?.trim()) {
         const emptyHeadingError = ErrorRegistry.createError(
-          "mindfula11y.features.headingStructure.error.emptyHeadings",
+          "mindfula11y.headingStructure.error.emptyHeadings",
           ERROR_SEVERITY.ERROR,
           "headings"
         );
@@ -182,7 +182,7 @@ export class HeadingStructureService {
         if (node.skippedLevels > 0) {
           // Create a separate error instance for each heading with skipped levels
           const headingError = ErrorRegistry.createError(
-            "mindfula11y.features.headingStructure.error.skippedLevel",
+            "mindfula11y.headingStructure.error.skippedLevel",
             ERROR_SEVERITY.ERROR,
             "headings"
           );

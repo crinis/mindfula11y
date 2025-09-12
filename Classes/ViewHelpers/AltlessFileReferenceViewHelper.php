@@ -105,29 +105,39 @@ class AltlessFileReferenceViewHelper extends AbstractTagBasedViewHelper
         $fileReference = $this->arguments['fileReference'];
 
         $recordTableName = $fileReference->getOriginalResource()->getReferenceProperty('tablenames');
+        $recordColumnName = $fileReference->getOriginalResource()->getReferenceProperty('fieldname');
         $recordUid = $fileReference->getOriginalResource()->getReferenceProperty('uid_foreign');
-        $this->tag->addAttribute('recordEditLink', $this->backendUriBuilder->buildUriFromRoute('record_edit', [
-            'edit' => [
-                $recordTableName => [
-                    $recordUid => 'edit'
-                ]
-            ],
-        ]));
-        $this->tag->addAttribute('recordEditLinkLabel', sprintf($this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:missingAltText.editRecord.label'), $recordTableName, $recordUid));
+        $fileReferenceProperties = $fileReference->getOriginalResource()->getReferenceProperties();
 
         if (
-            !$this->extensionConfiguration->get('mindfula11y', 'disableAltTextGeneration') &&
-            !empty($this->extensionConfiguration->get('mindfula11y', 'openAIApiKey'))
+            $this->permissionService->checkTableWriteAccess('sys_file_reference')
+            && $this->permissionService->checkNonExcludeFields('sys_file_reference', ['alternative'])
+            && !empty($recordTableName)
+            && !empty($recordColumnName)
+            && $this->permissionService->checkRecordEditAccess($recordTableName, $fileReferenceProperties, [$recordColumnName])
         ) {
-            $this->tag->addAttribute(
-                'altTextDemand',
-                json_encode($this->getAltTextDemand($fileReference))
-            );
+            $this->tag->addAttribute('recordEditLink', $this->backendUriBuilder->buildUriFromRoute('record_edit', [
+                'edit' => [
+                    $recordTableName => [
+                        $recordUid => 'edit'
+                    ]
+                ],
+            ]));
+            $this->tag->addAttribute('recordEditLinkLabel', sprintf($this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:missingAltText.editRecord.label'), $recordTableName, $recordUid));
+            if (
+                !$this->extensionConfiguration->get('mindfula11y', 'disableAltTextGeneration') &&
+                !empty($this->extensionConfiguration->get('mindfula11y', 'openAIApiKey'))
+            ) {
+                $this->tag->addAttribute(
+                    'altTextDemand',
+                    json_encode($this->getAltTextDemand($fileReference))
+                );
+            }
         }
 
         $this->tag->addAttribute('uid', $fileReference->getUid());
 
-        if ($this->permissionService->checkTableReadAccess('sys_file_metadata')) {
+        if ($this->permissionService->checkTableReadAccess('sys_file_metadata') && $this->permissionService->checkNonExcludeFields('sys_file_metadata', ['alternative'])) {
             $this->tag->addAttribute('fallbackAlternative', $fileReference->getOriginalResource()->getOriginalFile()->getProperty('alternative'));
         }
 

@@ -30,18 +30,6 @@
                 </source>
             </trans-unit>
 
-            <trans-unit id="wrongPageTypeSelected" resname="wrongPageTypeSelected">
-                <source>
-                    Wrong page type selected.
-                </source>
-            </trans-unit>
-            <trans-unit id="wrongPageTypeSelected.description"
-                resname="wrongPageTypeSelected.description">
-                <source>
-                    The selected page type cannot be analyzed for accessibility issues. Select a page type
-                    that can be previewed.
-                </source>
-            </trans-unit>
             <trans-unit id="noLanguageAccess" resname="noLanguageAccess">
                 <source>
                     No access to the selected language.
@@ -67,17 +55,12 @@
             <trans-unit id="menu.language" resname="menu.language">
                 <source>Language</source>
             </trans-unit>
-            <trans-unit id="missingAltText" resname="missingAltText">
-                <source>File references without alternative text</source>
-            </trans-unit>
-            <trans-unit id="headingStructure" resname="headingStructure">
-                <source>Heading structure</source>
-            </trans-unit>
-            <trans-unit id="landmarkStructure" resname="landmarkStructure">
-                <source>Landmark structure</source>
-            </trans-unit>
+
             <trans-unit id="structureErrors" resname="structureErrors">
                 <source>Structure errors</source>
+            </trans-unit>
+            <trans-unit id="structure" resname="structure">
+                <source>Structure</source>
             </trans-unit>
 
             <trans-unit id="menu.pageLevels" resname="menu.pageLevels">
@@ -126,6 +109,19 @@
             </trans-unit>
             <trans-unit id="menu.features.landmarkStructure" resname="menu.features.landmarkStructure">
                 <source>Landmark structure</source>
+            </trans-unit>
+
+            <trans-unit id="severity.error" resname="severity.error">
+                <source>Error</source>
+            </trans-unit>
+            <trans-unit id="severity.warning" resname="severity.warning">
+                <source>Warning</source>
+            </trans-unit>
+            <trans-unit id="accessibility.error.loading" resname="accessibility.error.loading">
+                <source>Failed to load content structure</source>
+            </trans-unit>
+            <trans-unit id="accessibility.error.loading.description" resname="accessibility.error.loading.description">
+                <source>Could not analyze the page content. Please try again or check your connection.</source>
             </trans-unit>
 
             <trans-unit id="missingAltText" resname="missingAltText">
@@ -222,12 +218,32 @@
             <trans-unit id="missingAltText.viewAll" resname="missingAltText.viewAll">
                 <source>View all</source>
             </trans-unit>
+            <trans-unit id="missingAltText.noAccess" resname="missingAltText.noAccess">
+                <source>No access to missing alternative text feature.</source>
+            </trans-unit>
+            <trans-unit id="missingAltText.noAccess.description"
+                resname="missingAltText.noAccess.description">
+                <source>
+                    You do not have permission to access file references. Please contact your administrator.
+                </source>
+            </trans-unit>
 
-            <!-- Heading Structure Section -->
+            <trans-unit id="headingStructure" resname="headingStructure">
+                <source>Headings</source>
+            </trans-unit>
             <trans-unit id="headingStructure.description" resname="headingStructure.description">
                 <source>
                     Listing the heading structure of the currently selected page and
                     providing options to fix it.
+                </source>
+            </trans-unit>
+            <trans-unit id="headingStructure.noAccess" resname="headingStructure.noAccess">
+                <source>No access to heading structure.</source>
+            </trans-unit>
+            <trans-unit id="headingStructure.noAccess.description"
+                resname="headingStructure.noAccess.description">
+                <source>
+                    You do not have permission to access the heading structure feature. Please contact your administrator.
                 </source>
             </trans-unit>
             <trans-unit id="headingStructure.error.loading" resname="headingStructure.error.loading">
@@ -283,20 +299,6 @@
                 resname="headingStructure.error.emptyHeadings.description">
                 <source>Headings without text content provide no semantic value and can confuse screen reader users. Please add descriptive text to all heading elements or remove empty headings.</source>
             </trans-unit>
-            <trans-unit id="severity.error" resname="severity.error">
-                <source>Error</source>
-            </trans-unit>
-            <trans-unit id="severity.warning" resname="severity.warning">
-                <source>Warning</source>
-            </trans-unit>
-            <trans-unit id="accessibility.error.loading" resname="accessibility.error.loading">
-                <source>Failed to load content structure</source>
-            </trans-unit>
-            <trans-unit id="accessibility.error.loading.description" resname="accessibility.error.loading.description">
-                <source>Could not analyze the page content. Please try again or check your connection.</source>
-            </trans-unit>
-
-            <!-- Heading Structure UI Labels -->
             <trans-unit id="headingStructure.error.skippedLevel.inline"
                 resname="headingStructure.error.skippedLevel.inline">
                 <source>Skipped H%1$d</source>
@@ -305,12 +307,12 @@
                 <source>Edit heading</source>
             </trans-unit>
             <trans-unit id="headingStructure.edit.locked" resname="headingStructure.edit.locked">
-                <source>Editing not allowed</source>
+                <source>Heading is not editable</source>
             </trans-unit>
             <trans-unit id="headingStructure.unlabeled" resname="headingStructure.unlabeled">
                 <source>Unlabeled heading</source>
             </trans-unit>
-            <trans-unit id="headingStructure.type.label" resname="headingStructure.type.label">
+            <trans-unit id="headingStructure.type" resname="headingStructure.type">
                 <source>Heading type</source>
             </trans-unit>
             <trans-unit id="headingStructure.relation.descendant" resname="headingStructure.relation.descendant">
@@ -333,12 +335,21 @@
             </trans-unit>
 
             <trans-unit id="landmarkStructure" resname="landmarkStructure">
-                <source>Landmark Structure</source>
+                <source>Landmarks</source>
             </trans-unit>
             <trans-unit id="landmarkStructure.description" resname="landmarkStructure.description">
                 <source>
                     Listing the landmark structure of the currently selected page and
                     providing options to fix it.
+                </source>
+            </trans-unit>
+            <trans-unit id="landmarkStructure.noAccess" resname="landmarkStructure.noAccess">
+                <source>No access to landmark structure.</source>
+            </trans-unit>
+            <trans-unit id="landmarkStructure.noAccess.description"
+                resname="landmarkStructure.noAccess.description">
+                <source>
+                    You do not have permission to access the landmark structure feature. Please contact your administrator.
                 </source>
             </trans-unit>
             <trans-unit id="landmarkStructure.edit" resname="landmarkStructure.edit">
@@ -347,7 +358,7 @@
             <trans-unit id="landmarkStructure.edit.locked" resname="landmarkStructure.edit.locked">
                 <source>Landmark is not editable</source>
             </trans-unit>
-            <trans-unit id="landmarkStructure.nestedLandmarks" resname="landmarkStructure.nestedLandmarks">
+            <trans-unit id="landmarkStructure.nested" resname="landmarkStructure.nested">
                 <source>Nested landmarks</source>
             </trans-unit>
             <trans-unit id="landmarkStructure.role" resname="landmarkStructure.role">
@@ -380,22 +391,11 @@
             <trans-unit id="landmarkStructure.role.form" resname="landmarkStructure.role.form">
                 <source>Form (form)</source>
             </trans-unit>
-            
-            <!-- No landmarks message -->
-            <trans-unit id="landmarkStructure.noLandmarks.title" resname="landmarkStructure.noLandmarks.title">
+            <trans-unit id="landmarkStructure.noLandmarks" resname="landmarkStructure.noLandmarks">
                 <source>No landmarks found</source>
             </trans-unit>
             <trans-unit id="landmarkStructure.noLandmarks.description" resname="landmarkStructure.noLandmarks.description">
                 <source>This page doesn't contain any ARIA landmarks or semantic HTML elements.</source>
-            </trans-unit>
-            
-            <trans-unit id="landmarkStructure.error.loading" resname="landmarkStructure.error.loading">
-                <source>Loading landmark structure failed.</source>
-            </trans-unit>
-            <trans-unit id="landmarkStructure.error.loading.description"
-                resname="landmarkStructure.error.loading.description">
-                <source>Could not load the landmark structure. Cannot analyze the page landmark
-                    structure.</source>
             </trans-unit>
             <trans-unit id="landmarkStructure.error.store" resname="landmarkStructure.error.store">
                 <source>Saving landmark role failed.</source>
@@ -404,14 +404,6 @@
                 resname="landmarkStructure.error.store.description">
                 <source>Could not save the landmark role. Do you have permission?</source>
             </trans-unit>
-            <trans-unit id="landmarkStructure.error.updateFailed" resname="landmarkStructure.error.updateFailed">
-                <source>Updating landmark role failed.</source>
-            </trans-unit>
-            <trans-unit id="landmarkStructure.error.updateFailed.description"
-                resname="landmarkStructure.error.updateFailed.description">
-                <source>Could not update the landmark role. Do you have permission?</source>
-            </trans-unit>
-            <!-- Global error messages (shown above landmark list) -->
             <trans-unit id="landmarkStructure.error.missingMain"
                 resname="landmarkStructure.error.missingMain">
                 <source>Missing main landmark.</source>
@@ -441,44 +433,17 @@
             <trans-unit id="landmarkStructure.error.multipleUnlabeledLandmarks.description" resname="landmarkStructure.error.multipleUnlabeledLandmarks.description">
                 <source>More than one landmark with the same role lacks a label. Add unique labels (aria-label or aria-labelledby) so users can distinguish them.</source>
             </trans-unit>
-            
-            <!-- Individual landmark callout messages (shown on specific landmarks) -->
-            <trans-unit id="landmarkStructure.callout.duplicateMain" resname="landmarkStructure.callout.duplicateMain">
+            <trans-unit id="landmarkStructure.error.duplicateMain.single" resname="landmarkStructure.error.duplicateMain.single">
                 <source>Multiple Main landmarks found. There must be exactly one.</source>
             </trans-unit>
-            <trans-unit id="landmarkStructure.callout.duplicateRoleSameLabel" resname="landmarkStructure.callout.duplicateRoleSameLabel">
+            <trans-unit id="landmarkStructure.error.duplicateSameLabel.single" resname="landmarkStructure.error.duplicateSameLabel.single">
                 <source>This label is used by multiple landmarks. Provide a distinct label.</source>
             </trans-unit>
-            <trans-unit id="landmarkStructure.callout.multipleUnlabeledSameRole" resname="landmarkStructure.callout.multipleUnlabeledSameRole">
+            <trans-unit id="landmarkStructure.error.multipleUnlabeledLandmarks.single" resname="landmarkStructure.error.multipleUnlabeledLandmarks.single">
                 <source>Add a unique label. Multiple unlabeled landmarks share this role.</source>
             </trans-unit>
-            <trans-unit id="landmarkStructure.success.roleUpdated"
-                resname="landmarkStructure.success.roleUpdated">
-                <source>Landmark role updated.</source>
-            </trans-unit>
-            <trans-unit id="landmarkStructure.success.roleUpdated.description"
-                resname="landmarkStructure.success.roleUpdated.description">
-                <source>Successfully updated landmark role to</source>
-            </trans-unit>
-            <trans-unit id="landmarkStructure.error.badge" resname="landmarkStructure.error.badge">
-                <source>Error</source>
-            </trans-unit>
-            <trans-unit id="landmarkStructure.intro" resname="landmarkStructure.intro">
-                <source>Landmarks identify key regions of a page for assistive technology. Use them once per page when unique (Main, Banner, Footer) and provide distinct labels for repeated regions (Navigation, Search, Complementary, Region, Form).</source>
-            </trans-unit>
-            <trans-unit id="landmarkStructure.intro.roles" resname="landmarkStructure.intro.roles">
-                <source>Available roles: Banner (banner), Main (main), Footer (contentinfo), Navigation (navigation), Search (search), Complementary (complementary), Region (region), Form (form) or None.</source>
-            </trans-unit>
-            
             <trans-unit id="landmarkStructure.unlabelledLandmark" resname="landmarkStructure.unlabelledLandmark">
                 <source>Unlabelled Landmark</source>
-            </trans-unit>
-
-            <trans-unit id="structureErrors.viewHeadingStructure" resname="structureErrors.viewHeadingStructure">
-                <source>View Heading Structure</source>
-            </trans-unit>
-            <trans-unit id="structureErrors.viewLandmarkStructure" resname="structureErrors.viewLandmarkStructure">
-                <source>View Landmark Structure</source>
             </trans-unit>
         </body>
     </file>

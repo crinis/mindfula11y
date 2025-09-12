@@ -80,8 +80,8 @@ export const ERROR_SEVERITY = {
 export function getSeverityLabel(severity) {
   const key =
     severity === ERROR_SEVERITY.WARNING
-      ? "mindfula11y.features.severity.warning"
-      : "mindfula11y.features.severity.error";
+      ? "mindfula11y.severity.warning"
+      : "mindfula11y.severity.error";
   return TYPO3.lang[key] || severity;
 }
 
