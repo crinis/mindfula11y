@@ -302,7 +302,7 @@ class AccessibilityModuleController
          * We intentionally ignore "hideTable" as inline records should
          * be shown even if the table is hidden.
          */
-        if (empty($tableName) && !$this->permissionService->checkTableReadAccess($tableName)) {
+        if (!empty($tableName) && !$this->permissionService->checkTableReadAccess($tableName)) {
             $this->addFlashMessage(
                 $this->generalModuleService->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:missingAltText.noTableAccess'),
                 $this->generalModuleService->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:missingAltText.noTableAccess.description'),
