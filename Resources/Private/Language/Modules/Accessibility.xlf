@@ -42,15 +42,6 @@
                     issues.
                 </source>
             </trans-unit>
-            <trans-unit id="noTableAccess" resname="noTableAccess">
-                <source>No access to the selected table.</source>
-            </trans-unit>
-            <trans-unit id="noTableAccess.description" resname="noTableAccess.description">
-                <source>
-                    Please select a record type that you have access to or contact your
-                    administrator.
-                </source>
-            </trans-unit>
 
             <trans-unit id="menu.language" resname="menu.language">
                 <source>Language</source>
@@ -225,6 +216,16 @@
                 resname="missingAltText.noAccess.description">
                 <source>
                     You do not have permission to access file references. Please contact your administrator.
+                </source>
+            </trans-unit>
+            <trans-unit id="missingAltText.noTableAccess" resname="missingAltText.noTableAccess">
+                <source>No access to the selected table.</source>
+            </trans-unit>
+            <trans-unit id="missingAltText.noTableAccess.description"
+                resname="missingAltText.noTableAccess.description">
+                <source>
+                    Please select a record type that you have access to or contact your
+                    administrator.
                 </source>
             </trans-unit>
 

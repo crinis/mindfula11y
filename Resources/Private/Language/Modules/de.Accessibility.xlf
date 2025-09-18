@@ -61,19 +61,6 @@
                     Bitte wählen Sie eine erlaubte Sprache im Seitenbaum aus, um auf Barrierefreiheitsprobleme zu überprüfen.
                 </target>
             </trans-unit>
-            <trans-unit id="noTableAccess" resname="noTableAccess">
-                <source>No access to the selected table.</source>
-                <target>Kein Zugriff auf die ausgewählte Tabelle.</target>
-            </trans-unit>
-            <trans-unit id="noTableAccess.description" resname="noTableAccess.description">
-                <source>
-                    Please select a record type that you have access to or contact your
-                    administrator.
-                </source>
-                <target>
-                    Bitte wählen Sie einen Datensatztyp aus, auf den Sie Zugriff haben, oder kontaktieren Sie Ihren Administrator.
-                </target>
-            </trans-unit>
 
             <trans-unit id="menu.language" resname="menu.language">
                 <source>Language</source>
@@ -305,6 +292,20 @@
                 </source>
                 <target>
                     Sie haben keine Berechtigung, auf Dateireferenzen zuzugreifen. Bitte kontaktieren Sie Ihren Administrator.
+                </target>
+            </trans-unit>
+            <trans-unit id="missingAltText.noTableAccess" resname="missingAltText.noTableAccess">
+                <source>No access to the selected table.</source>
+                <target>Kein Zugriff auf die ausgewählte Tabelle.</target>
+            </trans-unit>
+            <trans-unit id="missingAltText.noTableAccess.description"
+                resname="missingAltText.noTableAccess.description">
+                <source>
+                    Please select a record type that you have access to or contact your
+                    administrator.
+                </source>
+                <target>
+                    Bitte wählen Sie einen Datensatztyp aus, auf den Sie Zugriff haben, oder kontaktieren Sie Ihren Administrator.
                 </target>
             </trans-unit>
 
