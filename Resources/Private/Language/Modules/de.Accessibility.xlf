@@ -62,6 +62,15 @@
                 </target>
             </trans-unit>
 
+            <trans-unit id="error.invalidSignature" resname="error.invalidSignature">
+                <source>Invalid request signature</source>
+                <target>Ungültige Anforderungssignatur</target>
+            </trans-unit>
+            <trans-unit id="error.invalidSignature.description" resname="error.invalidSignature.description">
+                <source>The request signature is invalid. Please refresh the page and try again.</source>
+                <target>Die Anforderungssignatur ist ungültig. Bitte aktualisieren Sie die Seite und versuchen Sie es erneut.</target>
+            </trans-unit>
+            
             <trans-unit id="menu.language" resname="menu.language">
                 <source>Language</source>
                 <target>Sprache</target>
@@ -593,6 +602,198 @@
             <trans-unit id="landmarkStructure.unlabelledLandmark" resname="landmarkStructure.unlabelledLandmark">
                 <source>Unlabelled Landmark</source>
                 <target>Unbeschrifteter Landmark</target>
+            </trans-unit>
+
+            <!-- Accessibility Scanner -->
+            <trans-unit id="menu.features.scan" resname="menu.features.scan">
+                <source>Accessibility Scanner</source>
+                <target>Barrierefreiheit-Scanner</target>
+            </trans-unit>
+
+            <trans-unit id="scanner" resname="scanner">
+                <source>Accessibility Scanner</source>
+                <target>Barrierefreiheit-Scanner</target>
+            </trans-unit>
+            <trans-unit id="scan.description" resname="scan.description">
+                <source>
+                    External accessibility scanner that checks the current page for WCAG compliance issues.
+                </source>
+                <target>
+                    Externer Barrierefreiheit-Scanner, der die aktuelle Seite auf WCAG-Konformitätsprobleme überprüft.
+                </target>
+            </trans-unit>
+            <trans-unit id="scan.noAccess" resname="scan.noAccess">
+                <source>No access to accessibility scan.</source>
+                <target>Kein Zugriff auf Barrierefreiheit-Scanner.</target>
+            </trans-unit>
+            <trans-unit id="scan.noPageAccess.description" resname="scan.noPageAccess.description">
+                <source>
+                    You do not have permission to read page data required for the accessibility scan. Please contact your administrator.
+                </source>
+                <target>
+                    Sie haben keine Berechtigung, Seitendaten zu lesen, die für den Barrierefreiheit-Scanner erforderlich sind. Bitte kontaktieren Sie Ihren Administrator.
+                </target>
+            </trans-unit>
+            <trans-unit id="scan.previewNotEnabled" resname="scan.previewNotEnabled">
+                <source>Preview not available for this page type</source>
+                <target>Vorschau für diesen Seitentyp nicht verfügbar</target>
+            </trans-unit>
+            <trans-unit id="scan.previewNotEnabled.description" resname="scan.previewNotEnabled.description">
+                <source>The accessibility scanner requires a preview URL to scan the page. This page type does not support preview or preview is disabled.</source>
+                <target>Der Barrierefreiheit-Scanner benötigt eine Vorschau-URL, um die Seite zu scannen. Dieser Seitentyp unterstützt keine Vorschau oder die Vorschau ist deaktiviert.</target>
+            </trans-unit>
+            <trans-unit id="scan.notConfigured" resname="scan.notConfigured">
+                <source>Scanner not configured</source>
+                <target>Scanner nicht konfiguriert</target>
+            </trans-unit>
+            <trans-unit id="scan.notConfigured.description" resname="scan.notConfigured.description">
+                <source>The accessibility scanner API is not configured. Please contact your administrator to configure the API URL and token.</source>
+                <target>Die Barrierefreiheit-Scanner-API ist nicht konfiguriert. Bitte kontaktieren Sie Ihren Administrator, um die API-URL und das Token zu konfigurieren.</target>
+            </trans-unit>
+            <trans-unit id="scan.start" resname="scan.start">
+                <source>Start Scan</source>
+                <target>Scan starten</target>
+            </trans-unit>
+            <trans-unit id="scan.refresh" resname="scan.refresh">
+                <source>Refresh Results</source>
+                <target>Ergebnisse aktualisieren</target>
+            </trans-unit>
+            <trans-unit id="scan.creating" resname="scan.creating">
+                <source>Creating scan...</source>
+                <target>Scan wird erstellt...</target>
+            </trans-unit>
+            <trans-unit id="scan.created" resname="scan.created">
+                <source>Scan created</source>
+                <target>Scan erstellt</target>
+            </trans-unit>
+            <trans-unit id="scan.created.description" resname="scan.created.description">
+                <source>The accessibility scan has been initiated. Results will be available shortly.</source>
+                <target>Der Barrierefreiheit-Scan wurde eingeleitet. Ergebnisse sind in Kürze verfügbar.</target>
+            </trans-unit>
+            <trans-unit id="scan.loading" resname="scan.loading">
+                <source>Loading scan results...</source>
+                <target>Scan-Ergebnisse werden geladen...</target>
+            </trans-unit>
+            <trans-unit id="scan.loaded" resname="scan.loaded">
+                <source>Scan results loaded</source>
+                <target>Scan-Ergebnisse geladen</target>
+            </trans-unit>
+            <trans-unit id="scan.status.pending" resname="scan.status.pending">
+                <source>Scan Pending</source>
+                <target>Scan ausstehend</target>
+            </trans-unit>
+            <trans-unit id="scan.status.running" resname="scan.status.running">
+                <source>Scan Running</source>
+                <target>Scan läuft</target>
+            </trans-unit>
+            <trans-unit id="scan.status.completed" resname="scan.status.completed">
+                <source>Scan Completed</source>
+                <target>Scan abgeschlossen</target>
+            </trans-unit>
+            <trans-unit id="scan.status.failed" resname="scan.status.failed">
+                <source>Scan Failed</source>
+                <target>Scan fehlgeschlagen</target>
+            </trans-unit>
+            <trans-unit id="scan.noIssues" resname="scan.noIssues">
+                <source>No accessibility issues found. Great job!</source>
+                <target>Keine Barrierefreiheitsprobleme gefunden. Großartige Arbeit!</target>
+            </trans-unit>
+            <trans-unit id="scan.issuesList" resname="scan.issuesList">
+                <source>List of accessibility issues</source>
+                <target>Liste der Barrierefreiheitsprobleme</target>
+            </trans-unit>
+            <trans-unit id="scan.error.noAccess" resname="scan.error.noAccess">
+                <source>No access to page</source>
+                <target>Kein Zugriff auf Seite</target>
+            </trans-unit>
+            <trans-unit id="scan.error.noAccess.description" resname="scan.error.noAccess.description">
+                <source>You do not have permission to access this page.</source>
+                <target>Sie haben keine Berechtigung, auf diese Seite zuzugreifen.</target>
+            </trans-unit>
+            <trans-unit id="scan.error.notConfigured" resname="scan.error.notConfigured">
+                <source>Scanner API not configured</source>
+                <target>Scanner-API nicht konfiguriert</target>
+            </trans-unit>
+            <trans-unit id="scan.error.notConfigured.description" resname="scan.error.notConfigured.description">
+                <source>The accessibility scanner API URL and token are not configured.</source>
+                <target>Die Barrierefreiheit-Scanner-API-URL und das Token sind nicht konfiguriert.</target>
+            </trans-unit>
+            <trans-unit id="scan.error.createFailed" resname="scan.error.createFailed">
+                <source>Failed to create scan</source>
+                <target>Scan konnte nicht erstellt werden</target>
+            </trans-unit>
+            <trans-unit id="scan.error.createFailed.description" resname="scan.error.createFailed.description">
+                <source>Could not create a new accessibility scan. Please try again or contact your administrator.</source>
+                <target>Ein neuer Barrierefreiheit-Scan konnte nicht erstellt werden. Bitte versuchen Sie es erneut oder kontaktieren Sie Ihren Administrator.</target>
+            </trans-unit>
+            <trans-unit id="scan.error.noScanId" resname="scan.error.noScanId">
+                <source>No scan ID found</source>
+                <target>Keine Scan-ID gefunden</target>
+            </trans-unit>
+            <trans-unit id="scan.error.noScanId.description" resname="scan.error.noScanId.description">
+                <source>No scan ID was found for this page. Please start a new scan.</source>
+                <target>Für diese Seite wurde keine Scan-ID gefunden. Bitte starten Sie einen neuen Scan.</target>
+            </trans-unit>
+            <trans-unit id="scan.error.getFailed" resname="scan.error.getFailed">
+                <source>Failed to load scan results</source>
+                <target>Scan-Ergebnisse konnten nicht geladen werden</target>
+            </trans-unit>
+            <trans-unit id="scan.error.getFailed.description" resname="scan.error.getFailed.description">
+                <source>Could not load the accessibility scan results. Please try again.</source>
+                <target>Die Barrierefreiheit-Scan-Ergebnisse konnten nicht geladen werden. Bitte versuchen Sie es erneut.</target>
+            </trans-unit>
+            <trans-unit id="scan.error.loadFailed" resname="scan.error.loadFailed">
+                <source>Failed to load scan results</source>
+                <target>Scan-Ergebnisse konnten nicht geladen werden</target>
+            </trans-unit>
+            <trans-unit id="scan.error.storeFailed" resname="scan.error.storeFailed">
+                <source>Failed to store scan ID</source>
+                <target>Scan-ID konnte nicht gespeichert werden</target>
+            </trans-unit>
+            <trans-unit id="scan.error.storeFailed.description" resname="scan.error.storeFailed.description">
+                <source>Could not store the scan ID in the database. Please try again.</source>
+                <target>Die Scan-ID konnte nicht in der Datenbank gespeichert werden. Bitte versuchen Sie es erneut.</target>
+            </trans-unit>
+            <trans-unit id="scan.helpLinks" resname="scan.helpLinks">
+                <source>Help</source>
+                <target>Hilfe</target>
+            </trans-unit>
+            <trans-unit id="scan.viewScreenshot" resname="scan.viewScreenshot">
+                <source>View Screenshot</source>
+                <target>Screenshot anzeigen</target>
+            </trans-unit>
+            <trans-unit id="scan.violationsList" resname="scan.violationsList">
+                <source>Accessibility Violations</source>
+                <target>Barrierefreiheitsverletzungen</target>
+            </trans-unit>
+            <trans-unit id="scan.ruleId" resname="scan.ruleId">
+                <source>Rule ID</source>
+                <target>Regel-ID</target>
+            </trans-unit>
+            <trans-unit id="scan.issue" resname="scan.issue">
+                <source>issue</source>
+                <target>Problem</target>
+            </trans-unit>
+            <trans-unit id="scan.issues" resname="scan.issues">
+                <source>issues</source>
+                <target>Probleme</target>
+            </trans-unit>
+            <trans-unit id="scan.viewHelp" resname="scan.viewHelp">
+                <source>View Help</source>
+                <target>Hilfe anzeigen</target>
+            </trans-unit>
+            <trans-unit id="scan.selector" resname="scan.selector">
+                <source>Selector</source>
+                <target>Selektor</target>
+            </trans-unit>
+            <trans-unit id="scan.context" resname="scan.context">
+                <source>Context</source>
+                <target>Kontext</target>
+            </trans-unit>
+
+            <trans-unit id="severity.notice" resname="severity.notice">
+                <source>Notice</source>
+                <target>Hinweis</target>
             </trans-unit>
         </body>
     </file>

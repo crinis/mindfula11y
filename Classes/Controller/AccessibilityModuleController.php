@@ -23,9 +23,11 @@ declare(strict_types=1);
 
 namespace MindfulMarkup\MindfulA11y\Controller;
 
+use MindfulMarkup\MindfulA11y\Domain\Model\CreateScanDemand;
 use MindfulMarkup\MindfulA11y\Enum\Feature;
 use MindfulMarkup\MindfulA11y\Service\AltTextFinderService;
 use MindfulMarkup\MindfulA11y\Service\GeneralModuleService;
+use MindfulMarkup\MindfulA11y\Service\ScanService;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Backend\Attribute\AsController;
@@ -55,6 +57,7 @@ use TYPO3\CMS\Core\Type\Bitmask\Permission;
 use TYPO3\CMS\Core\Type\ContextualFeedbackSeverity;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Database\ConnectionPool;
+use TYPO3\CMS\Core\Database\Connection;
 
 /**
  * Class AccessibilityModuleController.
@@ -121,6 +124,7 @@ class AccessibilityModuleController
         protected readonly AltTextFinderService $altTextFinderService,
         protected readonly ConnectionPool $connectionPool,
         protected readonly GeneralModuleService $generalModuleService,
+        protected readonly ScanService $scanService,
     ) {}
 
     /**
@@ -192,6 +196,8 @@ class AccessibilityModuleController
                 return $this->handleGeneralFeature();
             case Feature::MISSING_ALT_TEXT:
                 return $this->handleMissingAltTextFeature();
+            case Feature::SCAN:
+                return $this->handleAccessibilityScannerFeature();
                 break;
         }
         throw new InvalidArgumentException('Invalid feature: ' . ($this->feature->value ?? ''), 1748518675);
@@ -375,6 +381,68 @@ class AccessibilityModuleController
     }
 
     /**
+     * Handle the accessibility scanner feature.
+     */
+    protected function handleAccessibilityScannerFeature(): ResponseInterface
+    {
+        if (!$this->generalModuleService->hasAccessibilityScannerAccess($this->pageTsConfig)) {
+            $this->addFlashMessage(
+                $this->generalModuleService->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.noAccess'),
+                $this->generalModuleService->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.noAccess.description'),
+                ContextualFeedbackSeverity::ERROR
+            );
+            return $this->moduleTemplate->renderResponse('Backend/Info')->withStatus(403);
+        }
+
+        if (!$this->scanService->isConfigured()) {
+            $this->addFlashMessage(
+                $this->generalModuleService->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.notConfigured'),
+                $this->generalModuleService->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.notConfigured.description'),
+                ContextualFeedbackSeverity::INFO
+            );
+            return $this->moduleTemplate->renderResponse('Backend/Info');
+        }
+
+        // Get localized page info for preview URL generation
+        $localizedPageInfo = $this->generalModuleService->getLocalizedPageRecord($this->pageId, $this->languageId);
+        $doktype = $localizedPageInfo['doktype'] ?? $this->pageInfo['doktype'] ?? PageRepository::DOKTYPE_DEFAULT;
+        $previewEnabled = $this->generalModuleService->isPreviewEnabledForDoktype($doktype, $this->pageTsConfig);
+
+        if (!$previewEnabled) {
+            $this->addFlashMessage(
+                $this->generalModuleService->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.previewNotEnabled'),
+                $this->generalModuleService->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.previewNotEnabled.description'),
+                ContextualFeedbackSeverity::INFO
+            );
+            return $this->moduleTemplate->renderResponse('Backend/Info');
+        }
+
+        // Get existing scan ID from database
+        $scanId = $localizedPageInfo['tx_mindfula11y_scanid'] ?? $this->pageInfo['tx_mindfula11y_scanid'] ?? null;
+
+        // Create scan demand
+        $previewUrl = $previewEnabled ? (string)PreviewUriBuilder::create($this->pageId)
+            ->withLanguage($this->languageId)
+            ->buildUri() : null;
+
+        $previewUrl = 'https://example.com'; // TODO: Remove --- IGNORE ---
+        $createScanDemand = new CreateScanDemand($localizedPageInfo['uid'] ?? $this->pageId, '', $previewUrl);
+
+        $this->moduleTemplate->assignMultiple([
+            'moduleData' => array_merge($this->moduleData->toArray(), [
+                'id' => $this->pageId,
+            ]),
+            'scanId' => $scanId,
+            'createScanDemand' => $createScanDemand,
+            'autoCreateScan' => $this->generalModuleService->isAutoCreateScanEnabled($this->pageTsConfig),
+        ]);
+
+        $this->pageRenderer->loadJavaScriptModule('@mindfulmarkup/mindfula11y/scan.js');
+
+        return $this->moduleTemplate->renderResponse('Backend/Scan');
+    }
+
+    /**
      * Get the URI for a menu item as a string.
      * 
      * @param array $additionalParams The additional parameters.
@@ -401,10 +469,11 @@ class AccessibilityModuleController
         $menu = $this->moduleTemplate->getDocHeaderComponent()->getMenuRegistry()->makeMenu()
             ->setIdentifier('MindfulA11yFeatures')
             ->setLabel($this->generalModuleService->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:menu.features'));
-        foreach ([Feature::GENERAL, Feature::MISSING_ALT_TEXT] as $feature) {
+        foreach ([Feature::GENERAL, Feature::MISSING_ALT_TEXT, Feature::SCAN] as $feature) {
             $enabled = match ($feature) {
                 Feature::GENERAL => true,
                 Feature::MISSING_ALT_TEXT => $this->generalModuleService->hasMissingAltTextAccess($this->pageTsConfig),
+                Feature::SCAN => $this->generalModuleService->hasAccessibilityScannerAccess($this->pageTsConfig),
             };
             if ($enabled) {
                 $menuItem = $menu->makeMenuItem()->setTitle(

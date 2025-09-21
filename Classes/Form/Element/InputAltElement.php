@@ -243,7 +243,7 @@ class InputAltElement extends AbstractFormElement
         $resultArray = $this->mergeChildReturnIntoExistingResult($resultArray, $fieldWizardResult, false);
 
         $thisAltId = 't3js-form-field-alt-id' . StringUtility::getUniqueId();
-        $generateButtonLabel = $languageService->sL('LLL:EXT:mindfula11y/Resources/Private/Language/GenerateAltText.xlf:buttonLabel');
+        $generateButtonLabel = $languageService->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:missingAltText.generate.button');
         $mainFieldHtml = [];
         $mainFieldHtml[] = '<div class="form-control-wrap" style="max-width: ' . $width . 'px" id="' . htmlspecialchars($thisAltId) . '">';
         $mainFieldHtml[] =      '<div class="form-wizards-wrap">';

@@ -103,10 +103,14 @@ class AltTextAjaxController extends ActionController
         );
 
         if (!$demand->validateSignature()) {
-            throw new InvalidArgumentException(
-                'Invalid request parameters.',
-                1744477154
-            );
+            return $this->jsonResponse(
+                json_encode([
+                    'error' => [
+                        'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.invalidSignature'),
+                        'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.invalidSignature.description'),
+                    ]
+                ])
+            )->withStatus(400);
         }
 
         $languageCode = $this->siteLanguageService->getLanguageCode($demand->getLanguageUid(), $demand->getPageUid());
@@ -118,8 +122,8 @@ class AltTextAjaxController extends ActionController
             return $this->jsonResponse(
                 json_encode([
                     'error' => [
-                        'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/GenerateAltText.xlf:error.openAIConnection'),
-                        'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/GenerateAltText.xlf:error.openAIConnection.description'),
+                        'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:missingAltText.generate.error.openAIConnection'),
+                        'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:missingAltText.generate.error.openAIConnection.description'),
                     ]
                 ])
             )->withStatus(500);

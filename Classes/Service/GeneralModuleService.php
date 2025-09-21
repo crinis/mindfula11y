@@ -63,6 +63,7 @@ class GeneralModuleService
             'mindfula11y.structure' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:structure'),
             'mindfula11y.severity.error' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:severity.error'),
             'mindfula11y.severity.warning' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:severity.warning'),
+            'mindfula11y.severity.notice' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:severity.notice'),
             'mindfula11y.accessibility.error.loading' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:accessibility.error.loading'),
             'mindfula11y.accessibility.error.loading.description' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:accessibility.error.loading.description'),
             'mindfula11y.missingAltText.generate.button' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:missingAltText.generate.button'),
@@ -131,8 +132,44 @@ class GeneralModuleService
             'mindfula11y.landmarkStructure.error.duplicateSameLabel.single' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.error.duplicateSameLabel.single'),
             'mindfula11y.landmarkStructure.error.multipleUnlabeledLandmarks.single' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.error.multipleUnlabeledLandmarks.single'),
             'mindfula11y.landmarkStructure.unlabelledLandmark' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:landmarkStructure.unlabelledLandmark'),
+            // Accessibility Scanner labels
+            'mindfula11y.scan.creating' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.creating'),
+            'mindfula11y.scan.error.createFailed' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.createFailed'),
+            'mindfula11y.scan.created' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.created'),
+            'mindfula11y.scan.created.description' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.created.description'),
+            'mindfula11y.scan.loading' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.loading'),
+            'mindfula11y.scan.error.loadFailed' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.loadFailed'),
+            'mindfula11y.scan.loaded' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.loaded'),
+            'mindfula11y.scan.refresh' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.refresh'),
+            'mindfula11y.scan.start' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.start'),
+            'mindfula11y.scan.status.pending' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.status.pending'),
+            'mindfula11y.scan.status.running' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.status.running'),
+            'mindfula11y.scan.status.completed' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.status.completed'),
+            'mindfula11y.scan.status.failed' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.status.failed'),
+            'mindfula11y.scan.issuesList' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.issuesList'),
+            'mindfula11y.scan.helpLinks' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.helpLinks'),
+            'mindfula11y.scan.viewScreenshot' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.viewScreenshot'),
+            'mindfula11y.scan.screenshot' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.screenshot'),
+            'mindfula11y.scan.noIssues' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.noIssues'),
+            'mindfula11y.scan.violationsList' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.violationsList'),
+            'mindfula11y.scan.ruleId' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.ruleId'),
+            'mindfula11y.scan.issue' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.issue'),
+            'mindfula11y.scan.issues' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.issues'),
+            'mindfula11y.scan.issueCount' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.issueCount'),
+            'mindfula11y.scan.issuesCount' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.issuesCount'),
+            'mindfula11y.scan.viewHelp' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.viewHelp'),
+            'mindfula11y.scan.selector' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.selector'),
+            'mindfula11y.scan.context' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.context'),
+            'mindfula11y.scan.cancel' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.cancel'),
+            'mindfula11y.scan.cancelled' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.cancelled'),
+            'mindfula11y.scan.cancelled.description' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.cancelled.description'),
+            'mindfula11y.scan.processing' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.processing'),
+            'mindfula11y.scan.issuesFound' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.issuesFound'),
+            // Severity labels (used by JavaScript components)
+            'severity.error' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:severity.error'),
+            'severity.warning' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:severity.warning'),
+            'severity.notice' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:severity.notice'),
         ];
-
         return $labels;
     }
 
@@ -181,6 +218,30 @@ class GeneralModuleService
     public function hasLandmarkStructureAccess(array &$pageTsConfig): bool
     {
         return !!($pageTsConfig['mod']['mindfula11y_accessibility']['landmarkStructure']['enable'] ?? false);
+    }
+
+    /**
+     * Check if the user has access to the accessibility scanner feature.
+     *
+     * @param array &$pageTsConfig The page TSconfig array (passed by reference)
+     * @return bool
+     */
+    public function hasAccessibilityScannerAccess(array &$pageTsConfig): bool
+    {
+        return $this->permissionService->checkTableReadAccess('pages')
+            && $this->permissionService->checkNonExcludeFields('pages', ['tx_mindfula11y_scanid'])
+            && !!($pageTsConfig['mod']['mindfula11y_accessibility']['scan']['enable'] ?? false);
+    }
+
+    /**
+     * Check if automatic scan creation is enabled.
+     *
+     * @param array &$pageTsConfig The page TSconfig array (passed by reference)
+     * @return bool
+     */
+    public function isAutoCreateScanEnabled(array &$pageTsConfig): bool
+    {
+        return !!($pageTsConfig['mod']['mindfula11y_accessibility']['scan']['autoCreate'] ?? true);
     }
 
     /**

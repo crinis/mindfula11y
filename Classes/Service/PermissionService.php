@@ -28,7 +28,6 @@ use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Type\Bitmask\Permission;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
-use TYPO3\CMS\Extbase\Utility\DebuggerUtility;
 
 /**
  * Class PermissionService.
@@ -282,6 +281,35 @@ class PermissionService
             ) {
                 return false;
             }
+        }
+
+        return true;
+    }
+
+    /**
+     * Check if user has access to the page and if it's in the current rootline.
+     *
+     * @param int $pageUid The page UID to check.
+     *
+     * @return bool True if access granted and page is in rootline, false otherwise.
+     */
+    public function checkPageAccess(int $pageUid): bool
+    {
+        $backendUser = $this->getBackendUserAuthentication();
+
+        if (null === $backendUser) {
+            return false;
+        }
+
+        // Check if user has access to the page
+        $pageInfo = BackendUtility::readPageAccess($pageUid, $backendUser->getPagePermsClause(Permission::PAGE_SHOW));
+        if (false === $pageInfo) {
+            return false;
+        }
+
+        // Check if page is in the current rootline/webmount
+        if (!$backendUser->isAdmin() && !BackendUtility::isInWebMount($pageUid, $backendUser->getWebmounts())) {
+            return false;
         }
 
         return true;

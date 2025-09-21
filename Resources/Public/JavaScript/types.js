@@ -52,6 +52,12 @@ export const ERROR_SEVERITY = {
  */
 
 /**
+ * @typedef {Object} CreateScanDemand
+ * @property {number} pageUid - UID of the page to scan for accessibility issues.
+ * @property {string} signature - HMAC signature for request validation.
+ */
+
+/**
  * @typedef {Object} TreeBuildingState
  * @property {Array<HeadingTreeNode>} rootNodes - Root nodes of the tree
  * @property {Array<HeadingTreeNode>} parentStack - Stack of parent nodes for hierarchy tracking
@@ -80,8 +86,8 @@ export const ERROR_SEVERITY = {
 export function getSeverityLabel(severity) {
   const key =
     severity === ERROR_SEVERITY.WARNING
-      ? "mindfula11y.severity.warning"
-      : "mindfula11y.severity.error";
+      ? "severity.warning"
+      : "severity.error";
   return TYPO3.lang[key] || severity;
 }
 
