@@ -244,7 +244,11 @@
             </trans-unit>
             <trans-unit id="headingStructure.error.skippedLevel"
                 resname="headingStructure.error.skippedLevel">
-                <source>Skipped heading levels! </source>
+                <source>Skipped heading levels!</source>
+            </trans-unit>
+            <trans-unit id="headingStructure.error.skippedLevel.description"
+                resname="headingStructure.error.skippedLevel.description">
+                <source>Heading levels should not be skipped. For example, an &lt;h2&gt; should not be followed directly by an &lt;h4&gt; without an intervening &lt;h3&gt;. Proper heading structure helps screen reader users understand the content hierarchy.</source>
             </trans-unit>
             <trans-unit id="headingStructure.error.skippedLevel.inline"
                 resname="headingStructure.error.skippedLevel.inline">
