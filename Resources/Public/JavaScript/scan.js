@@ -168,7 +168,7 @@ export class Scan extends LitElement {
       return html`
         <div class="alert alert-danger text-center">
           <h2 class="alert-heading">${TYPO3.lang["mindfula11y.scan.status.failed"]}</h2>
-          <p class="mb-0">The accessibility scan could not be completed</p>
+          <p class="mb-0">${TYPO3.lang["mindfula11y.scan.status.failed.description"]}</p>
         </div>
       `;
     }

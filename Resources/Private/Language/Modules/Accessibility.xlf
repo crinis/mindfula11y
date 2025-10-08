@@ -480,6 +480,9 @@
             <trans-unit id="scan.status.failed" resname="scan.status.failed">
                 <source>Scan Failed</source>
             </trans-unit>
+            <trans-unit id="scan.status.failed.description" resname="scan.status.failed.description">
+                <source>The accessibility scan failed. Please try again later or contact your administrator.</source>
+            </trans-unit>
             <trans-unit id="scan.noIssues" resname="scan.noIssues">
                 <source>No accessibility issues found. Great job!</source>
             </trans-unit>

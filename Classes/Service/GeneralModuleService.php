@@ -140,6 +140,7 @@ class GeneralModuleService
             'mindfula11y.scan.status.pending' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.status.pending'),
             'mindfula11y.scan.status.running' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.status.running'),
             'mindfula11y.scan.status.failed' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.status.failed'),
+            'mindfula11y.scan.status.failed.description' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.status.failed.description'),
             'mindfula11y.scan.issuesFound' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.issuesFound'),
             'mindfula11y.scan.noIssues' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.noIssues'),
             'mindfula11y.scan.issuesList' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.issuesList'),
