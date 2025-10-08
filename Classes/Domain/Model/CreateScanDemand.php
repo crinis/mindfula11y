@@ -73,8 +73,7 @@ class CreateScanDemand extends AbstractValueObject implements JsonSerializable
     {
         $this->userId = $userId;
         $this->pageId = $pageId;
-        //$this->previewUrl = $previewUrl;
-        $this->previewUrl = 'https://example.com'; // For testing purposes, replace with actual URL in production
+        $this->previewUrl = $previewUrl;
         $this->languageId = $languageId;
         $this->workspaceId = $workspaceId;
         $this->signature = '' !== $signature ? $signature : $this->createSignature();
