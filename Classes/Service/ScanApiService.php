@@ -35,6 +35,11 @@ use Psr\Log\LoggerInterface;
 class ScanApiService
 {
     /**
+     * Timeout for HTTP requests to the external scanner API (seconds).
+     */
+    protected const REQUEST_TIMEOUT = 10;
+
+    /**
      * Constructor.
      *
      * @param ExtensionConfiguration $extensionConfiguration The extension configuration instance.
@@ -105,6 +110,7 @@ class ScanApiService
                         'language' => 'en',
                         'scannerType' => 'axe',
                     ]),
+                    'timeout' => self::REQUEST_TIMEOUT,
                 ]
             );
 
@@ -148,6 +154,7 @@ class ScanApiService
                         'Authorization' => 'Bearer ' . $this->getApiToken(),
                         'Accept' => 'application/json',
                     ],
+                    'timeout' => self::REQUEST_TIMEOUT,
                 ]
             );
 
