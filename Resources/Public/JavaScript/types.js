@@ -44,16 +44,24 @@ export const ERROR_SEVERITY = {
 // ============================================================================
 
 /**
- * @typedef {Object} AltTextDemand
+ * @typedef {Object} GenerateAltTextDemand
+ * @property {number} userId - UID of the backend user requesting the alt text generation.
  * @property {number} pageUid - UID of the page where the element is rendered.
  * @property {number} languageUid - UID of the language for the record.
- * @property {number} fileUid - UID of the sys_file record.
+ * @property {number} workspaceId - UID of the current workspace.
+ * @property {string} recordTable - Table name of the record being edited.
+ * @property {number} recordUid - UID of the record being edited.
+ * @property {Array<string>} recordColumns - Array of column names being edited.
  * @property {string} signature - HMAC signature for request validation.
  */
 
 /**
  * @typedef {Object} CreateScanDemand
- * @property {number} pageUid - UID of the page to scan for accessibility issues.
+ * @property {number} userId - UID of the backend user requesting the scan.
+ * @property {number} pageId - UID of the original page (not translated).
+ * @property {string} previewUrl - Preview URL for the page.
+ * @property {number} languageId - UID of the language for the page.
+ * @property {number} workspaceId - UID of the current workspace.
  * @property {string} signature - HMAC signature for request validation.
  */
 
@@ -86,8 +94,8 @@ export const ERROR_SEVERITY = {
 export function getSeverityLabel(severity) {
   const key =
     severity === ERROR_SEVERITY.WARNING
-      ? "severity.warning"
-      : "severity.error";
+      ? "mindfula11y.severity.warning"
+      : "mindfula11y.severity.error";
   return TYPO3.lang[key] || severity;
 }
 

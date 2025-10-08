@@ -8,11 +8,6 @@
             <trans-unit id="mlang_labels_tablabel" resname="mlang_labels_tablabel">
                 <source>Accessibility</source>
             </trans-unit>
-            <trans-unit id="mlang_labels_tabdescr" resname="mlang_labels_tabdescr">
-                <source>
-                    Checks for various accessibility issues on the currently selected page.
-                </source>
-            </trans-unit>
             <trans-unit id="mlang_tabs_tab" resname="mlang_tabs_tab">
                 <source>
                     Accessibility
@@ -32,14 +27,13 @@
 
             <trans-unit id="noLanguageAccess" resname="noLanguageAccess">
                 <source>
-                    No access to the selected language.
+                    Page not available in your allowed languages.
                 </source>
             </trans-unit>
             <trans-unit id="noLanguageAccess.description"
                 resname="noLanguageAccess.description">
                 <source>
-                    Please select an allowed language in the page tree to check for accessibility
-                    issues.
+                    This page is not translated to any of the languages you have access to. Please select a different page that is available in one of your allowed languages.
                 </source>
             </trans-unit>
 
@@ -61,6 +55,10 @@
                 <source>Structure</source>
             </trans-unit>
 
+            <trans-unit id="viewDetails" resname="viewDetails">
+                <source>View Details</source>
+            </trans-unit>
+
             <trans-unit id="menu.pageLevels" resname="menu.pageLevels">
                 <source>Check Recursive</source>
             </trans-unit>
@@ -77,7 +75,7 @@
                 <source>Levels 99</source>
             </trans-unit>
 
-            <trans-unit id="menu.table" resname="menu.table">
+            <trans-unit id="menu.tables" resname="menu.tables">
                 <source>Record Type</source>
             </trans-unit>
             <trans-unit id="menu.tables.all" resname="menu.tables.all">
@@ -100,20 +98,17 @@
                 <source>General</source>
             </trans-unit>
             <trans-unit id="menu.features.missingAltText" resname="menu.features.missingAltText">
-                <source>File references without alternative text</source>
-            </trans-unit>
-            <trans-unit id="menu.features.headingStructure" resname="menu.features.headingStructure">
-                <source>Heading structure</source>
-            </trans-unit>
-            <trans-unit id="menu.features.landmarkStructure" resname="menu.features.landmarkStructure">
-                <source>Landmark structure</source>
+                <source>Missing alternative text</source>
             </trans-unit>
             <trans-unit id="menu.features.scan" resname="menu.features.scan">
-                <source>Scan for accessibility issues</source>
+                <source>Scanner</source>
             </trans-unit>
 
             <trans-unit id="severity.error" resname="severity.error">
                 <source>Error</source>
+            </trans-unit>
+            <trans-unit id="severity.notice" resname="severity.notice">
+                <source>Notice</source>
             </trans-unit>
             <trans-unit id="severity.warning" resname="severity.warning">
                 <source>Warning</source>
@@ -121,11 +116,8 @@
             <trans-unit id="severity.info" resname="severity.info">
                 <source>Info</source>
             </trans-unit>
-            <trans-unit id="severity.notice" resname="severity.notice">
-                <source>Notice</source>
-            </trans-unit>
             <trans-unit id="accessibility.error.loading" resname="accessibility.error.loading">
-                <source>Failed to load content structure</source>
+                <source>Failed to load heading/landmark structure.</source>
             </trans-unit>
             <trans-unit id="accessibility.error.loading.description" resname="accessibility.error.loading.description">
                 <source>Could not analyze the page content. Please try again or check your connection.</source>
@@ -133,12 +125,6 @@
 
             <trans-unit id="missingAltText" resname="missingAltText">
                 <source>File references without alternative text</source>
-            </trans-unit>
-            <trans-unit id="missingAltText.description" resname="missingAltText.description">
-                <source>
-                    Shows a count of File references without alternative text and provides a link to
-                    the detailed view where you can manage and fix missing alternative texts.
-                </source>
             </trans-unit>
             <trans-unit id="missingAltText.generate.button" resname="missingAltText.generate.button">
                 <source>Generate</source>
@@ -211,19 +197,12 @@
             <trans-unit id="missingAltText.pagination.page" resname="missingAltText.pagination.page">
                 <source>Go to page %1$s</source>
             </trans-unit>
-            <trans-unit id="missingAltText.pagination.current"
-                resname="missingAltText.pagination.current">
-                <source>(current page)</source>
-            </trans-unit>
             <trans-unit id="missingAltText.noMissingAltText"
                 resname="missingAltText.noMissingAltText">
                 <source>No file references without alternative text found.</source>
             </trans-unit>
             <trans-unit id="missingAltText.count" resname="missingAltText.count">
                 <source>%1$d file references without alternative text found.</source>
-            </trans-unit>
-            <trans-unit id="missingAltText.viewAll" resname="missingAltText.viewAll">
-                <source>View all</source>
             </trans-unit>
             <trans-unit id="missingAltText.noAccess" resname="missingAltText.noAccess">
                 <source>No access to missing alternative text feature.</source>
@@ -248,29 +227,6 @@
             <trans-unit id="headingStructure" resname="headingStructure">
                 <source>Headings</source>
             </trans-unit>
-            <trans-unit id="headingStructure.description" resname="headingStructure.description">
-                <source>
-                    Listing the heading structure of the currently selected page and
-                    providing options to fix it.
-                </source>
-            </trans-unit>
-            <trans-unit id="headingStructure.noAccess" resname="headingStructure.noAccess">
-                <source>No access to heading structure.</source>
-            </trans-unit>
-            <trans-unit id="headingStructure.noAccess.description"
-                resname="headingStructure.noAccess.description">
-                <source>
-                    You do not have permission to access the heading structure feature. Please contact your administrator.
-                </source>
-            </trans-unit>
-            <trans-unit id="headingStructure.error.loading" resname="headingStructure.error.loading">
-                <source>Loading heading structure failed.</source>
-            </trans-unit>
-            <trans-unit id="headingStructure.error.loading.description"
-                resname="headingStructure.error.loading.description">
-                <source>Could not load the heading structure. Cannot analyze the page heading
-                    structure.</source>
-            </trans-unit>
             <trans-unit id="headingStructure.error.store" resname="headingStructure.error.store">
                 <source>Saving heading type failed.</source>
             </trans-unit>
@@ -278,16 +234,21 @@
                 resname="headingStructure.error.store.description">
                 <source>Could not save the heading type. Do you have permission?</source>
             </trans-unit>
+            <trans-unit id="headingStructure.error.emptyHeadings"
+                resname="headingStructure.error.emptyHeadings">
+                <source>Empty headings found.</source>
+            </trans-unit>
+            <trans-unit id="headingStructure.error.emptyHeadings.description"
+                resname="headingStructure.error.emptyHeadings.description">
+                <source>Headings without text content provide no semantic value and can confuse screen reader users. Please add descriptive text to all heading elements or remove empty headings.</source>
+            </trans-unit>
             <trans-unit id="headingStructure.error.skippedLevel"
                 resname="headingStructure.error.skippedLevel">
                 <source>Skipped heading levels! </source>
             </trans-unit>
-            <trans-unit id="headingStructure.error.skippedLevel.description"
-                resname="headingStructure.error.skippedLevel.description">
-                <source>Headings should be nested in a logical order. For example, if you have an
-                    &lt;h1&gt;, the next heading should be an &lt;h2&gt;, not an &lt;h3&gt; or
-                    &lt;h4&gt;. This is important for screenreader users to understand the page
-                    structure.</source>
+            <trans-unit id="headingStructure.error.skippedLevel.inline"
+                resname="headingStructure.error.skippedLevel.inline">
+                <source>Skipped H%1$d</source>
             </trans-unit>
             <trans-unit id="headingStructure.error.missingH1"
                 resname="headingStructure.error.missingH1">
@@ -307,18 +268,6 @@
             <trans-unit id="headingStructure.error.multipleH1.description"
                 resname="headingStructure.error.multipleH1.description">
                 <source>Pages should have exactly one &lt;h1&gt; heading to provide a clear document structure. Multiple &lt;h1&gt; elements can confuse screen readers and hurt SEO. Consider using &lt;h2&gt; or other heading levels for additional headings.</source>
-            </trans-unit>
-            <trans-unit id="headingStructure.error.emptyHeadings"
-                resname="headingStructure.error.emptyHeadings">
-                <source>Empty headings found.</source>
-            </trans-unit>
-            <trans-unit id="headingStructure.error.emptyHeadings.description"
-                resname="headingStructure.error.emptyHeadings.description">
-                <source>Headings without text content provide no semantic value and can confuse screen reader users. Please add descriptive text to all heading elements or remove empty headings.</source>
-            </trans-unit>
-            <trans-unit id="headingStructure.error.skippedLevel.inline"
-                resname="headingStructure.error.skippedLevel.inline">
-                <source>Skipped H%1$d</source>
             </trans-unit>
             <trans-unit id="headingStructure.edit" resname="headingStructure.edit">
                 <source>Edit heading</source>
@@ -354,21 +303,6 @@
             <trans-unit id="landmarkStructure" resname="landmarkStructure">
                 <source>Landmarks</source>
             </trans-unit>
-            <trans-unit id="landmarkStructure.description" resname="landmarkStructure.description">
-                <source>
-                    Listing the landmark structure of the currently selected page and
-                    providing options to fix it.
-                </source>
-            </trans-unit>
-            <trans-unit id="landmarkStructure.noAccess" resname="landmarkStructure.noAccess">
-                <source>No access to landmark structure.</source>
-            </trans-unit>
-            <trans-unit id="landmarkStructure.noAccess.description"
-                resname="landmarkStructure.noAccess.description">
-                <source>
-                    You do not have permission to access the landmark structure feature. Please contact your administrator.
-                </source>
-            </trans-unit>
             <trans-unit id="landmarkStructure.edit" resname="landmarkStructure.edit">
                 <source>Edit landmark</source>
             </trans-unit>
@@ -380,6 +314,9 @@
             </trans-unit>
             <trans-unit id="landmarkStructure.role" resname="landmarkStructure.role">
                 <source>Landmark role</source>
+            </trans-unit>
+            <trans-unit id="landmarkStructure.error.roleSelect" resname="landmarkStructure.error.roleSelect">
+                <source>Select a valid landmark role.</source>
             </trans-unit>
             <trans-unit id="landmarkStructure.role.none" resname="landmarkStructure.role.none">
                 <source>No Landmark (none)</source>
@@ -450,35 +387,58 @@
             <trans-unit id="landmarkStructure.error.multipleUnlabeledLandmarks.description" resname="landmarkStructure.error.multipleUnlabeledLandmarks.description">
                 <source>More than one landmark with the same role lacks a label. Add unique labels (aria-label or aria-labelledby) so users can distinguish them.</source>
             </trans-unit>
-            <trans-unit id="landmarkStructure.error.duplicateMain.single" resname="landmarkStructure.error.duplicateMain.single">
-                <source>Multiple Main landmarks found. There must be exactly one.</source>
-            </trans-unit>
-            <trans-unit id="landmarkStructure.error.duplicateSameLabel.single" resname="landmarkStructure.error.duplicateSameLabel.single">
-                <source>This label is used by multiple landmarks. Provide a distinct label.</source>
-            </trans-unit>
-            <trans-unit id="landmarkStructure.error.multipleUnlabeledLandmarks.single" resname="landmarkStructure.error.multipleUnlabeledLandmarks.single">
-                <source>Add a unique label. Multiple unlabeled landmarks share this role.</source>
-            </trans-unit>
             <trans-unit id="landmarkStructure.unlabelledLandmark" resname="landmarkStructure.unlabelledLandmark">
                 <source>Unlabelled Landmark</source>
+            </trans-unit>
+
+            <!-- General Errors -->
+            <trans-unit id="error.forbidden" resname="error.forbidden">
+                <source>Access denied</source>
+            </trans-unit>
+            <trans-unit id="error.forbidden.description" resname="error.forbidden.description">
+                <source>You do not have permission to perform this action.</source>
+            </trans-unit>
+            <trans-unit id="error.invalidUser" resname="error.invalidUser">
+                <source>Invalid user session</source>
+            </trans-unit>
+            <trans-unit id="error.invalidUser.description" resname="error.invalidUser.description">
+                <source>Your user session is invalid. Please refresh the page and try again.</source>
+            </trans-unit>
+            <trans-unit id="error.invalidWorkspace" resname="error.invalidWorkspace">
+                <source>Invalid workspace context</source>
+            </trans-unit>
+            <trans-unit id="error.invalidWorkspace.description" resname="error.invalidWorkspace.description">
+                <source>The workspace context is invalid. Please switch to the correct workspace and try again.</source>
+            </trans-unit>
+            <trans-unit id="error.invalidLanguage" resname="error.invalidLanguage">
+                <source>Invalid language access</source>
+            </trans-unit>
+            <trans-unit id="error.invalidLanguage.description" resname="error.invalidLanguage.description">
+                <source>You do not have access to the selected language. Please select an allowed language.</source>
+            </trans-unit>
+            <trans-unit id="error.invalidRecordAccess" resname="error.invalidRecordAccess">
+                <source>Invalid record access</source>
+            </trans-unit>
+            <trans-unit id="error.invalidRecordAccess.description" resname="error.invalidRecordAccess.description">
+                <source>You do not have permission to edit this record or its specified fields.</source>
+            </trans-unit>
+
+            <trans-unit id="error.noFileAccess" resname="error.noFileAccess">
+                <source>No access to sys_file table</source>
+            </trans-unit>
+            <trans-unit id="error.noFileAccess.description" resname="error.noFileAccess.description">
+                <source>You do not have permission to read sys_file records. Please contact your administrator.</source>
             </trans-unit>
 
             <!-- Scan -->
             <trans-unit id="scan" resname="scan">
                 <source>Scan for accessibility issues</source>
             </trans-unit>
-            <trans-unit id="scan.description" resname="scan.description">
-                <source>
-                    External accessibility scanner that checks the current page for WCAG compliance issues.
-                </source>
-            </trans-unit>
             <trans-unit id="scan.noAccess" resname="scan.noAccess">
-                <source>No access to accessibility scan.</source>
+                <source>No scan access</source>
             </trans-unit>
-                        <trans-unit id="scan.noPageAccess.description" resname="scan.noPageAccess.description">
-                <source>
-                    You do not have permission to read page data required for the accessibility scan. Please contact your administrator.
-                </source>
+            <trans-unit id="scan.noAccess.description" resname="scan.noAccess.description">
+                <source>You do not have access to the accessibility scanner. Please contact your administrator to enable scan access.</source>
             </trans-unit>
             <trans-unit id="scan.previewNotEnabled" resname="scan.previewNotEnabled">
                 <source>Preview not available for this page type</source>
@@ -498,9 +458,6 @@
             <trans-unit id="scan.refresh" resname="scan.refresh">
                 <source>Refresh Results</source>
             </trans-unit>
-            <trans-unit id="scan.creating" resname="scan.creating">
-                <source>Creating scan...</source>
-            </trans-unit>
             <trans-unit id="scan.created" resname="scan.created">
                 <source>Scan created</source>
             </trans-unit>
@@ -510,17 +467,11 @@
             <trans-unit id="scan.loading" resname="scan.loading">
                 <source>Loading scan results...</source>
             </trans-unit>
-            <trans-unit id="scan.loaded" resname="scan.loaded">
-                <source>Scan results loaded</source>
-            </trans-unit>
             <trans-unit id="scan.status.pending" resname="scan.status.pending">
                 <source>Scan Pending</source>
             </trans-unit>
             <trans-unit id="scan.status.running" resname="scan.status.running">
                 <source>Scan Running</source>
-            </trans-unit>
-            <trans-unit id="scan.status.completed" resname="scan.status.completed">
-                <source>Scan Completed</source>
             </trans-unit>
             <trans-unit id="scan.status.failed" resname="scan.status.failed">
                 <source>Scan Failed</source>
@@ -530,12 +481,6 @@
             </trans-unit>
             <trans-unit id="scan.issuesList" resname="scan.issuesList">
                 <source>List of accessibility issues:</source>
-            </trans-unit>
-            <trans-unit id="scan.error.noAccess" resname="scan.error.noAccess">
-                <source>No access to page</source>
-            </trans-unit>
-            <trans-unit id="scan.error.noAccess.description" resname="scan.error.noAccess.description">
-                <source>You do not have permission to access this page.</source>
             </trans-unit>
             <trans-unit id="scan.error.notConfigured" resname="scan.error.notConfigured">
                 <source>Scanner API not configured</source>
@@ -564,6 +509,9 @@
             <trans-unit id="scan.error.loadFailed" resname="scan.error.loadFailed">
                 <source>Failed to load scan results</source>
             </trans-unit>
+            <trans-unit id="scan.error.loadFailed.description" resname="scan.error.loadFailed.description">
+                <source>The system could not retrieve scan results. Please try again later.</source>
+            </trans-unit>
             <trans-unit id="scan.error.storeFailed" resname="scan.error.storeFailed">
                 <source>Failed to store scan ID</source>
             </trans-unit>
@@ -579,12 +527,6 @@
             <trans-unit id="scan.screenshot" resname="scan.screenshot">
                 <source>Screenshot:</source>
             </trans-unit>
-            <trans-unit id="scan.violationsList" resname="scan.violationsList">
-                <source>Accessibility Violations</source>
-            </trans-unit>
-            <trans-unit id="scan.ruleId" resname="scan.ruleId">
-                <source>Rule ID</source>
-            </trans-unit>
             <trans-unit id="scan.issue" resname="scan.issue">
                 <source>issue</source>
             </trans-unit>
@@ -597,29 +539,34 @@
             <trans-unit id="scan.issuesCount" resname="scan.issuesCount">
                 <source>%d Issues</source>
             </trans-unit>
-            <trans-unit id="scan.viewHelp" resname="scan.viewHelp">
-                <source>View Help</source>
-            </trans-unit>
             <trans-unit id="scan.selector" resname="scan.selector">
                 <source>Selector:</source>
             </trans-unit>
             <trans-unit id="scan.context" resname="scan.context">
                 <source>HTML Context:</source>
             </trans-unit>
-            <trans-unit id="scan.cancel" resname="scan.cancel">
-                <source>Cancel</source>
-            </trans-unit>
-            <trans-unit id="scan.cancelled" resname="scan.cancelled">
-                <source>Scan cancelled</source>
-            </trans-unit>
-            <trans-unit id="scan.cancelled.description" resname="scan.cancelled.description">
-                <source>The accessibility scan was cancelled.</source>
-            </trans-unit>
             <trans-unit id="scan.processing" resname="scan.processing">
                 <source>Processing...</source>
             </trans-unit>
             <trans-unit id="scan.issuesFound" resname="scan.issuesFound">
                 <source>%d accessibility issues found.</source>
+            </trans-unit>
+            <trans-unit id="scan.error.loading" resname="scan.error.loading">
+                <source>The last external scan failed.</source>
+            </trans-unit>
+
+            <!-- Command: Cleanup Scan IDs -->
+            <trans-unit id="command.cleanupScanIds.option.seconds" resname="command.cleanupScanIds.option.seconds">
+                <source>Number of seconds after which scan IDs should be considered old (default: 2592000 = 30 days)</source>
+            </trans-unit>
+            <trans-unit id="command.cleanupScanIds.processing" resname="command.cleanupScanIds.processing">
+                <source>Finding scan IDs older than %d seconds (before %s)...</source>
+            </trans-unit>
+            <trans-unit id="command.cleanupScanIds.noOldScans" resname="command.cleanupScanIds.noOldScans">
+                <source>No old scan IDs found to clean up.</source>
+            </trans-unit>
+            <trans-unit id="command.cleanupScanIds.success" resname="command.cleanupScanIds.success">
+                <source>Successfully cleaned up %d old scan IDs.</source>
             </trans-unit>
         </body>
     </file>

@@ -172,8 +172,8 @@ export class Violation extends LitElement {
    * @private
    * @returns {string} Localized severity label.
    */
-  _getSeverityLabel() {
-    return TYPO3.lang[`severity.${this.rule.impact}`];
+    _getSeverityLabel() {
+    return TYPO3.lang[`mindfula11y.severity.${this.rule.impact}`];
   }
 
   /**

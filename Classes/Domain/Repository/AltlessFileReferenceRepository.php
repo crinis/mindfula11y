@@ -26,6 +26,7 @@ use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
 use TYPO3\CMS\Core\Database\Query\Restriction\WorkspaceRestriction;
+use TYPO3\CMS\Core\DataHandling\PlainDataResolver;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use Doctrine\DBAL\Exception;
 use MindfulMarkup\MindfulA11y\Domain\Model\AltlessFileReference;
@@ -94,6 +95,29 @@ class AltlessFileReferenceRepository extends Repository
         }
 
         $rows = $queryBuilder->executeQuery()->fetchAllAssociative();
+
+        if ($workspaceId > 0 && !empty($rows)) {
+            $uids = array_column($rows, 'uid');
+            $resolver = GeneralUtility::makeInstance(PlainDataResolver::class, 'sys_file_reference', $uids);
+            $resolver->setWorkspaceId($workspaceId);
+            $resolver->setKeepDeletePlaceholder(false);
+            $resolver->setKeepMovePlaceholder(true);
+            $resolver->setKeepLiveIds(false);
+            $resolvedUids = $resolver->get();
+
+            if (!empty($resolvedUids)) {
+                $queryBuilder = $this->createQueryBuilderForTables($tables, $languageId, $workspaceId);
+                $queryBuilder->andWhere($queryBuilder->expr()->in('sys_file_reference.uid', $queryBuilder->createNamedParameter($resolvedUids, Connection::PARAM_INT_ARRAY)));
+                if ($filterFileMetaData) {
+                    $this->addFilterByFileMetaDataClauses($queryBuilder);
+                }
+                $queryBuilder->setMaxResults($maxResults)->setFirstResult($firstResult);
+                $rows = $queryBuilder->executeQuery()->fetchAllAssociative();
+            } else {
+                $rows = [];
+            }
+        }
+
         return $this->dataMapper->map(AltlessFileReference::class, $rows);
     }
 
@@ -117,6 +141,27 @@ class AltlessFileReferenceRepository extends Repository
 
         if ($filterFileMetaData) {
             $this->addFilterByFileMetaDataClauses($queryBuilder);
+        }
+
+        if ($workspaceId > 0) {
+            $uidQueryBuilder = clone $queryBuilder;
+            $uidQueryBuilder->select('sys_file_reference.uid');
+            $uids = $uidQueryBuilder->executeQuery()->fetchFirstColumn();
+
+            if (!empty($uids)) {
+                $resolver = GeneralUtility::makeInstance(PlainDataResolver::class, 'sys_file_reference', $uids);
+                $resolver->setWorkspaceId($workspaceId);
+                $resolver->setKeepDeletePlaceholder(false);
+                $resolver->setKeepMovePlaceholder(true);
+                $resolver->setKeepLiveIds(false);
+                $resolvedUids = $resolver->get();
+
+                if (!empty($resolvedUids)) {
+                    $queryBuilder->andWhere($queryBuilder->expr()->in('sys_file_reference.uid', $queryBuilder->createNamedParameter($resolvedUids, Connection::PARAM_INT_ARRAY)));
+                    return (int)$queryBuilder->count('*')->executeQuery()->fetchOne();
+                }
+            }
+            return 0;
         }
 
         return (int)$queryBuilder->count('*')->executeQuery()->fetchOne();

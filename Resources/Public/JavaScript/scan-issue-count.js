@@ -18,26 +18,26 @@
  */
 
 /**
- * @file scan.js
- * @description Web component for displaying accessibility scan results and managing scans.
+ * @file scan-issue-count.js
+ * @description Web component for displaying the count of accessibility scan issues.
  * @typedef {import('./types.js').CreateScanDemand} CreateScanDemand
  */
 import { LitElement, html, css } from "lit";
 import ScanService from "./scan-service.js";
-import "./violation.js";
 
 /**
- * Web component for displaying accessibility scan results and managing scans.
+ * Web component for displaying the count of accessibility scan issues.
  *
- * @class Scan
+ * @class ScanIssueCount
  * @extends LitElement
  */
-export class Scan extends LitElement {
+export class ScanIssueCount extends LitElement {
   static get properties() {
     return {
       createScanDemand: { type: Object },
       scanId: { type: String },
       autoCreateScan: { type: Boolean },
+      scanUri: { type: String },
       _scanId: { state: true },
       _status: { state: true },
       _violations: { state: true },
@@ -49,6 +49,7 @@ export class Scan extends LitElement {
     super();
     this.createScanDemand = null;
     this.scanId = '';
+    this.scanUri = '';
     this.autoCreateScan = true;
     this._scanId = '';
     this._status = '';
@@ -70,13 +71,6 @@ export class Scan extends LitElement {
   disconnectedCallback() {
     super.disconnectedCallback();
     this._stopPolling();
-  }
-
-  async handleScan() {
-    if (this._loading || this._scanService.isScanInProgress(this._status) || !this.createScanDemand) {
-      return;
-    }
-    await this._createScan();
   }
 
   async _createScan() {
@@ -111,7 +105,6 @@ export class Scan extends LitElement {
           this._stopPolling();
         }
       } else {
-        // Scan not found
         this._scanId = '';
         this._status = '';
         this._violations = [];
@@ -136,82 +129,63 @@ export class Scan extends LitElement {
   }
 
   render() {
-    return html`
-      ${this.createScanDemand ? html`
-        <div class="mb-4">
-          <button
-            class="btn btn-primary"
-            type="button"
-            @click="${this.handleScan}"
-            ?disabled="${this._loading}"
-          >
-            ${this._loading ? html`
-              <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
-            ` : null}
-            ${this._loading
-              ? TYPO3.lang["mindfula11y.scan.processing"]
-              : (this._scanId
-                ? TYPO3.lang["mindfula11y.scan.refresh"]
-                : TYPO3.lang["mindfula11y.scan.start"]
-              )
-            }
-          </button>
-        </div>
-      ` : null}
+    if (!this.scanId && !this.createScanDemand) {
+      return null;
+    }
 
-      ${this._renderContent()}
-    `;
-  }
+    const issueCount = this._scanService.getTotalIssues(this._violations);
+    const detailsLink = this.scanUri ? html`
+      <a href="${this.scanUri}" class="btn btn-sm btn-default ms-2">
+        ${TYPO3.lang["mindfula11y.viewDetails"]}
+      </a>
+    ` : '';
 
-  _renderContent() {
-    if (this._status === 'failed' && !this._loading) {
+    if (this._loading) {
       return html`
-        <div class="alert alert-danger text-center">
-          <h2 class="alert-heading">${TYPO3.lang["mindfula11y.scan.status.failed"]}</h2>
-          <p class="mb-0">The accessibility scan could not be completed</p>
-        </div>
+        <p class="alert alert-info">
+          <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
+          ${TYPO3.lang["mindfula11y.scan.loading"]}
+          ${detailsLink}
+        </p>
       `;
     }
 
-    if ((this._status === 'pending' || this._status === 'running') && this._scanId) {
+    if (this._status === 'pending' || this._status === 'running') {
       return html`
-        <div class="text-center py-5">
-          <div class="spinner-border text-primary mb-3" aria-hidden="true" style="width: 3rem; height: 3rem;"></div>
-          <h2>${TYPO3.lang["mindfula11y.scan.loading"]}</h2>
-        </div>
+        <p class="alert alert-info">
+          <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
+          ${this._status === 'pending' 
+            ? TYPO3.lang["mindfula11y.scan.status.pending"] 
+            : TYPO3.lang["mindfula11y.scan.status.running"]}
+          ${detailsLink}
+        </p>
       `;
     }
 
-    if (this._violations.length > 0) {
+    if (this._status === 'failed') {
       return html`
-        <ul class="list-group">
-          ${this._violations.map(violation => html`
-            <li class="list-group-item">
-              <mindfula11y-violation
-                .rule="${violation.rule}"
-                .issueCount="${violation.issueCount}"
-                .issues="${violation.issues}">
-              </mindfula11y-violation>
-            </li>
-          `)}
-        </ul>
+        <p class="alert alert-danger">
+          ${TYPO3.lang["mindfula11y.scan.error.loading"]}
+          ${detailsLink}
+        </p>
       `;
     }
 
-    if (this._loading && this._scanId) {
+    if (this._status === 'completed' && issueCount > 0) {
       return html`
-        <div class="text-center py-5">
-          <div class="spinner-border text-primary mb-3" aria-hidden="true" style="width: 3rem; height: 3rem;"></div>
-          <h2>${TYPO3.lang["mindfula11y.scan.loading"]}</h2>
-        </div>
+        <p class="alert alert-warning">
+          ${TYPO3.lang["mindfula11y.scan.issuesFound"].replace('%d', issueCount)}
+          ${detailsLink}
+        </p>
       `;
     }
 
-    if (this._status === 'completed' && !this._loading) {
+    if (this._status === 'completed') {
       return html`
-        <div class="alert alert-success text-center">
-          <h2 class="alert-heading">${TYPO3.lang["mindfula11y.scan.noIssues"]}</h2>
-        </div>
+        <p class="alert alert-success">
+          ${TYPO3.lang["mindfula11y.scan.noIssues"]}
+          ${detailsLink}
+        </p>
       `;
     }
 
@@ -223,6 +197,6 @@ export class Scan extends LitElement {
   }
 }
 
-customElements.define("mindfula11y-scan", Scan);
+customElements.define("mindfula11y-scan-issue-count", ScanIssueCount);
 
-export default Scan;
+export default ScanIssueCount;

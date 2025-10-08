@@ -197,28 +197,23 @@ export class Structure extends LitElement {
    *
    * @private
    * @param {Array} args - Task arguments containing [previewUrl]
-   * @returns {Promise<Object>|null} The elements found or null on error
+   * @returns {Promise<Object>} The elements found
    */
   async _analyzeContent([previewUrl]) {
-    try {
-      const previewHtml = await ContentFetcher.fetchContent(previewUrl);
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(previewHtml, "text/html");
-      const headings = this.hasHeadingStructureAccess
-        ? this.headingService.selectElements(doc)
-        : [];
-      const landmarkElements = this.hasLandmarkStructureAccess
-        ? this.landmarkService.selectElements(doc)
-        : [];
-      
-      return {
-        headings,
-        landmarkElements,
-      };
-    } catch (error) {
-      this._handleLoadingError(error);
-      return null;
-    }
+    const previewHtml = await ContentFetcher.fetchContent(previewUrl);
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(previewHtml, "text/html");
+    const headings = this.hasHeadingStructureAccess
+      ? this.headingService.selectElements(doc)
+      : [];
+    const landmarkElements = this.hasLandmarkStructureAccess
+      ? this.landmarkService.selectElements(doc)
+      : [];
+    
+    return {
+      headings,
+      landmarkElements,
+    };
   }
 
   /**
@@ -232,6 +227,12 @@ export class Structure extends LitElement {
         ${this.constructor.styles}
       </style>
       ${this.loadContentTask.render({
+        error: (error) => {
+          this._handleLoadingError(error);
+          return html`<div class="alert alert-danger">
+            ${TYPO3.lang["mindfula11y.accessibility.error.loading"]}
+          </div>`;
+        },
         complete: (elements) => {
           if (this._firstRun) {
             this._firstRun = false;
@@ -271,9 +272,6 @@ export class Structure extends LitElement {
             this._landmarkErrors = [];
             this._landmarkData = [];
           }
-
-          // Force re-render to update badges
-          this.requestUpdate();
 
           // Combine all errors for the top error list
           const allErrors = [...this._headingErrors, ...this._landmarkErrors];

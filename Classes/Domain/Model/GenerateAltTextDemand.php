@@ -28,14 +28,19 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\DomainObject\AbstractValueObject;
 
 /**
- * Class AltTextDemand.
+ * Class GenerateAltTextDemand.
  *
  * This class is used to encapsulate the demand for alternative text generation.
- * It contains properties such as page UID, language UID, file UID, and a signature
+ * It contains properties such as user ID, page UID, language UID, workspace ID, and a signature
  * for request validation.
  */
-class AltTextDemand extends AbstractValueObject implements JsonSerializable
+class GenerateAltTextDemand extends AbstractValueObject implements JsonSerializable
 {
+    /**
+     * Current user ID.
+     */
+    protected int $userId = 0;
+
     /**
      * Page UID we are working on.
      */
@@ -47,9 +52,24 @@ class AltTextDemand extends AbstractValueObject implements JsonSerializable
     protected int $languageUid = 0;
 
     /**
-     * sys_file UID of the image.
+     * Current workspace ID.
      */
-    protected int $fileUid = 0;
+    protected int $workspaceId = 0;
+
+    /**
+     * Record table name.
+     */
+    protected string $recordTable = '';
+
+    /**
+     * Record UID.
+     */
+    protected int $recordUid = 0;
+
+    /**
+     * Affected record columns.
+     */
+    protected array $recordColumns = [];
 
     /**
      * Signature of all properties generated using hmac.
@@ -59,12 +79,24 @@ class AltTextDemand extends AbstractValueObject implements JsonSerializable
     /**
      * Constructor.
      */
-    public function __construct(int $pageUid, int $languageUid, int $fileUid, string $signature = '')
+    public function __construct(int $userId, int $pageUid, int $languageUid, int $workspaceId, string $recordTable, int $recordUid, array $recordColumns, string $signature = '')
     {
+        $this->userId = $userId;
         $this->pageUid = $pageUid;
         $this->languageUid = $languageUid;
-        $this->fileUid = $fileUid;
+        $this->workspaceId = $workspaceId;
+        $this->recordTable = $recordTable;
+        $this->recordUid = $recordUid;
+        $this->recordColumns = $recordColumns;
         $this->signature = '' !== $signature ? $signature : $this->createSignature();
+    }
+
+    /**
+     * Get the user ID.
+     */
+    public function getUserId(): int
+    {
+        return $this->userId;
     }
 
     /**
@@ -84,11 +116,35 @@ class AltTextDemand extends AbstractValueObject implements JsonSerializable
     }
 
     /**
-     * Get the file UID.
+     * Get the workspace ID.
      */
-    public function getFileUid(): int
+    public function getWorkspaceId(): int
     {
-        return $this->fileUid;
+        return $this->workspaceId;
+    }
+
+    /**
+     * Get the record table.
+     */
+    public function getRecordTable(): string
+    {
+        return $this->recordTable;
+    }
+
+    /**
+     * Get the record UID.
+     */
+    public function getRecordUid(): int
+    {
+        return $this->recordUid;
+    }
+
+    /**
+     * Get the affected record columns.
+     */
+    public function getRecordColumns(): array
+    {
+        return $this->recordColumns;
     }
 
     /**
@@ -111,9 +167,13 @@ class AltTextDemand extends AbstractValueObject implements JsonSerializable
             implode(
                 '',
                 [
+                    (int)$this->userId,
                     (int)$this->pageUid,
-                    (int)$this->fileUid,
                     (int)$this->languageUid,
+                    (int)$this->workspaceId,
+                    $this->recordTable,
+                    (int)$this->recordUid,
+                    implode(',', $this->recordColumns),
                 ]
             ),
             __CLASS__
@@ -140,9 +200,13 @@ class AltTextDemand extends AbstractValueObject implements JsonSerializable
     public function toArray(): array
     {
         return [
+            'userId' => $this->getUserId(),
             'pageUid' => $this->getPageUid(),
             'languageUid' => $this->getLanguageUid(),
-            'fileUid' => $this->getFileUid(),
+            'workspaceId' => $this->getWorkspaceId(),
+            'recordTable' => $this->getRecordTable(),
+            'recordUid' => $this->getRecordUid(),
+            'recordColumns' => $this->getRecordColumns(),
             'signature' => $this->getSignature(),
         ];
     }

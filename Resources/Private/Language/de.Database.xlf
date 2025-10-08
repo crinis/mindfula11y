@@ -152,6 +152,30 @@
 				<source>Provide a descriptive name for this landmark that will be announced by screen readers. This should be concise but meaningful, helping users understand the purpose of this section.</source>
 				<target>Geben Sie einen beschreibenden Namen für dieses Landmark an, der von Screenreadern vorgelesen wird. Dieser sollte prägnant aber aussagekräftig sein und Nutzern helfen, den Zweck dieses Bereichs zu verstehen.</target>
 			</trans-unit>
+
+			<!-- Scan ID Field -->
+			<trans-unit id="pages.columns.mindfula11y.scanId"
+				resname="pages.columns.mindfula11y.scanId">
+				<source>Accessibility Scan ID</source>
+				<target>Zugänglichkeit-Scan-ID</target>
+			</trans-unit>
+			<trans-unit id="pages.columns.mindfula11y.scanId.description"
+				resname="pages.columns.mindfula11y.scanId.description">
+				<source>External accessibility scan identifier for this page.</source>
+				<target>Externe Zugänglichkeits-Scan-Identifikation für diese Seite.</target>
+			</trans-unit>
+			
+			<!-- Scan Last Updated Field -->
+			<trans-unit id="pages.columns.mindfula11y.scanUpdated"
+				resname="pages.columns.mindfula11y.scanUpdated">
+				<source>Scan Updated</source>
+				<target>Scan aktualisiert</target>
+			</trans-unit>
+			<trans-unit id="pages.columns.mindfula11y.scanUpdated.description"
+				resname="pages.columns.mindfula11y.scanUpdated.description">
+				<source>Timestamp when the accessibility scan ID was last updated.</source>
+				<target>Zeitstempel, wann die Zugänglichkeits-Scan-ID zuletzt aktualisiert wurde.</target>
+			</trans-unit>
 		</body>
 	</file>
 </xliff>

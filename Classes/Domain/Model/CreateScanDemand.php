@@ -37,9 +37,14 @@ use TYPO3\CMS\Extbase\DomainObject\AbstractValueObject;
 class CreateScanDemand extends AbstractValueObject implements JsonSerializable
 {
     /**
-     * Page UID we are working on.
+     * Current user ID.
      */
-    protected int $pageUid = 0;
+    protected int $userId = 0;
+
+    /**
+     * Original page ID (not translated).
+     */
+    protected int $pageId = 0;
 
     /**
      * Preview URL for the page.
@@ -47,26 +52,48 @@ class CreateScanDemand extends AbstractValueObject implements JsonSerializable
     protected string $previewUrl = '';
 
     /**
-     * Signature of the pageUid generated using hmac.
+     * Language ID.
+     */
+    protected int $languageId = 0;
+
+    /**
+     * Current workspace ID.
+     */
+    protected int $workspaceId = 0;
+
+    /**
+     * Signature of the properties generated using hmac.
      */
     protected string $signature = '';
 
     /**
      * Constructor.
      */
-    public function __construct(int $pageUid, string $signature, string $previewUrl)
+    public function __construct(int $userId, int $pageId, string $previewUrl, int $languageId, int $workspaceId, string $signature = '')
     {
-        $this->pageUid = $pageUid;
-        $this->previewUrl = $previewUrl;
+        $this->userId = $userId;
+        $this->pageId = $pageId;
+        //$this->previewUrl = $previewUrl;
+        $this->previewUrl = 'https://example.com'; // For testing purposes, replace with actual URL in production
+        $this->languageId = $languageId;
+        $this->workspaceId = $workspaceId;
         $this->signature = '' !== $signature ? $signature : $this->createSignature();
     }
 
     /**
-     * Get the page UID.
+     * Get the user ID.
      */
-    public function getPageUid(): int
+    public function getUserId(): int
     {
-        return $this->pageUid;
+        return $this->userId;
+    }
+
+    /**
+     * Get the original page ID.
+     */
+    public function getPageId(): int
+    {
+        return $this->pageId;
     }
 
     /**
@@ -75,6 +102,22 @@ class CreateScanDemand extends AbstractValueObject implements JsonSerializable
     public function getPreviewUrl(): string
     {
         return $this->previewUrl;
+    }
+
+    /**
+     * Get the language ID.
+     */
+    public function getLanguageId(): int
+    {
+        return $this->languageId;
+    }
+
+    /**
+     * Get the workspace ID.
+     */
+    public function getWorkspaceId(): int
+    {
+        return $this->workspaceId;
     }
 
     /**
@@ -94,7 +137,13 @@ class CreateScanDemand extends AbstractValueObject implements JsonSerializable
     {
         $hashService = GeneralUtility::makeInstance(HashService::class);
         return $hashService->hmac(
-            (string)$this->pageUid . '|' . $this->previewUrl,
+            implode('', [
+                (string)$this->userId,
+                (string)$this->pageId,
+                $this->previewUrl,
+                (string)$this->languageId,
+                (string)$this->workspaceId
+            ]),
             __CLASS__
         );
     }
@@ -121,8 +170,11 @@ class CreateScanDemand extends AbstractValueObject implements JsonSerializable
     public function toArray(): array
     {
         return [
-            'pageUid' => $this->pageUid,
+            'userId' => $this->userId,
+            'pageId' => $this->pageId,
             'previewUrl' => $this->previewUrl,
+            'languageId' => $this->languageId,
+            'workspaceId' => $this->workspaceId,
             'signature' => $this->signature,
         ];
     }

@@ -28,12 +28,21 @@ ExtensionManagementUtility::addTCAcolumns(
     'pages',
     [
         'tx_mindfula11y_scanid' => [
-            'exclude' => true,
+            'exclude' => false,
             'label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:pages.columns.mindfula11y.scanId',
             'description' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:pages.columns.mindfula11y.scanId.description',
             'config' => [
                 'type' => 'input',
                 'eval' => 'trim',
+                'readOnly' => true,
+            ],
+        ],
+        'tx_mindfula11y_scanupdated' => [
+            'exclude' => false,
+            'label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:pages.columns.mindfula11y.scanUpdated',
+            'description' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:pages.columns.mindfula11y.scanUpdated.description',
+            'config' => [
+                'type' => 'datetime',
                 'readOnly' => true,
             ],
         ],

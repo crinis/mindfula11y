@@ -26,7 +26,7 @@ import Notification from "@typo3/backend/notification.js";
 import AjaxDataHandler from "@typo3/backend/ajax-data-handler.js";
 import AltTextGeneratorService from "./alt-text-generator-service.js";
 
-/** @typedef {import('./types.js').AltTextDemand} AltTextDemand */
+/** @typedef {import('./types.js').GenerateAltTextDemand} GenerateAltTextDemand */
 
 /**
  * AltlessFileReference web component.
@@ -43,7 +43,7 @@ import AltTextGeneratorService from "./alt-text-generator-service.js";
  * @property {string} recordEditLink - The link to edit the original record associated with the file reference.
  * @property {string} recordEditLinkLabel - The label for the edit record link.
  * @property {number} uid - The unique identifier for the file reference.
- * @property {AltTextDemand} altTextDemand - The object containing the parameters for generating alt text.
+ * @property {GenerateAltTextDemand} generateAltTextDemand - The object containing the parameters for generating alt text.
  * @property {string} fallbackAlternative - Optional fallback alternative text to display if no alt text is provided.
  * @property {boolean} _loading - Indicates if alt text is currently being generated. Used internally to manage UI state.
  * @property {string} _statusMessage - Status message for screen readers, indicating the current state of the component. Used internally to provide feedback during alt text generation and saving.
@@ -57,7 +57,7 @@ export class AltlessFileReference extends LitElement {
       recordEditLink: { type: String },
       recordEditLinkLabel: { type: String },
       uid: { type: Number },
-      altTextDemand: { type: Object },
+      generateAltTextDemand: { type: Object },
       fallbackAlternative: { type: String }, // Optional fallback alt text
       _loading: { type: Boolean }, // Indicates if alt text is being generated
       _statusMessage: { type: String }, // For screenreader status
@@ -72,7 +72,7 @@ export class AltlessFileReference extends LitElement {
     this.recordEditLink = "";
     this.recordEditLinkLabel = "";
     this.uid = 0;
-    this.altTextDemand = null;
+    this.generateAltTextDemand = null;
     this.fallbackAlternative = null;
     this._loading = false;
     this._statusMessage = "";
@@ -134,7 +134,7 @@ export class AltlessFileReference extends LitElement {
     this.requestUpdate();
 
     const altText = await this._altTextGeneratorService.generateAltText(
-      this.altTextDemand
+      this.generateAltTextDemand
     );
 
     this._loading = false;
@@ -236,7 +236,7 @@ export class AltlessFileReference extends LitElement {
                 ></textarea>
 
                 <div class="d-flex gap-2 mt-2">
-                  ${null !== this.altTextDemand
+                  ${null !== this.generateAltTextDemand
                     ? html`
                         <button
                           class="btn btn-secondary"

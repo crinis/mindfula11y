@@ -24,9 +24,11 @@ declare(strict_types=1);
 namespace MindfulMarkup\MindfulA11y\ViewHelpers;
 
 use MindfulMarkup\MindfulA11y\Domain\Model\AltlessFileReference;
-use MindfulMarkup\MindfulA11y\Domain\Model\AltTextDemand;
+use MindfulMarkup\MindfulA11y\Domain\Model\GenerateAltTextDemand;
+use MindfulMarkup\MindfulA11y\Service\OpenAIService;
 use MindfulMarkup\MindfulA11y\Service\PermissionService;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
+use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
 use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractTagBasedViewHelper;
@@ -43,6 +45,11 @@ class AltlessFileReferenceViewHelper extends AbstractTagBasedViewHelper
      * Permission service instance.
      */
     protected readonly PermissionService $permissionService;
+
+    /**
+     * OpenAI service instance.
+     */
+    protected readonly OpenAIService $openAIService;
 
     /**
      * Backend Uri Builder instance.
@@ -65,6 +72,14 @@ class AltlessFileReferenceViewHelper extends AbstractTagBasedViewHelper
     public function injectPermissionService(PermissionService $permissionService): void
     {
         $this->permissionService = $permissionService;
+    }
+
+    /**
+     * Inject OpenAI service.
+     */
+    public function injectOpenAIService(OpenAIService $openAIService): void
+    {
+        $this->openAIService = $openAIService;
     }
 
     /**
@@ -107,14 +122,16 @@ class AltlessFileReferenceViewHelper extends AbstractTagBasedViewHelper
         $recordTableName = $fileReference->getOriginalResource()->getReferenceProperty('tablenames');
         $recordColumnName = $fileReference->getOriginalResource()->getReferenceProperty('fieldname');
         $recordUid = $fileReference->getOriginalResource()->getReferenceProperty('uid_foreign');
-        $fileReferenceProperties = $fileReference->getOriginalResource()->getReferenceProperties();
+
+        $record = BackendUtility::getRecordWSOL($recordTableName, (int)$recordUid);
 
         if (
             $this->permissionService->checkTableWriteAccess('sys_file_reference')
             && $this->permissionService->checkNonExcludeFields('sys_file_reference', ['alternative'])
             && !empty($recordTableName)
             && !empty($recordColumnName)
-            && $this->permissionService->checkRecordEditAccess($recordTableName, $fileReferenceProperties, [$recordColumnName])
+            && null !== $record
+            && $this->permissionService->checkRecordEditAccess($recordTableName, $record, [$recordColumnName])
         ) {
             $this->tag->addAttribute('recordEditLink', $this->backendUriBuilder->buildUriFromRoute('record_edit', [
                 'edit' => [
@@ -125,12 +142,11 @@ class AltlessFileReferenceViewHelper extends AbstractTagBasedViewHelper
             ]));
             $this->tag->addAttribute('recordEditLinkLabel', sprintf($this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:missingAltText.editRecord.label'), $recordTableName, $recordUid));
             if (
-                !$this->extensionConfiguration->get('mindfula11y', 'disableAltTextGeneration') &&
-                !empty($this->extensionConfiguration->get('mindfula11y', 'openAIApiKey'))
+                $this->openAIService->isEnabledAndConfigured()
             ) {
                 $this->tag->addAttribute(
-                    'altTextDemand',
-                    json_encode($this->getAltTextDemand($fileReference))
+                    'generateAltTextDemand',
+                    json_encode($this->getGenerateAltTextDemand($fileReference))
                 );
             }
         }
@@ -154,13 +170,21 @@ class AltlessFileReferenceViewHelper extends AbstractTagBasedViewHelper
     /**
      * Get alt text demand used for generating the alt text.
      */
-    protected function getAltTextDemand(
+    protected function getGenerateAltTextDemand(
         AltlessFileReference $fileReference
-    ): AltTextDemand {
-        return new AltTextDemand(
+    ): GenerateAltTextDemand {
+        $backendUser = $this->getBackendUserAuthentication();
+        $recordTableName = $fileReference->getOriginalResource()->getReferenceProperty('tablenames');
+        $recordColumnName = $fileReference->getOriginalResource()->getReferenceProperty('fieldname');
+        $recordUid = $fileReference->getOriginalResource()->getReferenceProperty('uid_foreign');
+        return new GenerateAltTextDemand(
+            $backendUser->user['uid'],
             $fileReference->getPid(),
             $fileReference->getOriginalResource()->getReferenceProperty('sys_language_uid'),
-            $fileReference->getOriginalResource()->getReferenceProperty('uid_local'),
+            $backendUser->workspace,
+            $recordTableName,
+            $recordUid,
+            [$recordColumnName],
         );
     }
 
@@ -172,5 +196,15 @@ class AltlessFileReferenceViewHelper extends AbstractTagBasedViewHelper
     protected function getLanguageService(): LanguageService
     {
         return $GLOBALS['LANG'];
+    }
+
+    /**
+     * Get backend user authentication.
+     * 
+     * @return \TYPO3\CMS\Core\Authentication\BackendUserAuthentication
+     */
+    protected function getBackendUserAuthentication(): \TYPO3\CMS\Core\Authentication\BackendUserAuthentication
+    {
+        return $GLOBALS['BE_USER'];
     }
 }

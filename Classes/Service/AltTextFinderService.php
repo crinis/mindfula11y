@@ -70,16 +70,9 @@ class AltTextFinderService
         bool $filterFileMetaData = true
     ): array {
         $tables = [];
-        $pageIds = null;
+        $pageIds = $this->permissionService->getPageTreeIds($pageId, $pageLevels);
         foreach ($this->getTablesWithFiles($pageTsConfig) as $tableName) {
-            if ('pages' === $tableName) {
-                $tables[] = $this->createAltlessFileReferenceTable($tableName, $this->permissionService->getPageTreeIds($pageId, $pageLevels, $tableName), $pageTsConfig);
-            } else {
-                if (null === $pageIds) {
-                    $pageIds = $this->permissionService->getPageTreeIds($pageId, $pageLevels, $tableName);
-                }
-                $tables[] = $this->createAltlessFileReferenceTable($tableName, $pageIds, $pageTsConfig);
-            }
+            $tables[] = $this->createAltlessFileReferenceTable($tableName, $pageIds, $pageTsConfig);
         }
 
         return $this->altlessFileReferenceRepository->findForTables(
@@ -121,7 +114,7 @@ class AltTextFinderService
         int $maxResults = 100,
         bool $filterFileMetaData = true,
     ): array {
-        $pageTreeIds = $this->permissionService->getPageTreeIds($pageId, $pageLevels, $tableName);
+        $pageTreeIds = $this->permissionService->getPageTreeIds($pageId, $pageLevels);
         $table = $this->createAltlessFileReferenceTable($tableName, $pageTreeIds, $pageTsConfig);
 
         return $this->altlessFileReferenceRepository->findForTables(
@@ -161,10 +154,10 @@ class AltTextFinderService
         $pageIds = null;
         foreach ($this->getTablesWithFiles($pageTsConfig) as $tableName) {
             if ('pages' === $tableName) {
-                $tables[] = $this->createAltlessFileReferenceTable($tableName, $this->permissionService->getPageTreeIds($pageId, $pageLevels, $tableName), $pageTsConfig);
+                $tables[] = $this->createAltlessFileReferenceTable($tableName, $this->permissionService->getPageTreeIds($pageId, $pageLevels), $pageTsConfig);
             } else {
                 if (null === $pageIds) {
-                    $pageIds = $this->permissionService->getPageTreeIds($pageId, $pageLevels, $tableName);
+                    $pageIds = $this->permissionService->getPageTreeIds($pageId, $pageLevels);
                 }
                 $tables[] = $this->createAltlessFileReferenceTable($tableName, $pageIds, $pageTsConfig);
             }
@@ -203,7 +196,7 @@ class AltTextFinderService
         array &$pageTsConfig,
         bool $filterFileMetaData = true
     ): int {
-        $pageTreeIds = $this->permissionService->getPageTreeIds($pageId, $pageLevels, $tableName);
+        $pageTreeIds = $this->permissionService->getPageTreeIds($pageId, $pageLevels);
         $table = $this->createAltlessFileReferenceTable($tableName, $pageTreeIds, $pageTsConfig);
 
         return $this->altlessFileReferenceRepository->countForTables(
@@ -298,7 +291,7 @@ class AltTextFinderService
                 $fieldConfig['config']['type'] === 'file'
                 && !in_array($column, $ignoreColumns, true)
             ) {
-                if ($backendUser->check('non_exclude_fields', $tableName . ':' . $column)) {
+                if ($this->permissionService->checkNonExcludeFields($tableName, [$column])) {
                     $fileColumns[] = $column;
                 }
             }

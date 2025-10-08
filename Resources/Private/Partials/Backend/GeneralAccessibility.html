@@ -1,5 +1,5 @@
 <f:if
-  condition="{hasMissingAltTextAccess} && {fileReferenceCount} > 0 || ({previewUrl} && ({hasHeadingStructureAccess} || {hasLandmarkStructureAccess}))">
+  condition="{hasMissingAltTextAccess} && {fileReferenceCount} > 0 || ({previewUrl} && ({hasHeadingStructureAccess} || {hasLandmarkStructureAccess})) || ({hasScanAccess} && {createScanDemand})">
   <section class="callout callout-notice">
     <div class="callout-content">
       <div class="callout-title">
@@ -17,7 +17,7 @@
             <f:if condition="{missingAltTextUri}">
               <a href="{missingAltTextUri}" class="btn btn-sm btn-default">
                 <f:translate
-                  key="LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:missingAltText.viewAll" />
+                  key="LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:viewDetails" />
               </a>
             </f:if>
           </p>
@@ -27,6 +27,14 @@
             hasHeadingStructureAccess="{hasHeadingStructureAccess}"
             hasLandmarkStructureAccess="{hasLandmarkStructureAccess}" />
         </f:if>
+                <f:if condition="{hasScanAccess} && ({scanId} || {createScanDemand})">
+                  <mindfula11y-scan-issue-count
+                    createScanDemand="{createScanDemand -> f:format.json()}"
+                    scanId="{scanId}"
+                    scanUri="{scanUri}"
+                    autoCreateScan="{autoCreateScan}">
+                  </mindfula11y-scan-issue-count>
+                </f:if>
       </div>
     </div>
   </section>

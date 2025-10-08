@@ -23,7 +23,7 @@ declare(strict_types=1);
 namespace MindfulMarkup\MindfulA11y\Form\Element;
 
 use Exception;
-use MindfulMarkup\MindfulA11y\Domain\Model\AltTextDemand;
+use MindfulMarkup\MindfulA11y\Domain\Model\GenerateAltTextDemand;
 use MindfulMarkup\MindfulA11y\Service\OpenAIService;
 use MindfulMarkup\MindfulA11y\Service\PermissionService;
 use TYPO3\CMS\Backend\Form\Element\AbstractFormElement;
@@ -244,11 +244,12 @@ class InputAltElement extends AbstractFormElement
 
         $thisAltId = 't3js-form-field-alt-id' . StringUtility::getUniqueId();
         $generateButtonLabel = $languageService->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:missingAltText.generate.button');
+        $canGenerate = null !== $file && $this->openAIService->isChatFileExtSupported($file->getExtension()) && $this->openAIService->isEnabledAndConfigured() && $GLOBALS['BE_USER']->check('modules', 'mindfula11y_accessibility');
         $mainFieldHtml = [];
         $mainFieldHtml[] = '<div class="form-control-wrap" style="max-width: ' . $width . 'px" id="' . htmlspecialchars($thisAltId) . '">';
         $mainFieldHtml[] =      '<div class="form-wizards-wrap">';
         $mainFieldHtml[] =          '<div class="form-wizards-item-element">';
-        if (null !== $file && $this->openAIService->isChatFileExtSupported($file->getExtension())) {
+        if ($canGenerate) {
             $mainFieldHtml[] =              '<div class="input-group">';
             $mainFieldHtml[] =                  '<input type="text" ' . GeneralUtility::implodeAttributes($attributes, true) . ' />';
             $mainFieldHtml[] =                  '<input type="hidden" name="' . $itemName . '" value="' . htmlspecialchars((string)$itemValue) . '" />';
@@ -338,11 +339,16 @@ class InputAltElement extends AbstractFormElement
                 ' . $fieldInformationHtml . $fullElement . '
             </div>';
 
-        if (null !== $file && $this->openAIService->isChatFileExtSupported($file->getExtension())) {
-            $altTextDemand = new AltTextDemand(
+        if ($canGenerate) {
+            $backendUser = $GLOBALS['BE_USER'];
+            $generateAltTextDemand = new GenerateAltTextDemand(
+                $backendUser->user['uid'],
                 (int)$this->data['effectivePid'],
                 $languageUid,
-                $fileUid
+                $backendUser->workspace,
+                $table,
+                (int)$this->data['databaseRow']['uid'],
+                [$fieldName]
             );
 
             $this->pageRenderer->addInlineLanguageLabelArray([
@@ -357,7 +363,7 @@ class InputAltElement extends AbstractFormElement
             ]);
             $resultArray['javaScriptModules'][] = JavaScriptModuleInstruction::create(
                 '@mindfulmarkup/mindfula11y/input-alt-element-service.js'
-            )->instance('#' . $thisAltId, $altTextDemand->toArray());
+            )->instance('#' . $thisAltId, $generateAltTextDemand->toArray());
         }
 
         return $resultArray;

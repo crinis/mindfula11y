@@ -25,11 +25,12 @@ namespace MindfulMarkup\MindfulA11y\Controller;
 
 use InvalidArgumentException;
 use MindfulMarkup\MindfulA11y\Domain\Model\CreateScanDemand;
-use MindfulMarkup\MindfulA11y\Service\ScanService;
+use MindfulMarkup\MindfulA11y\Service\ScanApiService;
 use MindfulMarkup\MindfulA11y\Service\GeneralModuleService;
 use MindfulMarkup\MindfulA11y\Service\PermissionService;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Http\AllowedMethodsTrait;
@@ -40,6 +41,7 @@ use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Core\Versioning\VersionState;
 
 /**
  * Class ScanAjaxController.
@@ -53,13 +55,13 @@ class ScanAjaxController extends ActionController
     /**
      * Constructor.
      *
-     * @param ScanService $scanService The accessibility scanner service.
+     * @param ScanApiService $scanApiService The accessibility scanner service.
      * @param GeneralModuleService $generalModuleService The general module service.
      * @param PermissionService $permissionService The permission service.
      * @param ConnectionPool $connectionPool The connection pool.
      */
     public function __construct(
-        protected readonly ScanService $scanService,
+        protected readonly ScanApiService $scanApiService,
         protected readonly GeneralModuleService $generalModuleService,
         protected readonly PermissionService $permissionService,
         protected readonly ConnectionPool $connectionPool,
@@ -97,12 +99,34 @@ class ScanAjaxController extends ActionController
      */
     public function createAction(ServerRequestInterface $request): ResponseInterface
     {
+        $backendUser = $this->getBackendUserAuthentication();
+        
+        // Check if user has access to the mindfula11y_accessibility module
+        if (!$backendUser->check('modules', 'mindfula11y_accessibility')) {
+            return $this->jsonResponse(
+                json_encode([
+                    'error' => [
+                        'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.forbidden'),
+                        'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.forbidden.description'),
+                    ]
+                ])
+            )->withStatus(403);
+        }
+
         $requestBody = $request->getParsedBody();
-        $demand = new CreateScanDemand(
-            (int)$requestBody['pageUid'],
-            $requestBody['signature'],
-            $requestBody['previewUrl']
-        );
+        // Basic input validation to avoid TypeError in CreateScanDemand constructor
+        $userId = isset($requestBody['userId']) ? (int)$requestBody['userId'] : 0;
+        $pageId = isset($requestBody['pageId']) ? (int)$requestBody['pageId'] : 0;
+        $previewUrl = $requestBody['previewUrl'] ?? '';
+        $languageId = isset($requestBody['languageId']) ? (int)$requestBody['languageId'] : 0;
+        $workspaceId = isset($requestBody['workspaceId']) ? (int)$requestBody['workspaceId'] : 0;
+        $signature = $requestBody['signature'] ?? '';
+
+        if ($userId <= 0 || $pageId <= 0 || !is_string($signature) || $signature === '' || !is_string($previewUrl) || $previewUrl === '') {
+            throw new InvalidArgumentException('Missing or invalid parameters for creating a scan');
+        }
+
+        $demand = new CreateScanDemand($userId, $pageId, $previewUrl, $languageId, $workspaceId, $signature);
 
         if (!$demand->validateSignature()) {
             return $this->jsonResponse(
@@ -115,11 +139,64 @@ class ScanAjaxController extends ActionController
             )->withStatus(400);
         }
 
-        $pageUid = $demand->getPageUid();
+        $backendUser = $this->getBackendUserAuthentication();
+        $userId = $demand->getUserId();
+        $pageId = $demand->getPageId();
+        $languageId = $demand->getLanguageId();
+        $workspaceId = $demand->getWorkspaceId();
         $previewUrl = $demand->getPreviewUrl();
 
+        // Verify the current backend user matches the demand
+        if ($backendUser->user['uid'] !== $userId) {
+            return $this->jsonResponse(
+                json_encode([
+                    'error' => [
+                        'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.invalidUser'),
+                        'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.invalidUser.description'),
+                    ]
+                ])
+            )->withStatus(403);
+        }
+
+        // Verify the current workspace matches the demand
+        if ($backendUser->workspace !== $workspaceId) {
+            return $this->jsonResponse(
+                json_encode([
+                    'error' => [
+                        'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.invalidWorkspace'),
+                        'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.invalidWorkspace.description'),
+                    ]
+                ])
+            )->withStatus(403);
+        }
+
+        // Check language access
+        if (!$backendUser->checkLanguageAccess($languageId)) {
+            return $this->jsonResponse(
+                json_encode([
+                    'error' => [
+                        'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.invalidLanguage'),
+                        'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.invalidLanguage.description'),
+                    ]
+                ])
+            )->withStatus(403);
+        }
+
+        // Check TSConfig access for scan feature
+        $pageTsConfig = $this->generalModuleService->getConvertedPageTsConfig($pageId);
+        if (!$this->generalModuleService->hasScanAccess($pageTsConfig)) {
+            return $this->jsonResponse(
+                json_encode([
+                    'error' => [
+                        'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.noAccess'),
+                        'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.noAccess.description'),
+                    ]
+                ])
+            )->withStatus(403);
+        }
+
         // Check if scanner is configured
-        if (!$this->scanService->isConfigured()) {
+        if (!$this->scanApiService->isConfigured()) {
             return $this->jsonResponse(
                 json_encode([
                     'error' => [
@@ -130,8 +207,33 @@ class ScanAjaxController extends ActionController
             )->withStatus(500);
         }
 
+        $page = BackendUtility::getRecordWSOL('pages', $pageId);
+
+        if (null === $page || VersionState::tryFrom((int)$page['t3ver_state']) === VersionState::DELETE_PLACEHOLDER) {
+            return $this->jsonResponse(
+                json_encode([
+                    'error' => [
+                        'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.pageNotFound'),
+                        'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.pageNotFound.description'),
+                    ]
+                ])
+            )->withStatus(404);
+        }
+
+        // Verify the current backend user actually has access to the page
+        if (!$this->permissionService->checkRecordEditAccess('pages', $page) || !$this->permissionService->checkNonExcludeFields('pages', ['tx_mindfula11y_scanid', 'tx_mindfula11y_scanupdated'])) {
+            return $this->jsonResponse(
+                json_encode([
+                    'error' => [
+                        'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.invalidPageAccess'),
+                        'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.invalidPageAccess.description'),
+                    ]
+                ])
+            )->withStatus(403);
+        }
+
         // Create scan
-        $scanData = $this->scanService->createScan($previewUrl);
+        $scanData = $this->scanApiService->createScan($previewUrl);
 
         if (null === $scanData) {
             return $this->jsonResponse(
@@ -145,7 +247,7 @@ class ScanAjaxController extends ActionController
         }
 
         // Store scan ID in database
-        if (!$this->storeScanId($pageUid, (string)$scanData['id'])) {
+        if (!$this->storeScanId($page['uid'], (string)$scanData['id'])) {
             return $this->jsonResponse(
                 json_encode([
                     'error' => [
@@ -173,6 +275,20 @@ class ScanAjaxController extends ActionController
      */
     public function getAction(ServerRequestInterface $request): ResponseInterface
     {
+        $backendUser = $this->getBackendUserAuthentication();
+        
+        // Check if user has access to the mindfula11y_accessibility module
+        if (!$backendUser->check('modules', 'mindfula11y_accessibility')) {
+            return $this->jsonResponse(
+                json_encode([
+                    'error' => [
+                        'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.forbidden'),
+                        'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.forbidden.description'),
+                    ]
+                ])
+            )->withStatus(403);
+        }
+
         $queryParams = $request->getQueryParams();
         $scanId = $queryParams['scanId'] ?? '';
 
@@ -188,7 +304,7 @@ class ScanAjaxController extends ActionController
         }
 
         // Get scan
-        $scan = $this->scanService->get($scanId);
+        $scan = $this->scanApiService->get($scanId);
 
         if (null === $scan) {
             return $this->jsonResponse(
@@ -229,6 +345,7 @@ class ScanAjaxController extends ActionController
             'pages' => [
                 $pageUid => [
                     'tx_mindfula11y_scanid' => $scanId,
+                    'tx_mindfula11y_scanupdated' => time(),
                 ]
             ]
         ], []);

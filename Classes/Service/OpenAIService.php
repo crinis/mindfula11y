@@ -116,4 +116,15 @@ class OpenAIService
         $supportedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
         return in_array($extension, $supportedExtensions, true);
     }
+
+    /**
+     * Is OpenAI service enabled and configured.
+     * 
+     * @return bool True if enabled and configured, false otherwise.
+     */
+    public function isEnabledAndConfigured(): bool
+    {
+        return !(bool)$this->extensionConfiguration->get('mindfula11y', 'disableAltTextGeneration') &&
+               !empty($this->extensionConfiguration->get('mindfula11y', 'openAIApiKey'));
+    }
 }

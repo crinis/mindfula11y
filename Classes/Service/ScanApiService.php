@@ -28,11 +28,11 @@ use TYPO3\CMS\Core\Http\RequestFactory;
 use Psr\Log\LoggerInterface;
 
 /**
- * Class ScanService.
+ * Class ScanApiService.
  *
  * This class handles communication with the external accessibility scanner API.
  */
-class ScanService
+class ScanApiService
 {
     /**
      * Constructor.
@@ -203,10 +203,6 @@ class ScanService
             return null;
         }
     }
-
-
-
-
 
 
 }
