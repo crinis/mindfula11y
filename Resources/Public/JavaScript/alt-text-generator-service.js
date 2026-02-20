@@ -20,7 +20,7 @@
 import AjaxRequest from "@typo3/core/ajax/ajax-request.js";
 import Notification from "@typo3/backend/notification.js";
 
-/** @typedef {import('./types.js').AltTextDemand} AltTextDemand */
+/** @typedef {import('./types.js').GenerateAltTextDemand} GenerateAltTextDemand */
 
 /**
  * @file alt-text-generator-service.js
@@ -48,11 +48,7 @@ export default class AltTextGeneratorService {
   /**
    * Sends an AJAX request to generate alt text for an image.
    *
-   * @param {AltTextDemand} options - The request payload. Must include:
-   *   - pageUid: UID of the page where the element is rendered
-   *   - languageUid: UID of the language for the record
-   *   - fileUid: UID of the file
-   *   - signature: HMAC signature for request validation
+   * @param {GenerateAltTextDemand} options - The request payload containing all necessary parameters for alt text generation.
    * @returns {Promise<string|null>} Resolves to the generated alt text or null on error.
    */
   async generateAltText(options) {
@@ -68,8 +64,8 @@ export default class AltTextGeneratorService {
         responseData = await error.response.json();
       } catch (e) {
         Notification.error(
-          TYPO3.lang["mindfula11y.missingAltText.generate.error.unknown"],
-          TYPO3.lang["mindfula11y.missingAltText.generate.error.unknown.description"]
+          TYPO3.lang["mindfula11y.altText.generate.error.unknown"],
+          TYPO3.lang["mindfula11y.altText.generate.error.unknown.description"]
         );
         return null;
       }

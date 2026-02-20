@@ -13,6 +13,10 @@ mod {
         landmarkStructure {
             enable = 1
         }
+        scan {
+            enable = 0
+            autoCreate = 1
+        }
     }
 
     web_layout {

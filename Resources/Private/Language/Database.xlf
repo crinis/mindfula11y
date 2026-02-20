@@ -122,6 +122,26 @@
 				resname="ttContent.columns.mindfula11y.ariaLabel.description">
 				<source>Provide a descriptive name for this landmark that will be announced by screen readers. This should be concise but meaningful, helping users understand the purpose of this section.</source>
 			</trans-unit>
+			
+			<!-- Scan ID Field -->
+			<trans-unit id="pages.columns.mindfula11y.scanId"
+				resname="pages.columns.mindfula11y.scanId">
+				<source>Accessibility Scan ID</source>
+			</trans-unit>
+			<trans-unit id="pages.columns.mindfula11y.scanId.description"
+				resname="pages.columns.mindfula11y.scanId.description">
+				<source>External accessibility scan identifier for this page.</source>
+			</trans-unit>
+			
+			<!-- Scan Last Updated Field -->
+			<trans-unit id="pages.columns.mindfula11y.scanUpdated"
+				resname="pages.columns.mindfula11y.scanUpdated">
+				<source>Scan Updated</source>
+			</trans-unit>
+			<trans-unit id="pages.columns.mindfula11y.scanUpdated.description"
+				resname="pages.columns.mindfula11y.scanUpdated.description">
+				<source>Timestamp when the accessibility scan ID was last updated.</source>
+			</trans-unit>
 		</body>
 	</file>
 </xliff>

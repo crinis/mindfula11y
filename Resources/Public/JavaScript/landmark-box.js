@@ -173,7 +173,7 @@ export class LandmarkBox extends LitElement {
     if (this.label?.trim()) {
       return this.label;
     }
-    return TYPO3.lang["mindfula11y.landmarkStructure.unlabelledLandmark"] || "";
+    return TYPO3.lang["mindfula11y.structure.landmarks.unlabelledLandmark"] || "";
   }
 
   /**
@@ -270,7 +270,7 @@ export class LandmarkBox extends LitElement {
           ? html`
               <span class="badge rounded-pill">
                 ${this.children.length}
-                ${TYPO3.lang["mindfula11y.landmarkStructure.nested"]}
+                ${TYPO3.lang["mindfula11y.structure.landmarks.nested"]}
               </span>
             `
           : ""}
@@ -306,7 +306,7 @@ export class LandmarkBox extends LitElement {
         class="btn btn-outline-primary btn-sm d-flex align-items-center gap-1"
       >
         ${this._renderEditIcon()}
-        <span>${TYPO3.lang["mindfula11y.landmarkStructure.edit"]}</span>
+        <span>${TYPO3.lang["mindfula11y.structure.landmarks.edit"]}</span>
       </a>
     `;
   }
@@ -322,7 +322,7 @@ export class LandmarkBox extends LitElement {
       <span class="text-muted d-flex align-items-center gap-1">
         ${this._renderLockIcon()}
         <span class="fs-7"
-          >${TYPO3.lang["mindfula11y.landmarkStructure.edit.locked"]}</span
+          >${TYPO3.lang["mindfula11y.structure.landmarks.edit.locked"]}</span
         >
       </span>
     `;
@@ -439,7 +439,7 @@ export class LandmarkBox extends LitElement {
 
       return html`
         <label id="${labelId}" for="${uniqueId}" class="visually-hidden">
-          ${TYPO3.lang["mindfula11y.landmarkStructure.role"]}
+          ${TYPO3.lang["mindfula11y.structure.landmarks.role"]}
         </label>
         ${disabled
           ? this._renderRoleInput(uniqueId, labelId)
@@ -467,8 +467,7 @@ export class LandmarkBox extends LitElement {
       <input
         id="${uniqueId}"
         type="text"
-        class="badge rounded-pill w-auto pe-none ${this._getInputBorderClass()}"
-        style="max-width: 16rem;"
+        class="badge rounded-pill w-auto pe-none mindfula11y-landmark-box__role-select ${this._getInputBorderClass()}"
         value="${this._getRoleDisplayName(this.role)}"
         readonly
         aria-labelledby="${labelId}"
@@ -489,8 +488,7 @@ export class LandmarkBox extends LitElement {
     return html`
       <select
         id="${uniqueId}"
-        class="form-select form-select-sm w-auto ${this._getInputBorderClass()}"
-        style="max-width: 16rem;"
+        class="form-select form-select-sm w-auto mindfula11y-landmark-box__role-select ${this._getInputBorderClass()}"
         @change="${this._handleRoleSelectChange}"
         aria-labelledby="${labelId}"
         ?aria-invalid="${this.errorMessages && this.errorMessages.length > 0}"
@@ -536,8 +534,20 @@ export class LandmarkBox extends LitElement {
    */
   _renderRoleSelectError() {
     return html`
-      <div class="alert alert-danger alert-sm">
-        ${TYPO3.lang["mindfula11y.landmarkStructure.error.roleSelect"]}
+      <div class="callout callout-danger">
+        <div class="callout-icon">
+          <span class="icon-emphasized">
+            <typo3-backend-icon
+              identifier="status-dialog-error"
+              size="small"
+            ></typo3-backend-icon>
+          </span>
+        </div>
+        <div class="callout-content">
+          <div class="callout-title mb-0">
+            ${TYPO3.lang["mindfula11y.structure.landmarks.error.roleSelect"]}
+          </div>
+        </div>
       </div>
     `;
   }
@@ -632,8 +642,8 @@ export class LandmarkBox extends LitElement {
    */
   _handleSaveError() {
     Notification.error(
-      TYPO3.lang["mindfula11y.landmarkStructure.error.store"],
-      TYPO3.lang["mindfula11y.landmarkStructure.error.store.description"]
+      TYPO3.lang["mindfula11y.structure.landmarks.error.store"],
+      TYPO3.lang["mindfula11y.structure.landmarks.error.store.description"]
     );
   }
 
@@ -650,9 +660,9 @@ export class LandmarkBox extends LitElement {
    */
   _getRoleDisplayName(role) {
     if (role === "") {
-      return TYPO3.lang["mindfula11y.landmarkStructure.role.none"] || "";
+      return TYPO3.lang["mindfula11y.structure.landmarks.role.none"] || "";
     }
-    const translationKey = `mindfula11y.landmarkStructure.role.${role}`;
+    const translationKey = `mindfula11y.structure.landmarks.role.${role}`;
     return TYPO3.lang[translationKey] || role;
   }
 

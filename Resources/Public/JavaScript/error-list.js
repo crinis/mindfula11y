@@ -22,7 +22,8 @@
  * @description Web component for rendering accessibility error lists.
  */
 import { LitElement, html } from "lit";
-import { ERROR_SEVERITY, getSeverityLabel } from "./types.js";
+import "@typo3/backend/element/icon-element.js";
+import { ERROR_SEVERITY } from "./types.js";
 
 /**
  * Web component for rendering accessibility error lists.
@@ -106,18 +107,36 @@ export class ErrorList extends LitElement {
    * @returns {import('lit').TemplateResult} The rendered error item
    */
   _renderSingleError(error) {
-    const alertClass = error.severity === ERROR_SEVERITY.WARNING ? "alert-warning" : "alert-danger";
-    const badgeClass = error.severity === ERROR_SEVERITY.WARNING ? "badge-warning" : "badge-danger";
-    const severityLabel = getSeverityLabel(error.severity);
-    
+    const calloutClass =
+      error.severity === ERROR_SEVERITY.WARNING
+        ? "callout-warning"
+        : "callout-danger";
+    const iconIdentifier =
+      error.severity === ERROR_SEVERITY.WARNING
+        ? "status-dialog-warning"
+        : "status-dialog-error";
+
     return html`
-      <li class="alert ${alertClass}">
-        <p class="lead mb-2">
-          <span class="badge ${badgeClass} me-2">${severityLabel}</span>
-          ${TYPO3.lang[error.id]}
-          <span class="badge rounded-pill ms-2">${error.count}</span>
-        </p>
-        <p class="mb-0">${TYPO3.lang[`${error.id}.description`]}</p>
+      <li>
+        <div class="callout ${calloutClass}">
+          <div class="callout-icon">
+            <span class="icon-emphasized">
+              <typo3-backend-icon
+                identifier="${iconIdentifier}"
+                size="small"
+              ></typo3-backend-icon>
+            </span>
+          </div>
+          <div class="callout-content">
+            <div class="callout-title">
+              ${TYPO3.lang[error.id]}
+              <span class="badge badge-default ms-2">${error.count}</span>
+            </div>
+            <div class="callout-body">
+              ${TYPO3.lang[`${error.id}.description`]}
+            </div>
+          </div>
+        </div>
       </li>
     `;
   }

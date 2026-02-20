@@ -28,67 +28,95 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\DomainObject\AbstractValueObject;
 
 /**
- * Class AltTextDemand.
+ * Class CreateScanDemand.
  *
- * This class is used to encapsulate the demand for alternative text generation.
- * It contains properties such as page UID, language UID, file UID, and a signature
+ * This class is used to encapsulate the demand for creating an accessibility scan.
+ * It contains properties such as page UID, language UID, workspace ID, and a signature
  * for request validation.
  */
-class AltTextDemand extends AbstractValueObject implements JsonSerializable
+class CreateScanDemand extends AbstractValueObject implements JsonSerializable
 {
     /**
-     * Page UID we are working on.
+     * Current user ID.
      */
-    protected int $pageUid = 0;
+    protected int $userId = 0;
 
     /**
-     * Language UID we are working in.
+     * Original page ID (not translated).
      */
-    protected int $languageUid = 0;
+    protected int $pageId = 0;
 
     /**
-     * sys_file UID of the image.
+     * Preview URL for the page.
      */
-    protected int $fileUid = 0;
+    protected string $previewUrl = '';
 
     /**
-     * Signature of all properties generated using hmac.
+     * Language ID.
+     */
+    protected int $languageId = 0;
+
+    /**
+     * Current workspace ID.
+     */
+    protected int $workspaceId = 0;
+
+    /**
+     * Signature of the properties generated using hmac.
      */
     protected string $signature = '';
 
     /**
      * Constructor.
      */
-    public function __construct(int $pageUid, int $languageUid, int $fileUid, string $signature = '')
+    public function __construct(int $userId, int $pageId, string $previewUrl, int $languageId, int $workspaceId, string $signature = '')
     {
-        $this->pageUid = $pageUid;
-        $this->languageUid = $languageUid;
-        $this->fileUid = $fileUid;
+        $this->userId = $userId;
+        $this->pageId = $pageId;
+        $this->previewUrl = $previewUrl;
+        $this->languageId = $languageId;
+        $this->workspaceId = $workspaceId;
         $this->signature = '' !== $signature ? $signature : $this->createSignature();
     }
 
     /**
-     * Get the page UID.
+     * Get the user ID.
      */
-    public function getPageUid(): int
+    public function getUserId(): int
     {
-        return $this->pageUid;
+        return $this->userId;
     }
 
     /**
-     * Get the language UID.
+     * Get the original page ID.
      */
-    public function getLanguageUid(): int
+    public function getPageId(): int
     {
-        return $this->languageUid;
+        return $this->pageId;
     }
 
     /**
-     * Get the file UID.
+     * Get the preview URL.
      */
-    public function getFileUid(): int
+    public function getPreviewUrl(): string
     {
-        return $this->fileUid;
+        return $this->previewUrl;
+    }
+
+    /**
+     * Get the language ID.
+     */
+    public function getLanguageId(): int
+    {
+        return $this->languageId;
+    }
+
+    /**
+     * Get the workspace ID.
+     */
+    public function getWorkspaceId(): int
+    {
+        return $this->workspaceId;
     }
 
     /**
@@ -101,31 +129,30 @@ class AltTextDemand extends AbstractValueObject implements JsonSerializable
 
     /**
      * Create signature for this object.
-     * 
+     *
      * @return string
      */
     protected function createSignature(): string
     {
         $hashService = GeneralUtility::makeInstance(HashService::class);
         return $hashService->hmac(
-            implode(
-                '',
-                [
-                    (int)$this->pageUid,
-                    (int)$this->fileUid,
-                    (int)$this->languageUid,
-                ]
-            ),
+            implode('', [
+                (string)$this->userId,
+                (string)$this->pageId,
+                $this->previewUrl,
+                (string)$this->languageId,
+                (string)$this->workspaceId
+            ]),
             __CLASS__
         );
     }
 
     /**
      * Test if the signature is valid.
-     * 
+     *
      * Compare the signature of this object with the one generated from the properties. Used
      * for request validation and to ensure that the request is not tampered with.
-     * 
+     *
      * @return bool
      */
     public function validateSignature(): bool
@@ -135,15 +162,19 @@ class AltTextDemand extends AbstractValueObject implements JsonSerializable
     }
 
     /**
-     * Return as array.
+     * Convert object to array.
+     *
+     * @return array
      */
     public function toArray(): array
     {
         return [
-            'pageUid' => $this->getPageUid(),
-            'languageUid' => $this->getLanguageUid(),
-            'fileUid' => $this->getFileUid(),
-            'signature' => $this->getSignature(),
+            'userId' => $this->userId,
+            'pageId' => $this->pageId,
+            'previewUrl' => $this->previewUrl,
+            'languageId' => $this->languageId,
+            'workspaceId' => $this->workspaceId,
+            'signature' => $this->signature,
         ];
     }
 

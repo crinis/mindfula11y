@@ -34,20 +34,50 @@
  *
  * @constant {Object}
  */
-export const ERROR_SEVERITY = {
+export const ERROR_SEVERITY = Object.freeze({
   ERROR: "error",
   WARNING: "warning",
-};
+});
+
+/**
+ * Enumeration for scan view states.
+ * Represents the high-level visual state of a scan component (loading, failed, showing issues, or success).
+ * 
+ * @constant {Object}
+ * @readonly
+ * @enum {string}
+ */
+export const ScanStatus = Object.freeze({
+  LOADING: "loading",
+  FAILED: "failed",
+  ISSUES: "issues",
+  SUCCESS: "success",
+  IDLE: "idle",
+});
 
 // ============================================================================
 // JSDOC TYPEDEFS
 // ============================================================================
 
 /**
- * @typedef {Object} AltTextDemand
+ * @typedef {Object} GenerateAltTextDemand
+ * @property {number} userId - UID of the backend user requesting the alt text generation.
  * @property {number} pageUid - UID of the page where the element is rendered.
  * @property {number} languageUid - UID of the language for the record.
- * @property {number} fileUid - UID of the sys_file record.
+ * @property {number} workspaceId - UID of the current workspace.
+ * @property {string} recordTable - Table name of the record being edited.
+ * @property {number} recordUid - UID of the record being edited.
+ * @property {Array<string>} recordColumns - Array of column names being edited.
+ * @property {string} signature - HMAC signature for request validation.
+ */
+
+/**
+ * @typedef {Object} CreateScanDemand
+ * @property {number} userId - UID of the backend user requesting the scan.
+ * @property {number} pageId - UID of the original page (not translated).
+ * @property {string} previewUrl - Preview URL for the page.
+ * @property {number} languageId - UID of the language for the page.
+ * @property {number} workspaceId - UID of the current workspace.
  * @property {string} signature - HMAC signature for request validation.
  */
 

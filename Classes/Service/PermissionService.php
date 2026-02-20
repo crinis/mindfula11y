@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 /*
@@ -28,7 +29,7 @@ use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Type\Bitmask\Permission;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
-use TYPO3\CMS\Extbase\Utility\DebuggerUtility;
+use TYPO3\CMS\Core\Versioning\VersionState;
 
 /**
  * Class PermissionService.
@@ -88,15 +89,15 @@ class PermissionService
      * Get the list of pages to check for records with missing alternative text.
      * 
      * Find all page IDs that are accessible to the current user and have file references
-     * with missing alternative text. Check for write permissions on the page content.
+     * with missing alternative text. Check for write permissions on the page content. Page IDs will be the original IDs not workspace
+     * or localized IDs.
      * 
      * @param int $pageId The ID of the selected page.
      * @param int $pageLevels The number of page levels to check.
-     * @param string $tableName The name of the table to check.
      * 
      * @return array<int>
      */
-    public function getPageTreeIds(int $pageId, int $pageLevels, string $tableName): array
+    public function getPageTreeIds(int $pageId, int $pageLevels): array
     {
         $backendUser = $this->getBackendUserAuthentication();
 
@@ -108,17 +109,10 @@ class PermissionService
             ->getQueryBuilderForTable('pages')
             ->expr();
 
-        if ('pages' === $tableName) {
-            $permsClause = $expressionBuilder->and(
-                $backendUser->getPagePermsClause(Permission::PAGE_EDIT),
-            );
-        } else {
-            $permsClause = $expressionBuilder->and(
-                $backendUser->getPagePermsClause(Permission::PAGE_SHOW),
-                $backendUser->getPagePermsClause(Permission::CONTENT_EDIT),
-            );
-        }
-
+        $permsClause = $expressionBuilder->and(
+            $backendUser->getPagePermsClause(Permission::PAGE_SHOW),
+        );
+        
         // This will hide records from display - it has nothing to do with user rights!!
         $hiddenPidList = GeneralUtility::intExplode(',', (string)($backendUser->getTSConfig()['options.']['hideRecords.']['pages'] ?? ''), true);
         if (!empty($hiddenPidList)) {
@@ -182,12 +176,20 @@ class PermissionService
     {
         $backendUser = $this->getBackendUserAuthentication();
 
-        if (null === $backendUser || !isset($GLOBALS['TCA'][$tableName]) || ($GLOBALS['TCA'][$tableName]['ctrl']['readonly'] ?? false)) {
+        if (null === $backendUser) {
+            return false;
+        }
+
+        if (!isset($GLOBALS['TCA'][$tableName]) || ($GLOBALS['TCA'][$tableName]['ctrl']['readonly'] ?? false)) {
             return false;
         }
 
         if ($backendUser->isAdmin()) {
             return true;
+        }
+
+        if ($GLOBALS['TCA'][$tableName]['ctrl']['adminOnly'] ?? false) {
+            return false;
         }
 
         if (
@@ -212,45 +214,83 @@ class PermissionService
      * @param array $columnNames The non_exclude_fields of the record to check. If empty none are checked.
      *
      * @return bool True if the user can edit the record, false otherwise.
-     * 
-     * @todo check editlock of page
      */
     public function checkRecordEditAccess(string $tableName, array $row, array $columnNames = []): bool
     {
-        $backendUser = $this->getBackendUserAuthentication();
-
-        if (null === $backendUser || !$this->checkTableWriteAccess($tableName)) {
+        if (!$this->checkTableWriteAccess($tableName)) {
             return false;
         }
+
+        $backendUser = $this->getBackendUserAuthentication();
 
         if ($backendUser->isAdmin()) {
             return true;
         }
 
-        $pageId = (int)($tableName === 'pages' ? ($row['l10n_parent'] > 0 ?: $row['uid']) : $row['pid']);
-        $pageRow = 'pages' !== $tableName || ('pages' === $tableName && $row['l10n_parent'] > 0) ?
-            BackendUtility::getRecord('pages', $pageId) : $row;
+        BackendUtility::workspaceOL($tableName, $row);
 
-        if (null === $pageRow) {
-            return false;
+        if ($GLOBALS['TCA'][$tableName]['ctrl']['languageField'] ?? false) {
+            if (!isset($row[$GLOBALS['TCA'][$tableName]['ctrl']['languageField']])) {
+                return false;
+            } else {
+                $languageId = (int)$row[$GLOBALS['TCA'][$tableName]['ctrl']['languageField']];
+                if (!$backendUser->checkLanguageAccess($languageId)) {
+                    return false;
+                }
+            }
         }
 
-        $pagePerms = new Permission($backendUser->calcPerms($pageRow));
+        if (is_array($GLOBALS['TCA'][$tableName]['columns'])) {
+            foreach ($GLOBALS['TCA'][$tableName]['columns'] as $fieldName => $fieldValue) {
+                if (
+                    isset($row[$fieldName])
+                    && ($fieldValue['config']['type'] ?? '') === 'select'
+                    && ($fieldValue['config']['authMode'] ?? false)
+                    && !$backendUser->checkAuthMode($tableName, $fieldName, $row[$fieldName])
+                ) {
+                    return false;
+                }
+            }
+        }
 
-        if (
-            (('pages' === $tableName
-                && $pagePerms->editPagePermissionIsGranted())
-                || ('pages' !== $tableName && $pagePerms->editContentPermissionIsGranted()))
-            && $backendUser->recordEditAccessInternals($tableName, $row)
-        ) {
-            if (!empty($columnNames) && !$this->checkNonExcludeFields($tableName, $columnNames)) {
+        if (!empty($columnNames) && !$this->checkNonExcludeFields($tableName, $columnNames)) {
+            return false;
+        }
+        
+        if ($tableName === 'pages') {
+            $l10nParent = isset($row[$GLOBALS['TCA'][$tableName]['ctrl']['transOrigPointerField']]) ? (int)$row[$GLOBALS['TCA'][$tableName]['ctrl']['transOrigPointerField']] : 0;
+            $pageRow = $l10nParent > 0 ? BackendUtility::getRecordWSOL($tableName, $l10nParent) : $row;
+
+            if (!is_array($pageRow) || VersionState::tryFrom((int)($pageRow['t3ver_state'] ?? 0)) === VersionState::DELETE_PLACEHOLDER) {
                 return false;
             }
 
-            return true;
+            $pagePerms = new Permission($backendUser->calcPerms($pageRow));
+
+            if (!$pagePerms->editPagePermissionIsGranted() || !empty($pageRow[$GLOBALS['TCA']['pages']['ctrl']['editlock']] ?? false)) {
+                return false;
+            }
+        } else {
+            $pageRow = BackendUtility::getRecordWSOL('pages', (int)$row['pid']);
+
+            if (!is_array($pageRow) || VersionState::tryFrom((int)($pageRow['t3ver_state'] ?? 0)) === VersionState::DELETE_PLACEHOLDER) {
+                return false;
+            }
+
+            $pageL10nParent = isset($pageRow[$GLOBALS['TCA']['pages']['ctrl']['transOrigPointerField']]) ? (int)$pageRow[$GLOBALS['TCA']['pages']['ctrl']['transOrigPointerField']] : 0;
+
+            if ($pageL10nParent > 0) {
+                $pageRow = BackendUtility::getRecordWSOL('pages', $pageL10nParent);
+            }
+
+            $pagePerms = new Permission($backendUser->calcPerms($pageRow));
+
+            if (!$pagePerms->editContentPermissionIsGranted() || !empty($pageRow[$GLOBALS['TCA']['pages']['ctrl']['editlock']] ?? false)) {
+                return false;
+            }
         }
 
-        return false;
+        return true;
     }
 
     /**
@@ -288,12 +328,98 @@ class PermissionService
     }
 
     /**
+     * Check page read access.
+     *
+     * Check if the user has read access for a specific page record. This includes checking
+     * language access, workspace access, resolving translations to their parent page,
+     * resolving workspace versions to the live page, and finally checking standard page permissions.
+     *
+     * @param array $pageRecord The page record to check.
+     *
+     * @return bool True if the user can read the page, false otherwise.
+     */
+    public function checkPageReadAccess(array $pageRecord): bool
+    {
+        $backendUser = $this->getBackendUserAuthentication();
+
+        if (null === $backendUser) {
+            return false;
+        }
+
+        if ($backendUser->isAdmin()) {
+            return true;
+        }
+
+        // Check for delete placeholder
+        if (VersionState::tryFrom((int)($pageRecord['t3ver_state'] ?? 0)) === VersionState::DELETE_PLACEHOLDER) {
+            return false;
+        }
+
+        // Check language access if it is a translated record
+        $languageField = $GLOBALS['TCA']['pages']['ctrl']['languageField'] ?? 'sys_language_uid';
+        if (isset($pageRecord[$languageField]) && (int)$pageRecord[$languageField] > 0) {
+            if (!$backendUser->checkLanguageAccess((int)$pageRecord[$languageField])) {
+                return false;
+            }
+        }
+
+        // Check Workspace Access
+        // We rely on backend user workspace check.
+        $recordWorkspace = (int)($pageRecord['t3ver_wsid'] ?? 0);
+        if ($recordWorkspace > 0 && $backendUser->workspace !== $recordWorkspace) {
+            return false;
+        }
+
+        // Resolve Tree Page ID for permission check
+        // If it's a translation (l10n_parent/transOrigPointerField > 0), verify the parent.
+        $transOrigPointerField = $GLOBALS['TCA']['pages']['ctrl']['transOrigPointerField'] ?? 'l10n_parent';
+        if (
+            isset($pageRecord[$transOrigPointerField])
+            && (int)$pageRecord[$transOrigPointerField] > 0
+        ) {
+            $pageRecord = BackendUtility::getRecordWSOL('pages', (int)$pageRecord[$transOrigPointerField]);
+            
+            if (!$pageRecord || VersionState::tryFrom((int)($pageRecord['t3ver_state'] ?? 0)) === VersionState::DELETE_PLACEHOLDER) {
+                return false;
+            }
+        }
+
+        // Check Standard Page Access (PAGE_SHOW)
+        // We use calcPerms on the passed record (which should be fully overlaid with valid PID)
+        // to respect any permission changes made in the workspace version.
+        $perms = $backendUser->calcPerms($pageRecord);
+        return ($perms & Permission::PAGE_SHOW) === Permission::PAGE_SHOW;
+    }
+
+    /**
+     * Check if the user has access to the given language ID.
+     * Takes admins into account.
+     *
+     * @param int $languageId The language ID to check.
+     * @return bool True if the user has access, false otherwise.
+     */
+    public function checkLanguageAccess(int $languageId): bool
+    {
+        $backendUser = $this->getBackendUserAuthentication();
+        if (null === $backendUser) {
+            return false;
+        }
+        
+        // Admins always have access
+        if ($backendUser->isAdmin()) {
+            return true;
+        }
+
+        return $backendUser->checkLanguageAccess($languageId);
+    }
+
+    /**
      * Get backend user authentication.
      * 
      * @return BackendUserAuthentication
      */
-    protected function getBackendUserAuthentication(): BackendUserAuthentication
+    protected function getBackendUserAuthentication(): ?BackendUserAuthentication
     {
-        return $GLOBALS['BE_USER'];
+        return $GLOBALS['BE_USER'] ?? null;
     }
 }

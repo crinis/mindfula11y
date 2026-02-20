@@ -26,6 +26,8 @@ namespace MindfulMarkup\MindfulA11y\EventListener;
 use MindfulMarkup\MindfulA11y\Service\AltTextFinderService;
 use MindfulMarkup\MindfulA11y\Service\GeneralModuleService;
 use MindfulMarkup\MindfulA11y\Service\PermissionService;
+use MindfulMarkup\MindfulA11y\Service\ScanApiService;
+use MindfulMarkup\MindfulA11y\Domain\Model\CreateScanDemand;
 use TYPO3\CMS\Backend\Controller\Event\ModifyPageLayoutContentEvent;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
@@ -45,6 +47,7 @@ class WebLayoutInfo
         protected readonly PermissionService $permissionService,
         protected readonly AltTextFinderService $altTextFinderService,
         protected readonly GeneralModuleService $generalModuleService,
+        protected readonly ScanApiService $scanApiService,
         protected readonly UriBuilder $backendUriBuilder,
         protected readonly PageRenderer $pageRenderer,
     ) {}
@@ -69,7 +72,7 @@ class WebLayoutInfo
 
         $backendUser = $this->generalModuleService->getBackendUserAuthentication();
 
-        if (!$backendUser->check('modules', 'mindfula11y_accessibility') || 0 === $pageId || null === $moduleData || null === $site || !$backendUser->checkLanguageAccess($languageId)) {
+        if (!$backendUser->check('modules', 'mindfula11y_accessibility') || 0 === $pageId || null === $moduleData || null === $site || !$this->permissionService->checkLanguageAccess($languageId)) {
             return;
         }
 
@@ -79,6 +82,7 @@ class WebLayoutInfo
         }
 
         $localizedPageInfo = $this->generalModuleService->getLocalizedPageRecord($pageId, $languageId);
+        $finalPageInfo = $localizedPageInfo ?: $pageInfo;        
         $pageTsConfig = $this->generalModuleService->getConvertedPageTsConfig($pageId);
 
         if ($pageTsConfig['mod']['web_layout']['mindfula11y']['hideInfo'] ?? false) {
@@ -88,14 +92,18 @@ class WebLayoutInfo
         $hasMissingAltTextAccess = $this->generalModuleService->hasMissingAltTextAccess($pageTsConfig);
         $hasHeadingStructureAccess = $this->generalModuleService->hasHeadingStructureAccess($pageTsConfig);
         $hasLandmarkStructureAccess = $this->generalModuleService->hasLandmarkStructureAccess($pageTsConfig);
+        $hasScanAccess = $this->generalModuleService->hasScanAccess($pageTsConfig);
 
-        // If no access to any feature, don't render
-        if (!$hasMissingAltTextAccess && !$hasHeadingStructureAccess && !$hasLandmarkStructureAccess) {
-            return;
+        // Disable scan access if page is hidden/not visible
+        $isPageVisible = $this->generalModuleService->isPageVisible($finalPageInfo);
+        if ($hasScanAccess && !$isPageVisible) {
+            $hasScanAccess = false;
         }
 
-        $doktype = $localizedPageInfo['doktype'] ?? $pageInfo['doktype'] ?? PageRepository::DOKTYPE_DEFAULT;
-        $previewEnabled = $this->generalModuleService->isPreviewEnabledForDoktype($doktype, $pageTsConfig);
+        // If no access to any feature, don't render
+        if (!$hasMissingAltTextAccess && !$hasHeadingStructureAccess && !$hasLandmarkStructureAccess && !$hasScanAccess) {
+            return;
+        }
 
         $missingAltTextUri = null;
         $fileReferenceCount = null;
@@ -120,7 +128,46 @@ class WebLayoutInfo
             );
         }
 
-        $previewUrl = $previewEnabled ? (string)PreviewUriBuilder::create($pageId)->withLanguage($languageId)->buildUri() : null;
+        // Let PreviewUriBuilder decide if a preview can be built. It returns null when a preview is not available.
+        $previewUri = PreviewUriBuilder::create($finalPageInfo)->buildUri();
+
+        // Prepare scan-related variables
+        $scanUri = null;
+        $scanId = null;
+        $createScanDemand = null;
+
+        if ($hasScanAccess && $this->scanApiService->isConfigured()) {
+            // Get existing scan ID from database
+            $existingScanId = $finalPageInfo['tx_mindfula11y_scanid'] ?? null;
+
+            $contentChanged = $this->generalModuleService->shouldInvalidateScan($finalPageInfo);
+
+            // Only use existing scan ID if content hasn't changed
+            if ($existingScanId && !$contentChanged) {
+                $scanId = $existingScanId;
+            }
+
+            // Create scan demand for the component
+            if (null !== $previewUri) {
+                $createScanDemand = new CreateScanDemand(
+                    $backendUser->user['uid'],
+                    $finalPageInfo['uid'],
+                    (string) $previewUri,
+                    $languageId,
+                    $backendUser->workspace
+                );
+            }
+
+            // Create URI to the scan feature
+            $scanUri = $this->backendUriBuilder->buildUriFromRoute(
+                'mindfula11y_accessibility',
+                [
+                    'id' => $pageId,
+                    'feature' => 'scan',
+                    'languageId' => $languageId,
+                ]
+            );
+        }
 
         // Render the template
         $view = GeneralUtility::makeInstance(StandaloneView::class);
@@ -130,11 +177,16 @@ class WebLayoutInfo
         $view->setTemplate('Backend/WebLayout/GeneralAccessibility');
         $view->assignMultiple([
             'fileReferenceCount' => $fileReferenceCount,
-            'previewUrl' => $previewUrl,
+            'previewUrl' => (null !== $previewUri ? (string) $previewUri : null),
             'missingAltTextUri' => $missingAltTextUri,
             'hasMissingAltTextAccess' => $hasMissingAltTextAccess,
             'hasHeadingStructureAccess' => $hasHeadingStructureAccess,
             'hasLandmarkStructureAccess' => $hasLandmarkStructureAccess,
+            'hasScanAccess' => $hasScanAccess,
+            'scanId' => $scanId,
+            'scanUri' => $scanUri,
+            'createScanDemand' => $createScanDemand,
+            'autoCreateScan' => $this->generalModuleService->isAutoCreateScanEnabled($pageTsConfig),
         ]);
 
         $renderedContent = $view->render();
@@ -145,7 +197,11 @@ class WebLayoutInfo
         // Register language labels for JavaScript
         $this->pageRenderer->addInlineLanguageLabelArray($this->generalModuleService->getInlineLanguageLabels());
 
-        // Load the JavaScript module
+        // Load the CSS
+        $this->pageRenderer->addCssFile('EXT:mindfula11y/Resources/Public/Css/mindfula11y.css');
+
+        // Load the JavaScript modules
         $this->pageRenderer->loadJavaScriptModule('@mindfulmarkup/mindfula11y/structure.js');
+        $this->pageRenderer->loadJavaScriptModule('@mindfulmarkup/mindfula11y/scan-issue-count.js');
     }
 }

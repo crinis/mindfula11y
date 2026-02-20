@@ -23,7 +23,7 @@ declare(strict_types=1);
 namespace MindfulMarkup\MindfulA11y\Form\Element;
 
 use Exception;
-use MindfulMarkup\MindfulA11y\Domain\Model\AltTextDemand;
+use MindfulMarkup\MindfulA11y\Domain\Model\GenerateAltTextDemand;
 use MindfulMarkup\MindfulA11y\Service\OpenAIService;
 use MindfulMarkup\MindfulA11y\Service\PermissionService;
 use TYPO3\CMS\Backend\Form\Element\AbstractFormElement;
@@ -243,12 +243,13 @@ class InputAltElement extends AbstractFormElement
         $resultArray = $this->mergeChildReturnIntoExistingResult($resultArray, $fieldWizardResult, false);
 
         $thisAltId = 't3js-form-field-alt-id' . StringUtility::getUniqueId();
-        $generateButtonLabel = $languageService->sL('LLL:EXT:mindfula11y/Resources/Private/Language/GenerateAltText.xlf:buttonLabel');
+        $generateButtonLabel = $languageService->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:altText.generate.button');
+        $canGenerate = null !== $file && $this->openAIService->isChatFileExtSupported($file->getExtension()) && $this->openAIService->isEnabledAndConfigured() && $GLOBALS['BE_USER']->check('modules', 'mindfula11y_accessibility');
         $mainFieldHtml = [];
         $mainFieldHtml[] = '<div class="form-control-wrap" style="max-width: ' . $width . 'px" id="' . htmlspecialchars($thisAltId) . '">';
         $mainFieldHtml[] =      '<div class="form-wizards-wrap">';
         $mainFieldHtml[] =          '<div class="form-wizards-item-element">';
-        if (null !== $file && $this->openAIService->isChatFileExtSupported($file->getExtension())) {
+        if ($canGenerate) {
             $mainFieldHtml[] =              '<div class="input-group">';
             $mainFieldHtml[] =                  '<input type="text" ' . GeneralUtility::implodeAttributes($attributes, true) . ' />';
             $mainFieldHtml[] =                  '<input type="hidden" name="' . $itemName . '" value="' . htmlspecialchars((string)$itemValue) . '" />';
@@ -338,26 +339,31 @@ class InputAltElement extends AbstractFormElement
                 ' . $fieldInformationHtml . $fullElement . '
             </div>';
 
-        if (null !== $file && $this->openAIService->isChatFileExtSupported($file->getExtension())) {
-            $altTextDemand = new AltTextDemand(
+        if ($canGenerate) {
+            $backendUser = $GLOBALS['BE_USER'];
+            $generateAltTextDemand = new GenerateAltTextDemand(
+                $backendUser->user['uid'],
                 (int)$this->data['effectivePid'],
                 $languageUid,
-                $fileUid
+                $backendUser->workspace,
+                $table,
+                (int)$this->data['databaseRow']['uid'],
+                [$fieldName]
             );
 
             $this->pageRenderer->addInlineLanguageLabelArray([
-                'mindfula11y.missingAltText.generate.button' => $languageService->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:missingAltText.generate.button'),
-                'mindfula11y.missingAltText.generate.loading' => $languageService->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:missingAltText.generate.loading'),
-                'mindfula11y.missingAltText.generate.success' => $languageService->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:missingAltText.generate.success'),
-                'mindfula11y.missingAltText.generate.success.description' => $languageService->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:missingAltText.generate.success.description'),
-                'mindfula11y.missingAltText.generate.error.unknown' => $languageService->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:missingAltText.generate.error.unknown'),
-                'mindfula11y.missingAltText.generate.error.unknown.description' => $languageService->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:missingAltText.generate.error.unknown.description'),
-                'mindfula11y.missingAltText.generate.error.openAIConnection' => $languageService->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:missingAltText.generate.error.openAIConnection'),
-                'mindfula11y.missingAltText.generate.error.openAIConnection.description' => $languageService->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:missingAltText.generate.error.openAIConnection.description'),
+                'mindfula11y.altText.generate.button' => $languageService->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:altText.generate.button'),
+                'mindfula11y.altText.generate.loading' => $languageService->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:altText.generate.loading'),
+                'mindfula11y.altText.generate.success' => $languageService->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:altText.generate.success'),
+                'mindfula11y.altText.generate.success.description' => $languageService->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:altText.generate.success.description'),
+                'mindfula11y.altText.generate.error.unknown' => $languageService->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:altText.generate.error.unknown'),
+                'mindfula11y.altText.generate.error.unknown.description' => $languageService->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:altText.generate.error.unknown.description'),
+                'mindfula11y.altText.generate.error.openAIConnection' => $languageService->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:altText.generate.error.openAIConnection'),
+                'mindfula11y.altText.generate.error.openAIConnection.description' => $languageService->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:altText.generate.error.openAIConnection.description'),
             ]);
             $resultArray['javaScriptModules'][] = JavaScriptModuleInstruction::create(
                 '@mindfulmarkup/mindfula11y/input-alt-element-service.js'
-            )->instance('#' . $thisAltId, $altTextDemand->toArray());
+            )->instance('#' . $thisAltId, $generateAltTextDemand->toArray());
         }
 
         return $resultArray;

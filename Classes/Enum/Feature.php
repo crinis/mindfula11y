@@ -10,4 +10,5 @@ enum Feature: string
 {
     case GENERAL = 'general';
     case MISSING_ALT_TEXT = 'missingAltText';
+    case SCAN = 'scan';
 }

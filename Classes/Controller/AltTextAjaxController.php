@@ -25,8 +25,9 @@ namespace MindfulMarkup\MindfulA11y\Controller;
 
 use Exception;
 use InvalidArgumentException;
-use MindfulMarkup\MindfulA11y\Domain\Model\AltTextDemand;
+use MindfulMarkup\MindfulA11y\Domain\Model\GenerateAltTextDemand;
 use MindfulMarkup\MindfulA11y\Service\AltTextGeneratorService;
+use MindfulMarkup\MindfulA11y\Service\PermissionService;
 use MindfulMarkup\MindfulA11y\Service\SiteLanguageService;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -37,6 +38,8 @@ use TYPO3\CMS\Core\Http\AllowedMethodsTrait;
 use TYPO3\CMS\Extbase\Mvc\Controller\ActionController;
 use TYPO3\CMS\Core\Http\Error\MethodNotAllowedException;
 use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
+use TYPO3\CMS\Backend\Utility\BackendUtility;
+use TYPO3\CMS\Core\Type\Bitmask\Permission;
 use TYPO3\CMS\Core\Resource\Exception\FileDoesNotExistException;
 use TYPO3\CMS\Core\Resource\ResourceFactory;
 
@@ -58,6 +61,7 @@ class AltTextAjaxController extends ActionController
      * @param SiteLanguageService $siteLanguageService
      * @param ResourceFactory $resourceFactory
      * @param ConnectionPool $connectionPool
+     * @param PermissionService $permissionService
      */
     public function __construct(
         protected readonly AltTextGeneratorService $altTextGeneratorService,
@@ -65,6 +69,7 @@ class AltTextAjaxController extends ActionController
         protected readonly SiteLanguageService $siteLanguageService,
         protected readonly ResourceFactory $resourceFactory,
         protected readonly ConnectionPool $connectionPool,
+        protected readonly PermissionService $permissionService,
     ) {}
 
     /**
@@ -95,22 +100,134 @@ class AltTextAjaxController extends ActionController
     public function generateAction(ServerRequestInterface $request): ResponseInterface
     {
         $requestBody = $request->getParsedBody();
-        $demand = new AltTextDemand(
+        $demand = new GenerateAltTextDemand(
+            (int)$requestBody['userId'] ?? 0,
             (int)$requestBody['pageUid'] ?? 0,
             (int)$requestBody['languageUid'] ?? 0,
-            (int)$requestBody['fileUid'] ?? 0,
+            (int)$requestBody['workspaceId'] ?? 0,
+            $requestBody['recordTable'] ?? '',
+            (int)$requestBody['recordUid'] ?? 0,
+            $requestBody['recordColumns'] ?? [],
             $requestBody['signature'] ?? '',
         );
 
         if (!$demand->validateSignature()) {
-            throw new InvalidArgumentException(
-                'Invalid request parameters.',
-                1744477154
-            );
+            return $this->jsonResponse(
+                json_encode([
+                    'error' => [
+                        'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:module.error.invalidSignature'),
+                        'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:module.error.invalidSignature.description'),
+                    ]
+                ])
+            )->withStatus(400);
+        }
+
+        $backendUser = $this->getBackendUserAuthentication();
+
+        // Check if user has access to the mindfula11y_accessibility module
+        if (!$backendUser->check('modules', 'mindfula11y_accessibility')) {
+            return $this->jsonResponse(
+                json_encode([
+                    'error' => [
+                        'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.forbidden'),
+                        'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.forbidden.description'),
+                    ]
+                ])
+            )->withStatus(403);
+        }
+
+        $userId = $demand->getUserId();
+        $pageUid = $demand->getPageUid();
+        $languageUid = $demand->getLanguageUid();
+        $workspaceId = $demand->getWorkspaceId();
+
+        // Verify the current backend user matches the demand
+        if ($backendUser->user['uid'] !== $userId) {
+            return $this->jsonResponse(
+                json_encode([
+                    'error' => [
+                        'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.invalidUser'),
+                        'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.invalidUser.description'),
+                    ]
+                ])
+            )->withStatus(403);
+        }
+
+        // Verify the current workspace matches the demand
+        if ($backendUser->workspace !== $workspaceId) {
+            return $this->jsonResponse(
+                json_encode([
+                    'error' => [
+                        'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.invalidWorkspace'),
+                        'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.invalidWorkspace.description'),
+                    ]
+                ])
+            )->withStatus(403);
+        }
+
+        // Check language access
+        if (!$this->permissionService->checkLanguageAccess($languageUid)) {
+            return $this->jsonResponse(
+                json_encode([
+                    'error' => [
+                        'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.invalidLanguage'),
+                        'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.invalidLanguage.description'),
+                    ]
+                ])
+            )->withStatus(403);
+        }
+
+        // Check if user has access to the page
+        $pageInfo = BackendUtility::readPageAccess($pageUid, $backendUser->getPagePermsClause(Permission::PAGE_SHOW));
+        if (false === $pageInfo) {
+            return $this->jsonResponse(
+                json_encode([
+                    'error' => [
+                        'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.noPageAccess'),
+                        'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.noPageAccess.description'),
+                    ]
+                ])
+            )->withStatus(403);
+        }
+
+        // Check if user has read access to sys_file
+        if (!$this->permissionService->checkTableReadAccess('sys_file')) {
+            return $this->jsonResponse(
+                json_encode([
+                    'error' => [
+                        'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.noFileAccess'),
+                        'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.noFileAccess.description'),
+                    ]
+                ])
+            )->withStatus(403);
+        }
+
+        // Check if user has edit access to the record
+        $recordTable = $demand->getRecordTable();
+        $recordUid = $demand->getRecordUid();
+        $recordColumns = $demand->getRecordColumns();
+        $recordData = BackendUtility::getRecordWSOL($recordTable, $recordUid);
+
+        if (!$this->permissionService->checkRecordEditAccess($recordTable, $recordData, $recordColumns)) {
+            return $this->jsonResponse(
+                json_encode([
+                    'error' => [
+                        'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.invalidRecordAccess'),
+                        'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.invalidRecordAccess.description'),
+                    ]
+                ])
+            )->withStatus(403);
         }
 
         $languageCode = $this->siteLanguageService->getLanguageCode($demand->getLanguageUid(), $demand->getPageUid());
-        $file = $this->resourceFactory->getFileObject($demand->getFileUid());
+        
+        if ('sys_file_reference' === $recordTable) {
+            $fileUid = (int)$recordData['uid_local'][0]['uid'];
+        } elseif ('sys_file_metadata' === $recordTable) {
+            $fileUid = (int)$recordData['file'][0];
+        }
+
+        $file = $this->resourceFactory->getFileObject($fileUid);
 
         $altText = $this->altTextGeneratorService->generate($file, $languageCode);
 
@@ -118,8 +235,8 @@ class AltTextAjaxController extends ActionController
             return $this->jsonResponse(
                 json_encode([
                     'error' => [
-                        'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/GenerateAltText.xlf:error.openAIConnection'),
-                        'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/GenerateAltText.xlf:error.openAIConnection.description'),
+                        'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:altText.generate.error.openAIConnection'),
+                        'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:altText.generate.error.openAIConnection.description'),
                     ]
                 ])
             )->withStatus(500);

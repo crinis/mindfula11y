@@ -26,7 +26,7 @@ import DocumentService from "@typo3/core/document-service.js";
 import Notification from "@typo3/backend/notification.js";
 import AltTextGeneratorService from "./alt-text-generator-service.js";
 
-/** @typedef {import('./types.js').AltTextDemand} AltTextDemand */
+/** @typedef {import('./types.js').GenerateAltTextDemand} GenerateAltTextDemand */
 
 /**
  * Service for handling input alt text generation for the TCA input alt element.
@@ -41,7 +41,7 @@ class InputAltElementService {
    * Create a new InputAltElementService instance.
    *
    * @param {string} selector - CSS selector for the element to bind the service to.
-   * @param {AltTextDemand} altTextDemand - Configuration options for the service and AJAX request.
+   * @param {GenerateAltTextDemand} altTextDemand - Configuration options for the service and AJAX request.
    * @param {AltTextGeneratorService} [altTextGeneratorService=null] - Optional alt text generator service for dependency injection (mainly for testing).
    */
   constructor(selector, altTextDemand, altTextGeneratorService = null) {
@@ -78,7 +78,7 @@ class InputAltElementService {
    *
    * @param {HTMLElement} generateButton - Button element to trigger alt text generation.
    * @param {HTMLInputElement} inputField - Input field to populate with the generated alt text.
-   * @param {AltTextDemand} altTextDemand - Configuration options for the service and AJAX request.
+   * @param {GenerateAltTextDemand} altTextDemand - Configuration options for the service and AJAX request.
    * @returns {void}
    */
   registerEvents(generateButton, inputField, altTextDemand) {
@@ -101,9 +101,9 @@ class InputAltElementService {
       inputField.value = altText;
       inputField.dispatchEvent(new Event("change"));
       Notification.success(
-        TYPO3.lang["mindfula11y.missingAltText.generate.success"],
+        TYPO3.lang["mindfula11y.altText.generate.success"],
         TYPO3.lang[
-          "mindfula11y.missingAltText.generate.success.description"
+          "mindfula11y.altText.generate.success.description"
         ]
       );
     }).bindTo(generateButton);
@@ -122,7 +122,7 @@ class InputAltElementService {
     spinner.setAttribute("role", "status");
     const span = document.createElement("span");
     span.classList.add("visually-hidden");
-    span.textContent = TYPO3.lang["mindfula11y.missingAltText.generate.loading"];
+    span.textContent = TYPO3.lang["mindfula11y.altText.generate.loading"];
     spinner.appendChild(span);
     spinnerWrap.appendChild(spinner);
     return spinnerWrap;

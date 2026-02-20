@@ -179,7 +179,7 @@ export class HeadingType extends LitElement {
   _getDisplayLabel() {
     return (
       this.label?.trim() ||
-      TYPO3.lang["mindfula11y.headingStructure.unlabeled"]
+      TYPO3.lang["mindfula11y.structure.headings.unlabeled"]
     );
   }
 
@@ -195,7 +195,7 @@ export class HeadingType extends LitElement {
 
     return html`
       <label for="${uniqueId}" class="visually-hidden">
-        ${TYPO3.lang["mindfula11y.headingStructure.type"]}
+        ${TYPO3.lang["mindfula11y.structure.headings.type"]}
       </label>
       ${componentInfo.isEditable
         ? this._renderTypeSelect(uniqueId, componentInfo)
@@ -215,8 +215,7 @@ export class HeadingType extends LitElement {
     return html`
       <select
         id="${uniqueId}"
-        class="form-select form-select-sm w-auto ${this._getInputBorderClass()}"
-        style="max-width: 6rem;"
+        class="form-select form-select-sm w-auto mindfula11y-heading-type__level-select ${this._getInputBorderClass()}"
         @change="${this._handleTypeChange}"
         ?aria-invalid="${this.errorMessages?.length > 0}"
       >
@@ -238,8 +237,7 @@ export class HeadingType extends LitElement {
       <input
         id="${uniqueId}"
         type="text"
-        class="form-control form-control-sm w-auto text-center fw-bold pe-none ${this._getInputBorderClass()}"
-        style="max-width: 6rem;"
+        class="form-control form-control-sm w-auto text-center fw-bold pe-none mindfula11y-heading-type__level-select ${this._getInputBorderClass()}"
         value="${this.type.toUpperCase()}"
         readonly
         ?aria-invalid="${this.errorMessages?.length > 0}"
@@ -317,7 +315,7 @@ export class HeadingType extends LitElement {
         >
           ${this._renderEditIcon()}
           <span
-            >${TYPO3.lang["mindfula11y.headingStructure.edit"]}</span
+            >${TYPO3.lang["mindfula11y.structure.headings.edit"]}</span
           >
         </a>
       `;
@@ -333,10 +331,10 @@ export class HeadingType extends LitElement {
           <span>
             ${componentInfo.isDescendant
               ? TYPO3.lang[
-                  "mindfula11y.headingStructure.relation.descendant"
+                  "mindfula11y.structure.headings.relation.descendant"
                 ]
               : TYPO3.lang[
-                  "mindfula11y.headingStructure.relation.sibling"
+                  "mindfula11y.structure.headings.relation.sibling"
                 ]}
           </span>
         </button>
@@ -348,7 +346,7 @@ export class HeadingType extends LitElement {
         ${this._renderLockIcon()}
         <span class="fs-7"
           >${TYPO3.lang[
-            "mindfula11y.headingStructure.edit.locked"
+            "mindfula11y.structure.headings.edit.locked"
           ]}</span
         >
       </span>
@@ -454,9 +452,9 @@ export class HeadingType extends LitElement {
     
     if (!relationId) {
       Notification.error(
-        TYPO3.lang["mindfula11y.headingStructure.relation.notFound"],
+        TYPO3.lang["mindfula11y.structure.headings.relation.notFound"],
         TYPO3.lang[
-          "mindfula11y.headingStructure.relation.notFound.description"
+          "mindfula11y.structure.headings.relation.notFound.description"
         ]
       );
       return;
@@ -465,9 +463,9 @@ export class HeadingType extends LitElement {
     const related = this._findRelatedElement(relationId);
     if (!related) {
       Notification.warning(
-        TYPO3.lang["mindfula11y.headingStructure.relation.notFound"],
+        TYPO3.lang["mindfula11y.structure.headings.relation.notFound"],
         TYPO3.lang[
-          "mindfula11y.headingStructure.relation.notFound.description"
+          "mindfula11y.structure.headings.relation.notFound.description"
         ]
       );
       return;
@@ -545,9 +543,9 @@ export class HeadingType extends LitElement {
     console.error("Failed to save heading type:", error);
 
     Notification.error(
-      TYPO3.lang["mindfula11y.headingStructure.error.store"],
+      TYPO3.lang["mindfula11y.structure.headings.error.store"],
       TYPO3.lang[
-        "mindfula11y.headingStructure.error.store.description"
+        "mindfula11y.structure.headings.error.store.description"
       ]
     );
   }

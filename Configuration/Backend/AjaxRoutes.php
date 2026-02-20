@@ -21,10 +21,19 @@ declare(strict_types=1);
  */
 
 use MindfulMarkup\MindfulA11y\Controller\AltTextAjaxController;
+use MindfulMarkup\MindfulA11y\Controller\ScanAjaxController;
 
 return [
     'mindfula11y_generatealttext' => [
         'path' => '/mindfula11y/alt-text/generate',
         'target' => AltTextAjaxController::class . '::generateAction',
+    ],
+    'mindfula11y_createscan' => [
+        'path' => '/mindfula11y/scan/create',
+        'target' => ScanAjaxController::class . '::createAction',
+    ],
+    'mindfula11y_getscan' => [
+        'path' => '/mindfula11y/scan/get',
+        'target' => ScanAjaxController::class . '::getAction',
     ],
 ];
