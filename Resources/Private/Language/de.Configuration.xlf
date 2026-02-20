@@ -15,12 +15,12 @@
                 <target>OpenAI API-Schlüssel</target>
             </trans-unit>
             <trans-unit id="openAI.chat.model" xml:space="preserve">
-                <source>OpenAI Chat Model: LLM Model used. Tested are gpt-4o-mini and gpt-4o.</source>
-                <target>OpenAI Chat-Modell: Verwendetes LLM-Modell. Getestet sind gpt-4o-mini und gpt-4o.</target>
+                <source>OpenAI Model: Model used for alt text generation. All models use the Responses API. gpt-5-mini is the recommended cost-efficient default; gpt-5-nano is the cheapest option.</source>
+                <target>OpenAI-Modell: Verwendetes Modell für die Alt-Text-Generierung. Alle Modelle nutzen die Responses API. gpt-5-mini ist die empfohlene kostengünstige Standardoption; gpt-5-nano ist die günstigste Option.</target>
             </trans-unit>
             <trans-unit id="openAI.chat.imageDetail" xml:space="preserve">
-                <source>OpenAI Chat Image Detail: Detail level for images described by the LLM. Can be low or high.</source>
-                <target>OpenAI Chat Bilddetails: Detailgrad für Bilder, die vom LLM beschrieben werden. Kann niedrig oder hoch sein.</target>
+                <source>OpenAI Image Detail: Detail level for vision input. "auto" lets the model decide (recommended), "low" uses fewer tokens at reduced resolution, "high" enables full resolution at higher cost.</source>
+                <target>OpenAI Bilddetails: Detailgrad für die Bildeingabe. „auto" lässt das Modell entscheiden (empfohlen), „low" verwendet weniger Token bei reduzierter Auflösung, „high" ermöglicht volle Auflösung zu höheren Kosten.</target>
             </trans-unit>
             <trans-unit id="disableAltTextGeneration" xml:space="preserve">
                 <source>Disable Alt Text Generation: Disable AI-Generation of alternative text.</source>

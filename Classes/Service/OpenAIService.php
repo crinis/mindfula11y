@@ -47,24 +47,31 @@ class OpenAIService
     ) {}
 
     /**
-     * Chat with OpenAI's GPT-4o model.
+     * Generate a response via the OpenAI Responses API (/v1/responses).
      * 
-     * @param array $messages The messages to be sent to the OpenAI API.
+     * All supported GPT-5 models (gpt-5-mini, gpt-5-nano, gpt-5.1, gpt-5.2) are
+     * served exclusively through this endpoint. The `instructions` parameter carries
+     * the system prompt; image content items use type `input_image` with a plain
+     * string `image_url` and a `detail` level.
      * 
-     * @return string|null The response message from the OpenAI API or null if the request fails.
+     * @param string $instructions The system instructions for the model.
+     * @param array  $messages     Array of message objects, each with `role` and `content`.
+     * 
+     * @return string|null The generated text or null if the request fails.
      */
-    public function chat(array $messages): ?string
+    public function respond(string $instructions, array $messages): ?string
     {
         $apiKey = $this->getApiKey();
-        $model = $this->getChatModelName();
-        $url = 'https://api.openai.com/v1/chat/completions';
+        $model = $this->getModelName();
+        $url = 'https://api.openai.com/v1/responses';
         $headers = [
             'Authorization' => 'Bearer ' . $apiKey,
             'Content-Type' => 'application/json',
         ];
         $body = [
             'model' => $model,
-            'messages' => $messages,
+            'instructions' => $instructions,
+            'input' => $messages,
         ];
         $options = [
             'headers' => $headers,
@@ -78,20 +85,31 @@ class OpenAIService
         } catch (RuntimeException $e) {
             return null;
         }
-        
+
         $data = json_decode($responseBody, true);
 
-        return $data['choices'][0]['message']['content'] ?? null;
+        // Traverse output[*] (type==="message") -> content[*] (type==="output_text") -> text
+        foreach ($data['output'] ?? [] as $outputItem) {
+            if (($outputItem['type'] ?? '') === 'message') {
+                foreach ($outputItem['content'] ?? [] as $contentItem) {
+                    if (($contentItem['type'] ?? '') === 'output_text') {
+                        return $contentItem['text'] ?? null;
+                    }
+                }
+            }
+        }
+
+        return null;
     }
 
     /**
-     * Get OpenAI chat model name.
+     * Get the configured OpenAI model name.
      * 
-     * @return string The OpenAI chat model name.
+     * @return string The OpenAI model name.
      */
-    protected function getChatModelName(): string
+    protected function getModelName(): string
     {
-        return $this->extensionConfiguration->get('mindfula11y')['openAIChatModel'] ?? 'gpt-4o-mini';
+        return $this->extensionConfiguration->get('mindfula11y')['openAIChatModel'] ?? 'gpt-5-mini';
     }
 
     /**
@@ -105,13 +123,13 @@ class OpenAIService
     }
 
     /**
-     * Check OpenAI chat file ext support.
+     * Check if the file extension is supported for vision input.
      * 
      * @param string $extension
      * 
      * @return bool
      */
-    public function isChatFileExtSupported(string $extension): bool
+    public function isFileExtSupported(string $extension): bool
     {
         $supportedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
         return in_array($extension, $supportedExtensions, true);

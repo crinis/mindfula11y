@@ -23,7 +23,6 @@ declare(strict_types=1);
 
 namespace MindfulMarkup\MindfulA11y\Service;
 
-use RuntimeException;
 use TYPO3\CMS\Core\Resource\FileInterface;
 use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
 
@@ -46,38 +45,44 @@ class AltTextGeneratorService
     ) {}
 
     /**
-     * Generate alternative text for a given image using OpenAI's GPT-4o model.
+     * Generate alternative text for a given image using an OpenAI GPT-5 vision model.
+     * 
+     * Uses the Responses API (/v1/responses) which is required for all supported models.
      * 
      * @param FileInterface $file The file object representing the image.
      * @param string $languageCode The language code for the generated text (default is 'en').
      * 
-     * @return string The generated alternative text or null if the request fails.
+     * @return string|null The generated alternative text or null if the request fails.
      */
     public function generate(FileInterface $file, string $languageCode = 'en'): ?string
     {
-        return $this->openAIService->chat([
+        return $this->openAIService->respond(
+            $this->buildInstructions($languageCode),
             [
-                'role' => 'system',
-                'content' => [
-                    [
-                        'type' => 'text',
-                        'text' => 'You are an assistant that generates short and descriptive alternative text for given images in the language of the language code ' . $languageCode . '. The alternative text should precisely describe the content of the image and be suitable for visually impaired users. If you deem a photo to '
-                    ]
-                ]
-            ],
-            [
-                'role' => 'user',
-                'content' => [
-                    [
-                        'type' => 'image_url',
-                        'image_url' => [
-                            'url' => $this->getBase64ImageUrlFromFile($file),
+                [
+                    'role' => 'user',
+                    'content' => [
+                        [
+                            'type' => 'input_image',
+                            'image_url' => $this->getBase64ImageUrlFromFile($file),
                             'detail' => $this->getChatImageDetail(),
-                        ]
-                    ]
-                ]
-            ],
-        ]);
+                        ],
+                    ],
+                ],
+            ]
+        );
+    }
+
+    /**
+     * Build the system instructions for alt text generation.
+     * 
+     * @param string $languageCode ISO language code for the output language.
+     * 
+     * @return string
+     */
+    protected function buildInstructions(string $languageCode): string
+    {
+        return 'You are an accessibility specialist generating WCAG 2.1 compliant alt text for web images. Respond in the language identified by this ISO language code: ' . $languageCode . '. Follow these rules strictly: (1) Describe the essential meaning and purpose of the image — not a literal catalogue of visual details. (2) Be concise, ideally under 125 characters. (3) Never begin with "image of", "photo of", "picture of", or equivalent phrases — screen readers already announce the element as an image. (4) If the image contains readable text, transcribe it verbatim. (5) If the image is purely decorative and conveys no meaningful information, respond with exactly: DECORATIVE. (6) Respond with only the alt text string — no surrounding quotes, no trailing punctuation, no explanations.';
     }
 
     /**
@@ -87,7 +92,7 @@ class AltTextGeneratorService
      */
     protected function getChatImageDetail(): string
     {
-        return $this->extensionConfiguration->get('mindfula11y')['openAIChatImageDetail'] ?? 'low';
+        return $this->extensionConfiguration->get('mindfula11y')['openAIChatImageDetail'] ?? 'auto';
     }
 
     /**
