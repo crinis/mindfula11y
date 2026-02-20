@@ -66,6 +66,11 @@ export class Issue extends LitElement {
     this.screenshotUrl = "";
   }
 
+  connectedCallback() {
+    super.connectedCallback();
+    this.classList.add("row");
+  }
+
   /**
    * Renders the issue component.
    *
@@ -73,58 +78,63 @@ export class Issue extends LitElement {
    */
   render() {
     return html`
-      <dl class="row">
-        ${this.selector
-          ? html`
-              <dt class="col-sm-3 text-muted">
-                ${TYPO3.lang["mindfula11y.scan.selector"]}
-              </dt>
-              <dd class="col-sm-9 mb-2">
-                <code
-                  class="d-block bg-white p-2 rounded border text-break small"
-                  >${this.selector}</code
+      ${this.screenshotUrl
+        ? html`
+            <div
+              class="col-12 col-md-4 mb-3 mb-md-0 mindfula11y-issue__screenshot-col"
+            >
+              <div class="d-flex flex-column gap-2 h-100">
+                <div
+                  class="mindfula11y-issue__screenshot-preview"
                 >
-              </dd>
-            `
-          : null}
-        ${this.screenshotUrl
-          ? html`
-              <dt class="col-sm-3 text-muted">
-                ${TYPO3.lang["mindfula11y.scan.screenshot"]}
-              </dt>
-              <dd class="col-sm-9 mb-2">
-                <div class="d-flex flex-column gap-2">
                   <img
                     src="${this.screenshotUrl}"
-                    alt=""
-                    class="img-fluid rounded border"
-                    style="max-width: 300px; max-height: 200px;"
+                    alt="${TYPO3.lang["mindfula11y.scan.screenshot"]}"
+                    class="img-fluid mindfula11y-issue__screenshot-img"
                   />
-                  <a
-                    href="${this.screenshotUrl}"
-                    target="_blank"
-                    rel="noopener"
-                    class="btn btn-sm btn-outline-primary"
-                  >
-                    ${TYPO3.lang["mindfula11y.scan.viewScreenshot"]}
-                  </a>
                 </div>
-              </dd>
-            `
-          : null}
-        ${this.context
-          ? html`
-              <dt class="col-sm-3 text-muted">
-                ${TYPO3.lang["mindfula11y.scan.context"]}
-              </dt>
-              <dd class="col-sm-9 mb-0">
-                <pre class="d-block bg-white p-2 rounded border text-break small"><code>
-${this.context}</code></pre
+                <a
+                  href="${this.screenshotUrl}"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="btn btn-default btn-sm w-100"
                 >
-              </dd>
-            `
-          : null}
-      </dl>
+                  ${TYPO3.lang["mindfula11y.scan.viewScreenshot"]}
+                </a>
+              </div>
+            </div>
+          `
+        : null}
+      <div class="col-12 ${this.screenshotUrl ? "col-md-8" : ""}">
+        <dl class="row mb-0">
+          ${this.selector
+            ? html`
+                <dt class="col-sm-3 text-muted">
+                  ${TYPO3.lang["mindfula11y.scan.selector"]}
+                </dt>
+                <dd class="col-sm-9 mb-2">
+                  <code
+                    class="d-block p-2 rounded border text-break small mindfula11y-issue__code-block"
+                    >${this.selector}</code
+                  >
+                </dd>
+              `
+            : null}
+          ${this.context
+            ? html`
+                <dt class="col-sm-3 text-muted">
+                  ${TYPO3.lang["mindfula11y.scan.context"]}
+                </dt>
+                <dd class="col-sm-9 mb-0">
+                  <pre
+                    class="d-block p-2 rounded border text-break small mb-0 mindfula11y-issue__code-block"
+                  ><code>
+${this.context}</code></pre>
+                </dd>
+              `
+            : null}
+        </dl>
+      </div>
     `;
   }
 

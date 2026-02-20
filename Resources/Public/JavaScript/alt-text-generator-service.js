@@ -64,8 +64,8 @@ export default class AltTextGeneratorService {
         responseData = await error.response.json();
       } catch (e) {
         Notification.error(
-          TYPO3.lang["mindfula11y.missingAltText.generate.error.unknown"],
-          TYPO3.lang["mindfula11y.missingAltText.generate.error.unknown.description"]
+          TYPO3.lang["mindfula11y.altText.generate.error.unknown"],
+          TYPO3.lang["mindfula11y.altText.generate.error.unknown.description"]
         );
         return null;
       }

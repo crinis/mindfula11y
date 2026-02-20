@@ -34,10 +34,26 @@
  *
  * @constant {Object}
  */
-export const ERROR_SEVERITY = {
+export const ERROR_SEVERITY = Object.freeze({
   ERROR: "error",
   WARNING: "warning",
-};
+});
+
+/**
+ * Enumeration for scan view states.
+ * Represents the high-level visual state of a scan component (loading, failed, showing issues, or success).
+ * 
+ * @constant {Object}
+ * @readonly
+ * @enum {string}
+ */
+export const ScanStatus = Object.freeze({
+  LOADING: "loading",
+  FAILED: "failed",
+  ISSUES: "issues",
+  SUCCESS: "success",
+  IDLE: "idle",
+});
 
 // ============================================================================
 // JSDOC TYPEDEFS

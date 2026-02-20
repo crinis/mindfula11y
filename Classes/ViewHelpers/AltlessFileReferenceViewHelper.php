@@ -140,7 +140,7 @@ class AltlessFileReferenceViewHelper extends AbstractTagBasedViewHelper
                     ]
                 ],
             ]));
-            $this->tag->addAttribute('recordEditLinkLabel', sprintf($this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:missingAltText.editRecord.label'), $recordTableName, $recordUid));
+            $this->tag->addAttribute('recordEditLinkLabel', sprintf($this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:altText.editRecord.label'), $recordTableName, $recordUid));
             if (
                 $this->openAIService->isEnabledAndConfigured()
             ) {

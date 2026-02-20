@@ -23,7 +23,7 @@
  * @typedef {import('./types.js').HeadingTreeNode} HeadingTreeNode
  * @typedef {import('./types.js').StructureError} StructureError
  */
-import { html, css, LitElement } from "lit";
+import { html, LitElement } from "lit";
 import HeadingType from "./heading-type.js";
 import { ErrorRegistry } from "./error-registry.js";
 import { ERROR_SEVERITY } from "./types.js";
@@ -52,98 +52,6 @@ import { ERROR_SEVERITY } from "./types.js";
  * @extends LitElement
  */
 export class HeadingStructure extends LitElement {
-
-  /**
-   * CSS styles for the component tree visualization.
-   *
-   * @returns {import('lit').CSSResult} The CSSResult for the component styles.
-   */
-  static get styles() {
-    return css`
-      .mindfula11y-tree {
-        --spacing: 2.25rem;
-        --radius: 0.5rem;
-        --color: var(--typo3-badge-success-border-color);
-        --color-error: var(--typo3-badge-danger-border-color);
-        --color-warning: var(--typo3-badge-warning-border-color);
-        --border-width: 4px;
-      }
-
-      .mindfula11y-heading-structure__errors + .mindfula11y-tree {
-        margin-block-start: 1.5rem;
-      }
-
-      .mindfula11y-tree .mindfula11y-tree__node {
-        display: block;
-        position: relative;
-        padding-left: calc(
-          2 * var(--spacing) - var(--radius) - var(--border-width)
-        );
-      }
-
-      .mindfula11y-tree ol {
-        margin-left: calc(var(--radius) - var(--spacing));
-        padding-left: 0;
-      }
-
-      .mindfula11y-tree ol .mindfula11y-tree__node {
-        border-left: var(--border-width) solid var(--color);
-      }
-
-      .mindfula11y-tree ol .mindfula11y-tree__node:last-child {
-        border-color: transparent;
-      }
-
-      .mindfula11y-tree ol .mindfula11y-tree__node::before {
-        content: "";
-        display: block;
-        position: absolute;
-        top: calc(var(--spacing) / -2);
-        left: calc(-1 * var(--border-width));
-        width: calc(var(--spacing) + var(--border-width));
-        height: calc(var(--spacing) + 1px);
-        border: solid var(--color);
-        border-width: 0 0 var(--border-width) var(--border-width);
-      }
-
-      .mindfula11y-tree .mindfula11y-tree__node::after {
-        content: "";
-        display: block;
-        position: absolute;
-        top: calc(var(--spacing) / 2 - var(--radius));
-        left: calc(var(--spacing) - var(--radius) - 1px);
-        width: calc(2 * var(--radius));
-        height: calc(2 * var(--radius));
-        border-radius: 50%;
-        background: var(--color);
-      }
-
-      .mindfula11y-tree ol .mindfula11y-tree__node--error {
-        border-color: var(--color-error);
-      }
-
-      .mindfula11y-tree ol .mindfula11y-tree__node--error::before {
-        border-color: var(--color-error);
-      }
-
-      .mindfula11y-tree .mindfula11y-tree__node--error::after {
-        background: var(--color-error);
-      }
-
-      .mindfula11y-tree ol .mindfula11y-tree__node--warning {
-        border-color: var(--color-warning);
-      }
-
-      .mindfula11y-tree ol .mindfula11y-tree__node--warning::before {
-        border-color: var(--color-warning);
-      }
-
-      .mindfula11y-tree .mindfula11y-tree__node--warning::after {
-        background: var(--color-warning);
-      }
-    `;
-  }
-
   /**
    * Component properties definition.
    *
@@ -172,9 +80,6 @@ export class HeadingStructure extends LitElement {
    */
   render() {
     return html`
-      <style>
-        ${this.constructor.styles}
-      </style>
       ${this._renderHeadingContent(this.headingTree)}
     `;
   }
@@ -189,15 +94,25 @@ export class HeadingStructure extends LitElement {
   _renderHeadingContent(headingTree) {
     if (!headingTree || headingTree.length === 0) {
       return html`
-        <div class="alert alert-info">
-          <h4 class="alert-heading">
-            ${TYPO3.lang["mindfula11y.headingStructure.noHeadings"]}
-          </h4>
-          <p class="mb-0">
-            ${TYPO3.lang[
-              "mindfula11y.headingStructure.noHeadings.description"
-            ]}
-          </p>
+        <div class="callout callout-info">
+          <div class="callout-icon">
+            <span class="icon-emphasized">
+              <typo3-backend-icon
+                identifier="status-dialog-information"
+                size="small"
+              ></typo3-backend-icon>
+            </span>
+          </div>
+          <div class="callout-content">
+            <h4 class="callout-title">
+              ${TYPO3.lang["mindfula11y.structure.headings.noHeadings"]}
+            </h4>
+            <div class="callout-body">
+              ${TYPO3.lang[
+                "mindfula11y.structure.headings.noHeadings.description"
+              ]}
+            </div>
+          </div>
         </div>
       `;
     }
@@ -276,7 +191,7 @@ export class HeadingStructure extends LitElement {
           <div class="alert alert-danger py-2 px-3 mb-2">
             <span class="fw-bold">
               ${TYPO3.lang[
-                "mindfula11y.headingStructure.error.skippedLevel.inline"
+                "mindfula11y.structure.headings.error.skippedLevel.inline"
               ]?.replace("%1$d", skippedLevel)}
             </span>
           </div>
@@ -339,7 +254,7 @@ export class HeadingStructure extends LitElement {
   _extractHeadingLabel(element) {
     return (
       element.innerText?.trim() ||
-      TYPO3.lang["mindfula11y.headingStructure.unlabeled"]
+      TYPO3.lang["mindfula11y.structure.headings.unlabeled"]
     );
   }
 

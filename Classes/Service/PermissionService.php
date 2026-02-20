@@ -328,6 +328,92 @@ class PermissionService
     }
 
     /**
+     * Check page read access.
+     *
+     * Check if the user has read access for a specific page record. This includes checking
+     * language access, workspace access, resolving translations to their parent page,
+     * resolving workspace versions to the live page, and finally checking standard page permissions.
+     *
+     * @param array $pageRecord The page record to check.
+     *
+     * @return bool True if the user can read the page, false otherwise.
+     */
+    public function checkPageReadAccess(array $pageRecord): bool
+    {
+        $backendUser = $this->getBackendUserAuthentication();
+
+        if (null === $backendUser) {
+            return false;
+        }
+
+        if ($backendUser->isAdmin()) {
+            return true;
+        }
+
+        // Check for delete placeholder
+        if (VersionState::tryFrom((int)($pageRecord['t3ver_state'] ?? 0)) === VersionState::DELETE_PLACEHOLDER) {
+            return false;
+        }
+
+        // Check language access if it is a translated record
+        $languageField = $GLOBALS['TCA']['pages']['ctrl']['languageField'] ?? 'sys_language_uid';
+        if (isset($pageRecord[$languageField]) && (int)$pageRecord[$languageField] > 0) {
+            if (!$backendUser->checkLanguageAccess((int)$pageRecord[$languageField])) {
+                return false;
+            }
+        }
+
+        // Check Workspace Access
+        // We rely on backend user workspace check.
+        $recordWorkspace = (int)($pageRecord['t3ver_wsid'] ?? 0);
+        if ($recordWorkspace > 0 && $backendUser->workspace !== $recordWorkspace) {
+            return false;
+        }
+
+        // Resolve Tree Page ID for permission check
+        // If it's a translation (l10n_parent/transOrigPointerField > 0), verify the parent.
+        $transOrigPointerField = $GLOBALS['TCA']['pages']['ctrl']['transOrigPointerField'] ?? 'l10n_parent';
+        if (
+            isset($pageRecord[$transOrigPointerField])
+            && (int)$pageRecord[$transOrigPointerField] > 0
+        ) {
+            $pageRecord = BackendUtility::getRecordWSOL('pages', (int)$pageRecord[$transOrigPointerField]);
+            
+            if (!$pageRecord || VersionState::tryFrom((int)($pageRecord['t3ver_state'] ?? 0)) === VersionState::DELETE_PLACEHOLDER) {
+                return false;
+            }
+        }
+
+        // Check Standard Page Access (PAGE_SHOW)
+        // We use calcPerms on the passed record (which should be fully overlaid with valid PID)
+        // to respect any permission changes made in the workspace version.
+        $perms = $backendUser->calcPerms($pageRecord);
+        return ($perms & Permission::PAGE_SHOW) === Permission::PAGE_SHOW;
+    }
+
+    /**
+     * Check if the user has access to the given language ID.
+     * Takes admins into account.
+     *
+     * @param int $languageId The language ID to check.
+     * @return bool True if the user has access, false otherwise.
+     */
+    public function checkLanguageAccess(int $languageId): bool
+    {
+        $backendUser = $this->getBackendUserAuthentication();
+        if (null === $backendUser) {
+            return false;
+        }
+        
+        // Admins always have access
+        if ($backendUser->isAdmin()) {
+            return true;
+        }
+
+        return $backendUser->checkLanguageAccess($languageId);
+    }
+
+    /**
      * Get backend user authentication.
      * 
      * @return BackendUserAuthentication

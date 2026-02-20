@@ -40,6 +40,7 @@ use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
+use TYPO3\CMS\Core\Type\Bitmask\Permission;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Versioning\VersionState;
 
@@ -132,8 +133,8 @@ class ScanAjaxController extends ActionController
             return $this->jsonResponse(
                 json_encode([
                     'error' => [
-                        'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.invalidSignature'),
-                        'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.invalidSignature.description'),
+                        'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:module.error.invalidSignature'),
+                        'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:module.error.invalidSignature.description'),
                     ]
                 ])
             )->withStatus(400);
@@ -171,7 +172,7 @@ class ScanAjaxController extends ActionController
         }
 
         // Check language access
-        if (!$backendUser->checkLanguageAccess($languageId)) {
+        if (!$this->permissionService->checkLanguageAccess($languageId)) {
             return $this->jsonResponse(
                 json_encode([
                     'error' => [
@@ -220,13 +221,41 @@ class ScanAjaxController extends ActionController
             )->withStatus(404);
         }
 
+        if ($languageId > 0) {
+            $localizedPage = $this->generalModuleService->getLocalizedPageRecord($pageId, $languageId);
+            if ($localizedPage) {
+                $page = $localizedPage;
+            } else {
+                return $this->jsonResponse(
+                    json_encode([
+                        'error' => [
+                            'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.pageNotFound'),
+                            'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.pageNotFound.description'),
+                        ]
+                    ])
+                )->withStatus(404);
+            }
+        }
+
         // Verify the current backend user actually has access to the page
         if (!$this->permissionService->checkRecordEditAccess('pages', $page) || !$this->permissionService->checkNonExcludeFields('pages', ['tx_mindfula11y_scanid', 'tx_mindfula11y_scanupdated'])) {
             return $this->jsonResponse(
                 json_encode([
                     'error' => [
-                        'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.invalidPageAccess'),
-                        'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.invalidPageAccess.description'),
+                        'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.noPageAccess'),
+                        'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.noPageAccess.description'),
+                    ]
+                ])
+            )->withStatus(403);
+        }
+
+        // Check if page is visible (not hidden and within start/end time)
+        if (!$this->generalModuleService->isPageVisible($page)) {
+            return $this->jsonResponse(
+                json_encode([
+                    'error' => [
+                        'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.pageVisible'),
+                        'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.pageVisible.description'),
                     ]
                 ])
             )->withStatus(403);
@@ -301,6 +330,31 @@ class ScanAjaxController extends ActionController
                     ]
                 ])
             )->withStatus(404);
+        }
+
+        // Check if scan is associated with a page and user has access
+        $pageRecord = $this->generalModuleService->getPageRecordByScanId($scanId);
+
+        if (null === $pageRecord) {
+            return $this->jsonResponse(
+                json_encode([
+                    'error' => [
+                        'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.notFound'),
+                        'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.notFound.description'),
+                    ]
+                ])
+            )->withStatus(404);
+        }
+
+        if (!$this->permissionService->checkPageReadAccess($pageRecord)) {
+            return $this->jsonResponse(
+                json_encode([
+                    'error' => [
+                        'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.accessDenied'),
+                        'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.accessDenied.description'),
+                    ]
+                ])
+            )->withStatus(403);
         }
 
         // Get scan

@@ -1,41 +1,50 @@
+<html xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
+    xmlns:core="http://typo3.org/ns/TYPO3/CMS/Core/ViewHelpers" data-namespace-typo3-fluid="true">
 <f:if
-  condition="{hasMissingAltTextAccess} && {fileReferenceCount} > 0 || ({previewUrl} && ({hasHeadingStructureAccess} || {hasLandmarkStructureAccess})) || ({hasScanAccess} && {createScanDemand})">
-  <section class="callout callout-notice">
-    <div class="callout-content">
-      <div class="callout-title">
-        <h{headingLevel}>
-          <f:translate
-            key="LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:mlang_labels_tablabel" />
-        </h{headingLevel}>
-      </div>
-      <div class="callout-body">
-        <f:if condition="{hasMissingAltTextAccess} && {fileReferenceCount} > 0">
-          <p class="alert alert-warning">
-            <f:translate
-              key="LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:missingAltText.count"
-              arguments="{0: fileReferenceCount}" />
-            <f:if condition="{missingAltTextUri}">
-              <a href="{missingAltTextUri}" class="btn btn-sm btn-default">
-                <f:translate
-                  key="LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:viewDetails" />
-              </a>
-            </f:if>
-          </p>
-        </f:if>
-        <f:if condition="{previewUrl} && ({hasHeadingStructureAccess} || {hasLandmarkStructureAccess})">
-          <mindfula11y-structure headingLevel="{headingLevel + 1}" previewUrl="{previewUrl}"
-            hasHeadingStructureAccess="{hasHeadingStructureAccess}"
-            hasLandmarkStructureAccess="{hasLandmarkStructureAccess}" />
-        </f:if>
-                <f:if condition="{hasScanAccess} && ({scanId} || {createScanDemand})">
-                  <mindfula11y-scan-issue-count
-                    createScanDemand="{createScanDemand -> f:format.json()}"
-                    scanId="{scanId}"
-                    scanUri="{scanUri}"
-                    autoCreateScan="{autoCreateScan}">
-                  </mindfula11y-scan-issue-count>
+    condition="{hasMissingAltTextAccess} && {fileReferenceCount} > 0 || ({previewUrl} && ({hasHeadingStructureAccess} || {hasLandmarkStructureAccess})) || ({hasScanAccess} && {createScanDemand})">
+    <section class="callout callout-notice">
+        <div class="callout-content">
+            <div class="callout-title">
+                <h{headingLevel}>
+                    <f:translate
+                        key="LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:mlang_labels_tablabel" />
+                </h{headingLevel}>
+            </div>
+            <div class="callout-body">
+                <f:if condition="{hasMissingAltTextAccess} && {fileReferenceCount} > 0">
+                    <div class="callout callout-warning">
+                        <div class="callout-icon">
+                            <span class="icon-emphasized">
+                                <core:icon identifier="status-dialog-warning" size="small" />
+                            </span>
+                        </div>
+                        <div class="callout-content">
+                            <div class="callout-title mb-0">
+                                <f:translate
+                                    key="LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:altText.count"
+                                    arguments="{0: fileReferenceCount}" />
+                                <f:if condition="{missingAltTextUri}">
+                                    <a href="{missingAltTextUri}" class="btn btn-sm btn-default ms-2">
+                                        <f:translate
+                                            key="LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:general.viewDetails" />
+                                    </a>
+                                </f:if>
+                            </div>
+                        </div>
+                    </div>
                 </f:if>
-      </div>
-    </div>
-  </section>
+                <f:if condition="{previewUrl} && ({hasHeadingStructureAccess} || {hasLandmarkStructureAccess})">
+                    <mindfula11y-structure headingLevel="{headingLevel + 1}" previewUrl="{previewUrl}"
+                        hasHeadingStructureAccess="{hasHeadingStructureAccess}"
+                        hasLandmarkStructureAccess="{hasLandmarkStructureAccess}" />
+                </f:if>
+                <f:if condition="{hasScanAccess} && ({scanId} || {createScanDemand})">
+                    <mindfula11y-scan-issue-count createScanDemand="{createScanDemand -> f:format.json()}"
+                        scanId="{scanId}" scanUri="{scanUri}" autoCreateScan="{autoCreateScan}">
+                    </mindfula11y-scan-issue-count>
+                </f:if>
+            </div>
+        </div>
+    </section>
 </f:if>
+</html>

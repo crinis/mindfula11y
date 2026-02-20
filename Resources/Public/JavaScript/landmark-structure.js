@@ -23,7 +23,7 @@
  * @typedef {import('./types.js').LandmarkData} LandmarkData
  * @typedef {import('./types.js').StructureError} StructureError
  */
-import { html, css, LitElement } from "lit";
+import { html, LitElement } from "lit";
 import LandmarkBox from "./landmark-box.js";
 import { ErrorRegistry } from "./error-registry.js";
 
@@ -57,19 +57,6 @@ import { ErrorRegistry } from "./error-registry.js";
  */
 export class LandmarkStructure extends LitElement {
   /**
-   * CSS styles for the component.
-   *
-   * @returns {import('lit').CSSResult} The CSSResult for the component styles.
-   */
-  static get styles() {
-    return css`
-      .mindfula11y-landmark-structure__errors + .mindfula11y-landmark-boxes {
-        margin-block-start: 1.5rem;
-      }
-    `;
-  }
-
-  /**
    * Component properties definition.
    *
    * @returns {Object} The properties definition object for LitElement.
@@ -97,9 +84,6 @@ export class LandmarkStructure extends LitElement {
    */
   render() {
     return html`
-      <style>
-        ${this.constructor.styles}
-      </style>
       ${this._renderLandmarkContent(this.landmarkData)}
     `;
   }
@@ -114,11 +98,25 @@ export class LandmarkStructure extends LitElement {
   _renderLandmarkContent(landmarkData) {
     if (landmarkData.length === 0) {
       return html`
-        <div class="alert alert-info">
-          <strong
-            >${TYPO3.lang["mindfula11y.landmarkStructure.noLandmarks"]}</strong
-          >
-          <p>${TYPO3.lang["mindfula11y.landmarkStructure.noLandmarks.description"]}</p>
+        <div class="callout callout-info">
+          <div class="callout-icon">
+            <span class="icon-emphasized">
+              <typo3-backend-icon
+                identifier="status-dialog-information"
+                size="small"
+              ></typo3-backend-icon>
+            </span>
+          </div>
+          <div class="callout-content">
+            <div class="callout-title">
+              ${TYPO3.lang["mindfula11y.structure.landmarks.noLandmarks"]}
+            </div>
+            <div class="callout-body">
+              ${TYPO3.lang[
+                "mindfula11y.structure.landmarks.noLandmarks.description"
+              ]}
+            </div>
+          </div>
         </div>
       `;
     }
@@ -253,7 +251,7 @@ export class LandmarkStructure extends LitElement {
         ${this._renderSimpleLandmark(props)}
         <div class="ms-4 mt-3">
           <div class="fw-bold text-muted text-uppercase fs-7 mb-2">
-            ${TYPO3.lang["mindfula11y.landmarkStructure.nested"]}
+            ${TYPO3.lang["mindfula11y.structure.landmarks.nested"]}
           </div>
           <div class="d-flex flex-column gap-3">${nestedChildren}</div>
         </div>

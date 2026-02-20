@@ -14,7 +14,7 @@ mod {
             enable = 1
         }
         scan {
-            enable = 1
+            enable = 0
             autoCreate = 1
         }
     }

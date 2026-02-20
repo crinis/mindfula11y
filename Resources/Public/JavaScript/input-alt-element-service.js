@@ -101,9 +101,9 @@ class InputAltElementService {
       inputField.value = altText;
       inputField.dispatchEvent(new Event("change"));
       Notification.success(
-        TYPO3.lang["mindfula11y.missingAltText.generate.success"],
+        TYPO3.lang["mindfula11y.altText.generate.success"],
         TYPO3.lang[
-          "mindfula11y.missingAltText.generate.success.description"
+          "mindfula11y.altText.generate.success.description"
         ]
       );
     }).bindTo(generateButton);
@@ -122,7 +122,7 @@ class InputAltElementService {
     spinner.setAttribute("role", "status");
     const span = document.createElement("span");
     span.classList.add("visually-hidden");
-    span.textContent = TYPO3.lang["mindfula11y.missingAltText.generate.loading"];
+    span.textContent = TYPO3.lang["mindfula11y.altText.generate.loading"];
     spinner.appendChild(span);
     spinnerWrap.appendChild(spinner);
     return spinnerWrap;

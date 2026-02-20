@@ -72,7 +72,7 @@ class WebLayoutInfo
 
         $backendUser = $this->generalModuleService->getBackendUserAuthentication();
 
-        if (!$backendUser->check('modules', 'mindfula11y_accessibility') || 0 === $pageId || null === $moduleData || null === $site || !$backendUser->checkLanguageAccess($languageId)) {
+        if (!$backendUser->check('modules', 'mindfula11y_accessibility') || 0 === $pageId || null === $moduleData || null === $site || !$this->permissionService->checkLanguageAccess($languageId)) {
             return;
         }
 
@@ -93,6 +93,12 @@ class WebLayoutInfo
         $hasHeadingStructureAccess = $this->generalModuleService->hasHeadingStructureAccess($pageTsConfig);
         $hasLandmarkStructureAccess = $this->generalModuleService->hasLandmarkStructureAccess($pageTsConfig);
         $hasScanAccess = $this->generalModuleService->hasScanAccess($pageTsConfig);
+
+        // Disable scan access if page is hidden/not visible
+        $isPageVisible = $this->generalModuleService->isPageVisible($finalPageInfo);
+        if ($hasScanAccess && !$isPageVisible) {
+            $hasScanAccess = false;
+        }
 
         // If no access to any feature, don't render
         if (!$hasMissingAltTextAccess && !$hasHeadingStructureAccess && !$hasLandmarkStructureAccess && !$hasScanAccess) {
@@ -190,6 +196,9 @@ class WebLayoutInfo
 
         // Register language labels for JavaScript
         $this->pageRenderer->addInlineLanguageLabelArray($this->generalModuleService->getInlineLanguageLabels());
+
+        // Load the CSS
+        $this->pageRenderer->addCssFile('EXT:mindfula11y/Resources/Public/Css/mindfula11y.css');
 
         // Load the JavaScript modules
         $this->pageRenderer->loadJavaScriptModule('@mindfulmarkup/mindfula11y/structure.js');

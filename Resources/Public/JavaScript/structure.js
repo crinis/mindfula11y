@@ -22,7 +22,8 @@
  * @description Web component for displaying combined heading and landmark structures.
  * @typedef {import('./types.js').StructureError} StructureError
  */
-import { html, css, LitElement } from "lit";
+import { html, LitElement } from "lit";
+import "@typo3/backend/element/icon-element.js";
 import { Task } from "@lit/task";
 import HeadingStructureService from "./heading-structure-service.js";
 import LandmarkStructureService from "./landmark-structure-service.js";
@@ -31,7 +32,6 @@ import { ErrorRegistry } from "./error-registry.js";
 import ErrorList from "./error-list.js";
 import HeadingStructure from "./heading-structure.js";
 import LandmarkStructure from "./landmark-structure.js";
-import Notification from "@typo3/backend/notification.js";
 
 /**
  * Web component for displaying combined heading and landmark structures.
@@ -45,7 +45,6 @@ import Notification from "@typo3/backend/notification.js";
  * - Tabbed interface with Bootstrap styling
  * - Error count badges in tab titles
  * - Separate heading and landmark structure analysis
- * - Integration with TYPO3 backend notification system
  *
  * Error types detected:
  * - Heading structure errors (missing H1, multiple H1, empty headings, skipped levels)
@@ -55,15 +54,6 @@ import Notification from "@typo3/backend/notification.js";
  * @extends LitElement
  */
 export class Structure extends LitElement {
-  /**
-   * CSS styles for the component.
-   *
-   * @returns {import('lit').CSSResult} The CSSResult for the component styles.
-   */
-  static get styles() {
-    return css``;
-  }
-
   /**
    * Component properties definition.
    *
@@ -134,11 +124,6 @@ export class Structure extends LitElement {
    */
   _handleLoadingError(error) {
     console.error("Accessibility structure could not be loaded.");
-
-    Notification.error(
-      TYPO3.lang["mindfula11y.accessibility.error.loading"],
-      TYPO3.lang["mindfula11y.accessibility.error.loading.description"]
-    );
   }
 
   /**
@@ -223,15 +208,31 @@ export class Structure extends LitElement {
    */
   render() {
     return html`
-      <style>
-        ${this.constructor.styles}
-      </style>
       ${this.loadContentTask.render({
         error: (error) => {
           this._handleLoadingError(error);
-          return html`<div class="alert alert-danger">
-            ${TYPO3.lang["mindfula11y.accessibility.error.loading"]}
-          </div>`;
+          return html`
+            <div class="callout callout-danger">
+              <div class="callout-icon">
+                <span class="icon-emphasized">
+                  <typo3-backend-icon
+                    identifier="status-dialog-error"
+                    size="small"
+                  ></typo3-backend-icon>
+                </span>
+              </div>
+              <div class="callout-content">
+                <h3 class="callout-title">
+                  ${TYPO3.lang["mindfula11y.general.error.loading"]}
+                </h3>
+                <div class="callout-body">
+                  ${TYPO3.lang[
+                    "mindfula11y.general.error.loading.description"
+                  ]}
+                </div>
+              </div>
+            </div>
+          `;
         },
         complete: (elements) => {
           if (this._firstRun) {
@@ -379,7 +380,7 @@ export class Structure extends LitElement {
                   aria-selected="${this._currentTab === "headings"}"
                   @click="${() => this._handleTabChange("headings")}"
                 >
-                  ${TYPO3.lang["mindfula11y.headingStructure"] || "Headings"}
+                  ${TYPO3.lang["mindfula11y.structure.headings"]}
                   ${headingErrorCount > 0
                     ? html`<span class="badge badge-danger ms-2"
                         >${headingErrorCount}</span
@@ -405,7 +406,7 @@ export class Structure extends LitElement {
                   aria-selected="${this._currentTab === "landmarks"}"
                   @click="${() => this._handleTabChange("landmarks")}"
                 >
-                  ${TYPO3.lang["mindfula11y.landmarkStructure"] || "Landmarks"}
+                  ${TYPO3.lang["mindfula11y.structure.landmarks"]}
                   ${landmarkErrorCount > 0
                     ? html`<span class="badge badge-danger ms-2"
                         >${landmarkErrorCount}</span

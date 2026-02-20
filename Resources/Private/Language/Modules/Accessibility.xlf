@@ -14,37 +14,37 @@
                 </source>
             </trans-unit>
 
-            <trans-unit id="noPageSelected" resname="noPageSelected">
+            <trans-unit id="module.noPageSelected" resname="module.noPageSelected">
                 <source>
                     No page selected.
                 </source>
             </trans-unit>
-            <trans-unit id="noPageSelected.description" resname="noPageSelected.description">
+            <trans-unit id="module.noPageSelected.description" resname="module.noPageSelected.description">
                 <source>
                     Please select a page in the page tree to check for accessibility issues.
                 </source>
             </trans-unit>
 
-            <trans-unit id="noLanguageAccess" resname="noLanguageAccess">
+            <trans-unit id="module.noLanguageAccess" resname="module.noLanguageAccess">
                 <source>
                     Page not available in your allowed languages.
                 </source>
             </trans-unit>
-            <trans-unit id="noLanguageAccess.description"
-                resname="noLanguageAccess.description">
+            <trans-unit id="module.noLanguageAccess.description"
+                resname="module.noLanguageAccess.description">
                 <source>
                     This page is not translated to any of the languages you have access to. Please select a different page that is available in one of your allowed languages.
                 </source>
             </trans-unit>
 
-            <trans-unit id="error.invalidSignature" resname="error.invalidSignature">
+            <trans-unit id="module.error.invalidSignature" resname="module.error.invalidSignature">
                 <source>Invalid request signature</source>
             </trans-unit>
-            <trans-unit id="error.invalidSignature.description" resname="error.invalidSignature.description">
+            <trans-unit id="module.error.invalidSignature.description" resname="module.error.invalidSignature.description">
                 <source>The request signature is invalid. Please refresh the page and try again.</source>
             </trans-unit>
             
-            <trans-unit id="menu.language" resname="menu.language">
+            <trans-unit id="module.menu.language" resname="module.menu.language">
                 <source>Language</source>
             </trans-unit>
 
@@ -55,60 +55,57 @@
                 <source>Structure</source>
             </trans-unit>
 
-            <trans-unit id="viewDetails" resname="viewDetails">
+            <trans-unit id="general.viewDetails" resname="general.viewDetails">
                 <source>View Details</source>
             </trans-unit>
 
-            <trans-unit id="menu.pageLevels" resname="menu.pageLevels">
+            <trans-unit id="module.menu.pageLevels" resname="module.menu.pageLevels">
                 <source>Check Recursive</source>
             </trans-unit>
-            <trans-unit id="menu.pageLevels.1" resname="menu.pageLevels.1">
+            <trans-unit id="module.menu.pageLevels.1" resname="module.menu.pageLevels.1">
                 <source>Levels 1</source>
             </trans-unit>
-            <trans-unit id="menu.pageLevels.5" resname="menu.pageLevels.5">
+            <trans-unit id="module.menu.pageLevels.5" resname="module.menu.pageLevels.5">
                 <source>Levels 5</source>
             </trans-unit>
-            <trans-unit id="menu.pageLevels.10" resname="menu.pageLevels.10">
+            <trans-unit id="module.menu.pageLevels.10" resname="module.menu.pageLevels.10">
                 <source>Levels 10</source>
             </trans-unit>
-            <trans-unit id="menu.pageLevels.99" resname="menu.pageLevels.99">
+            <trans-unit id="module.menu.pageLevels.99" resname="module.menu.pageLevels.99">
                 <source>Levels 99</source>
             </trans-unit>
 
-            <trans-unit id="menu.tables" resname="menu.tables">
+            <trans-unit id="module.menu.tables" resname="module.menu.tables">
                 <source>Record Type</source>
             </trans-unit>
-            <trans-unit id="menu.tables.all" resname="menu.tables.all">
+            <trans-unit id="module.menu.tables.all" resname="module.menu.tables.all">
                 <source>All Record Types</source>
             </trans-unit>
 
-            <trans-unit id="menu.filter" resname="menu.filter">
+            <trans-unit id="module.menu.filter" resname="module.menu.filter">
                 <source>Filter</source>
             </trans-unit>
-            <trans-unit id="menu.filter.fileMetaData" resname="menu.filter.fileMetaData">
+            <trans-unit id="module.menu.filter.fileMetaData" resname="module.menu.filter.fileMetaData">
                 <source>
                     Filter records with inherited alternative text
                 </source>
             </trans-unit>
 
-            <trans-unit id="menu.features" resname="menu.features">
+            <trans-unit id="module.menu.features" resname="module.menu.features">
                 <source>Feature</source>
             </trans-unit>
-            <trans-unit id="menu.features.general" resname="menu.features.general">
+            <trans-unit id="module.menu.features.general" resname="module.menu.features.general">
                 <source>General</source>
             </trans-unit>
-            <trans-unit id="menu.features.missingAltText" resname="menu.features.missingAltText">
+            <trans-unit id="module.menu.features.missingAltText" resname="module.menu.features.missingAltText">
                 <source>Missing alternative text</source>
             </trans-unit>
-            <trans-unit id="menu.features.scan" resname="menu.features.scan">
+            <trans-unit id="module.menu.features.scan" resname="module.menu.features.scan">
                 <source>Scanner</source>
             </trans-unit>
 
             <trans-unit id="severity.error" resname="severity.error">
                 <source>Error</source>
-            </trans-unit>
-            <trans-unit id="severity.notice" resname="severity.notice">
-                <source>Notice</source>
             </trans-unit>
             <trans-unit id="severity.warning" resname="severity.warning">
                 <source>Warning</source>
@@ -116,282 +113,282 @@
             <trans-unit id="severity.info" resname="severity.info">
                 <source>Info</source>
             </trans-unit>
-            <trans-unit id="accessibility.error.loading" resname="accessibility.error.loading">
+            <trans-unit id="general.error.loading" resname="general.error.loading">
                 <source>Failed to load heading/landmark structure.</source>
             </trans-unit>
-            <trans-unit id="accessibility.error.loading.description" resname="accessibility.error.loading.description">
+            <trans-unit id="general.error.loading.description" resname="general.error.loading.description">
                 <source>Could not analyze the page content. Please try again or check your connection.</source>
             </trans-unit>
 
-            <trans-unit id="missingAltText" resname="missingAltText">
+            <trans-unit id="altText" resname="altText">
                 <source>File references without alternative text</source>
             </trans-unit>
-            <trans-unit id="missingAltText.generate.button" resname="missingAltText.generate.button">
+            <trans-unit id="altText.generate.button" resname="altText.generate.button">
                 <source>Generate</source>
             </trans-unit>
-            <trans-unit id="missingAltText.generate.loading"
-                resname="missingAltText.generate.loading">
+            <trans-unit id="altText.generate.loading"
+                resname="altText.generate.loading">
                 <source>Generating alternative text...</source>
             </trans-unit>
-            <trans-unit id="missingAltText.generate.success"
-                resname="missingAltText.generate.success">
+            <trans-unit id="altText.generate.success"
+                resname="altText.generate.success">
                 <source>Alternative text generated.</source>
             </trans-unit>
-            <trans-unit id="missingAltText.generate.success.description"
-                resname="missingAltText.generate.success.description">
+            <trans-unit id="altText.generate.success.description"
+                resname="altText.generate.success.description">
                 <source>
                     Alternative text was successfully generated. Please make sure it describes
                     the picture accurately.
                 </source>
             </trans-unit>
-            <trans-unit id="missingAltText.generate.error.unknown"
-                resname="missingAltText.generate.error.unknown">
+            <trans-unit id="altText.generate.error.unknown"
+                resname="altText.generate.error.unknown">
                 <source>Unknown error occurred.</source>
             </trans-unit>
-            <trans-unit id="missingAltText.generate.error.unknown.description"
-                resname="missingAltText.generate.error.unknown.description">
+            <trans-unit id="altText.generate.error.unknown.description"
+                resname="altText.generate.error.unknown.description">
                 <source>
                     An unknown error occurred. Please contact your admin or try again
                     later.
                 </source>
             </trans-unit>
-            <trans-unit id="missingAltText.generate.error.openAIConnection"
-                resname="missingAltText.generate.error.openAIConnection">
+            <trans-unit id="altText.generate.error.openAIConnection"
+                resname="altText.generate.error.openAIConnection">
                 <source>ChatGPT connection error.</source>
             </trans-unit>
-            <trans-unit id="missingAltText.generate.error.openAIConnection.description"
-                resname="missingAltText.generate.error.openAIConnection.description">
+            <trans-unit id="altText.generate.error.openAIConnection.description"
+                resname="altText.generate.error.openAIConnection.description">
                 <source>Could not establish connection to ChatGPT. Is your API-Key OK?</source>
             </trans-unit>
-            <trans-unit id="missingAltText.editRecord.label"
-                resname="missingAltText.editRecord.label">
+            <trans-unit id="altText.editRecord.label"
+                resname="altText.editRecord.label">
                 <source>Edit record [%1$s][%2$s].</source>
             </trans-unit>
-            <trans-unit id="missingAltText.altLabel" resname="missingAltText.altLabel">
+            <trans-unit id="altText.altLabel" resname="altText.altLabel">
                 <source>Alternative text</source>
             </trans-unit>
-            <trans-unit id="missingAltText.altPlaceholder" resname="missingAltText.altPlaceholder">
+            <trans-unit id="altText.altPlaceholder" resname="altText.altPlaceholder">
                 <source>Enter alternative text for the image</source>
             </trans-unit>
-            <trans-unit id="missingAltText.save" resname="missingAltText.save">
+            <trans-unit id="altText.save" resname="altText.save">
                 <source>Save</source>
             </trans-unit>
-            <trans-unit id="missingAltText.imagePreview" resname="missingAltText.imagePreview">
+            <trans-unit id="altText.imagePreview" resname="altText.imagePreview">
                 <source>Image preview</source>
             </trans-unit>
-            <trans-unit id="missingAltText.fallbackAltLabel"
-                resname="missingAltText.fallbackAltLabel">
+            <trans-unit id="altText.fallbackAltLabel"
+                resname="altText.fallbackAltLabel">
                 <source>Label specified in file metadata:</source>
             </trans-unit>
-            <trans-unit id="missingAltText.pagination.navigation"
-                resname="missingAltText.pagination.navigation">
+            <trans-unit id="altText.pagination.navigation"
+                resname="altText.pagination.navigation">
                 <source>Pagination navigation</source>
             </trans-unit>
-            <trans-unit id="missingAltText.pagination.previous"
-                resname="missingAltText.pagination.previous">
+            <trans-unit id="altText.pagination.previous"
+                resname="altText.pagination.previous">
                 <source>Previous page</source>
             </trans-unit>
-            <trans-unit id="missingAltText.pagination.next" resname="missingAltText.pagination.next">
+            <trans-unit id="altText.pagination.next" resname="altText.pagination.next">
                 <source>Next page</source>
             </trans-unit>
-            <trans-unit id="missingAltText.pagination.page" resname="missingAltText.pagination.page">
+            <trans-unit id="altText.pagination.page" resname="altText.pagination.page">
                 <source>Go to page %1$s</source>
             </trans-unit>
-            <trans-unit id="missingAltText.noMissingAltText"
-                resname="missingAltText.noMissingAltText">
+            <trans-unit id="altText.noMissingAltText"
+                resname="altText.noMissingAltText">
                 <source>No file references without alternative text found.</source>
             </trans-unit>
-            <trans-unit id="missingAltText.count" resname="missingAltText.count">
+            <trans-unit id="altText.count" resname="altText.count">
                 <source>%1$d file references without alternative text found.</source>
             </trans-unit>
-            <trans-unit id="missingAltText.noAccess" resname="missingAltText.noAccess">
+            <trans-unit id="altText.noAccess" resname="altText.noAccess">
                 <source>No access to missing alternative text feature.</source>
             </trans-unit>
-            <trans-unit id="missingAltText.noAccess.description"
-                resname="missingAltText.noAccess.description">
+            <trans-unit id="altText.noAccess.description"
+                resname="altText.noAccess.description">
                 <source>
                     You do not have permission to access file references. Please contact your administrator.
                 </source>
             </trans-unit>
-            <trans-unit id="missingAltText.noTableAccess" resname="missingAltText.noTableAccess">
+            <trans-unit id="altText.noTableAccess" resname="altText.noTableAccess">
                 <source>No access to the selected table.</source>
             </trans-unit>
-            <trans-unit id="missingAltText.noTableAccess.description"
-                resname="missingAltText.noTableAccess.description">
+            <trans-unit id="altText.noTableAccess.description"
+                resname="altText.noTableAccess.description">
                 <source>
                     Please select a record type that you have access to or contact your
                     administrator.
                 </source>
             </trans-unit>
 
-            <trans-unit id="headingStructure" resname="headingStructure">
+            <trans-unit id="structure.headings" resname="structure.headings">
                 <source>Headings</source>
             </trans-unit>
-            <trans-unit id="headingStructure.error.store" resname="headingStructure.error.store">
+            <trans-unit id="structure.headings.error.store" resname="structure.headings.error.store">
                 <source>Saving heading type failed.</source>
             </trans-unit>
-            <trans-unit id="headingStructure.error.store.description"
-                resname="headingStructure.error.store.description">
+            <trans-unit id="structure.headings.error.store.description"
+                resname="structure.headings.error.store.description">
                 <source>Could not save the heading type. Do you have permission?</source>
             </trans-unit>
-            <trans-unit id="headingStructure.error.emptyHeadings"
-                resname="headingStructure.error.emptyHeadings">
+            <trans-unit id="structure.headings.error.emptyHeadings"
+                resname="structure.headings.error.emptyHeadings">
                 <source>Empty headings found.</source>
             </trans-unit>
-            <trans-unit id="headingStructure.error.emptyHeadings.description"
-                resname="headingStructure.error.emptyHeadings.description">
+            <trans-unit id="structure.headings.error.emptyHeadings.description"
+                resname="structure.headings.error.emptyHeadings.description">
                 <source>Headings without text content provide no semantic value and can confuse screen reader users. Please add descriptive text to all heading elements or remove empty headings.</source>
             </trans-unit>
-            <trans-unit id="headingStructure.error.skippedLevel"
-                resname="headingStructure.error.skippedLevel">
+            <trans-unit id="structure.headings.error.skippedLevel"
+                resname="structure.headings.error.skippedLevel">
                 <source>Skipped heading levels!</source>
             </trans-unit>
-            <trans-unit id="headingStructure.error.skippedLevel.description"
-                resname="headingStructure.error.skippedLevel.description">
+            <trans-unit id="structure.headings.error.skippedLevel.description"
+                resname="structure.headings.error.skippedLevel.description">
                 <source>Heading levels should not be skipped. For example, an &lt;h2&gt; should not be followed directly by an &lt;h4&gt; without an intervening &lt;h3&gt;. Proper heading structure helps screen reader users understand the content hierarchy.</source>
             </trans-unit>
-            <trans-unit id="headingStructure.error.skippedLevel.inline"
-                resname="headingStructure.error.skippedLevel.inline">
+            <trans-unit id="structure.headings.error.skippedLevel.inline"
+                resname="structure.headings.error.skippedLevel.inline">
                 <source>Skipped H%1$d</source>
             </trans-unit>
-            <trans-unit id="headingStructure.error.missingH1"
-                resname="headingStructure.error.missingH1">
+            <trans-unit id="structure.headings.error.missingH1"
+                resname="structure.headings.error.missingH1">
                 <source>Missing &lt;h1&gt; heading.</source>
             </trans-unit>
-            <trans-unit id="headingStructure.error.missingH1.description"
-                resname="headingStructure.error.missingH1.description">
+            <trans-unit id="structure.headings.error.missingH1.description"
+                resname="structure.headings.error.missingH1.description">
                 <source>Every page should have exactly one &lt;h1&gt; as the main heading, usually
                     at the top of the main content. Screenreader users rely on the &lt;h1&gt; to
                     quickly skip to the main content and get to understand what the content is
                     about.</source>
             </trans-unit>
-            <trans-unit id="headingStructure.error.multipleH1"
-                resname="headingStructure.error.multipleH1">
+            <trans-unit id="structure.headings.error.multipleH1"
+                resname="structure.headings.error.multipleH1">
                 <source>Multiple &lt;h1&gt; headings found.</source>
             </trans-unit>
-            <trans-unit id="headingStructure.error.multipleH1.description"
-                resname="headingStructure.error.multipleH1.description">
+            <trans-unit id="structure.headings.error.multipleH1.description"
+                resname="structure.headings.error.multipleH1.description">
                 <source>Pages should have exactly one &lt;h1&gt; heading to provide a clear document structure. Multiple &lt;h1&gt; elements can confuse screen readers and hurt SEO. Consider using &lt;h2&gt; or other heading levels for additional headings.</source>
             </trans-unit>
-            <trans-unit id="headingStructure.edit" resname="headingStructure.edit">
+            <trans-unit id="structure.headings.edit" resname="structure.headings.edit">
                 <source>Edit heading</source>
             </trans-unit>
-            <trans-unit id="headingStructure.edit.locked" resname="headingStructure.edit.locked">
+            <trans-unit id="structure.headings.edit.locked" resname="structure.headings.edit.locked">
                 <source>Heading is not editable</source>
             </trans-unit>
-            <trans-unit id="headingStructure.unlabeled" resname="headingStructure.unlabeled">
+            <trans-unit id="structure.headings.unlabeled" resname="structure.headings.unlabeled">
                 <source>Unlabeled heading</source>
             </trans-unit>
-            <trans-unit id="headingStructure.type" resname="headingStructure.type">
+            <trans-unit id="structure.headings.type" resname="structure.headings.type">
                 <source>Heading type</source>
             </trans-unit>
-            <trans-unit id="headingStructure.relation.descendant" resname="headingStructure.relation.descendant">
+            <trans-unit id="structure.headings.relation.descendant" resname="structure.headings.relation.descendant">
                 <source>Related to parent heading</source>
             </trans-unit>
-            <trans-unit id="headingStructure.relation.sibling" resname="headingStructure.relation.sibling">
+            <trans-unit id="structure.headings.relation.sibling" resname="structure.headings.relation.sibling">
                 <source>Related to sibling heading</source>
             </trans-unit>
-            <trans-unit id="headingStructure.relation.notFound" resname="headingStructure.relation.notFound">
+            <trans-unit id="structure.headings.relation.notFound" resname="structure.headings.relation.notFound">
                 <source>Ancestor not found</source>
             </trans-unit>
-            <trans-unit id="headingStructure.relation.notFound.description" resname="headingStructure.relation.notFound.description">
+            <trans-unit id="structure.headings.relation.notFound.description" resname="structure.headings.relation.notFound.description">
                 <source>The referenced ancestor heading could not be found in the document.</source>
             </trans-unit>
-            <trans-unit id="headingStructure.noHeadings" resname="headingStructure.noHeadings">
+            <trans-unit id="structure.headings.noHeadings" resname="structure.headings.noHeadings">
                 <source>No headings found</source>
             </trans-unit>
-            <trans-unit id="headingStructure.noHeadings.description" resname="headingStructure.noHeadings.description">
+            <trans-unit id="structure.headings.noHeadings.description" resname="structure.headings.noHeadings.description">
                 <source>No heading elements (h1-h6) were found on this page.</source>
             </trans-unit>
 
-            <trans-unit id="landmarkStructure" resname="landmarkStructure">
+            <trans-unit id="structure.landmarks" resname="structure.landmarks">
                 <source>Landmarks</source>
             </trans-unit>
-            <trans-unit id="landmarkStructure.edit" resname="landmarkStructure.edit">
+            <trans-unit id="structure.landmarks.edit" resname="structure.landmarks.edit">
                 <source>Edit landmark</source>
             </trans-unit>
-            <trans-unit id="landmarkStructure.edit.locked" resname="landmarkStructure.edit.locked">
+            <trans-unit id="structure.landmarks.edit.locked" resname="structure.landmarks.edit.locked">
                 <source>Landmark is not editable</source>
             </trans-unit>
-            <trans-unit id="landmarkStructure.nested" resname="landmarkStructure.nested">
+            <trans-unit id="structure.landmarks.nested" resname="structure.landmarks.nested">
                 <source>Nested landmarks</source>
             </trans-unit>
-            <trans-unit id="landmarkStructure.role" resname="landmarkStructure.role">
+            <trans-unit id="structure.landmarks.role" resname="structure.landmarks.role">
                 <source>Landmark role</source>
             </trans-unit>
-            <trans-unit id="landmarkStructure.error.roleSelect" resname="landmarkStructure.error.roleSelect">
+            <trans-unit id="structure.landmarks.error.roleSelect" resname="structure.landmarks.error.roleSelect">
                 <source>Select a valid landmark role.</source>
             </trans-unit>
-            <trans-unit id="landmarkStructure.role.none" resname="landmarkStructure.role.none">
+            <trans-unit id="structure.landmarks.role.none" resname="structure.landmarks.role.none">
                 <source>No Landmark (none)</source>
             </trans-unit>
-            <trans-unit id="landmarkStructure.role.banner" resname="landmarkStructure.role.banner">
+            <trans-unit id="structure.landmarks.role.banner" resname="structure.landmarks.role.banner">
                 <source>Site Header (banner)</source>
             </trans-unit>
-            <trans-unit id="landmarkStructure.role.main" resname="landmarkStructure.role.main">
+            <trans-unit id="structure.landmarks.role.main" resname="structure.landmarks.role.main">
                 <source>Main Content (main)</source>
             </trans-unit>
-            <trans-unit id="landmarkStructure.role.navigation" resname="landmarkStructure.role.navigation">
+            <trans-unit id="structure.landmarks.role.navigation" resname="structure.landmarks.role.navigation">
                 <source>Navigation (navigation)</source>
             </trans-unit>
-            <trans-unit id="landmarkStructure.role.complementary" resname="landmarkStructure.role.complementary">
+            <trans-unit id="structure.landmarks.role.complementary" resname="structure.landmarks.role.complementary">
                 <source>Sidebar (complementary)</source>
             </trans-unit>
-            <trans-unit id="landmarkStructure.role.contentinfo" resname="landmarkStructure.role.contentinfo">
+            <trans-unit id="structure.landmarks.role.contentinfo" resname="structure.landmarks.role.contentinfo">
                 <source>Site Footer (contentinfo)</source>
             </trans-unit>
-            <trans-unit id="landmarkStructure.role.region" resname="landmarkStructure.role.region">
+            <trans-unit id="structure.landmarks.role.region" resname="structure.landmarks.role.region">
                 <source>Section (region)</source>
             </trans-unit>
-            <trans-unit id="landmarkStructure.role.search" resname="landmarkStructure.role.search">
+            <trans-unit id="structure.landmarks.role.search" resname="structure.landmarks.role.search">
                 <source>Search (search)</source>
             </trans-unit>
-            <trans-unit id="landmarkStructure.role.form" resname="landmarkStructure.role.form">
+            <trans-unit id="structure.landmarks.role.form" resname="structure.landmarks.role.form">
                 <source>Form (form)</source>
             </trans-unit>
-            <trans-unit id="landmarkStructure.noLandmarks" resname="landmarkStructure.noLandmarks">
+            <trans-unit id="structure.landmarks.noLandmarks" resname="structure.landmarks.noLandmarks">
                 <source>No landmarks found</source>
             </trans-unit>
-            <trans-unit id="landmarkStructure.noLandmarks.description" resname="landmarkStructure.noLandmarks.description">
+            <trans-unit id="structure.landmarks.noLandmarks.description" resname="structure.landmarks.noLandmarks.description">
                 <source>This page doesn't contain any ARIA landmarks or semantic HTML elements.</source>
             </trans-unit>
-            <trans-unit id="landmarkStructure.error.store" resname="landmarkStructure.error.store">
+            <trans-unit id="structure.landmarks.error.store" resname="structure.landmarks.error.store">
                 <source>Saving landmark role failed.</source>
             </trans-unit>
-            <trans-unit id="landmarkStructure.error.store.description"
-                resname="landmarkStructure.error.store.description">
+            <trans-unit id="structure.landmarks.error.store.description"
+                resname="structure.landmarks.error.store.description">
                 <source>Could not save the landmark role. Do you have permission?</source>
             </trans-unit>
-            <trans-unit id="landmarkStructure.error.missingMain"
-                resname="landmarkStructure.error.missingMain">
+            <trans-unit id="structure.landmarks.error.missingMain"
+                resname="structure.landmarks.error.missingMain">
                 <source>Missing main landmark.</source>
             </trans-unit>
-            <trans-unit id="landmarkStructure.error.missingMain.description"
-                resname="landmarkStructure.error.missingMain.description">
+            <trans-unit id="structure.landmarks.error.missingMain.description"
+                resname="structure.landmarks.error.missingMain.description">
                 <source>Every page should have exactly one main landmark to identify the main content area. 
                     This helps screenreader users quickly navigate to the primary content.</source>
             </trans-unit>
-            <trans-unit id="landmarkStructure.error.duplicateMain"
-                resname="landmarkStructure.error.duplicateMain">
+            <trans-unit id="structure.landmarks.error.duplicateMain"
+                resname="structure.landmarks.error.duplicateMain">
                 <source>Multiple main landmarks found.</source>
             </trans-unit>
-            <trans-unit id="landmarkStructure.error.duplicateMain.description"
-                resname="landmarkStructure.error.duplicateMain.description">
+            <trans-unit id="structure.landmarks.error.duplicateMain.description"
+                resname="structure.landmarks.error.duplicateMain.description">
                 <source>Only one main landmark is allowed per page. Multiple main landmarks can confuse screen reader users.</source>
             </trans-unit>
-            <trans-unit id="landmarkStructure.error.duplicateSameLabel" resname="landmarkStructure.error.duplicateSameLabel">
+            <trans-unit id="structure.landmarks.error.duplicateSameLabel" resname="structure.landmarks.error.duplicateSameLabel">
                 <source>Landmarks with identical labels.</source>
             </trans-unit>
-            <trans-unit id="landmarkStructure.error.duplicateSameLabel.description" resname="landmarkStructure.error.duplicateSameLabel.description">
+            <trans-unit id="structure.landmarks.error.duplicateSameLabel.description" resname="structure.landmarks.error.duplicateSameLabel.description">
                 <source>Multiple landmarks share an identical label. Provide unique labels so users can differentiate them.</source>
             </trans-unit>
-            <trans-unit id="landmarkStructure.error.multipleUnlabeledLandmarks" resname="landmarkStructure.error.multipleUnlabeledLandmarks">
+            <trans-unit id="structure.landmarks.error.multipleUnlabeledLandmarks" resname="structure.landmarks.error.multipleUnlabeledLandmarks">
                 <source>Multiple unlabeled landmarks of the same role.</source>
             </trans-unit>
-            <trans-unit id="landmarkStructure.error.multipleUnlabeledLandmarks.description" resname="landmarkStructure.error.multipleUnlabeledLandmarks.description">
+            <trans-unit id="structure.landmarks.error.multipleUnlabeledLandmarks.description" resname="structure.landmarks.error.multipleUnlabeledLandmarks.description">
                 <source>More than one landmark with the same role lacks a label. Add unique labels (aria-label or aria-labelledby) so users can distinguish them.</source>
             </trans-unit>
-            <trans-unit id="landmarkStructure.unlabelledLandmark" resname="landmarkStructure.unlabelledLandmark">
+            <trans-unit id="structure.landmarks.unlabelledLandmark" resname="structure.landmarks.unlabelledLandmark">
                 <source>Unlabelled Landmark</source>
             </trans-unit>
 
@@ -425,6 +422,13 @@
             </trans-unit>
             <trans-unit id="error.invalidRecordAccess.description" resname="error.invalidRecordAccess.description">
                 <source>You do not have permission to edit this record or its specified fields.</source>
+            </trans-unit>
+
+            <trans-unit id="error.noPageAccess" resname="error.noPageAccess">
+                <source>No page access</source>
+            </trans-unit>
+            <trans-unit id="error.noPageAccess.description" resname="error.noPageAccess.description">
+                <source>You do not have access to this page. Please contact your administrator.</source>
             </trans-unit>
 
             <trans-unit id="error.noFileAccess" resname="error.noFileAccess">
@@ -462,12 +466,6 @@
             <trans-unit id="scan.refresh" resname="scan.refresh">
                 <source>Refresh Results</source>
             </trans-unit>
-            <trans-unit id="scan.created" resname="scan.created">
-                <source>Scan created</source>
-            </trans-unit>
-            <trans-unit id="scan.created.description" resname="scan.created.description">
-                <source>The accessibility scan has been initiated. Results will be available shortly.</source>
-            </trans-unit>
             <trans-unit id="scan.loading" resname="scan.loading">
                 <source>Loading scan results...</source>
             </trans-unit>
@@ -483,12 +481,7 @@
             <trans-unit id="scan.status.failed.description" resname="scan.status.failed.description">
                 <source>The accessibility scan failed. Please try again later or contact your administrator.</source>
             </trans-unit>
-            <trans-unit id="scan.noIssues" resname="scan.noIssues">
-                <source>No accessibility issues found. Great job!</source>
-            </trans-unit>
-            <trans-unit id="scan.issuesList" resname="scan.issuesList">
-                <source>List of accessibility issues:</source>
-            </trans-unit>
+
             <trans-unit id="scan.error.notConfigured" resname="scan.error.notConfigured">
                 <source>Scanner API not configured</source>
             </trans-unit>
@@ -513,12 +506,6 @@
             <trans-unit id="scan.error.getFailed.description" resname="scan.error.getFailed.description">
                 <source>Could not load the accessibility scan results. Please try again.</source>
             </trans-unit>
-            <trans-unit id="scan.error.loadFailed" resname="scan.error.loadFailed">
-                <source>Failed to load scan results</source>
-            </trans-unit>
-            <trans-unit id="scan.error.loadFailed.description" resname="scan.error.loadFailed.description">
-                <source>The system could not retrieve scan results. Please try again later.</source>
-            </trans-unit>
             <trans-unit id="scan.error.storeFailed" resname="scan.error.storeFailed">
                 <source>Failed to store scan ID</source>
             </trans-unit>
@@ -526,19 +513,13 @@
                 <source>Could not store the scan ID in the database. Please try again.</source>
             </trans-unit>
             <trans-unit id="scan.helpLinks" resname="scan.helpLinks">
-                <source>More information:</source>
+                <source>More information</source>
             </trans-unit>
             <trans-unit id="scan.viewScreenshot" resname="scan.viewScreenshot">
                 <source>View Screenshot</source>
             </trans-unit>
             <trans-unit id="scan.screenshot" resname="scan.screenshot">
                 <source>Screenshot:</source>
-            </trans-unit>
-            <trans-unit id="scan.issue" resname="scan.issue">
-                <source>issue</source>
-            </trans-unit>
-            <trans-unit id="scan.issues" resname="scan.issues">
-                <source>issues</source>
             </trans-unit>
             <trans-unit id="scan.issueCount" resname="scan.issueCount">
                 <source>%d Issue</source>
@@ -556,10 +537,37 @@
                 <source>Processing...</source>
             </trans-unit>
             <trans-unit id="scan.issuesFound" resname="scan.issuesFound">
-                <source>%d accessibility issues found.</source>
+                <source>Last external scan: %d accessibility issues found</source>
             </trans-unit>
+            <trans-unit id="scan.noIssues" resname="scan.noIssues">
+                <source>Last external scan: No accessibility issues found</source>
+            </trans-unit>   
             <trans-unit id="scan.error.loading" resname="scan.error.loading">
                 <source>The last external scan failed.</source>
+            </trans-unit>
+            <trans-unit id="scan.error.notFound" resname="scan.error.notFound">
+                <source>Scan result not found</source>
+            </trans-unit>
+            <trans-unit id="scan.error.notFound.description" resname="scan.error.notFound.description">
+                <source>The requested scan result could not be found.</source>
+            </trans-unit>
+            <trans-unit id="scan.error.pageNotFound" resname="scan.error.pageNotFound">
+                <source>Page not found</source>
+            </trans-unit>
+            <trans-unit id="scan.error.pageNotFound.description" resname="scan.error.pageNotFound.description">
+                <source>The requested page or translation does not exist.</source>
+            </trans-unit>
+            <trans-unit id="scan.error.pageVisible" resname="scan.error.pageVisible">
+                <source>Page not visible</source>
+            </trans-unit>
+            <trans-unit id="scan.error.pageVisible.description" resname="scan.error.pageVisible.description">
+                <source>The page is hidden or not yet published. The external accessibility scanner cannot access it.</source>
+            </trans-unit>
+            <trans-unit id="scan.error.accessDenied" resname="scan.error.accessDenied">
+                <source>Access denied</source>
+            </trans-unit>
+            <trans-unit id="scan.error.accessDenied.description" resname="scan.error.accessDenied.description">
+                <source>You do not have access to view this scan result.</source>
             </trans-unit>
 
             <!-- Command: Cleanup Scan IDs -->

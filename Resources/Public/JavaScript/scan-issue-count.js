@@ -22,176 +22,176 @@
  * @description Web component for displaying the count of accessibility scan issues.
  * @typedef {import('./types.js').CreateScanDemand} CreateScanDemand
  */
-import { LitElement, html, css } from "lit";
-import ScanService from "./scan-service.js";
+import { html } from "lit";
+import "@typo3/backend/element/icon-element.js";
+import { ScanBase } from "./scan-base.js";
+import { ScanStatus } from "./types.js";
 
 /**
  * Web component for displaying the count of accessibility scan issues.
  *
  * @class ScanIssueCount
- * @extends LitElement
+ * @extends ScanBase
  */
-export class ScanIssueCount extends LitElement {
+export class ScanIssueCount extends ScanBase {
+  /**
+   * Component properties definition.
+   * Merges with base properties and adds scanUri.
+   *
+   * @returns {Object} The properties definition object for LitElement.
+   */
   static get properties() {
     return {
-      createScanDemand: { type: Object },
-      scanId: { type: String },
-      autoCreateScan: { type: Boolean },
+      ...super.properties,
       scanUri: { type: String },
-      _scanId: { state: true },
-      _status: { state: true },
-      _violations: { state: true },
-      _loading: { state: true },
     };
   }
 
+  /**
+   * Creates an instance of ScanIssueCount.
+   */
   constructor() {
     super();
-    this.createScanDemand = null;
-    this.scanId = '';
-    this.scanUri = '';
-    this.autoCreateScan = true;
-    this._scanId = '';
-    this._status = '';
-    this._violations = [];
-    this._loading = false;
-    this._pollInterval = null;
-    this._scanService = new ScanService();
+    this.scanUri = "";
+    // Note: scanService is initialized in ScanBase
   }
 
-  connectedCallback() {
-    super.connectedCallback();
-    if (this.scanId) {
-      this._loadScan(this.scanId);
-    } else if (this.autoCreateScan && this.createScanDemand) {
-      this._createScan();
-    }
-  }
-
-  disconnectedCallback() {
-    super.disconnectedCallback();
-    this._stopPolling();
-  }
-
-  async _createScan() {
-    this._loading = true;
-    this._status = 'pending';
-    this._violations = [];
-    
-    try {
-      const result = await this._scanService.createScan(this.createScanDemand);
-      this._scanId = result.scanId;
-      this._status = result.status;
-      this._startPolling();
-    } catch (error) {
-      this._status = 'failed';
-    }
-    
-    this._loading = false;
-  }
-
-  async _loadScan(scanId = this._scanId) {
-    if (!scanId) return;
-    
-    this._loading = true;
-    
-    try {
-      const result = await this._scanService.loadScan(scanId);
-      if (result) {
-        this._status = result.status;
-        this._violations = result.violations;
-        
-        if (result.status === 'completed' || result.status === 'failed') {
-          this._stopPolling();
-        }
-      } else {
-        this._scanId = '';
-        this._status = '';
-        this._violations = [];
-      }
-    } catch (error) {
-      this._status = 'failed';
-    }
-    
-    this._loading = false;
-  }
-
-  _startPolling() {
-    this._stopPolling();
-    this._pollInterval = setInterval(() => this._loadScan(), 5000);
-  }
-
-  _stopPolling() {
-    if (this._pollInterval) {
-      clearInterval(this._pollInterval);
-      this._pollInterval = null;
-    }
-  }
-
+  /**
+   * Renders the component template.
+   *
+   * @returns {import('lit').TemplateResult|null}
+   */
   render() {
     if (!this.scanId && !this.createScanDemand) {
       return null;
     }
 
-    const issueCount = this._scanService.getTotalIssues(this._violations);
-    const detailsLink = this.scanUri ? html`
-      <a href="${this.scanUri}" class="btn btn-sm btn-default ms-2">
-        ${TYPO3.lang["mindfula11y.viewDetails"]}
-      </a>
-    ` : '';
+    const config = this._getStatusConfiguration();
+    if (!config) return null;
 
-    if (this._loading) {
-      return html`
-        <p class="alert alert-info">
-          <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
-          ${TYPO3.lang["mindfula11y.scan.loading"]}
-          ${detailsLink}
-        </p>
-      `;
-    }
+    return html`
+      <div
+        aria-live="${this._shouldAnnounce ? "polite" : "off"}"
+        aria-atomic="true"
+      >
+        ${this._renderStatusDisplay(config)}
+      </div>
+    `;
+  }
 
-    if (this._status === 'pending' || this._status === 'running') {
-      return html`
-        <p class="alert alert-info">
-          <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
-          ${this._status === 'pending' 
-            ? TYPO3.lang["mindfula11y.scan.status.pending"] 
-            : TYPO3.lang["mindfula11y.scan.status.running"]}
-          ${detailsLink}
-        </p>
-      `;
-    }
+  /**
+   * Determines the current status configuration including view mode and text.
+   *
+   * @protected
+   * @returns {Object|null} Configuration object
+   */
+  _getStatusConfiguration() {
+    switch (this._getViewState()) {
+      case ScanStatus.LOADING:
+        let text = TYPO3.lang["mindfula11y.scan.loading"];
+        if (!this._isFetching) {
+          if (this._status === "pending") {
+            text = TYPO3.lang["mindfula11y.scan.status.pending"];
+          } else if (this._status === "running") {
+            text = TYPO3.lang["mindfula11y.scan.status.running"];
+          }
+        }
+        return {
+          view: "info",
+          text: text,
+          showSpinner: true,
+        };
 
-    if (this._status === 'failed') {
-      return html`
-        <p class="alert alert-danger">
-          ${TYPO3.lang["mindfula11y.scan.error.loading"]}
-          ${detailsLink}
-        </p>
-      `;
-    }
+      case ScanStatus.FAILED:
+        return {
+          view: "danger",
+          text:
+            this._errorMessage || TYPO3.lang["mindfula11y.scan.error.loading"],
+        };
 
-    if (this._status === 'completed' && issueCount > 0) {
-      return html`
-        <p class="alert alert-warning">
-          ${TYPO3.lang["mindfula11y.scan.issuesFound"].replace('%d', issueCount)}
-          ${detailsLink}
-        </p>
-      `;
-    }
+      case ScanStatus.ISSUES:
+        const issueCount = this._scanService.getTotalIssues(this._violations);
+        return {
+          view: "warning",
+          text: TYPO3.lang["mindfula11y.scan.issuesFound"].replace(
+            "%d",
+            issueCount
+          ),
+        };
 
-    if (this._status === 'completed') {
-      return html`
-        <p class="alert alert-success">
-          ${TYPO3.lang["mindfula11y.scan.noIssues"]}
-          ${detailsLink}
-        </p>
-      `;
+      case ScanStatus.SUCCESS:
+        return {
+          view: "success",
+          text: TYPO3.lang["mindfula11y.scan.noIssues"],
+        };
     }
 
     return null;
   }
 
+  /**
+   * Renders the status display element.
+   *
+   * @protected
+   * @param {Object} config
+   * @returns {import('lit').TemplateResult}
+   */
+  _renderStatusDisplay(config) {
+    const detailsLink = this.scanUri
+      ? html`
+          <a href="${this.scanUri}" class="btn btn-sm btn-default ms-2">
+            ${TYPO3.lang["mindfula11y.general.viewDetails"]}
+          </a>
+        `
+      : "";
+
+    let icon = "";
+    if (config.showSpinner) {
+      icon = html`<span
+        class="spinner-border spinner-border-sm"
+        aria-hidden="true"
+      ></span>`;
+    } else if (config.view === "success") {
+      icon = html`<typo3-backend-icon
+        identifier="status-dialog-ok"
+        size="small"
+      ></typo3-backend-icon>`;
+    } else if (config.view === "warning") {
+      icon = html`<typo3-backend-icon
+        identifier="status-dialog-warning"
+        size="small"
+      ></typo3-backend-icon>`;
+    } else if (config.view === "danger") {
+      icon = html`<typo3-backend-icon
+        identifier="status-dialog-error"
+        size="small"
+      ></typo3-backend-icon>`;
+    } else if (config.view === "info") {
+      icon = html`<typo3-backend-icon
+        identifier="status-dialog-information"
+        size="small"
+      ></typo3-backend-icon>`;
+    }
+
+    return html`
+      <div class="callout callout-${config.view}">
+        <div class="callout-icon">
+          <span class="icon-emphasized">
+            ${icon}
+          </span>
+        </div>
+        <div class="callout-content">
+          <div class="callout-title mb-0">${config.text} ${detailsLink}</div>
+        </div>
+      </div>
+    `;
+  }
+
+  /**
+   * Disables Shadow DOM.
+   *
+   * @returns {HTMLElement}
+   */
   createRenderRoot() {
     return this;
   }

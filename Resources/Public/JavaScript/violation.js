@@ -22,6 +22,7 @@
  * @description Web component for rendering individual accessibility violations.
  */
 import { LitElement, html } from "lit";
+import "@typo3/backend/element/icon-element.js";
 import "./issue.js";
 
 /**
@@ -57,6 +58,7 @@ export class Violation extends LitElement {
       rule: { type: Object },
       issueCount: { type: Number },
       issues: { type: Array },
+      isOpen: { type: Boolean, state: true },
     };
   }
 
@@ -68,6 +70,24 @@ export class Violation extends LitElement {
     this.rule = {};
     this.issueCount = 0;
     this.issues = [];
+    this.isOpen = false;
+    this._uniqueId = `mindfula11y-violation-${Math.random()
+      .toString(36)
+      .substr(2, 9)}`;
+  }
+
+  connectedCallback() {
+    super.connectedCallback();
+    this.classList.add("card", "mb-0");
+  }
+
+  /**
+   * Toggles the accordion state.
+   *
+   * @private
+   */
+  _toggle() {
+    this.isOpen = !this.isOpen;
   }
 
   /**
@@ -76,75 +96,94 @@ export class Violation extends LitElement {
    * @returns {import('lit').TemplateResult} The rendered template for the component.
    */
   render() {
+    const headingId = `mindfula11y-violation-heading-${this._uniqueId}`;
+    const contentId = `mindfula11y-violation-content-${this._uniqueId}`;
+
     return html`
-      <h2 class="mb-2">${this.rule.description}</h2>
-
-      <div class="mb-3">
-        <span class="${this._getSeverityBadgeClass()}">
-          ${this._getSeverityLabel()}
-        </span>
-        <span class="badge badge-light ms-2">
-          ${this.issueCount === 1
-            ? TYPO3.lang["mindfula11y.scan.issueCount"].replace(
-                "%d",
-                this.issueCount
-              )
-            : TYPO3.lang["mindfula11y.scan.issuesCount"].replace(
-                "%d",
-                this.issueCount
-              )}
-        </span>
-      </div>
-
-      ${this.rule.urls && this.rule.urls.length > 0
-        ? this.rule.urls.length === 1
-          ? html`
-              <div class="mb-3">
-                <p class="mb-2">
-                  ${TYPO3.lang["mindfula11y.scan.helpLinks"]}
-                  <a href="${this.rule.urls[0]}" target="_blank" rel="noopener">
-                    ${this.rule.urls[0]}
-                  </a>
-                </p>
-              </div>
-            `
-          : html`
-              <div class="mb-3">
-                <h3 class="h3">${TYPO3.lang["mindfula11y.scan.helpLinks"]}</h3>
-                <ul class="list-unstyled">
-                  ${this.rule.urls.map(
-                    (url) => html`
-                      <li class="mb-1">
-                        <a href="${url}" target="_blank" rel="noopener">
-                          ${url}
-                        </a>
-                      </li>
-                    `
+      <h2 class="card-header p-0 mb-0" id="${headingId}">
+        <button
+          type="button"
+          class="btn btn-link mindfula11y-violation__toggle-btn"
+          aria-expanded="${this.isOpen}"
+          aria-controls="${contentId}"
+          @click="${this._toggle}"
+        >
+          <div class="d-flex align-items-center text-start gap-2">
+            <typo3-backend-icon
+              identifier="actions-chevron-right"
+              size="medium"
+              class="mindfula11y-violation__toggle-icon"
+              aria-hidden="true"
+            ></typo3-backend-icon>
+            <span class="h5 mb-0">${this.rule.description}</span>
+          </div>
+          <div>
+            <span class="${this._getSeverityBadgeClass()}">
+              ${this._getSeverityLabel()}
+            </span>
+            <span class="badge badge-light ms-2">
+              ${this.issueCount === 1
+                ? TYPO3.lang["mindfula11y.scan.issueCount"].replace(
+                    "%d",
+                    this.issueCount
+                  )
+                : TYPO3.lang["mindfula11y.scan.issuesCount"].replace(
+                    "%d",
+                    this.issueCount
                   )}
-                </ul>
+            </span>
+          </div>
+        </button>
+      </h2>
+      <div
+        id="${contentId}"
+        class="card-body ${this.isOpen ? "" : "d-none"}"
+        role="region"
+        aria-labelledby="${headingId}"
+      >
+        ${this.rule.urls && this.rule.urls.length > 0
+          ? html`
+              <div class="mb-3 d-flex flex-wrap gap-2">
+                ${this.rule.urls.map(
+                  (url) => html`
+                    <a
+                      href="${url}"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="btn btn-default btn-sm"
+                    >
+                      <typo3-backend-icon
+                        identifier="actions-info"
+                        size="small"
+                        aria-hidden="true"
+                      ></typo3-backend-icon>
+                      ${TYPO3.lang["mindfula11y.scan.helpLinks"]}
+                    </a>
+                  `
+                )}
               </div>
             `
-        : null}
-      ${this.issues && this.issues.length > 0
-        ? html`
-            <h3 class="h3">${TYPO3.lang["mindfula11y.scan.issuesList"]}</h3>
-            <ul class="list-group list-group-flush">
-              ${this.issues.map(
-                (issue) => html`
-                  <li class="list-group-item">
-                    <mindfula11y-issue
-                      issueId="${issue.id}"
-                      selector="${issue.selector}"
-                      context="${issue.context}"
-                      screenshotUrl="${issue.screenshotUrl}"
-                    >
-                    </mindfula11y-issue>
-                  </li>
-                `
-              )}
-            </ul>
-          `
-        : null}
+          : null}
+        ${this.issues && this.issues.length > 0
+          ? html`
+              <ul class="list-group list-group-flush">
+                ${this.issues.map(
+                  (issue) => html`
+                    <li class="list-group-item">
+                      <mindfula11y-issue
+                        issueId="${issue.id}"
+                        selector="${issue.selector}"
+                        context="${issue.context}"
+                        screenshotUrl="${issue.screenshotUrl}"
+                      >
+                      </mindfula11y-issue>
+                    </li>
+                  `
+                )}
+              </ul>
+            `
+          : null}
+      </div>
     `;
   }
 

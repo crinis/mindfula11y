@@ -23,7 +23,6 @@
  * @typedef {import('./types.js').CreateScanDemand} CreateScanDemand
  */
 import AjaxRequest from "@typo3/core/ajax/ajax-request.js";
-import Notification from "@typo3/backend/notification.js";
 
 /**
  * Service for managing accessibility scan operations.
@@ -38,27 +37,20 @@ export class ScanService {
    */
   async createScan(createScanDemand) {
     try {
-      const response = await new AjaxRequest(TYPO3.settings.ajaxUrls.mindfula11y_createscan)
-        .post(createScanDemand);
+      const response = await new AjaxRequest(
+        TYPO3.settings.ajaxUrls.mindfula11y_createscan
+      ).post(createScanDemand);
       const data = await response.resolve();
-      
-      Notification.info(
-        TYPO3.lang['mindfula11y.scan.created'],
-        TYPO3.lang['mindfula11y.scan.created.description']
-      );
-      
-      return { scanId: data.scanId, status: data.status || 'pending' };
+
+      return { scanId: data.scanId, status: data.status || "pending" };
     } catch (error) {
       if (error.response) {
         const errorData = await error.response.json();
         if (errorData?.error) {
-          Notification.error(errorData.error.title, errorData.error.description);
+          const customError = new Error(errorData.error.title);
+          customError.description = errorData.error.description;
+          throw customError;
         }
-      } else {
-        Notification.error(
-          TYPO3.lang['mindfula11y.scan.error.createFailed'],
-          TYPO3.lang['mindfula11y.scan.error.createFailed.description']
-        );
       }
       throw error;
     }
@@ -71,14 +63,16 @@ export class ScanService {
    */
   async loadScan(scanId) {
     try {
-      const response = await new AjaxRequest(TYPO3.settings.ajaxUrls.mindfula11y_getscan)
+      const response = await new AjaxRequest(
+        TYPO3.settings.ajaxUrls.mindfula11y_getscan
+      )
         .withQueryArguments({ scanId })
         .get();
       const data = await response.resolve();
-      
+
       return {
-        status: data.status || 'completed',
-        violations: data.violations || []
+        status: data.status || "completed",
+        violations: data.violations || [],
       };
     } catch (error) {
       if (error.response?.status === 404) {
@@ -87,13 +81,10 @@ export class ScanService {
       if (error.response) {
         const errorData = await error.response.json();
         if (errorData?.error) {
-          Notification.error(errorData.error.title, errorData.error.description);
+          const customError = new Error(errorData.error.title);
+          customError.description = errorData.error.description;
+          throw customError;
         }
-      } else {
-        Notification.error(
-          TYPO3.lang['mindfula11y.scan.error.loadFailed'],
-          TYPO3.lang['mindfula11y.scan.error.loadFailed.description']
-        );
       }
       throw error;
     }

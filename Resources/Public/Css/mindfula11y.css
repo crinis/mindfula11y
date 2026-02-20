@@ -1,0 +1,168 @@
+/**
+ * mindfula11y.css
+ * BEM styled components for Mindful A11y extension.
+ */
+
+/* Violation Block */
+.mindfula11y-violation__toggle-btn {
+  display: flex !important;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 1rem;
+  color: inherit;
+  text-decoration: none;
+}
+
+.mindfula11y-violation__toggle-btn:hover,
+.mindfula11y-violation__toggle-btn:focus {
+  color: inherit;
+  text-decoration: none;
+}
+
+.mindfula11y-violation__toggle-icon {
+  transition: transform 0.2s ease-in-out;
+}
+
+.mindfula11y-violation__toggle-btn[aria-expanded="true"] .mindfula11y-violation__toggle-icon {
+  transform: rotate(90deg);
+}
+
+.mindfula11y-violation__toggle-btn:focus-visible {
+  z-index: 1;
+}
+
+/* Issue Block */
+.mindfula11y-issue__screenshot-preview {
+  display: flex;
+  flex-grow: 1;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  border-radius: var(--typo3-component-border-radius, 0.25rem);
+  background-color: var(--typo3-surface-container-low, #f8f9fa);
+  border: 1px solid var(--typo3-component-border-color, #dee2e6);
+  color: var(--typo3-component-color, inherit);
+}
+
+@media (min-width: 48rem) {
+  .mindfula11y-issue__screenshot-col {
+    border-inline-end: 1px solid var(--typo3-component-border-color, #ccc);
+  }
+}
+
+/* Issue Component */
+.mindfula11y-issue__code-block {
+  background-color: var(--typo3-component-bg);
+  --bs-border-color: var(--typo3-component-border-color);
+  color: var(--typo3-text-color-base);
+}
+
+.mindfula11y-issue__screenshot-img {
+  max-height: 250px;
+  object-fit: contain;
+}
+
+/* Scan Component */
+.mindfula11y-scan__loading-spinner {
+  width: 3rem;
+  height: 3rem;
+}
+
+/* Landmark Box Component */
+.mindfula11y-landmark-box__role-select {
+  max-width: 16rem;
+}
+
+/* Heading Type Component */
+.mindfula11y-heading-type__level-select {
+  max-width: 6rem;
+}
+
+/* Landmark Structure Component */
+.mindfula11y-landmark-structure__errors + .mindfula11y-landmark-boxes {
+  margin-block-start: 1.5rem;
+}
+
+/* Heading Structure Component */
+.mindfula11y-tree {
+  --spacing: 2.25rem;
+  --radius: 0.5rem;
+  --color: var(--typo3-badge-success-border-color);
+  --color-error: var(--typo3-badge-danger-border-color);
+  --color-warning: var(--typo3-badge-warning-border-color);
+  --border-width: 4px;
+}
+
+.mindfula11y-heading-structure__errors + .mindfula11y-tree {
+  margin-block-start: 1.5rem;
+}
+
+.mindfula11y-tree .mindfula11y-tree__node {
+  display: block;
+  position: relative;
+  padding-left: calc(
+    2 * var(--spacing) - var(--radius) - var(--border-width)
+  );
+}
+
+.mindfula11y-tree ol {
+  margin-left: calc(var(--radius) - var(--spacing));
+  padding-left: 0;
+}
+
+.mindfula11y-tree ol .mindfula11y-tree__node {
+  border-left: var(--border-width) solid var(--color);
+}
+
+.mindfula11y-tree ol .mindfula11y-tree__node:last-child {
+  border-color: transparent;
+}
+
+.mindfula11y-tree ol .mindfula11y-tree__node::before {
+  content: "";
+  display: block;
+  position: absolute;
+  top: calc(var(--spacing) / -2);
+  left: calc(-1 * var(--border-width));
+  width: calc(var(--spacing) + var(--border-width));
+  height: calc(var(--spacing) + 1px);
+  border: solid var(--color);
+  border-width: 0 0 var(--border-width) var(--border-width);
+}
+
+.mindfula11y-tree .mindfula11y-tree__node::after {
+  content: "";
+  display: block;
+  position: absolute;
+  top: calc(var(--spacing) / 2 - var(--radius));
+  left: calc(var(--spacing) - var(--radius) - 1px);
+  width: calc(2 * var(--radius));
+  height: calc(2 * var(--radius));
+  border-radius: 50%;
+  background: var(--color);
+}
+
+.mindfula11y-tree ol .mindfula11y-tree__node--error {
+  border-color: var(--color-error);
+}
+
+.mindfula11y-tree ol .mindfula11y-tree__node--error::before {
+  border-color: var(--color-error);
+}
+
+.mindfula11y-tree .mindfula11y-tree__node--error::after {
+  background: var(--color-error);
+}
+
+.mindfula11y-tree ol .mindfula11y-tree__node--warning {
+  border-color: var(--color-warning);
+}
+
+.mindfula11y-tree ol .mindfula11y-tree__node--warning::before {
+  border-color: var(--color-warning);
+}
+
+.mindfula11y-tree .mindfula11y-tree__node--warning::after {
+  background: var(--color-warning);
+}
