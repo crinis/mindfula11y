@@ -92,7 +92,7 @@ export class ErrorList extends LitElement {
         class="mindfula11y-accessibility-structure__errors"
         role="${this.firstRun ? '' : 'alert'}"
       >
-        <ul class="list-unstyled">
+        <ul class="list-unstyled" role="list">
           ${errors.map(error => this._renderSingleError(error))}
         </ul>
       </section>
@@ -117,7 +117,7 @@ export class ErrorList extends LitElement {
         : "status-dialog-error";
 
     return html`
-      <li>
+      <li role="listitem">
         <div class="callout ${calloutClass}">
           <div class="callout-icon">
             <span class="icon-emphasized">

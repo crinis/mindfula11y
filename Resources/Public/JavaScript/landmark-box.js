@@ -221,7 +221,7 @@ export class LandmarkBox extends LitElement {
     }
 
     return html`
-      <ul class="list-unstyled mt-0 mb-2 small text-danger">
+      <ul class="list-unstyled mt-0 mb-2 small text-danger" role="list">
         ${this.errorMessages.map((errorObj) => {
           // Handle both string messages (legacy) and error objects with severity
           const message =
@@ -231,7 +231,7 @@ export class LandmarkBox extends LitElement {
           const textClass =
             severity === "warning" ? "text-warning" : "text-danger";
 
-          return html`<li class="${textClass}">${message}</li>`;
+          return html`<li class="${textClass}" role="listitem">${message}</li>`;
         })}
       </ul>
     `;

@@ -21,13 +21,13 @@
         <div class="callout-body">
           <f:if condition="{paginator.paginatedItems -> f:count()} > 0">
             <f:then>
-              <ul class="list-unstyled mb-0">
+              <ul class="list-unstyled mb-0" role="list">
                 <f:for
                   each="{paginator.paginatedItems}"
                   as="fileReference"
                   iteration="iterator"
                 >
-                  <li class="{f:if(condition: iterator.isFirst, else: 'mb-3')}">
+                  <li class="{f:if(condition: iterator.isFirst, else: 'mb-3')}" role="listitem">
                     <f:alias
                       map="{originalResource: fileReference.originalResource}"
                     >

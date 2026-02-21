@@ -126,6 +126,7 @@ export class HeadingStructure extends LitElement {
     return html`
       <ol
         class="${isRoot ? "mindfula11y-tree list-unstyled" : "list-unstyled"}"
+        role="list"
       >
         ${nodes.map((node) => this._renderHeadingNode(node))}
       </ol>
@@ -162,7 +163,7 @@ export class HeadingStructure extends LitElement {
     }
 
     let content = html`
-      <li class="${nodeClass}">
+      <li class="${nodeClass}" role="listitem">
         ${this._createHeadingType(node)}
         ${this._renderHeadingTree(node.children, false)}
       </li>
@@ -187,7 +188,7 @@ export class HeadingStructure extends LitElement {
     for (let i = 0; i < node.skippedLevels; i++) {
       const skippedLevel = node.level - i - 1;
       wrappedContent = html`
-        <li class="mindfula11y-tree__node mindfula11y-tree__node--error">
+        <li class="mindfula11y-tree__node mindfula11y-tree__node--error" role="listitem">
           <div class="alert alert-danger py-2 px-3 mb-2">
             <span class="fw-bold">
               ${TYPO3.lang[
@@ -195,7 +196,7 @@ export class HeadingStructure extends LitElement {
               ]?.replace("%1$d", skippedLevel)}
             </span>
           </div>
-          <ol class="list-unstyled">
+          <ol class="list-unstyled" role="list">
             ${wrappedContent}
           </ol>
         </li>

@@ -8,9 +8,9 @@
   <nav
     aria-label="{f:translate(key: 'LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:altText.pagination.navigation')}"
   >
-    <ul class="pagination">
+    <ul class="pagination" role="list">
       <f:if condition="{pagination.previousPageNumber}">
-        <li class="page-item">
+        <li class="page-item" role="listitem">
           <a
             href="{be:moduleLink(route: 'mindfula11y_missingalttext', arguments: {id: moduleData.id, languageId: moduleData.languageId, pageLevels: moduleData.pageLevels, tableName: moduleData.tableName, filterFileMetaData: moduleData.filterFileMetaData, currentPage: pagination.previousPageNumber})}"
             class="page-link"
@@ -22,6 +22,7 @@
       </f:if>
       <f:for each="{pagination.allPageNumbers}" as="pageNumber">
         <li
+          role="listitem"
           class="page-item{f:if(condition: '{pageNumber} == {paginator.currentPageNumber}', then: ' active')}"
         >
           <a
@@ -35,7 +36,7 @@
         </li>
       </f:for>
       <f:if condition="{pagination.nextPageNumber}">
-        <li class="page-item">
+        <li class="page-item" role="listitem">
           <a
             href="{be:moduleLink(route: 'mindfula11y_missingalttext', arguments: {id: moduleData.id, languageId: moduleData.languageId, pageLevels: moduleData.pageLevels, tableName: moduleData.tableName, filterFileMetaData: moduleData.filterFileMetaData, currentPage: pagination.nextPageNumber})}"
             class="page-link"
