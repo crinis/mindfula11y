@@ -49,6 +49,7 @@ export class ScanBase extends LitElement {
       _isFetching: { state: true },
       _errorMessage: { state: true },
       _shouldAnnounce: { state: true },
+      _totalIssueCount: { state: true },
     };
   }
 
@@ -68,6 +69,7 @@ export class ScanBase extends LitElement {
     this._pollInterval = null;
     this._scanService = new ScanService();
     this._shouldAnnounce = false;
+    this._totalIssueCount = 0;
   }
 
   /**
@@ -86,13 +88,7 @@ export class ScanBase extends LitElement {
       return ScanStatus.FAILED;
     }
 
-    // Check for violations or completion
-    const issueCount =
-      this._violations && this._scanService
-        ? this._scanService.getTotalIssues(this._violations)
-        : 0;
-
-    if (issueCount > 0) {
+    if (this._totalIssueCount > 0) {
       return ScanStatus.ISSUES;
     }
 
@@ -171,6 +167,7 @@ export class ScanBase extends LitElement {
         this._scanId = scanId;
         this._status = result.status;
         this._violations = result.violations;
+        this._totalIssueCount = result.totalIssueCount;
 
         if (
           result.status === "completed" ||
@@ -183,6 +180,7 @@ export class ScanBase extends LitElement {
         this._scanId = "";
         this._status = "";
         this._violations = [];
+        this._totalIssueCount = 0;
       }
     } catch (error) {
       this._status = "failed";

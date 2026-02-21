@@ -1,6 +1,6 @@
 {
     "name": "mindfulmarkup/mindfula11y",
-    "description": "Find and fix accessibility issues in TYPO3: viewhelpers for semantic headings and landmarks, missing image alt detection and generation with AI (ChatGPT). A backend module for quick remediation. More features to come.",
+    "description": "Find and fix accessibility issues in TYPO3: viewhelpers for semantic headings and landmarks, missing image alt detection and generation with AI (ChatGPT). Integration of an external axe-core scanner. A backend module for quick remediation.",
     "type": "typo3-cms-extension",
     "license": [
         "GPL-2.0-or-later"

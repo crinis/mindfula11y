@@ -82,6 +82,41 @@ export const ScanStatus = Object.freeze({
  */
 
 /**
+ * @typedef {Object} RuleResponseDto
+ * @property {string} id - Axe rule identifier.
+ * @property {string} description - Human-readable description of the rule.
+ * @property {string|null} helpUrl - Link to remediation guidance (nullable).
+ * @property {Array<string>} [tags] - WCAG and category tags for this rule.
+ */
+
+/**
+ * @typedef {Object} IssueResponseDto
+ * @property {number} id - Unique issue identifier.
+ * @property {string|null} pageUrl - URL of the page where the issue was found.
+ * @property {string|null} selector - CSS selector identifying the element with the issue.
+ * @property {string|null} context - HTML snippet of the problematic element.
+ */
+
+/**
+ * @typedef {Object} ViolationResponseDto
+ * @property {RuleResponseDto} rule - The accessibility rule that was violated.
+ * @property {'critical'|'serious'|'moderate'|'minor'} impact - Severity of the violation.
+ * @property {Array<IssueResponseDto>} issues - Issue occurrences for this rule+impact pair.
+ */
+
+/**
+ * @typedef {Object} ScanResponseDto
+ * @property {number} id - Unique scan run identifier.
+ * @property {'single_url'|'url_list'|'crawl'} mode - Scan mode used.
+ * @property {Array<string>} targets - Input URL targets or crawl seeds.
+ * @property {'pending'|'running'|'completed'|'failed'} status - Current scan status.
+ * @property {Array<ViolationResponseDto>} violations - Accessibility violations grouped by rule and impact.
+ * @property {number} totalIssueCount - Sum of issue occurrences across all violations.
+ * @property {string} createdAt - ISO 8601 timestamp when the scan was created.
+ * @property {string} updatedAt - ISO 8601 timestamp when the scan was last updated.
+ */
+
+/**
  * @typedef {Object} TreeBuildingState
  * @property {Array<HeadingTreeNode>} rootNodes - Root nodes of the tree
  * @property {Array<HeadingTreeNode>} parentStack - Stack of parent nodes for hierarchy tracking

@@ -358,7 +358,7 @@ class ScanAjaxController extends ActionController
         }
 
         // Get scan
-        $scan = $this->scanApiService->get($scanId);
+        $scan = $this->scanApiService->getScan($scanId);
 
         if (null === $scan) {
             return $this->jsonResponse(

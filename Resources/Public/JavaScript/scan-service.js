@@ -21,6 +21,8 @@
  * @file scan-service.js
  * @description Service for accessibility scan operations.
  * @typedef {import('./types.js').CreateScanDemand} CreateScanDemand
+ * @typedef {import('./types.js').ScanResponseDto} ScanResponseDto
+ * @typedef {import('./types.js').ViolationResponseDto} ViolationResponseDto
  */
 import AjaxRequest from "@typo3/core/ajax/ajax-request.js";
 
@@ -59,7 +61,7 @@ export class ScanService {
   /**
    * Loads scan results from the server.
    * @param {string} scanId
-   * @returns {Promise<{status: string, violations: Array}|null>}
+   * @returns {Promise<{status: string, violations: Array, totalIssueCount: number}|null>}
    */
   async loadScan(scanId) {
     try {
@@ -73,6 +75,7 @@ export class ScanService {
       return {
         status: data.status || "completed",
         violations: data.violations || [],
+        totalIssueCount: data.totalIssueCount ?? 0,
       };
     } catch (error) {
       if (error.response?.status === 404) {

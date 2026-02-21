@@ -110,12 +110,11 @@ export class ScanIssueCount extends ScanBase {
         };
 
       case ScanStatus.ISSUES:
-        const issueCount = this._scanService.getTotalIssues(this._violations);
         return {
           view: "warning",
           text: TYPO3.lang["mindfula11y.scan.issuesFound"].replace(
             "%d",
-            issueCount
+            this._totalIssueCount
           ),
         };
 

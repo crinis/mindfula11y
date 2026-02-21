@@ -112,6 +112,7 @@ class ScanApiService
                 [
                     'headers' => $headers,
                     'body' => json_encode([
+                        'mode' => 'single_url',
                         'url' => $url,
                     ]),
                     'timeout' => self::REQUEST_TIMEOUT,
@@ -142,7 +143,7 @@ class ScanApiService
      * @param string $scanId The scan ID.
      * @return array|null The scan or null if failed.
      */
-    public function get(string $scanId): ?array
+    public function getScan(string $scanId): ?array
     {
         if (!$this->isConfigured()) {
             $this->logger->error('Accessibility scanner API is not configured');
