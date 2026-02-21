@@ -56,7 +56,7 @@ export class Violation extends LitElement {
   static get properties() {
     return {
       rule: { type: Object },
-      issueCount: { type: Number },
+      impact: { type: String },
       issues: { type: Array },
       isOpen: { type: Boolean, state: true },
     };
@@ -68,7 +68,7 @@ export class Violation extends LitElement {
   constructor() {
     super();
     this.rule = {};
-    this.issueCount = 0;
+    this.impact = "";
     this.issues = [];
     this.isOpen = false;
     this._uniqueId = `mindfula11y-violation-${Math.random()
@@ -122,14 +122,14 @@ export class Violation extends LitElement {
               ${this._getSeverityLabel()}
             </span>
             <span class="badge badge-light ms-2">
-              ${this.issueCount === 1
+              ${this.issues.length === 1
                 ? TYPO3.lang["mindfula11y.scan.issueCount"].replace(
                     "%d",
-                    this.issueCount
+                    this.issues.length
                   )
                 : TYPO3.lang["mindfula11y.scan.issuesCount"].replace(
                     "%d",
-                    this.issueCount
+                    this.issues.length
                   )}
             </span>
           </div>
@@ -141,26 +141,22 @@ export class Violation extends LitElement {
         role="region"
         aria-labelledby="${headingId}"
       >
-        ${this.rule.urls && this.rule.urls.length > 0
+        ${this.rule.helpUrl
           ? html`
-              <div class="mb-3 d-flex flex-wrap gap-2">
-                ${this.rule.urls.map(
-                  (url) => html`
-                    <a
-                      href="${url}"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      class="btn btn-default btn-sm"
-                    >
-                      <typo3-backend-icon
-                        identifier="actions-info"
-                        size="small"
-                        aria-hidden="true"
-                      ></typo3-backend-icon>
-                      ${TYPO3.lang["mindfula11y.scan.helpLinks"]}
-                    </a>
-                  `
-                )}
+              <div class="mb-3">
+                <a
+                  href="${this.rule.helpUrl}"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="btn btn-default btn-sm"
+                >
+                  <typo3-backend-icon
+                    identifier="actions-info"
+                    size="small"
+                    aria-hidden="true"
+                  ></typo3-backend-icon>
+                  ${TYPO3.lang["mindfula11y.scan.helpLinks"]}
+                </a>
               </div>
             `
           : null}
@@ -174,7 +170,6 @@ export class Violation extends LitElement {
                         issueId="${issue.id}"
                         selector="${issue.selector}"
                         context="${issue.context}"
-                        screenshotUrl="${issue.screenshotUrl}"
                       >
                       </mindfula11y-issue>
                     </li>
@@ -188,31 +183,32 @@ export class Violation extends LitElement {
   }
 
   /**
-   * Gets the Bootstrap badge class for violation severity.
+   * Gets the Bootstrap badge class for violation impact.
    *
    * @private
    * @returns {string} Bootstrap badge CSS classes.
    */
   _getSeverityBadgeClass() {
-    switch (this.rule.impact) {
-      case "error":
+    switch (this.impact) {
+      case "critical":
+      case "serious":
         return "badge badge-danger";
-      case "warning":
+      case "moderate":
         return "badge badge-warning";
-      case "notice":
+      case "minor":
       default:
         return "badge badge-info";
     }
   }
 
   /**
-   * Gets the localized severity label.
+   * Gets the localized impact label.
    *
    * @private
-   * @returns {string} Localized severity label.
+   * @returns {string} Localized impact label.
    */
     _getSeverityLabel() {
-    return TYPO3.lang[`mindfula11y.severity.${this.rule.impact}`];
+    return TYPO3.lang[`mindfula11y.severity.${this.impact}`] || this.impact;
   }
 
   /**

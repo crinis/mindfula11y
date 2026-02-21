@@ -319,9 +319,12 @@ class PermissionService
         }
 
         foreach ($columnNames as $columnName) {
-            if (
-                !$backendUser->check('non_exclude_fields', $tableName . ':' . $columnName)
-            ) {
+            // Fields that are not marked as exclude in TCA are always accessible — only check
+            // the user's granted non_exclude_fields list when the field actually has exclude: true.
+            if (!($GLOBALS['TCA'][$tableName]['columns'][$columnName]['exclude'] ?? false)) {
+                continue;
+            }
+            if (!$backendUser->check('non_exclude_fields', $tableName . ':' . $columnName)) {
                 return false;
             }
         }

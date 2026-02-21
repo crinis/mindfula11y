@@ -74,12 +74,13 @@ class ScanApiService
 
     /**
      * Check if the scanner service is configured.
+     * Only the API URL is required; the token is optional (the API supports open access).
      *
      * @return bool True if configured, false otherwise.
      */
     public function isConfigured(): bool
     {
-        return !empty($this->getApiUrl()) && !empty($this->getApiToken());
+        return !empty($this->getApiUrl());
     }
 
     /**
@@ -96,19 +97,22 @@ class ScanApiService
         }
 
         try {
+            $headers = [
+                'Content-Type' => 'application/json',
+                'Accept' => 'application/json',
+            ];
+            $apiToken = $this->getApiToken();
+            if (!empty($apiToken)) {
+                $headers['Authorization'] = 'Bearer ' . $apiToken;
+            }
+
             $response = $this->requestFactory->request(
                 $this->getApiUrl() . '/scans',
                 'POST',
                 [
-                    'headers' => [
-                        'Authorization' => 'Bearer ' . $this->getApiToken(),
-                        'Content-Type' => 'application/json',
-                        'Accept' => 'application/json',
-                    ],
+                    'headers' => $headers,
                     'body' => json_encode([
                         'url' => $url,
-                        'language' => 'en',
-                        'scannerType' => 'axe',
                     ]),
                     'timeout' => self::REQUEST_TIMEOUT,
                 ]
@@ -146,14 +150,17 @@ class ScanApiService
         }
 
         try {
+            $headers = ['Accept' => 'application/json'];
+            $apiToken = $this->getApiToken();
+            if (!empty($apiToken)) {
+                $headers['Authorization'] = 'Bearer ' . $apiToken;
+            }
+
             $response = $this->requestFactory->request(
                 $this->getApiUrl() . '/scans/' . $scanId,
                 'GET',
                 [
-                    'headers' => [
-                        'Authorization' => 'Bearer ' . $this->getApiToken(),
-                        'Accept' => 'application/json',
-                    ],
+                    'headers' => $headers,
                     'timeout' => self::REQUEST_TIMEOUT,
                 ]
             );

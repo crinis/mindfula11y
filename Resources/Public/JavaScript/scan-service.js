@@ -96,7 +96,7 @@ export class ScanService {
    * @returns {number}
    */
   getTotalIssues(violations) {
-    return violations.reduce((total, v) => total + v.issueCount, 0);
+    return violations.reduce((total, v) => total + (v.issues ? v.issues.length : 0), 0);
   }
 
   /**

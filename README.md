@@ -1,6 +1,10 @@
 # WFA Accessibility Toolkit for TYPO3
 
-The WFA Accessibility Toolkit is a TYPO3 extension that integrates accessibility tools directly into the TYPO3 backend, helping editors and integrators improve the accessibility of their content.
+WFA Accessibility Toolkit is a TYPO3 extension that integrates accessibility tools directly into the TYPO3 backend, helping editors and integrators improve the accessibility of their content.
+
+## Requirements
+
+- TYPO3 13.4.x
 
 ## Installation
 
@@ -15,62 +19,84 @@ composer require mindfulmarkup/mindfula11y
 - **Alternative Text Checker**: Backend module that lists all `sys_file_reference` records (e.g., images) without alternative text, making it easy to find and fix missing alt attributes.
 
   ![Screenshot of the accessibility backend module listing images missing an alternative text with an input field, a generate and a save button.](Resources/Public/Images/Screenshots/MissingAltTextModule.png)
-- **AI-Powered Alt Text Generation**: Supports generating alternative texts for images using ChatGPT.
 
-- **Viewhelpers and TCA columns for heading types and landmarks**: Various viewhelpers and a new accessibility tab for content elements to make it easy for editors to use accessible heading types and create ARIA landmarks. 
-- **Heading Structure Overview**: Backend module that visualizes the heading structure of the selected page and allows editors to easily identify issues and edit heading types for records using the custom ViewHelper.
+- **AI-Powered Alt Text Generation**: Generates alternative text for images using OpenAI (ChatGPT). Supports `gpt-5-mini`, `gpt-5-nano`, `gpt-5.1`, and `gpt-5.2`.
+
+- **ViewHelpers and TCA columns for heading types and landmarks**: ViewHelpers and a new accessibility tab for content elements make it easy for editors to use accessible heading types and define ARIA landmarks.
+
+- **Heading Structure Overview**: Backend module that visualizes the heading structure of the selected page and lets editors identify issues and edit heading types for records using the custom ViewHelper.
 
   ![Screenshot of the accessibility backend module showing a heading tree with an error shown due to a skipped heading level](Resources/Public/Images/Screenshots/HeadingTreeModule.png)
 
-- **Landmark Structure Overview**: Backend module that displays ARIA landmarks on the selected page. Editors can review landmark structure, identify accessibility issues, and edit landmark roles directly from the module to improve page navigation and semantic structure.
+- **Landmark Structure Overview**: Backend module that displays ARIA landmarks on the selected page. Editors can review landmark structure, identify accessibility issues, and edit landmark roles directly from the module.
 
   ![Screenshot of the landmark structure of a page in the accessibility module showing an error due to a duplicated "search" landmark sharing the same label.](Resources/Public/Images/Screenshots/LandmarkModule.png)
 
-## Planned Features
-
-- **Automated Accessibility Scanners**: Integration of remote accessibility testing tools to review more issues directly in the backend.
+- **Automated Accessibility Scanner**: Integration with [MindfulAPI](https://github.com/crinis/mindfulapi), a self-hosted accessibility scanner backend powered by [axe-core](https://github.com/dequelabs/axe-core). Runs WCAG-mapped accessibility audits against live page previews and displays violations with impact levels, CSS selectors, and HTML context directly in the backend module. Requires a separate MindfulAPI instance (see [External Scanner Setup](#external-accessibility-scanner-setup) below).
 
 ## Extension Settings
 
-You can configure Mindful A11y in the extension settings:
+Configure Mindful A11y under **Admin Tools → Settings → Extension Configuration**:
 
-- **OpenAI API Key**: Set your OpenAI API key for ChatGPT-powered features.
-- **Chat Model**: Choose the OpenAI model for generating alternative text (e.g., `gpt-4o-mini`, `gpt-4o`).
-- **Image Detail**: Set the detail level for image analysis (`low` or `high`).
-- **Disable Alt Text Generation**: Option to disable the AI-powered alternative text generation. Also inactive if no OpenAI API key is set.
+| Setting | Description |
+|---------|-------------|
+| **OpenAI API Key** | API key for ChatGPT-powered alt text generation. |
+| **Chat Model** | OpenAI model to use (`gpt-5-mini`, `gpt-5-nano`, `gpt-5.1`, `gpt-5.2`). Default: `gpt-5-mini`. |
+| **Image Detail** | Detail level for image analysis (`auto`, `low`, `high`). Default: `auto`. |
+| **Disable Alt Text Generation** | Disable AI-powered alt text generation entirely. Also inactive when no API key is set. |
+| **Mindful API URL** | Base URL of your MindfulAPI instance (e.g. `https://scanner.example.com`). |
+| **Mindful API Token** | Bearer token for MindfulAPI authentication. Leave empty if the API is configured without authentication. |
 
 ## Page TSconfig Options
 
-Configure module behavior per page using Page TSconfig (`Configuration/page.tsconfig`):
+Configure module behavior per page using Page TSconfig. The defaults shipped with the extension are:
 
-```
+```typo3_typoscript
 mod {
     mindfula11y_accessibility {
         missingAltText {
+            # Enable the missing alt text checker
             enable = 1
             ignoreColumns {
-                # Do not include column `image` from table `tt_content` in the alternative text check.
+                # Exclude specific columns from the alternative text check
                 tt_content = image
             }
+            # Also check sys_file_metadata fallback alternative texts
+            ignoreFileMetadata = 1
         }
         headingStructure {
+            # Enable the heading structure overview
             enable = 1
         }
         landmarkStructure {
+            # Enable the landmark structure overview
             enable = 1
+        }
+        scan {
+            # Enable the accessibility scanner panel.
+            # Requires a configured MindfulAPI instance (see Extension Settings).
+            enable = 0
+            # Automatically trigger a new scan when the module loads and the page has changed since the last scan
+            autoCreate = 1
         }
     }
 
     web_layout {
         mindfula11y {
-            # Hide mindfula11y accessibility info in page module
+            # Hide mindfula11y scan issue count in the page module
             hideInfo = 0
         }
-    } 
+    }
+}
+
+# Restrict which landmark roles editors can assign.
+# Structural landmarks (main, banner, contentinfo) are typically set at template level.
+TCEFORM.tt_content.tx_mindfula11y_landmark {
+    removeItems = main,banner,contentinfo
 }
 ```
 
-## Finding images with missing alternative text
+## Finding Images with Missing Alternative Text
 
 The Accessibility module provides a list of `sys_file_reference` records that do not have alternative text set. This helps editors identify and fix images that are missing accessibility information.
 
@@ -89,26 +115,89 @@ Each missing alternative text entry provides:
 
 - **Image Preview**: Thumbnail display with link to view the full-size image
 - **Alternative Text Input**: Multi-line text area for entering descriptive text
-- **AI Generation**: When ChatGPT is configured, a "Generate" button automatically creates alternative text
+- **AI Generation**: When OpenAI is configured, a "Generate" button automatically creates alternative text
 - **Save Functionality**: Individual saving for each image
 - **Record Link**: Direct access to edit the original record containing the file reference
 
 ### Configuration Options
 
-The module can be configured using Page TSconfig to exclude specific columns:
+Control which columns and tables are included via Page TSconfig:
 
-```
-mod {
-    mindfula11y_missingalttext {
-        enable = 1
-        ignoreColumns {
-            # Exclude specific columns from the alternative text check
-            tt_content = image,media
-            pages = media
-        }
+```typo3_typoscript
+mod.mindfula11y_accessibility.missingAltText {
+    enable = 1
+    ignoreColumns {
+        # Exclude specific columns from the alternative text check
+        tt_content = image,media
+        pages = media
     }
+    # Set to 0 to ignore sys_file_metadata fallback alternative texts
+    ignoreFileMetadata = 1
 }
 ```
+
+## External Accessibility Scanner Setup
+
+The accessibility scanner feature integrates with [MindfulAPI](https://github.com/crinis/mindfulapi), a self-hosted REST API that uses [axe-core](https://github.com/dequelabs/axe-core) and [Playwright](https://playwright.dev/) to run automated WCAG accessibility audits against your live page URLs.
+
+### 1. Deploy MindfulAPI
+
+The easiest way to run MindfulAPI is with Docker Compose. Refer to the [MindfulAPI README](https://github.com/crinis/mindfulapi#quick-start) for full setup instructions. A minimal deployment:
+
+```bash
+git clone https://github.com/crinis/mindfulapi.git
+cd mindfulapi
+cp .env.example .env
+# Edit .env — set AUTH_TOKEN to a secure value before exposing publicly
+docker compose up -d
+```
+
+The API will be available at `http://localhost:3000` by default.
+
+### 2. Configure the Extension
+
+In **Admin Tools → Settings → Extension Configuration**, set:
+
+- **Mindful API URL**: Base URL of your MindfulAPI instance, e.g. `https://scanner.example.com`
+- **Mindful API Token**: The `AUTH_TOKEN` you configured in MindfulAPI. Leave empty if running without authentication (trusted network only).
+
+### 3. Enable the Scanner in Page TSconfig
+
+The scanner panel is disabled by default. Enable it per page tree using Page TSconfig:
+
+```typo3_typoscript
+mod.mindfula11y_accessibility.scan {
+    enable = 1
+    # Set to 0 to require editors to trigger scans manually
+    autoCreate = 1
+}
+```
+
+`enable = 1` must be set for the scanner panel to appear. If `autoCreate = 1`, a new scan is triggered automatically when the module loads and the page content has changed since the last scan.
+
+### How It Works
+
+1. When a scan is triggered (manually or automatically), the TYPO3 backend sends the page's **preview URL** to the MindfulAPI `/scans` endpoint.
+2. MindfulAPI queues the scan, then Playwright loads the URL in a headless browser and runs axe-core against it.
+3. The extension polls `GET /scans/:id` every 5 seconds until the scan reaches `completed` or `failed` status.
+4. Violations are displayed in the backend module grouped by axe rule, with impact level (critical / serious / moderate / minor), CSS selector, and the offending HTML snippet.
+5. The scan ID is stored on the page record. If the page content changes (based on `SYS_LASTCHANGED`), the next module load treats the stored scan as stale and triggers a fresh one.
+
+> **Note:** The scanned URL must be publicly reachable by the MindfulAPI instance. For local development, use a tunnelling tool or ensure the API container can reach your TYPO3 dev domain.
+
+### CLI: Clean Up Stale Scan IDs
+
+Scan IDs stored on pages become stale when MindfulAPI purges its data (configured via `CLEANUP_RETENTION_DAYS` in MindfulAPI, default 30 days). Run the following command periodically to clear scan IDs older than a given age so the module triggers fresh scans automatically:
+
+```bash
+# Clear scan IDs not updated in the last 30 days (default)
+vendor/bin/typo3 mindfula11y:cleanup-scan-ids
+
+# Custom threshold — clear IDs older than 7 days
+vendor/bin/typo3 mindfula11y:cleanup-scan-ids --seconds=604800
+```
+
+Pair this with a TYPO3 Scheduler task or a system cron job matching MindfulAPI's own cleanup schedule.
 
 ## Heading Types
 
@@ -134,7 +223,7 @@ Headings are displayed in a tree structure within the Accessibility backend modu
 
 The Mindful A11y extension provides three ViewHelpers for rendering accessible, semantically correct headings in your Fluid templates:
 
-## Arguments for Heading and Landmark ViewHelpers
+### ViewHelper Arguments
 
 
 #### 1. `HeadingViewHelper` (`<mindfula11y:heading>`) – Main/Standalone Headings

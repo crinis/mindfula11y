@@ -23,6 +23,7 @@ declare(strict_types=1);
 
 namespace MindfulMarkup\MindfulA11y\Command;
 
+use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -32,13 +33,12 @@ use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
-use Symfony\Component\Console\Attribute\AsCommand;
 
 /**
  * Command for cleaning up old accessibility scan IDs.
  */
 #[AsCommand(
-    name: 'mindfula11y:cleanupscanids',
+    name: 'mindfula11y:cleanup-scan-ids',
     description: 'Clean up old accessibility scan IDs based on a configurable age threshold (default: 30 days).',
 )]
 class CleanupScanIdsCommand extends Command

@@ -140,6 +140,22 @@
                 <source>Info</source>
                 <target>Info</target>
             </trans-unit>
+            <trans-unit id="severity.critical" resname="severity.critical">
+                <source>Critical</source>
+                <target>Kritisch</target>
+            </trans-unit>
+            <trans-unit id="severity.serious" resname="severity.serious">
+                <source>Serious</source>
+                <target>Schwerwiegend</target>
+            </trans-unit>
+            <trans-unit id="severity.moderate" resname="severity.moderate">
+                <source>Moderate</source>
+                <target>Mäßig</target>
+            </trans-unit>
+            <trans-unit id="severity.minor" resname="severity.minor">
+                <source>Minor</source>
+                <target>Geringfügig</target>
+            </trans-unit>
             <trans-unit id="general.error.loading" resname="general.error.loading">
                 <source>Failed to load heading/landmark structure.</source>
                 <target>Überschriften-/Landmark-Struktur konnte nicht geladen werden.</target>

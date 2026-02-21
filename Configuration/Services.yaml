@@ -15,9 +15,3 @@ services:
         identifier: 'mindfula11y-web-layout-info'
         event: TYPO3\CMS\Backend\Controller\Event\ModifyPageLayoutContentEvent
         method: __invoke
-
-  MindfulMarkup\MindfulA11y\Command\CleanupScanIdsCommand:
-    tags:
-      - name: 'console.command'
-        command: 'mindfula11y:cleanupscanids'
-        description: 'Clean up old accessibility scan IDs based on configurable timeout'

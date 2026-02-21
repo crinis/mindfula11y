@@ -113,6 +113,18 @@
             <trans-unit id="severity.info" resname="severity.info">
                 <source>Info</source>
             </trans-unit>
+            <trans-unit id="severity.critical" resname="severity.critical">
+                <source>Critical</source>
+            </trans-unit>
+            <trans-unit id="severity.serious" resname="severity.serious">
+                <source>Serious</source>
+            </trans-unit>
+            <trans-unit id="severity.moderate" resname="severity.moderate">
+                <source>Moderate</source>
+            </trans-unit>
+            <trans-unit id="severity.minor" resname="severity.minor">
+                <source>Minor</source>
+            </trans-unit>
             <trans-unit id="general.error.loading" resname="general.error.loading">
                 <source>Failed to load heading/landmark structure.</source>
             </trans-unit>

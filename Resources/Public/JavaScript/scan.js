@@ -280,7 +280,7 @@ export class Scan extends ScanBase {
             <li class="list-group-item">
               <mindfula11y-violation
                 .rule="${violation.rule}"
-                .issueCount="${violation.issueCount}"
+                impact="${violation.impact}"
                 .issues="${violation.issues}"
               >
               </mindfula11y-violation>
