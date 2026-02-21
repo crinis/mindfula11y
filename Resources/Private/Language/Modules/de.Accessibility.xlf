@@ -1,0 +1,741 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xliff version="1.2" xmlns="urn:oasis:names:tc:xliff:document:1.2">
+    <file source-language="en" target-language="de" datatype="plaintext"
+        original="EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf"
+        date="2011-10-17T20:22:32Z" product-name="mindfula11y">
+        <header />
+        <body>
+            <trans-unit id="mlang_labels_tablabel" resname="mlang_labels_tablabel">
+                <source>Accessibility</source>
+                <target>Barrierefreiheit</target>
+            </trans-unit>
+            <trans-unit id="mlang_tabs_tab" resname="mlang_tabs_tab">
+                <source>
+                    Accessibility
+                </source>
+                <target>Barrierefreiheit</target>
+            </trans-unit>
+
+            <trans-unit id="module.noPageSelected" resname="module.noPageSelected">
+                <source>
+                    No page selected.
+                </source>
+                <target>Keine Seite ausgewählt.</target>
+            </trans-unit>
+            <trans-unit id="module.noPageSelected.description" resname="module.noPageSelected.description">
+                <source>
+                    Please select a page in the page tree to check for accessibility issues.
+                </source>
+                <target>Bitte wählen Sie eine Seite im Seitenbaum aus, um sie auf Barrierefreiheitsprobleme zu prüfen.</target>
+            </trans-unit>
+
+            <trans-unit id="module.noLanguageAccess" resname="module.noLanguageAccess">
+                <source>
+                    Page not available in your allowed languages.
+                </source>
+                <target>Seite nicht in Ihren erlaubten Sprachen verfügbar.</target>
+            </trans-unit>
+            <trans-unit id="module.noLanguageAccess.description" resname="module.noLanguageAccess.description">
+                <source>
+                    This page is not translated to any of the languages you have access to. Please select a different page that is available in one of your allowed languages.
+                </source>
+                <target>Diese Seite ist in keine der Sprachen übersetzt, auf die Sie Zugriff haben. Bitte wählen Sie eine andere Seite, die in einer Ihrer erlaubten Sprachen verfügbar ist.</target>
+            </trans-unit>
+
+            <trans-unit id="module.error.invalidSignature" resname="module.error.invalidSignature">
+                <source>Invalid request signature</source>
+                <target>Ungültige Anfrage-Signatur</target>
+            </trans-unit>
+            <trans-unit id="module.error.invalidSignature.description" resname="module.error.invalidSignature.description">
+                <source>The request signature is invalid. Please refresh the page and try again.</source>
+                <target>Die Anfrage-Signatur ist ungültig. Bitte laden Sie die Seite neu und versuchen Sie es erneut.</target>
+            </trans-unit>
+
+            <trans-unit id="module.menu.language" resname="module.menu.language">
+                <source>Language</source>
+                <target>Sprache</target>
+            </trans-unit>
+
+            <trans-unit id="structureErrors" resname="structureErrors">
+                <source>Structure errors</source>
+                <target>Strukturfehler</target>
+            </trans-unit>
+            <trans-unit id="structure" resname="structure">
+                <source>Structure</source>
+                <target>Struktur</target>
+            </trans-unit>
+
+            <trans-unit id="general.viewDetails" resname="general.viewDetails">
+                <source>View Details</source>
+                <target>Details anzeigen</target>
+            </trans-unit>
+
+            <trans-unit id="module.menu.pageLevels" resname="module.menu.pageLevels">
+                <source>Check Recursive</source>
+                <target>Rekursiv prüfen</target>
+            </trans-unit>
+            <trans-unit id="module.menu.pageLevels.1" resname="module.menu.pageLevels.1">
+                <source>Levels 1</source>
+                <target>Ebene 1</target>
+            </trans-unit>
+            <trans-unit id="module.menu.pageLevels.5" resname="module.menu.pageLevels.5">
+                <source>Levels 5</source>
+                <target>5 Ebenen</target>
+            </trans-unit>
+            <trans-unit id="module.menu.pageLevels.10" resname="module.menu.pageLevels.10">
+                <source>Levels 10</source>
+                <target>10 Ebenen</target>
+            </trans-unit>
+            <trans-unit id="module.menu.pageLevels.99" resname="module.menu.pageLevels.99">
+                <source>Levels 99</source>
+                <target>99 Ebenen</target>
+            </trans-unit>
+
+            <trans-unit id="module.menu.tables" resname="module.menu.tables">
+                <source>Record Type</source>
+                <target>Datensatztyp</target>
+            </trans-unit>
+            <trans-unit id="module.menu.tables.all" resname="module.menu.tables.all">
+                <source>All Record Types</source>
+                <target>Alle Datensatztypen</target>
+            </trans-unit>
+
+            <trans-unit id="module.menu.filter" resname="module.menu.filter">
+                <source>Filter</source>
+                <target>Filter</target>
+            </trans-unit>
+            <trans-unit id="module.menu.filter.fileMetaData" resname="module.menu.filter.fileMetaData">
+                <source>
+                    Filter records with inherited alternative text
+                </source>
+                <target>Datensätze mit geerbtem Alternativtext ausblenden</target>
+            </trans-unit>
+
+            <trans-unit id="module.menu.features" resname="module.menu.features">
+                <source>Feature</source>
+                <target>Funktion</target>
+            </trans-unit>
+            <trans-unit id="module.menu.features.general" resname="module.menu.features.general">
+                <source>General</source>
+                <target>Allgemein</target>
+            </trans-unit>
+            <trans-unit id="module.menu.features.missingAltText" resname="module.menu.features.missingAltText">
+                <source>Missing alternative text</source>
+                <target>Fehlender Alternativtext</target>
+            </trans-unit>
+            <trans-unit id="module.menu.features.scan" resname="module.menu.features.scan">
+                <source>Scanner</source>
+                <target>Scanner</target>
+            </trans-unit>
+
+            <trans-unit id="severity.error" resname="severity.error">
+                <source>Error</source>
+                <target>Fehler</target>
+            </trans-unit>
+            <trans-unit id="severity.warning" resname="severity.warning">
+                <source>Warning</source>
+                <target>Warnung</target>
+            </trans-unit>
+            <trans-unit id="severity.info" resname="severity.info">
+                <source>Info</source>
+                <target>Info</target>
+            </trans-unit>
+            <trans-unit id="general.error.loading" resname="general.error.loading">
+                <source>Failed to load heading/landmark structure.</source>
+                <target>Überschriften-/Landmark-Struktur konnte nicht geladen werden.</target>
+            </trans-unit>
+            <trans-unit id="general.error.loading.description" resname="general.error.loading.description">
+                <source>Could not analyze the page content. Please try again or check your connection.</source>
+                <target>Der Seiteninhalt konnte nicht analysiert werden. Bitte versuchen Sie es erneut oder überprüfen Sie Ihre Verbindung.</target>
+            </trans-unit>
+
+            <trans-unit id="altText" resname="altText">
+                <source>File references without alternative text</source>
+                <target>Dateiverweise ohne Alternativtext</target>
+            </trans-unit>
+            <trans-unit id="altText.generate.button" resname="altText.generate.button">
+                <source>Generate</source>
+                <target>Generieren</target>
+            </trans-unit>
+            <trans-unit id="altText.generate.loading" resname="altText.generate.loading">
+                <source>Generating alternative text...</source>
+                <target>Alternativtext wird generiert...</target>
+            </trans-unit>
+            <trans-unit id="altText.generate.success" resname="altText.generate.success">
+                <source>Alternative text generated.</source>
+                <target>Alternativtext generiert.</target>
+            </trans-unit>
+            <trans-unit id="altText.generate.success.description" resname="altText.generate.success.description">
+                <source>
+                    Alternative text was successfully generated. Please make sure it describes
+                    the picture accurately.
+                </source>
+                <target>Der Alternativtext wurde erfolgreich generiert. Bitte stellen Sie sicher, dass er das Bild treffend beschreibt.</target>
+            </trans-unit>
+            <trans-unit id="altText.generate.error.unknown" resname="altText.generate.error.unknown">
+                <source>Unknown error occurred.</source>
+                <target>Unbekannter Fehler aufgetreten.</target>
+            </trans-unit>
+            <trans-unit id="altText.generate.error.unknown.description" resname="altText.generate.error.unknown.description">
+                <source>
+                    An unknown error occurred. Please contact your admin or try again
+                    later.
+                </source>
+                <target>Es ist ein unbekannter Fehler aufgetreten. Bitte wenden Sie sich an Ihren Administrator oder versuchen Sie es später erneut.</target>
+            </trans-unit>
+            <trans-unit id="altText.generate.error.openAIConnection" resname="altText.generate.error.openAIConnection">
+                <source>ChatGPT connection error.</source>
+                <target>ChatGPT-Verbindungsfehler.</target>
+            </trans-unit>
+            <trans-unit id="altText.generate.error.openAIConnection.description" resname="altText.generate.error.openAIConnection.description">
+                <source>Could not establish connection to ChatGPT. Is your API-Key OK?</source>
+                <target>Verbindung zu ChatGPT konnte nicht hergestellt werden. Ist Ihr API-Schlüssel korrekt?</target>
+            </trans-unit>
+            <trans-unit id="altText.editRecord.label" resname="altText.editRecord.label">
+                <source>Edit record [%1$s][%2$s].</source>
+                <target>Datensatz bearbeiten [%1$s][%2$s].</target>
+            </trans-unit>
+            <trans-unit id="altText.altLabel" resname="altText.altLabel">
+                <source>Alternative text</source>
+                <target>Alternativtext</target>
+            </trans-unit>
+            <trans-unit id="altText.altPlaceholder" resname="altText.altPlaceholder">
+                <source>Enter alternative text for the image</source>
+                <target>Alternativtext für das Bild eingeben</target>
+            </trans-unit>
+            <trans-unit id="altText.save" resname="altText.save">
+                <source>Save</source>
+                <target>Speichern</target>
+            </trans-unit>
+            <trans-unit id="altText.imagePreview" resname="altText.imagePreview">
+                <source>Image preview</source>
+                <target>Bildvorschau</target>
+            </trans-unit>
+            <trans-unit id="altText.fallbackAltLabel" resname="altText.fallbackAltLabel">
+                <source>Label specified in file metadata:</source>
+                <target>In den Dateimetadaten festgelegter Alternativtext:</target>
+            </trans-unit>
+            <trans-unit id="altText.pagination.navigation" resname="altText.pagination.navigation">
+                <source>Pagination navigation</source>
+                <target>Seitennavigation</target>
+            </trans-unit>
+            <trans-unit id="altText.pagination.previous" resname="altText.pagination.previous">
+                <source>Previous page</source>
+                <target>Vorherige Seite</target>
+            </trans-unit>
+            <trans-unit id="altText.pagination.next" resname="altText.pagination.next">
+                <source>Next page</source>
+                <target>Nächste Seite</target>
+            </trans-unit>
+            <trans-unit id="altText.pagination.page" resname="altText.pagination.page">
+                <source>Go to page %1$s</source>
+                <target>Zu Seite %1$s</target>
+            </trans-unit>
+            <trans-unit id="altText.noMissingAltText" resname="altText.noMissingAltText">
+                <source>No file references without alternative text found.</source>
+                <target>Keine Dateiverweise ohne Alternativtext gefunden.</target>
+            </trans-unit>
+            <trans-unit id="altText.count" resname="altText.count">
+                <source>%1$d file references without alternative text found.</source>
+                <target>%1$d Dateiverweise ohne Alternativtext gefunden.</target>
+            </trans-unit>
+            <trans-unit id="altText.noAccess" resname="altText.noAccess">
+                <source>No access to missing alternative text feature.</source>
+                <target>Kein Zugriff auf die Funktion „Fehlender Alternativtext".</target>
+            </trans-unit>
+            <trans-unit id="altText.noAccess.description" resname="altText.noAccess.description">
+                <source>
+                    You do not have permission to access file references. Please contact your administrator.
+                </source>
+                <target>Sie haben keine Berechtigung, auf Dateiverweise zuzugreifen. Bitte wenden Sie sich an Ihren Administrator.</target>
+            </trans-unit>
+            <trans-unit id="altText.noTableAccess" resname="altText.noTableAccess">
+                <source>No access to the selected table.</source>
+                <target>Kein Zugriff auf die gewählte Tabelle.</target>
+            </trans-unit>
+            <trans-unit id="altText.noTableAccess.description" resname="altText.noTableAccess.description">
+                <source>
+                    Please select a record type that you have access to or contact your
+                    administrator.
+                </source>
+                <target>Bitte wählen Sie einen Datensatztyp, auf den Sie Zugriff haben, oder wenden Sie sich an Ihren Administrator.</target>
+            </trans-unit>
+
+            <trans-unit id="structure.headings" resname="structure.headings">
+                <source>Headings</source>
+                <target>Überschriften</target>
+            </trans-unit>
+            <trans-unit id="structure.headings.error.store" resname="structure.headings.error.store">
+                <source>Saving heading type failed.</source>
+                <target>Überschriftentyp konnte nicht gespeichert werden.</target>
+            </trans-unit>
+            <trans-unit id="structure.headings.error.store.description" resname="structure.headings.error.store.description">
+                <source>Could not save the heading type. Do you have permission?</source>
+                <target>Der Überschriftentyp konnte nicht gespeichert werden. Haben Sie die erforderlichen Berechtigungen?</target>
+            </trans-unit>
+            <trans-unit id="structure.headings.error.emptyHeadings" resname="structure.headings.error.emptyHeadings">
+                <source>Empty headings found.</source>
+                <target>Leere Überschriften gefunden.</target>
+            </trans-unit>
+            <trans-unit id="structure.headings.error.emptyHeadings.description" resname="structure.headings.error.emptyHeadings.description">
+                <source>Headings without text content provide no semantic value and can confuse screen reader users. Please add descriptive text to all heading elements or remove empty headings.</source>
+                <target>Überschriften ohne Textinhalt bieten keinen semantischen Mehrwert und können Screenreader-Nutzer verwirren. Bitte fügen Sie allen Überschriftenelementen beschreibenden Text hinzu oder entfernen Sie leere Überschriften.</target>
+            </trans-unit>
+            <trans-unit id="structure.headings.error.skippedLevel" resname="structure.headings.error.skippedLevel">
+                <source>Skipped heading levels!</source>
+                <target>Überschriftenebenen übersprungen!</target>
+            </trans-unit>
+            <trans-unit id="structure.headings.error.skippedLevel.description" resname="structure.headings.error.skippedLevel.description">
+                <source>Heading levels should not be skipped. For example, an &lt;h2&gt; should not be followed directly by an &lt;h4&gt; without an intervening &lt;h3&gt;. Proper heading structure helps screen reader users understand the content hierarchy.</source>
+                <target>Überschriftenebenen sollten nicht übersprungen werden. Auf eine &lt;h2&gt; sollte beispielsweise nicht direkt eine &lt;h4&gt; folgen, ohne eine dazwischenliegende &lt;h3&gt;. Eine korrekte Überschriftenstruktur hilft Screenreader-Nutzern, die inhaltliche Hierarchie zu verstehen.</target>
+            </trans-unit>
+            <trans-unit id="structure.headings.error.skippedLevel.inline" resname="structure.headings.error.skippedLevel.inline">
+                <source>Skipped H%1$d</source>
+                <target>H%1$d übersprungen</target>
+            </trans-unit>
+            <trans-unit id="structure.headings.error.missingH1" resname="structure.headings.error.missingH1">
+                <source>Missing &lt;h1&gt; heading.</source>
+                <target>Fehlende &lt;h1&gt;-Überschrift.</target>
+            </trans-unit>
+            <trans-unit id="structure.headings.error.missingH1.description" resname="structure.headings.error.missingH1.description">
+                <source>Every page should have exactly one &lt;h1&gt; as the main heading, usually
+                    at the top of the main content. Screenreader users rely on the &lt;h1&gt; to
+                    quickly skip to the main content and get to understand what the content is
+                    about.</source>
+                <target>Jede Seite sollte genau eine &lt;h1&gt;-Überschrift als Hauptüberschrift haben, in der Regel am Anfang des Hauptinhalts. Screenreader-Nutzer verlassen sich auf die &lt;h1&gt;, um schnell zum Hauptinhalt zu gelangen und dessen Thema zu erfassen.</target>
+            </trans-unit>
+            <trans-unit id="structure.headings.error.multipleH1" resname="structure.headings.error.multipleH1">
+                <source>Multiple &lt;h1&gt; headings found.</source>
+                <target>Mehrere &lt;h1&gt;-Überschriften gefunden.</target>
+            </trans-unit>
+            <trans-unit id="structure.headings.error.multipleH1.description" resname="structure.headings.error.multipleH1.description">
+                <source>Pages should have exactly one &lt;h1&gt; heading to provide a clear document structure. Multiple &lt;h1&gt; elements can confuse screen readers and hurt SEO. Consider using &lt;h2&gt; or other heading levels for additional headings.</source>
+                <target>Seiten sollten genau eine &lt;h1&gt;-Überschrift haben, um eine klare Dokumentstruktur zu gewährleisten. Mehrere &lt;h1&gt;-Elemente können Screenreader verwirren und sich negativ auf SEO auswirken. Verwenden Sie &lt;h2&gt; oder andere Überschriftenebenen für weitere Überschriften.</target>
+            </trans-unit>
+            <trans-unit id="structure.headings.edit" resname="structure.headings.edit">
+                <source>Edit heading</source>
+                <target>Überschrift bearbeiten</target>
+            </trans-unit>
+            <trans-unit id="structure.headings.edit.locked" resname="structure.headings.edit.locked">
+                <source>Heading is not editable</source>
+                <target>Überschrift ist nicht bearbeitbar</target>
+            </trans-unit>
+            <trans-unit id="structure.headings.unlabeled" resname="structure.headings.unlabeled">
+                <source>Unlabeled heading</source>
+                <target>Unbetitelte Überschrift</target>
+            </trans-unit>
+            <trans-unit id="structure.headings.type" resname="structure.headings.type">
+                <source>Heading type</source>
+                <target>Überschriftentyp</target>
+            </trans-unit>
+            <trans-unit id="structure.headings.relation.descendant" resname="structure.headings.relation.descendant">
+                <source>Related to parent heading</source>
+                <target>Untergeordnet zur übergeordneten Überschrift</target>
+            </trans-unit>
+            <trans-unit id="structure.headings.relation.sibling" resname="structure.headings.relation.sibling">
+                <source>Related to sibling heading</source>
+                <target>Gleichrangig zur benachbarten Überschrift</target>
+            </trans-unit>
+            <trans-unit id="structure.headings.relation.notFound" resname="structure.headings.relation.notFound">
+                <source>Ancestor not found</source>
+                <target>Übergeordnete Überschrift nicht gefunden</target>
+            </trans-unit>
+            <trans-unit id="structure.headings.relation.notFound.description" resname="structure.headings.relation.notFound.description">
+                <source>The referenced ancestor heading could not be found in the document.</source>
+                <target>Die referenzierte übergeordnete Überschrift konnte im Dokument nicht gefunden werden.</target>
+            </trans-unit>
+            <trans-unit id="structure.headings.noHeadings" resname="structure.headings.noHeadings">
+                <source>No headings found</source>
+                <target>Keine Überschriften gefunden</target>
+            </trans-unit>
+            <trans-unit id="structure.headings.noHeadings.description" resname="structure.headings.noHeadings.description">
+                <source>No heading elements (h1-h6) were found on this page.</source>
+                <target>Auf dieser Seite wurden keine Überschriftenelemente (h1–h6) gefunden.</target>
+            </trans-unit>
+
+            <trans-unit id="structure.landmarks" resname="structure.landmarks">
+                <source>Landmarks</source>
+                <target>Landmarks</target>
+            </trans-unit>
+            <trans-unit id="structure.landmarks.edit" resname="structure.landmarks.edit">
+                <source>Edit landmark</source>
+                <target>Landmark bearbeiten</target>
+            </trans-unit>
+            <trans-unit id="structure.landmarks.edit.locked" resname="structure.landmarks.edit.locked">
+                <source>Landmark is not editable</source>
+                <target>Landmark ist nicht bearbeitbar</target>
+            </trans-unit>
+            <trans-unit id="structure.landmarks.nested" resname="structure.landmarks.nested">
+                <source>Nested landmarks</source>
+                <target>Verschachtelte Landmarks</target>
+            </trans-unit>
+            <trans-unit id="structure.landmarks.role" resname="structure.landmarks.role">
+                <source>Landmark role</source>
+                <target>Landmark-Rolle</target>
+            </trans-unit>
+            <trans-unit id="structure.landmarks.error.roleSelect" resname="structure.landmarks.error.roleSelect">
+                <source>Select a valid landmark role.</source>
+                <target>Bitte wählen Sie eine gültige Landmark-Rolle.</target>
+            </trans-unit>
+            <trans-unit id="structure.landmarks.role.none" resname="structure.landmarks.role.none">
+                <source>No Landmark (none)</source>
+                <target>Kein Landmark (none)</target>
+            </trans-unit>
+            <trans-unit id="structure.landmarks.role.banner" resname="structure.landmarks.role.banner">
+                <source>Site Header (banner)</source>
+                <target>Seitenkopf (banner)</target>
+            </trans-unit>
+            <trans-unit id="structure.landmarks.role.main" resname="structure.landmarks.role.main">
+                <source>Main Content (main)</source>
+                <target>Hauptinhalt (main)</target>
+            </trans-unit>
+            <trans-unit id="structure.landmarks.role.navigation" resname="structure.landmarks.role.navigation">
+                <source>Navigation (navigation)</source>
+                <target>Navigation (navigation)</target>
+            </trans-unit>
+            <trans-unit id="structure.landmarks.role.complementary" resname="structure.landmarks.role.complementary">
+                <source>Sidebar (complementary)</source>
+                <target>Seitenleiste (complementary)</target>
+            </trans-unit>
+            <trans-unit id="structure.landmarks.role.contentinfo" resname="structure.landmarks.role.contentinfo">
+                <source>Site Footer (contentinfo)</source>
+                <target>Seitenfuß (contentinfo)</target>
+            </trans-unit>
+            <trans-unit id="structure.landmarks.role.region" resname="structure.landmarks.role.region">
+                <source>Section (region)</source>
+                <target>Abschnitt (region)</target>
+            </trans-unit>
+            <trans-unit id="structure.landmarks.role.search" resname="structure.landmarks.role.search">
+                <source>Search (search)</source>
+                <target>Suche (search)</target>
+            </trans-unit>
+            <trans-unit id="structure.landmarks.role.form" resname="structure.landmarks.role.form">
+                <source>Form (form)</source>
+                <target>Formular (form)</target>
+            </trans-unit>
+            <trans-unit id="structure.landmarks.noLandmarks" resname="structure.landmarks.noLandmarks">
+                <source>No landmarks found</source>
+                <target>Keine Landmarks gefunden</target>
+            </trans-unit>
+            <trans-unit id="structure.landmarks.noLandmarks.description" resname="structure.landmarks.noLandmarks.description">
+                <source>This page doesn't contain any ARIA landmarks or semantic HTML elements.</source>
+                <target>Diese Seite enthält keine ARIA-Landmarks oder semantischen HTML-Elemente.</target>
+            </trans-unit>
+            <trans-unit id="structure.landmarks.error.store" resname="structure.landmarks.error.store">
+                <source>Saving landmark role failed.</source>
+                <target>Landmark-Rolle konnte nicht gespeichert werden.</target>
+            </trans-unit>
+            <trans-unit id="structure.landmarks.error.store.description" resname="structure.landmarks.error.store.description">
+                <source>Could not save the landmark role. Do you have permission?</source>
+                <target>Die Landmark-Rolle konnte nicht gespeichert werden. Haben Sie die erforderlichen Berechtigungen?</target>
+            </trans-unit>
+            <trans-unit id="structure.landmarks.error.missingMain" resname="structure.landmarks.error.missingMain">
+                <source>Missing main landmark.</source>
+                <target>Fehlendes main-Landmark.</target>
+            </trans-unit>
+            <trans-unit id="structure.landmarks.error.missingMain.description" resname="structure.landmarks.error.missingMain.description">
+                <source>Every page should have exactly one main landmark to identify the main content area.
+                    This helps screenreader users quickly navigate to the primary content.</source>
+                <target>Jede Seite sollte genau ein main-Landmark haben, um den Hauptinhaltsbereich zu kennzeichnen. Dies hilft Screenreader-Nutzern, schnell zum primären Inhalt zu navigieren.</target>
+            </trans-unit>
+            <trans-unit id="structure.landmarks.error.duplicateMain" resname="structure.landmarks.error.duplicateMain">
+                <source>Multiple main landmarks found.</source>
+                <target>Mehrere main-Landmarks gefunden.</target>
+            </trans-unit>
+            <trans-unit id="structure.landmarks.error.duplicateMain.description" resname="structure.landmarks.error.duplicateMain.description">
+                <source>Only one main landmark is allowed per page. Multiple main landmarks can confuse screen reader users.</source>
+                <target>Pro Seite ist nur ein main-Landmark erlaubt. Mehrere main-Landmarks können Screenreader-Nutzer verwirren.</target>
+            </trans-unit>
+            <trans-unit id="structure.landmarks.error.duplicateSameLabel" resname="structure.landmarks.error.duplicateSameLabel">
+                <source>Landmarks with identical labels.</source>
+                <target>Landmarks mit identischen Bezeichnungen.</target>
+            </trans-unit>
+            <trans-unit id="structure.landmarks.error.duplicateSameLabel.description" resname="structure.landmarks.error.duplicateSameLabel.description">
+                <source>Multiple landmarks share an identical label. Provide unique labels so users can differentiate them.</source>
+                <target>Mehrere Landmarks haben identische Bezeichnungen. Vergeben Sie eindeutige Bezeichnungen, damit Nutzer sie unterscheiden können.</target>
+            </trans-unit>
+            <trans-unit id="structure.landmarks.error.multipleUnlabeledLandmarks" resname="structure.landmarks.error.multipleUnlabeledLandmarks">
+                <source>Multiple unlabeled landmarks of the same role.</source>
+                <target>Mehrere unbetitelte Landmarks derselben Rolle.</target>
+            </trans-unit>
+            <trans-unit id="structure.landmarks.error.multipleUnlabeledLandmarks.description" resname="structure.landmarks.error.multipleUnlabeledLandmarks.description">
+                <source>More than one landmark with the same role lacks a label. Add unique labels (aria-label or aria-labelledby) so users can distinguish them.</source>
+                <target>Mehr als ein Landmark derselben Rolle hat keine Bezeichnung. Fügen Sie eindeutige Bezeichnungen (aria-label oder aria-labelledby) hinzu, damit Nutzer sie unterscheiden können.</target>
+            </trans-unit>
+            <trans-unit id="structure.landmarks.unlabelledLandmark" resname="structure.landmarks.unlabelledLandmark">
+                <source>Unlabelled Landmark</source>
+                <target>Unbetiteltes Landmark</target>
+            </trans-unit>
+
+            <!-- General Errors -->
+            <trans-unit id="error.forbidden" resname="error.forbidden">
+                <source>Access denied</source>
+                <target>Zugriff verweigert</target>
+            </trans-unit>
+            <trans-unit id="error.forbidden.description" resname="error.forbidden.description">
+                <source>You do not have permission to perform this action.</source>
+                <target>Sie haben keine Berechtigung, diese Aktion durchzuführen.</target>
+            </trans-unit>
+            <trans-unit id="error.invalidUser" resname="error.invalidUser">
+                <source>Invalid user session</source>
+                <target>Ungültige Benutzersitzung</target>
+            </trans-unit>
+            <trans-unit id="error.invalidUser.description" resname="error.invalidUser.description">
+                <source>Your user session is invalid. Please refresh the page and try again.</source>
+                <target>Ihre Benutzersitzung ist ungültig. Bitte laden Sie die Seite neu und versuchen Sie es erneut.</target>
+            </trans-unit>
+            <trans-unit id="error.invalidWorkspace" resname="error.invalidWorkspace">
+                <source>Invalid workspace context</source>
+                <target>Ungültiger Workspace-Kontext</target>
+            </trans-unit>
+            <trans-unit id="error.invalidWorkspace.description" resname="error.invalidWorkspace.description">
+                <source>The workspace context is invalid. Please switch to the correct workspace and try again.</source>
+                <target>Der Workspace-Kontext ist ungültig. Bitte wechseln Sie in den richtigen Workspace und versuchen Sie es erneut.</target>
+            </trans-unit>
+            <trans-unit id="error.invalidLanguage" resname="error.invalidLanguage">
+                <source>Invalid language access</source>
+                <target>Kein Zugriff auf diese Sprache</target>
+            </trans-unit>
+            <trans-unit id="error.invalidLanguage.description" resname="error.invalidLanguage.description">
+                <source>You do not have access to the selected language. Please select an allowed language.</source>
+                <target>Sie haben keinen Zugriff auf die gewählte Sprache. Bitte wählen Sie eine erlaubte Sprache.</target>
+            </trans-unit>
+            <trans-unit id="error.invalidRecordAccess" resname="error.invalidRecordAccess">
+                <source>Invalid record access</source>
+                <target>Kein Zugriff auf den Datensatz</target>
+            </trans-unit>
+            <trans-unit id="error.invalidRecordAccess.description" resname="error.invalidRecordAccess.description">
+                <source>You do not have permission to edit this record or its specified fields.</source>
+                <target>Sie haben keine Berechtigung, diesen Datensatz oder die angegebenen Felder zu bearbeiten.</target>
+            </trans-unit>
+
+            <trans-unit id="error.noPageAccess" resname="error.noPageAccess">
+                <source>No page access</source>
+                <target>Kein Seitenzugriff</target>
+            </trans-unit>
+            <trans-unit id="error.noPageAccess.description" resname="error.noPageAccess.description">
+                <source>You do not have access to this page. Please contact your administrator.</source>
+                <target>Sie haben keinen Zugriff auf diese Seite. Bitte wenden Sie sich an Ihren Administrator.</target>
+            </trans-unit>
+
+            <trans-unit id="error.noFileAccess" resname="error.noFileAccess">
+                <source>No access to sys_file table</source>
+                <target>Kein Zugriff auf die Dateitabelle</target>
+            </trans-unit>
+            <trans-unit id="error.noFileAccess.description" resname="error.noFileAccess.description">
+                <source>You do not have permission to read sys_file records. Please contact your administrator.</source>
+                <target>Sie haben keine Berechtigung, Dateidatensätze zu lesen. Bitte wenden Sie sich an Ihren Administrator.</target>
+            </trans-unit>
+
+            <trans-unit id="error.noFileMountAccess" resname="error.noFileMountAccess">
+                <source>No file access</source>
+                <target>Kein Dateizugriff</target>
+            </trans-unit>
+            <trans-unit id="error.noFileMountAccess.description" resname="error.noFileMountAccess.description">
+                <source>You do not have permission to read this file. The file may be outside your file mount boundaries.</source>
+                <target>Sie haben keine Berechtigung, diese Datei zu lesen. Die Datei befindet sich möglicherweise außerhalb Ihrer Datei-Einhängepunkte.</target>
+            </trans-unit>
+            <trans-unit id="error.fileNotFound" resname="error.fileNotFound">
+                <source>File not found</source>
+                <target>Datei nicht gefunden</target>
+            </trans-unit>
+            <trans-unit id="error.fileNotFound.description" resname="error.fileNotFound.description">
+                <source>The file could not be found. It may have been deleted or moved since this form was opened.</source>
+                <target>Die Datei konnte nicht gefunden werden. Sie wurde möglicherweise gelöscht oder verschoben, seit dieses Formular geöffnet wurde.</target>
+            </trans-unit>
+
+            <!-- Scan -->
+            <trans-unit id="scan" resname="scan">
+                <source>Scan for accessibility issues</source>
+                <target>Auf Barrierefreiheitsprobleme scannen</target>
+            </trans-unit>
+            <trans-unit id="scan.noAccess" resname="scan.noAccess">
+                <source>No scan access</source>
+                <target>Kein Scan-Zugriff</target>
+            </trans-unit>
+            <trans-unit id="scan.noAccess.description" resname="scan.noAccess.description">
+                <source>You do not have access to the accessibility scanner. Please contact your administrator to enable scan access.</source>
+                <target>Sie haben keinen Zugriff auf den Accessibility-Scanner. Bitte wenden Sie sich an Ihren Administrator, um den Scan-Zugriff zu aktivieren.</target>
+            </trans-unit>
+            <trans-unit id="scan.previewNotEnabled" resname="scan.previewNotEnabled">
+                <source>Preview not available for this page type</source>
+                <target>Vorschau für diesen Seitentyp nicht verfügbar</target>
+            </trans-unit>
+            <trans-unit id="scan.previewNotEnabled.description" resname="scan.previewNotEnabled.description">
+                <source>The accessibility scanner requires a preview URL to scan the page. This page type does not support preview or preview is disabled.</source>
+                <target>Der Accessibility-Scanner benötigt eine Vorschau-URL, um die Seite zu scannen. Dieser Seitentyp unterstützt keine Vorschau oder die Vorschau ist deaktiviert.</target>
+            </trans-unit>
+            <trans-unit id="scan.notConfigured" resname="scan.notConfigured">
+                <source>Scanner not configured</source>
+                <target>Scanner nicht konfiguriert</target>
+            </trans-unit>
+            <trans-unit id="scan.notConfigured.description" resname="scan.notConfigured.description">
+                <source>The accessibility scanner API is not configured. Please contact your administrator to configure the API URL and token.</source>
+                <target>Die Accessibility-Scanner-API ist nicht konfiguriert. Bitte wenden Sie sich an Ihren Administrator, um die API-URL und den Token einzurichten.</target>
+            </trans-unit>
+            <trans-unit id="scan.start" resname="scan.start">
+                <source>Start Scan</source>
+                <target>Scan starten</target>
+            </trans-unit>
+            <trans-unit id="scan.refresh" resname="scan.refresh">
+                <source>Refresh Results</source>
+                <target>Ergebnisse aktualisieren</target>
+            </trans-unit>
+            <trans-unit id="scan.loading" resname="scan.loading">
+                <source>Loading scan results...</source>
+                <target>Scan-Ergebnisse werden geladen...</target>
+            </trans-unit>
+            <trans-unit id="scan.status.pending" resname="scan.status.pending">
+                <source>Scan Pending</source>
+                <target>Scan ausstehend</target>
+            </trans-unit>
+            <trans-unit id="scan.status.running" resname="scan.status.running">
+                <source>Scan Running</source>
+                <target>Scan läuft</target>
+            </trans-unit>
+            <trans-unit id="scan.status.failed" resname="scan.status.failed">
+                <source>Scan Failed</source>
+                <target>Scan fehlgeschlagen</target>
+            </trans-unit>
+            <trans-unit id="scan.status.failed.description" resname="scan.status.failed.description">
+                <source>The accessibility scan failed. Please try again later or contact your administrator.</source>
+                <target>Der Accessibility-Scan ist fehlgeschlagen. Bitte versuchen Sie es später erneut oder wenden Sie sich an Ihren Administrator.</target>
+            </trans-unit>
+
+            <trans-unit id="scan.error.notConfigured" resname="scan.error.notConfigured">
+                <source>Scanner API not configured</source>
+                <target>Scanner-API nicht konfiguriert</target>
+            </trans-unit>
+            <trans-unit id="scan.error.notConfigured.description" resname="scan.error.notConfigured.description">
+                <source>The accessibility scanner API URL and token are not configured.</source>
+                <target>Die URL und der Token der Accessibility-Scanner-API sind nicht konfiguriert.</target>
+            </trans-unit>
+            <trans-unit id="scan.error.createFailed" resname="scan.error.createFailed">
+                <source>Failed to create scan</source>
+                <target>Scan konnte nicht erstellt werden</target>
+            </trans-unit>
+            <trans-unit id="scan.error.createFailed.description" resname="scan.error.createFailed.description">
+                <source>Could not create a new accessibility scan. Please try again or contact your administrator.</source>
+                <target>Ein neuer Accessibility-Scan konnte nicht erstellt werden. Bitte versuchen Sie es erneut oder wenden Sie sich an Ihren Administrator.</target>
+            </trans-unit>
+            <trans-unit id="scan.error.noScanId" resname="scan.error.noScanId">
+                <source>No scan ID found</source>
+                <target>Keine Scan-ID gefunden</target>
+            </trans-unit>
+            <trans-unit id="scan.error.noScanId.description" resname="scan.error.noScanId.description">
+                <source>No scan ID was found for this page. Please start a new scan.</source>
+                <target>Für diese Seite wurde keine Scan-ID gefunden. Bitte starten Sie einen neuen Scan.</target>
+            </trans-unit>
+            <trans-unit id="scan.error.getFailed" resname="scan.error.getFailed">
+                <source>Failed to load scan results</source>
+                <target>Scan-Ergebnisse konnten nicht geladen werden</target>
+            </trans-unit>
+            <trans-unit id="scan.error.getFailed.description" resname="scan.error.getFailed.description">
+                <source>Could not load the accessibility scan results. Please try again.</source>
+                <target>Die Accessibility-Scan-Ergebnisse konnten nicht geladen werden. Bitte versuchen Sie es erneut.</target>
+            </trans-unit>
+            <trans-unit id="scan.error.storeFailed" resname="scan.error.storeFailed">
+                <source>Failed to store scan ID</source>
+                <target>Scan-ID konnte nicht gespeichert werden</target>
+            </trans-unit>
+            <trans-unit id="scan.error.storeFailed.description" resname="scan.error.storeFailed.description">
+                <source>Could not store the scan ID in the database. Please try again.</source>
+                <target>Die Scan-ID konnte nicht in der Datenbank gespeichert werden. Bitte versuchen Sie es erneut.</target>
+            </trans-unit>
+            <trans-unit id="scan.helpLinks" resname="scan.helpLinks">
+                <source>More information</source>
+                <target>Weitere Informationen</target>
+            </trans-unit>
+            <trans-unit id="scan.viewScreenshot" resname="scan.viewScreenshot">
+                <source>View Screenshot</source>
+                <target>Screenshot anzeigen</target>
+            </trans-unit>
+            <trans-unit id="scan.screenshot" resname="scan.screenshot">
+                <source>Screenshot:</source>
+                <target>Screenshot:</target>
+            </trans-unit>
+            <trans-unit id="scan.issueCount" resname="scan.issueCount">
+                <source>%d Issue</source>
+                <target>%d Problem</target>
+            </trans-unit>
+            <trans-unit id="scan.issuesCount" resname="scan.issuesCount">
+                <source>%d Issues</source>
+                <target>%d Probleme</target>
+            </trans-unit>
+            <trans-unit id="scan.selector" resname="scan.selector">
+                <source>Selector:</source>
+                <target>Selektor:</target>
+            </trans-unit>
+            <trans-unit id="scan.context" resname="scan.context">
+                <source>HTML Context:</source>
+                <target>HTML-Kontext:</target>
+            </trans-unit>
+            <trans-unit id="scan.processing" resname="scan.processing">
+                <source>Processing...</source>
+                <target>Wird verarbeitet...</target>
+            </trans-unit>
+            <trans-unit id="scan.issuesFound" resname="scan.issuesFound">
+                <source>Last external scan: %d accessibility issues found</source>
+                <target>Letzter externer Scan: %d Barrierefreiheitsprobleme gefunden</target>
+            </trans-unit>
+            <trans-unit id="scan.noIssues" resname="scan.noIssues">
+                <source>Last external scan: No accessibility issues found</source>
+                <target>Letzter externer Scan: Keine Barrierefreiheitsprobleme gefunden</target>
+            </trans-unit>
+            <trans-unit id="scan.error.loading" resname="scan.error.loading">
+                <source>The last external scan failed.</source>
+                <target>Der letzte externe Scan ist fehlgeschlagen.</target>
+            </trans-unit>
+            <trans-unit id="scan.error.notFound" resname="scan.error.notFound">
+                <source>Scan result not found</source>
+                <target>Scan-Ergebnis nicht gefunden</target>
+            </trans-unit>
+            <trans-unit id="scan.error.notFound.description" resname="scan.error.notFound.description">
+                <source>The requested scan result could not be found.</source>
+                <target>Das angeforderte Scan-Ergebnis konnte nicht gefunden werden.</target>
+            </trans-unit>
+            <trans-unit id="scan.error.pageNotFound" resname="scan.error.pageNotFound">
+                <source>Page not found</source>
+                <target>Seite nicht gefunden</target>
+            </trans-unit>
+            <trans-unit id="scan.error.pageNotFound.description" resname="scan.error.pageNotFound.description">
+                <source>The requested page or translation does not exist.</source>
+                <target>Die angeforderte Seite oder Übersetzung existiert nicht.</target>
+            </trans-unit>
+            <trans-unit id="scan.error.pageVisible" resname="scan.error.pageVisible">
+                <source>Page not visible</source>
+                <target>Seite nicht sichtbar</target>
+            </trans-unit>
+            <trans-unit id="scan.error.pageVisible.description" resname="scan.error.pageVisible.description">
+                <source>The page is hidden or not yet published. The external accessibility scanner cannot access it.</source>
+                <target>Die Seite ist ausgeblendet oder noch nicht veröffentlicht. Der externe Accessibility-Scanner kann nicht auf sie zugreifen.</target>
+            </trans-unit>
+            <trans-unit id="scan.error.accessDenied" resname="scan.error.accessDenied">
+                <source>Access denied</source>
+                <target>Zugriff verweigert</target>
+            </trans-unit>
+            <trans-unit id="scan.error.accessDenied.description" resname="scan.error.accessDenied.description">
+                <source>You do not have access to view this scan result.</source>
+                <target>Sie haben keinen Zugriff auf dieses Scan-Ergebnis.</target>
+            </trans-unit>
+
+            <!-- Command: Cleanup Scan IDs -->
+            <trans-unit id="command.cleanupScanIds.option.seconds" resname="command.cleanupScanIds.option.seconds">
+                <source>Number of seconds after which scan IDs should be considered old (default: 2592000 = 30 days)</source>
+                <target>Anzahl der Sekunden, nach denen Scan-IDs als veraltet gelten (Standard: 2592000 = 30 Tage)</target>
+            </trans-unit>
+            <trans-unit id="command.cleanupScanIds.processing" resname="command.cleanupScanIds.processing">
+                <source>Finding scan IDs older than %d seconds (before %s)...</source>
+                <target>Suche nach Scan-IDs, die älter als %d Sekunden sind (vor %s)...</target>
+            </trans-unit>
+            <trans-unit id="command.cleanupScanIds.noOldScans" resname="command.cleanupScanIds.noOldScans">
+                <source>No old scan IDs found to clean up.</source>
+                <target>Keine veralteten Scan-IDs zum Bereinigen gefunden.</target>
+            </trans-unit>
+            <trans-unit id="command.cleanupScanIds.success" resname="command.cleanupScanIds.success">
+                <source>Successfully cleaned up %d old scan IDs.</source>
+                <target>%d veraltete Scan-IDs erfolgreich bereinigt.</target>
+            </trans-unit>
+        </body>
+    </file>
+</xliff>

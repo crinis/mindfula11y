@@ -26,6 +26,14 @@
                 <source>Disable Alt Text Generation: Disable AI-Generation of alternative text.</source>
                 <target>Alt-Text-Generierung deaktivieren: KI-Generierung von Alternativtext deaktivieren.</target>
             </trans-unit>
+            <trans-unit id="scan.apiUrl" xml:space="preserve">
+                <source>Mindful API URL: URL of the external accessibility scanner API.</source>
+                <target>Mindful API URL: URL der externen Accessibility-Scanner-API.</target>
+            </trans-unit>
+            <trans-unit id="scan.apiToken" xml:space="preserve">
+                <source>Mindful API Token: Authentication token for the external accessibility scanner API.</source>
+                <target>Mindful API Token: Authentifizierungstoken für die externe Accessibility-Scanner-API.</target>
+            </trans-unit>
 		</body>
 	</file>
 </xliff>
