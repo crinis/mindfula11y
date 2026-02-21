@@ -438,6 +438,19 @@
                 <source>You do not have permission to read sys_file records. Please contact your administrator.</source>
             </trans-unit>
 
+            <trans-unit id="error.noFileMountAccess" resname="error.noFileMountAccess">
+                <source>No file access</source>
+            </trans-unit>
+            <trans-unit id="error.noFileMountAccess.description" resname="error.noFileMountAccess.description">
+                <source>You do not have permission to read this file. The file may be outside your file mount boundaries.</source>
+            </trans-unit>
+            <trans-unit id="error.fileNotFound" resname="error.fileNotFound">
+                <source>File not found</source>
+            </trans-unit>
+            <trans-unit id="error.fileNotFound.description" resname="error.fileNotFound.description">
+                <source>The file could not be found. It may have been deleted or moved since this form was opened.</source>
+            </trans-unit>
+
             <!-- Scan -->
             <trans-unit id="scan" resname="scan">
                 <source>Scan for accessibility issues</source>

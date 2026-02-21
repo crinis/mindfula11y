@@ -27,6 +27,7 @@ use TYPO3\CMS\Backend\Tree\Repository\PageTreeRepository;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Database\ConnectionPool;
+use TYPO3\CMS\Core\Resource\FileInterface;
 use TYPO3\CMS\Core\Type\Bitmask\Permission;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Versioning\VersionState;
@@ -129,6 +130,7 @@ class PermissionService
         $repository = GeneralUtility::makeInstance(PageTreeRepository::class);
         $repository->setAdditionalWhereClause($perms_clause);
         $pages = $repository->getFlattenedPages($mountPoints, $pageLevels);
+        $idList = [];
         foreach ($pages as $page) {
             $idList[] = (int)$page['uid'];
         }
@@ -411,6 +413,33 @@ class PermissionService
         }
 
         return $backendUser->checkLanguageAccess($languageId);
+    }
+
+    /**
+     * Check if the current backend user has read access to a file,
+     * including file mount boundary checks.
+     *
+     * @param FileInterface $file
+     * @return bool
+     */
+    public function checkFileReadAccess(FileInterface $file): bool
+    {
+        return $file->getStorage()->checkFileActionPermission('read', $file);
+    }
+
+    /**
+     * Check if the current backend user may edit the metadata of a file.
+     *
+     * Uses the 'editMeta' action which is the permission model TYPO3 core applies to
+     * sys_file_metadata via FileMetadataPermissionsAspect. It verifies the file is within
+     * a writable file mount boundary.
+     *
+     * @param FileInterface $file
+     * @return bool
+     */
+    public function checkFileMetaEditAccess(FileInterface $file): bool
+    {
+        return $file->getStorage()->checkFileActionPermission('editMeta', $file);
     }
 
     /**

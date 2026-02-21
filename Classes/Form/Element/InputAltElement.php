@@ -348,6 +348,7 @@ class InputAltElement extends AbstractFormElement
                 $backendUser->workspace,
                 $table,
                 (int)$this->data['databaseRow']['uid'],
+                $fileUid ?? 0,
                 [$fieldName]
             );
 

@@ -75,13 +75,15 @@ class AltTextFinderService
             $tables[] = $this->createAltlessFileReferenceTable($tableName, $pageIds, $pageTsConfig);
         }
 
-        return $this->altlessFileReferenceRepository->findForTables(
-            $tables,
-            $languageId,
-            $this->getBackendUserAuthentication()->workspace,
-            $firstResult,
-            $maxResults,
-            $filterFileMetaData
+        return $this->filterByFileReadAccess(
+            $this->altlessFileReferenceRepository->findForTables(
+                $tables,
+                $languageId,
+                $this->getBackendUserAuthentication()->workspace,
+                $firstResult,
+                $maxResults,
+                $filterFileMetaData
+            )
         );
     }
 
@@ -117,13 +119,15 @@ class AltTextFinderService
         $pageTreeIds = $this->permissionService->getPageTreeIds($pageId, $pageLevels);
         $table = $this->createAltlessFileReferenceTable($tableName, $pageTreeIds, $pageTsConfig);
 
-        return $this->altlessFileReferenceRepository->findForTables(
-            [$table],
-            $languageId,
-            $this->getBackendUserAuthentication()->workspace,
-            $firstResult,
-            $maxResults,
-            $filterFileMetaData
+        return $this->filterByFileReadAccess(
+            $this->altlessFileReferenceRepository->findForTables(
+                [$table],
+                $languageId,
+                $this->getBackendUserAuthentication()->workspace,
+                $firstResult,
+                $maxResults,
+                $filterFileMetaData
+            )
         );
     }
 
@@ -153,14 +157,10 @@ class AltTextFinderService
         $tables = [];
         $pageIds = null;
         foreach ($this->getTablesWithFiles($pageTsConfig) as $tableName) {
-            if ('pages' === $tableName) {
-                $tables[] = $this->createAltlessFileReferenceTable($tableName, $this->permissionService->getPageTreeIds($pageId, $pageLevels), $pageTsConfig);
-            } else {
-                if (null === $pageIds) {
-                    $pageIds = $this->permissionService->getPageTreeIds($pageId, $pageLevels);
-                }
-                $tables[] = $this->createAltlessFileReferenceTable($tableName, $pageIds, $pageTsConfig);
+            if (null === $pageIds) {
+                $pageIds = $this->permissionService->getPageTreeIds($pageId, $pageLevels);
             }
+            $tables[] = $this->createAltlessFileReferenceTable($tableName, $pageIds, $pageTsConfig);
         }
 
         return $this->altlessFileReferenceRepository->countForTables(
@@ -298,6 +298,23 @@ class AltTextFinderService
         }
 
         return $fileColumns;
+    }
+
+    /**
+     * Filter file references to only those the current backend user may read,
+     * respecting file mount boundaries.
+     *
+     * @param array<AltlessFileReference> $fileReferences
+     * @return array<AltlessFileReference>
+     */
+    protected function filterByFileReadAccess(array $fileReferences): array
+    {
+        return array_values(array_filter(
+            $fileReferences,
+            fn($ref) => $this->permissionService->checkFileReadAccess(
+                $ref->getOriginalResource()->getOriginalFile()
+            )
+        ));
     }
 
     /**

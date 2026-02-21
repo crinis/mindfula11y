@@ -107,6 +107,7 @@ class AltTextAjaxController extends ActionController
             (int)$requestBody['workspaceId'] ?? 0,
             $requestBody['recordTable'] ?? '',
             (int)$requestBody['recordUid'] ?? 0,
+            (int)$requestBody['fileUid'] ?? 0,
             $requestBody['recordColumns'] ?? [],
             $requestBody['signature'] ?? '',
         );
@@ -140,6 +141,7 @@ class AltTextAjaxController extends ActionController
         $pageUid = $demand->getPageUid();
         $languageUid = $demand->getLanguageUid();
         $workspaceId = $demand->getWorkspaceId();
+        $recordTable = $demand->getRecordTable();
 
         // Verify the current backend user matches the demand
         if ($backendUser->user['uid'] !== $userId) {
@@ -177,17 +179,22 @@ class AltTextAjaxController extends ActionController
             )->withStatus(403);
         }
 
-        // Check if user has access to the page
-        $pageInfo = BackendUtility::readPageAccess($pageUid, $backendUser->getPagePermsClause(Permission::PAGE_SHOW));
-        if (false === $pageInfo) {
-            return $this->jsonResponse(
-                json_encode([
-                    'error' => [
-                        'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.noPageAccess'),
-                        'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.noPageAccess.description'),
-                    ]
-                ])
-            )->withStatus(403);
+        // Check if user has access to the page.
+        // Root-level tables like sys_file_metadata have ignoreRootLevelRestriction=true in TCA
+        // and are not governed by page tree permissions when their records sit at pid=0.
+        // Only skip when both conditions are true: the record is at root AND the table allows it.
+        if (!(0 === $pageUid && BackendUtility::isRootLevelRestrictionIgnored($recordTable))) {
+            $pageInfo = BackendUtility::readPageAccess($pageUid, $backendUser->getPagePermsClause(Permission::PAGE_SHOW));
+            if (false === $pageInfo) {
+                return $this->jsonResponse(
+                    json_encode([
+                        'error' => [
+                            'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.noPageAccess'),
+                            'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.noPageAccess.description'),
+                        ]
+                    ])
+                )->withStatus(403);
+            }
         }
 
         // Check if user has read access to sys_file
@@ -203,12 +210,19 @@ class AltTextAjaxController extends ActionController
         }
 
         // Check if user has edit access to the record
-        $recordTable = $demand->getRecordTable();
         $recordUid = $demand->getRecordUid();
         $recordColumns = $demand->getRecordColumns();
         $recordData = BackendUtility::getRecordWSOL($recordTable, $recordUid);
 
-        if (!$this->permissionService->checkRecordEditAccess($recordTable, $recordData, $recordColumns)) {
+        // Check if user has edit access to the record.
+        // For sys_file_metadata the TYPO3 core permission model (FileMetadataPermissionsAspect)
+        // is file-mount based (editMeta), not page-based. checkRecordEditAccess relies on a
+        // parent page row which does not exist for root-level records (pid=0), so skip it when
+        // the record is at root on a table that explicitly allows it, and enforce editMeta below.
+        if (!(0 === $pageUid && BackendUtility::isRootLevelRestrictionIgnored($recordTable))
+            && is_array($recordData)
+            && !$this->permissionService->checkRecordEditAccess($recordTable, $recordData, $recordColumns)
+        ) {
             return $this->jsonResponse(
                 json_encode([
                     'error' => [
@@ -219,15 +233,57 @@ class AltTextAjaxController extends ActionController
             )->withStatus(403);
         }
 
-        $languageCode = $this->siteLanguageService->getLanguageCode($demand->getLanguageUid(), $demand->getPageUid());
-        
-        if ('sys_file_reference' === $recordTable) {
-            $fileUid = (int)$recordData['uid_local'][0]['uid'];
-        } elseif ('sys_file_metadata' === $recordTable) {
-            $fileUid = (int)$recordData['file'][0];
+        // For root-level records (e.g. sys_file_metadata) checkRecordEditAccess is skipped above
+        // because it cannot resolve a parent page row. Enforce the equivalent guards manually:
+        // table write access and non-exclude field access — matching what checkRecordEditAccess
+        // would verify via checkTableWriteAccess and checkNonExcludeFields.
+        if (0 === $pageUid && BackendUtility::isRootLevelRestrictionIgnored($recordTable)) {
+            if (!$this->permissionService->checkTableWriteAccess($recordTable)
+                || !$this->permissionService->checkNonExcludeFields($recordTable, $recordColumns)
+            ) {
+                return $this->jsonResponse(
+                    json_encode([
+                        'error' => [
+                            'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.invalidRecordAccess'),
+                            'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.invalidRecordAccess.description'),
+                        ]
+                    ])
+                )->withStatus(403);
+            }
         }
 
-        $file = $this->resourceFactory->getFileObject($fileUid);
+        $languageCode = $this->siteLanguageService->getLanguageCode($demand->getLanguageUid(), $demand->getPageUid());
+
+        try {
+            $file = $this->resourceFactory->getFileObject($demand->getFileUid());
+        } catch (FileDoesNotExistException) {
+            return $this->jsonResponse(
+                json_encode([
+                    'error' => [
+                        'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.fileNotFound'),
+                        'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.fileNotFound.description'),
+                    ]
+                ])
+            )->withStatus(404);
+        }
+
+        // For sys_file_metadata the TYPO3 core uses editMeta (writable file mount) as the
+        // permission check (see FileMetadataPermissionsAspect). For all other tables, a
+        // read file mount check is sufficient.
+        $hasFileAccess = ('sys_file_metadata' === $recordTable)
+            ? $this->permissionService->checkFileMetaEditAccess($file)
+            : $this->permissionService->checkFileReadAccess($file);
+
+        if (!$hasFileAccess) {
+            return $this->jsonResponse(
+                json_encode([
+                    'error' => [
+                        'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.noFileMountAccess'),
+                        'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.noFileMountAccess.description'),
+                    ]
+                ])
+            )->withStatus(403);
+        }
 
         $altText = $this->altTextGeneratorService->generate($file, $languageCode);
 

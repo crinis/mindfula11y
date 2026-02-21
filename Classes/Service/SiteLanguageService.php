@@ -56,8 +56,36 @@ class SiteLanguageService
      */
     public function getLanguageCode(int $languageUid, int $pageId): string
     {
+        if (0 === $pageId) {
+            return $this->getLanguageCodeFromAnySite($languageUid);
+        }
         $siteLanguage = $this->getSiteLanguage($pageId, $languageUid);
         return $siteLanguage->getLocale()->getLanguageCode();
+    }
+
+    /**
+     * Resolve a language code without a page context by searching all configured sites.
+     * Used for root-level records (e.g. sys_file_metadata) that have no associated page.
+     *
+     * @param int $languageUid
+     * @return string
+     */
+    protected function getLanguageCodeFromAnySite(int $languageUid): string
+    {
+        foreach ($this->siteFinder->getAllSites() as $site) {
+            try {
+                return $site->getLanguageById($languageUid)->getLocale()->getLanguageCode();
+            } catch (\InvalidArgumentException) {
+                // language not present in this site, try next
+            }
+        }
+
+        // Fall back to the default language of the first available site
+        foreach ($this->siteFinder->getAllSites() as $site) {
+            return $site->getDefaultLanguage()->getLocale()->getLanguageCode();
+        }
+
+        return 'en';
     }
 
     /**

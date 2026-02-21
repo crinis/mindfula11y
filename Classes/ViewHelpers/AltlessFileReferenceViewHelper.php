@@ -177,6 +177,7 @@ class AltlessFileReferenceViewHelper extends AbstractTagBasedViewHelper
         $recordTableName = $fileReference->getOriginalResource()->getReferenceProperty('tablenames');
         $recordColumnName = $fileReference->getOriginalResource()->getReferenceProperty('fieldname');
         $recordUid = $fileReference->getOriginalResource()->getReferenceProperty('uid_foreign');
+        $fileUid = $fileReference->getOriginalResource()->getOriginalFile()->getUid();
         return new GenerateAltTextDemand(
             $backendUser->user['uid'],
             $fileReference->getPid(),
@@ -184,6 +185,7 @@ class AltlessFileReferenceViewHelper extends AbstractTagBasedViewHelper
             $backendUser->workspace,
             $recordTableName,
             $recordUid,
+            $fileUid,
             [$recordColumnName],
         );
     }

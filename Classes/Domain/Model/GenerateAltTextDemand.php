@@ -67,6 +67,11 @@ class GenerateAltTextDemand extends AbstractValueObject implements JsonSerializa
     protected int $recordUid = 0;
 
     /**
+     * File UID to generate alt text for.
+     */
+    protected int $fileUid = 0;
+
+    /**
      * Affected record columns.
      */
     protected array $recordColumns = [];
@@ -79,7 +84,7 @@ class GenerateAltTextDemand extends AbstractValueObject implements JsonSerializa
     /**
      * Constructor.
      */
-    public function __construct(int $userId, int $pageUid, int $languageUid, int $workspaceId, string $recordTable, int $recordUid, array $recordColumns, string $signature = '')
+    public function __construct(int $userId, int $pageUid, int $languageUid, int $workspaceId, string $recordTable, int $recordUid, int $fileUid, array $recordColumns, string $signature = '')
     {
         $this->userId = $userId;
         $this->pageUid = $pageUid;
@@ -87,6 +92,7 @@ class GenerateAltTextDemand extends AbstractValueObject implements JsonSerializa
         $this->workspaceId = $workspaceId;
         $this->recordTable = $recordTable;
         $this->recordUid = $recordUid;
+        $this->fileUid = $fileUid;
         $this->recordColumns = $recordColumns;
         $this->signature = '' !== $signature ? $signature : $this->createSignature();
     }
@@ -140,6 +146,14 @@ class GenerateAltTextDemand extends AbstractValueObject implements JsonSerializa
     }
 
     /**
+     * Get the file UID to generate alt text for.
+     */
+    public function getFileUid(): int
+    {
+        return $this->fileUid;
+    }
+
+    /**
      * Get the affected record columns.
      */
     public function getRecordColumns(): array
@@ -173,6 +187,7 @@ class GenerateAltTextDemand extends AbstractValueObject implements JsonSerializa
                     (int)$this->workspaceId,
                     $this->recordTable,
                     (int)$this->recordUid,
+                    (int)$this->fileUid,
                     implode(',', $this->recordColumns),
                 ]
             ),
@@ -206,6 +221,7 @@ class GenerateAltTextDemand extends AbstractValueObject implements JsonSerializa
             'workspaceId' => $this->getWorkspaceId(),
             'recordTable' => $this->getRecordTable(),
             'recordUid' => $this->getRecordUid(),
+            'fileUid' => $this->getFileUid(),
             'recordColumns' => $this->getRecordColumns(),
             'signature' => $this->getSignature(),
         ];
