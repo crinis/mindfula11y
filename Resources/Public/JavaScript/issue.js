@@ -52,6 +52,7 @@ export class Issue extends LitElement {
       selector: { type: String },
       context: { type: String },
       screenshotUrl: { type: String },
+      pageUrl: { type: String },
     };
   }
 
@@ -64,6 +65,7 @@ export class Issue extends LitElement {
     this.selector = "";
     this.context = "";
     this.screenshotUrl = "";
+    this.pageUrl = "";
   }
 
   connectedCallback() {
@@ -107,6 +109,22 @@ export class Issue extends LitElement {
         : null}
       <div class="col-12 ${this.screenshotUrl ? "col-md-8" : ""}">
         <dl class="row mb-0">
+          ${this.pageUrl
+            ? html`
+                <dt class="col-sm-3 text-muted">
+                  ${TYPO3.lang["mindfula11y.scan.pageUrl"]}
+                </dt>
+                <dd class="col-sm-9 mb-2">
+                  <a
+                    href="${this.pageUrl}"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="text-break small"
+                    >${this.pageUrl}</a
+                  >
+                </dd>
+              `
+            : null}
           ${this.selector
             ? html`
                 <dt class="col-sm-3 text-muted">

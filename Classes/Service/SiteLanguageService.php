@@ -125,4 +125,38 @@ class SiteLanguageService
         $site = $this->siteFinder->getSiteByPageId($pageId);
         return $site->getLanguageById($languageUid);
     }
+
+    /**
+     * Resolve the absolute base URL of a site language.
+     *
+     * Language bases in TYPO3 site configuration may be relative (e.g. /de/) or absolute
+     * (e.g. https://de.example.com/). This method always returns an absolute URL without
+     * a trailing slash, suitable for URL comparisons or crawler glob patterns.
+     *
+     * Returns null if the site or language cannot be resolved.
+     *
+     * @param int $pageId Page ID within the target site.
+     * @param int $languageId Language ID.
+     * @return string|null Absolute base URL without trailing slash, or null on failure.
+     */
+    public function getAbsoluteLanguageBase(int $pageId, int $languageId): ?string
+    {
+        try {
+            $site = $this->siteFinder->getSiteByPageId($pageId);
+            $langBase = $site->getLanguageById($languageId)->getBase();
+            if (!empty($langBase->getScheme())) {
+                // Absolute language base (e.g. https://de.example.com/ or https://example.com/de/)
+                return rtrim((string)$langBase, '/');
+            }
+            // Relative language base (e.g. /de/) — resolve scheme+host from the site base
+            $siteBase = $site->getBase();
+            $origin = $siteBase->getScheme() . '://' . $siteBase->getHost();
+            if ($siteBase->getPort()) {
+                $origin .= ':' . $siteBase->getPort();
+            }
+            return $origin . rtrim($langBase->getPath(), '/');
+        } catch (\Throwable) {
+            return null;
+        }
+    }
 }

@@ -28,8 +28,10 @@ use MindfulMarkup\MindfulA11y\Domain\Model\CreateScanDemand;
 use MindfulMarkup\MindfulA11y\Service\ScanApiService;
 use MindfulMarkup\MindfulA11y\Service\GeneralModuleService;
 use MindfulMarkup\MindfulA11y\Service\PermissionService;
+use MindfulMarkup\MindfulA11y\Service\SiteLanguageService;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use TYPO3\CMS\Backend\Routing\PreviewUriBuilder;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Database\ConnectionPool;
@@ -43,6 +45,7 @@ use TYPO3\CMS\Core\DataHandling\DataHandler;
 use TYPO3\CMS\Core\Type\Bitmask\Permission;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Versioning\VersionState;
+use TYPO3\CMS\Core\Site\SiteFinder;
 
 /**
  * Class ScanAjaxController.
@@ -60,12 +63,15 @@ class ScanAjaxController extends ActionController
      * @param GeneralModuleService $generalModuleService The general module service.
      * @param PermissionService $permissionService The permission service.
      * @param ConnectionPool $connectionPool The connection pool.
+     * @param SiteLanguageService $siteLanguageService The site language service.
      */
     public function __construct(
         protected readonly ScanApiService $scanApiService,
         protected readonly GeneralModuleService $generalModuleService,
         protected readonly PermissionService $permissionService,
         protected readonly ConnectionPool $connectionPool,
+        protected readonly SiteFinder $siteFinder,
+        protected readonly SiteLanguageService $siteLanguageService,
     ) {}
 
     /**
@@ -76,6 +82,103 @@ class ScanAjaxController extends ActionController
     protected function initializeCreateAction(): void
     {
         $this->assertAllowedHttpMethod($this->request, 'POST');
+    }
+
+    /**
+     * Assert allowed HTTP method for the report action.
+     *
+     * @throws MethodNotAllowedException If the request method is not allowed.
+     */
+    protected function initializeReportAction(): void
+    {
+        $this->assertAllowedHttpMethod($this->request, 'GET');
+    }
+
+    /**
+     * Stream an HTML or PDF accessibility report for a scan.
+     *
+     * @param ServerRequestInterface $request
+     * @return ResponseInterface
+     * @throws MethodNotAllowedException If the request method is not allowed.
+     */
+    public function reportAction(ServerRequestInterface $request): ResponseInterface
+    {
+        $backendUser = $this->getBackendUserAuthentication();
+
+        if (!$backendUser->check('modules', 'mindfula11y_accessibility')) {
+            return $this->jsonResponse(json_encode([
+                'error' => [
+                    'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.forbidden'),
+                    'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.forbidden.description'),
+                ]
+            ]))->withStatus(403);
+        }
+
+        $queryParams = $request->getQueryParams();
+        $scanId = $queryParams['scanId'] ?? '';
+        $format = $queryParams['format'] ?? '';
+
+        if (empty($scanId)) {
+            return $this->jsonResponse(json_encode([
+                'error' => ['title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.noScanId')]
+            ]))->withStatus(404);
+        }
+
+        if (!in_array($format, ['html', 'pdf'], true)) {
+            return $this->jsonResponse(json_encode([
+                'error' => ['title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.reportFormat')]
+            ]))->withStatus(400);
+        }
+
+        $pageRecord = $this->generalModuleService->getPageRecordByScanId($scanId);
+        if (null === $pageRecord) {
+            return $this->jsonResponse(json_encode([
+                'error' => ['title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.notFound')]
+            ]))->withStatus(404);
+        }
+
+        if (!$this->permissionService->checkPageReadAccess($pageRecord)) {
+            return $this->jsonResponse(json_encode([
+                'error' => ['title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.accessDenied')]
+            ]))->withStatus(403);
+        }
+
+        $pageTsConfig = $this->generalModuleService->getConvertedPageTsConfig((int)$pageRecord['uid']);
+        if (!$this->generalModuleService->hasScanAccess($pageTsConfig)) {
+            return $this->jsonResponse(json_encode([
+                'error' => ['title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.noAccess')]
+            ]))->withStatus(403);
+        }
+
+        $body = $this->scanApiService->getReport($scanId, $format);
+        if (null === $body) {
+            return $this->jsonResponse(json_encode([
+                'error' => [
+                    'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.reportFailed'),
+                    'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.reportFailed.description'),
+                ]
+            ]))->withStatus(500);
+        }
+
+        $contentType = $format === 'pdf' ? 'application/pdf' : 'text/html; charset=utf-8';
+        $disposition = $format === 'pdf' ? 'attachment' : 'inline';
+        $filename = 'accessibility-report.' . $format;
+
+        $response = $this->responseFactory->createResponse();
+        $response->getBody()->write($body);
+        $response = $response
+            ->withHeader('Content-Type', $contentType)
+            ->withHeader('Content-Disposition', $disposition . '; filename="' . $filename . '"');
+
+        // Prevent scripts in HTML reports from running at the TYPO3 backend origin.
+        if ($format === 'html') {
+            $response = $response->withHeader(
+                'Content-Security-Policy',
+                "default-src 'none'; style-src 'unsafe-inline'; img-src data: https:; font-src 'self' data:"
+            );
+        }
+
+        return $response;
     }
 
     /**
@@ -114,20 +217,22 @@ class ScanAjaxController extends ActionController
             )->withStatus(403);
         }
 
-        $requestBody = $request->getParsedBody();
+        $requestBody = json_decode((string)$request->getBody(), true) ?? [];
         // Basic input validation to avoid TypeError in CreateScanDemand constructor
         $userId = isset($requestBody['userId']) ? (int)$requestBody['userId'] : 0;
         $pageId = isset($requestBody['pageId']) ? (int)$requestBody['pageId'] : 0;
         $previewUrl = $requestBody['previewUrl'] ?? '';
         $languageId = isset($requestBody['languageId']) ? (int)$requestBody['languageId'] : 0;
         $workspaceId = isset($requestBody['workspaceId']) ? (int)$requestBody['workspaceId'] : 0;
+        $pageLevels = isset($requestBody['pageLevels']) ? (int)$requestBody['pageLevels'] : 0;
+        $crawl = (bool)($requestBody['crawl'] ?? false);
         $signature = $requestBody['signature'] ?? '';
 
         if ($userId <= 0 || $pageId <= 0 || !is_string($signature) || $signature === '' || !is_string($previewUrl) || $previewUrl === '') {
             throw new InvalidArgumentException('Missing or invalid parameters for creating a scan');
         }
 
-        $demand = new CreateScanDemand($userId, $pageId, $previewUrl, $languageId, $workspaceId, $signature);
+        $demand = new CreateScanDemand($userId, $pageId, $previewUrl, $languageId, $workspaceId, $pageLevels, $crawl, $signature);
 
         if (!$demand->validateSignature()) {
             return $this->jsonResponse(
@@ -261,8 +366,45 @@ class ScanAjaxController extends ActionController
             )->withStatus(403);
         }
 
+        // Generate scan URLs
+        $pageLevels = $demand->getPageLevels();
+        $crawl = $demand->getCrawl();
+        $scanUrls = [];
+
+        if ($crawl) {
+            // For crawl mode the API discovers pages from the start URL - only valid on site root pages
+            if (!(bool)($page['is_siteroot'] ?? false)) {
+                return $this->jsonResponse(
+                    json_encode([
+                        'error' => [
+                            'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.crawlNotRootPage'),
+                            'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.crawlNotRootPage.description'),
+                        ]
+                    ])
+                )->withStatus(403);
+            }
+            $scanUrls = [$previewUrl];
+        } else {
+            if ($pageLevels > 0) {
+                $scanUrls = $this->generatePageTreeUrls($pageId, $languageId, $pageLevels);
+            }
+            // Always include the current page's preview URL
+            if (empty($scanUrls)) {
+                $scanUrls = [$previewUrl];
+            }
+        }
+
         // Create scan
-        $scanData = $this->scanApiService->createScan($previewUrl);
+        $crawlOptions = [];
+        if ($crawl) {
+            // Restrict the crawl to the selected language's URL space via a glob pattern.
+            // The base URL is derived from the TYPO3 site configuration — not user-supplied input.
+            $base = $this->siteLanguageService->getAbsoluteLanguageBase($pageId, $languageId);
+            if ($base !== null) {
+                $crawlOptions['globs'] = [$base . '/**'];
+            }
+        }
+        $scanData = $this->scanApiService->createScan($scanUrls, $crawl, $crawlOptions);
 
         if (null === $scanData) {
             return $this->jsonResponse(
@@ -357,8 +499,58 @@ class ScanAjaxController extends ActionController
             )->withStatus(403);
         }
 
-        // Get scan
-        $scan = $this->scanApiService->getScan($scanId);
+        $pageTsConfig = $this->generalModuleService->getConvertedPageTsConfig((int)$pageRecord['uid']);
+        if (!$this->generalModuleService->hasScanAccess($pageTsConfig)) {
+            return $this->jsonResponse(
+                json_encode([
+                    'error' => [
+                        'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.noAccess'),
+                        'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.noAccess.description'),
+                    ]
+                ])
+            )->withStatus(403);
+        }
+
+        // Get scan with optional page URL filter
+        $pageUrls = $queryParams['pageUrls'] ?? [];
+        if (!is_array($pageUrls)) {
+            $pageUrls = [];
+        }
+        // Sanitize: only allow valid URL strings
+        $pageUrls = array_values(array_filter($pageUrls, function ($url) {
+            return is_string($url) && filter_var($url, FILTER_VALIDATE_URL) !== false;
+        }));
+
+        // Finding 3 fix: restrict pageUrls to the site's own base URLs to prevent
+        // unintended filter parameters being forwarded to the external scanner API
+        if (!empty($pageUrls)) {
+            try {
+                $site = $this->siteFinder->getSiteByPageId((int)$pageRecord['uid']);
+                $allowedBases = [];
+                foreach ($site->getLanguages() as $language) {
+                    $base = rtrim((string)$language->getBase(), '/');
+                    if ($base !== '') {
+                        $allowedBases[] = $base;
+                    }
+                }
+                $siteBase = rtrim((string)$site->getBase(), '/');
+                if ($siteBase !== '' && !in_array($siteBase, $allowedBases, true)) {
+                    $allowedBases[] = $siteBase;
+                }
+                $pageUrls = array_values(array_filter($pageUrls, static function (string $url) use ($allowedBases): bool {
+                    foreach ($allowedBases as $base) {
+                        if (str_starts_with($url, $base . '/') || $url === $base) {
+                            return true;
+                        }
+                    }
+                    return false;
+                }));
+            } catch (\Exception $e) {
+                $pageUrls = [];
+            }
+        }
+
+        $scan = $this->scanApiService->getScan($scanId, $pageUrls);
 
         if (null === $scan) {
             return $this->jsonResponse(
@@ -382,6 +574,59 @@ class ScanAjaxController extends ActionController
     protected function getBackendUserAuthentication(): BackendUserAuthentication
     {
         return $GLOBALS['BE_USER'];
+    }
+
+    /**
+     * Generate frontend URLs for pages in the page tree.
+     *
+     * Resolves the page tree from the given root page, filters to only pages that are
+     * visible and publicly accessible (no fe_group restrictions), and generates
+     * frontend preview URLs for each.
+     *
+     * @param int $pageId The root page ID.
+     * @param int $languageId The language ID.
+     * @param int $pageLevels The number of page tree levels to include.
+     *
+     * @return string[] Array of frontend URLs.
+     */
+    protected function generatePageTreeUrls(int $pageId, int $languageId, int $pageLevels): array
+    {
+        $pageTreeIds = $this->permissionService->getPageTreeIds($pageId, $pageLevels);
+        $urls = [];
+
+        foreach ($pageTreeIds as $treePageId) {
+            $pageRecord = BackendUtility::getRecordWSOL('pages', $treePageId);
+            if (!is_array($pageRecord)) {
+                continue;
+            }
+
+            // For non-default languages, check if a translation exists
+            if ($languageId > 0) {
+                $localizedPage = $this->generalModuleService->getLocalizedPageRecord($treePageId, $languageId);
+                if (null === $localizedPage) {
+                    continue;
+                }
+                $pageRecord = $localizedPage;
+            }
+
+            // Check page is frontend-accessible (visible + no fe_group)
+            if (!$this->generalModuleService->isPageFrontendAccessible($pageRecord)) {
+                continue;
+            }
+
+            // Check the page doktype is previewable
+            $pageTsConfig = $this->generalModuleService->getConvertedPageTsConfig($treePageId);
+            if (!$this->generalModuleService->isPreviewEnabledForDoktype((int)($pageRecord['doktype'] ?? 0), $pageTsConfig)) {
+                continue;
+            }
+
+            $previewUri = PreviewUriBuilder::create($pageRecord)->buildUri();
+            if (null !== $previewUri) {
+                $urls[] = (string)$previewUri;
+            }
+        }
+
+        return array_unique($urls);
     }
 
     /**

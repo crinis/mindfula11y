@@ -281,11 +281,11 @@ class AccessibilityModuleController
         $createScanDemand = null;
 
         if ($hasScanAccess && $this->scanApiService->isConfigured()) {
-            // Get existing scan ID from database
+            // Get existing scan ID — stored per language on whichever record ($finalPageInfo) was scanned
             $existingScanId = $finalPageInfo['tx_mindfula11y_scanid'] ?? null;
 
             // Check if content has changed since last scan
-            $contentChanged = $this->generalModuleService->shouldInvalidateScan($finalPageInfo);
+            $contentChanged = $this->generalModuleService->shouldInvalidateScan($finalPageInfo, (int)($this->pageInfo['SYS_LASTCHANGED'] ?? 0));
 
             // Only use existing scan ID if content hasn't changed
             if ($existingScanId && !$contentChanged) {
@@ -297,7 +297,7 @@ class AccessibilityModuleController
                 $backendUser = $this->generalModuleService->getBackendUserAuthentication();
                 $createScanDemand = new CreateScanDemand(
                     $backendUser->user['uid'],
-                    $finalPageInfo['uid'],
+                    $this->pageId,
                     (string) $previewUri,
                     $this->languageId,
                     $backendUser->workspace
@@ -510,35 +510,68 @@ class AccessibilityModuleController
             return $this->moduleTemplate->renderResponse('Backend/Info');
         }
 
+        $pageLevels = (int)$this->moduleData->get('scanPageLevels', 0);
+        // Guard against arbitrary values set via URL manipulation; only accept the menu's values
+        if (!in_array($pageLevels, [0, 1, 5, 10, 99], true)) {
+            $pageLevels = 0;
+        }
+
+        $this->moduleTemplate->getDocHeaderComponent()->getMenuRegistry()->addMenu($this->buildScanPageLevelsMenu($pageLevels));
+
         // Check if user has edit access to the page record (needed to trigger new scans)
         $canTriggerScan = $this->permissionService->checkRecordEditAccess('pages', $finalPageInfo, ['tx_mindfula11y_scanid', 'tx_mindfula11y_scanupdated']);
 
         // Check if content has changed since last scan
-        $contentChanged = $this->generalModuleService->shouldInvalidateScan($finalPageInfo);
+        $contentChanged = $this->generalModuleService->shouldInvalidateScan($finalPageInfo, (int)($this->pageInfo['SYS_LASTCHANGED'] ?? 0));
 
-        // Only use existing scan ID if content hasn't changed
+        // Only use existing scan ID if content hasn't changed — stored per language on $finalPageInfo
         $scanId = null;
         if ($finalPageInfo['tx_mindfula11y_scanid'] ?? false && !$contentChanged) {
             $scanId = $finalPageInfo['tx_mindfula11y_scanid'] ?? null;
         }
 
+        // Filter by the current page URL only when scanning a single page (pageLevels = 0).
+        // When pageLevels > 0 the scan covers multiple pages and all results should be shown.
+        $pageUrlFilter = $pageLevels === 0 ? [(string)$previewUri] : [];
+
         // Create scan demand only if user can trigger scans
         $createScanDemand = null;
+        $crawlScanDemand = null;
         if ($canTriggerScan) {
             $backendUser = $this->generalModuleService->getBackendUserAuthentication();
             $createScanDemand = new CreateScanDemand(
                 $backendUser->user['uid'],
-                $finalPageInfo['uid'],
+                $this->pageId,
                 (string) $previewUri,
                 $this->languageId,
-                $backendUser->workspace
+                $backendUser->workspace,
+                $pageLevels
             );
+            // Crawl mode is only available for site root pages (check default-language record)
+            if ((bool)($this->pageInfo['is_siteroot'] ?? false)) {
+                $crawlScanDemand = new CreateScanDemand(
+                    $backendUser->user['uid'],
+                    $this->pageId,
+                    (string) $previewUri,
+                    $this->languageId,
+                    $backendUser->workspace,
+                    0,
+                    true
+                );
+            }
         }
+
+        // Build a signed base URL for the report download (backend route, browser-navigable).
+        // JS appends scanId and format before use.
+        $reportBaseUrl = (string)$this->backendUriBuilder->buildUriFromRoute('mindfula11y_scanreport');
 
         $this->moduleTemplate->assignMultiple([
             'scanId' => $scanId,
             'createScanDemand' => $createScanDemand,
+            'crawlScanDemand' => $crawlScanDemand,
             'autoCreateScan' => $this->generalModuleService->isAutoCreateScanEnabled($this->pageTsConfig),
+            'pageUrlFilter' => $pageUrlFilter,
+            'reportBaseUrl' => $reportBaseUrl,
         ]);
 
         $this->pageRenderer->loadJavaScriptModule('@mindfulmarkup/mindfula11y/scan.js');
@@ -650,6 +683,35 @@ class AccessibilityModuleController
                         'tableName' => $currentTableName,
                         'pageLevels' => $pageLevels,
                         'filterFileMetaData' => $filterFileMetaData,
+                    ]
+                )
+            )->setActive($pageLevels === $currentPageLevels);
+            $menu->addMenuItem($menuItem);
+        }
+
+        return $menu;
+    }
+
+    /**
+     * Build page level menu for the scan feature.
+     *
+     * @param int $currentPageLevels The current page levels.
+     */
+    protected function buildScanPageLevelsMenu(int $currentPageLevels): Menu
+    {
+        $menu = $this->moduleTemplate->getDocHeaderComponent()->getMenuRegistry()->makeMenu();
+        $menu->setIdentifier('MindfulA11yScanPageLevels')
+            ->setLabel(
+                'LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:module.menu.pageLevels'
+            );
+
+        foreach ([0, 1, 5, 10, 99] as $pageLevels) {
+            $menuItem = $menu->makeMenuItem()->setTitle(
+                $this->generalModuleService->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:module.menu.pageLevels.' . $pageLevels)
+            )->setHref(
+                $this->getMenuItemUri(
+                    [
+                        'scanPageLevels' => $pageLevels,
                     ]
                 )
             )->setActive($pageLevels === $currentPageLevels);

@@ -34,6 +34,7 @@ use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
 use TYPO3\CMS\Core\Database\Query\Restriction\WorkspaceRestriction;
+use TYPO3\CMS\Core\Utility\RootlineUtility;
 
 /**
  * Service for general accessibility module functionality
@@ -150,6 +151,15 @@ class GeneralModuleService
             'mindfula11y.scan.start' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.start'),
             'mindfula11y.scan.selector' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.selector'),
             'mindfula11y.scan.context' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.context'),
+            'mindfula11y.scan.pageUrl' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.pageUrl'),
+            'mindfula11y.scan.updatedAt' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.updatedAt'),
+            'mindfula11y.scan.crawl.start' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.crawl.start'),
+            'mindfula11y.scan.crawl.refresh' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.crawl.refresh'),
+            'mindfula11y.scan.crawl.progress' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.crawl.progress'),
+            'mindfula11y.scan.tab.scan' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.tab.scan'),
+            'mindfula11y.scan.tab.crawl' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.tab.crawl'),
+            'mindfula11y.scan.report.html' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.report.html'),
+            'mindfula11y.scan.report.pdf' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.report.pdf'),
 
             // View / common
             'mindfula11y.general.viewDetails' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:general.viewDetails'),
@@ -231,11 +241,13 @@ class GeneralModuleService
      * Determine if a scan should be invalidated based on page info.
      *
      * @param array $pageInfo The page info array containing SYS_LASTCHANGED and tx_mindfula11y_scanupdated.
+     * @param int $fallbackSysLastChanged Fallback SYS_LASTCHANGED from the default-language page record.
+     *   Pass this when $pageInfo is a translation overlay, as overlays may not have SYS_LASTCHANGED updated.
      * @return bool True if the scan should be invalidated (new scan needed), false otherwise.
      */
-    public function shouldInvalidateScan(array &$pageInfo): bool
+    public function shouldInvalidateScan(array &$pageInfo, int $fallbackSysLastChanged = 0): bool
     {
-        $sysLastChanged = $pageInfo['SYS_LASTCHANGED'] ?? null;
+        $sysLastChanged = max((int)($pageInfo['SYS_LASTCHANGED'] ?? 0), $fallbackSysLastChanged);
         $scanUpdated = $pageInfo['tx_mindfula11y_scanupdated'] ?? null;
 
         // If no scan has been done yet, scan should be invalidated (new scan needed)
@@ -244,7 +256,7 @@ class GeneralModuleService
         }
 
         // If scan exists, check if content has been modified since last scan
-        return $sysLastChanged && $sysLastChanged > $scanUpdated;
+        return $sysLastChanged > 0 && $sysLastChanged > $scanUpdated;
     }
 
     /**
@@ -303,6 +315,61 @@ class GeneralModuleService
         // Check endtime
         $endtimeField = $enableColumns['endtime'] ?? 'endtime';
         if (isset($pageRecord[$endtimeField]) && (int)$pageRecord[$endtimeField] !== 0 && (int)$pageRecord[$endtimeField] <= $now) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Check if a page record is accessible on the frontend (visible and not restricted by fe_group).
+     *
+     * Also checks ancestor pages for inherited restrictions via extendToSubpages: when a parent page
+     * has extendToSubpages=1, its hidden, starttime, endtime, and fe_group restrictions cascade to
+     * all descendant pages.
+     *
+     * @param array $pageRecord The page record to check.
+     * @return bool True if the page is publicly accessible on the frontend, false otherwise.
+     */
+    public function isPageFrontendAccessible(array $pageRecord): bool
+    {
+        if (!$this->isPageVisible($pageRecord)) {
+            return false;
+        }
+
+        $feGroup = (string)($pageRecord['fe_group'] ?? '');
+        if ($feGroup !== '' && $feGroup !== '0') {
+            return false;
+        }
+
+        // Check ancestor pages for inherited restrictions via extendToSubpages.
+        // Use the original-language uid (l10n_parent) when the record is a translation overlay,
+        // since RootlineUtility is designed for default-language page uids.
+        $pageId = (int)(($pageRecord['l10n_parent'] ?? 0) ?: ($pageRecord['uid'] ?? 0));
+        if ($pageId <= 0) {
+            return true;
+        }
+
+        try {
+            $rootline = GeneralUtility::makeInstance(RootlineUtility::class, $pageId)->get();
+            foreach ($rootline as $ancestor) {
+                if ((int)$ancestor['uid'] === $pageId) {
+                    continue; // Skip current page, already checked above
+                }
+                // Only evaluate ancestors that extend their restrictions to subpages
+                if (!($ancestor['extendToSubpages'] ?? false)) {
+                    continue;
+                }
+                $ancestorFeGroup = (string)($ancestor['fe_group'] ?? '');
+                if ($ancestorFeGroup !== '' && $ancestorFeGroup !== '0') {
+                    return false;
+                }
+                if (!$this->isPageVisible($ancestor)) {
+                    return false;
+                }
+            }
+        } catch (\Exception $e) {
+            // If the rootline cannot be resolved, treat as inaccessible to be safe
             return false;
         }
 

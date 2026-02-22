@@ -44,6 +44,7 @@ return [
             'tableName' => '',
             'currentPage' => 1,
             'filterFileMetaData' => true,
+            'scanPageLevels' => 0,
             'feature' => Feature::GENERAL->value,
         ],
     ],

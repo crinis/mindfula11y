@@ -140,7 +140,7 @@ class WebLayoutInfo
             // Get existing scan ID from database
             $existingScanId = $finalPageInfo['tx_mindfula11y_scanid'] ?? null;
 
-            $contentChanged = $this->generalModuleService->shouldInvalidateScan($finalPageInfo);
+            $contentChanged = $this->generalModuleService->shouldInvalidateScan($finalPageInfo, (int)($pageInfo['SYS_LASTCHANGED'] ?? 0));
 
             // Only use existing scan ID if content hasn't changed
             if ($existingScanId && !$contentChanged) {

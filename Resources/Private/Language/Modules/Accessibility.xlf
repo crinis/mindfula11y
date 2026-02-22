@@ -65,6 +65,9 @@
             <trans-unit id="module.menu.pageLevels.1" resname="module.menu.pageLevels.1">
                 <source>Levels 1</source>
             </trans-unit>
+            <trans-unit id="module.menu.pageLevels.0" resname="module.menu.pageLevels.0">
+                <source>This page</source>
+            </trans-unit>
             <trans-unit id="module.menu.pageLevels.5" resname="module.menu.pageLevels.5">
                 <source>Levels 5</source>
             </trans-unit>
@@ -489,7 +492,46 @@
                 <source>Start Scan</source>
             </trans-unit>
             <trans-unit id="scan.refresh" resname="scan.refresh">
-                <source>Refresh Results</source>
+                <source>Refresh Scan</source>
+            </trans-unit>
+            <trans-unit id="scan.updatedAt" resname="scan.updatedAt">
+                <source>Last scanned:</source>
+            </trans-unit>
+            <trans-unit id="scan.crawl.start" resname="scan.crawl.start">
+                <source>Start Crawl</source>
+            </trans-unit>
+            <trans-unit id="scan.crawl.refresh" resname="scan.crawl.refresh">
+                <source>Refresh Crawl</source>
+            </trans-unit>
+            <trans-unit id="scan.crawl.progress" resname="scan.crawl.progress">
+                <source>%scanned of %discovered pages scanned</source>
+            </trans-unit>
+            <trans-unit id="scan.tab.scan" resname="scan.tab.scan">
+                <source>Scan</source>
+            </trans-unit>
+            <trans-unit id="scan.tab.crawl" resname="scan.tab.crawl">
+                <source>Crawl</source>
+            </trans-unit>
+            <trans-unit id="scan.error.crawlNotRootPage" resname="scan.error.crawlNotRootPage">
+                <source>Crawl not available</source>
+            </trans-unit>
+            <trans-unit id="scan.error.crawlNotRootPage.description" resname="scan.error.crawlNotRootPage.description">
+                <source>Crawl mode is only available on site root pages.</source>
+            </trans-unit>
+            <trans-unit id="scan.report.html" resname="scan.report.html">
+                <source>HTML Report</source>
+            </trans-unit>
+            <trans-unit id="scan.report.pdf" resname="scan.report.pdf">
+                <source>PDF Report</source>
+            </trans-unit>
+            <trans-unit id="scan.error.reportFailed" resname="scan.error.reportFailed">
+                <source>Report generation failed</source>
+            </trans-unit>
+            <trans-unit id="scan.error.reportFailed.description" resname="scan.error.reportFailed.description">
+                <source>The report could not be generated. Please try again later.</source>
+            </trans-unit>
+            <trans-unit id="scan.error.reportFormat" resname="scan.error.reportFormat">
+                <source>Invalid report format</source>
             </trans-unit>
             <trans-unit id="scan.loading" resname="scan.loading">
                 <source>Loading scan results...</source>
@@ -557,6 +599,9 @@
             </trans-unit>
             <trans-unit id="scan.context" resname="scan.context">
                 <source>HTML Context:</source>
+            </trans-unit>
+            <trans-unit id="scan.pageUrl" resname="scan.pageUrl">
+                <source>Page URL:</source>
             </trans-unit>
             <trans-unit id="scan.processing" resname="scan.processing">
                 <source>Processing...</source>

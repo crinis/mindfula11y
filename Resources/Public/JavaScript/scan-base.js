@@ -43,6 +43,7 @@ export class ScanBase extends LitElement {
       createScanDemand: { type: Object },
       scanId: { type: String },
       autoCreateScan: { type: Boolean },
+      pageUrlFilter: { type: Array },
       _scanId: { state: true },
       _status: { state: true },
       _violations: { state: true },
@@ -50,6 +51,7 @@ export class ScanBase extends LitElement {
       _errorMessage: { state: true },
       _shouldAnnounce: { state: true },
       _totalIssueCount: { state: true },
+      _scanUpdatedAt: { state: true },
     };
   }
 
@@ -61,6 +63,7 @@ export class ScanBase extends LitElement {
     this.createScanDemand = null;
     this.scanId = "";
     this.autoCreateScan = true;
+    this.pageUrlFilter = [];
     this._scanId = "";
     this._status = "";
     this._violations = [];
@@ -70,29 +73,34 @@ export class ScanBase extends LitElement {
     this._scanService = new ScanService();
     this._shouldAnnounce = false;
     this._totalIssueCount = 0;
+    this._scanUpdatedAt = null;
   }
 
   /**
    * Limits logic duplication by determining the high-level view state.
+   * Accepts optional parameters to allow subclasses to reuse the logic for
+   * alternative state (e.g. the crawl tab in Scan component).
    *
    * @protected
+   * @param {string} [status]
+   * @param {number} [totalIssueCount]
+   * @param {boolean} [isBusy]
    * @returns {string} One of the ScanStatus values
    */
-  _getViewState() {
-    if (this._isBusy) {
-      // In Scan component we might checking _scanId too, but broadly it's loading
+  _getViewState(status = this._status, totalIssueCount = this._totalIssueCount, isBusy = this._isBusy) {
+    if (isBusy) {
       return ScanStatus.LOADING;
     }
 
-    if (this._status === "failed") {
+    if (status === "failed") {
       return ScanStatus.FAILED;
     }
 
-    if (this._totalIssueCount > 0) {
+    if (totalIssueCount > 0) {
       return ScanStatus.ISSUES;
     }
 
-    if (this._status === "completed") {
+    if (status === "completed") {
       return ScanStatus.SUCCESS;
     }
 
@@ -131,6 +139,7 @@ export class ScanBase extends LitElement {
     this._status = "pending";
     this._violations = [];
     this._errorMessage = "";
+    this._scanUpdatedAt = null;
 
     try {
       const result = await this._scanService.createScan(this.createScanDemand);
@@ -162,18 +171,21 @@ export class ScanBase extends LitElement {
     this._errorMessage = "";
 
     try {
-      const result = await this._scanService.loadScan(scanId);
+      const result = await this._scanService.loadScan(scanId, this.pageUrlFilter);
       if (result) {
         this._scanId = scanId;
         this._status = result.status;
         this._violations = result.violations;
         this._totalIssueCount = result.totalIssueCount;
+        this._scanUpdatedAt = result.updatedAt ?? null;
 
         if (
           result.status === "completed" ||
           result.status === "failed"
         ) {
-          this._stopPolling();
+          if (this._shouldStopPolling()) {
+            this._stopPolling();
+          }
         }
       } else {
         // Scan not found
@@ -181,6 +193,7 @@ export class ScanBase extends LitElement {
         this._status = "";
         this._violations = [];
         this._totalIssueCount = 0;
+        this._scanUpdatedAt = null;
       }
     } catch (error) {
       this._status = "failed";
@@ -212,6 +225,18 @@ export class ScanBase extends LitElement {
       clearInterval(this._pollInterval);
       this._pollInterval = null;
     }
+  }
+
+  /**
+   * Hook allowing subclasses to delay stopping the poll when other
+   * asynchronous views (e.g. the crawl tab) are still pending.
+   * Returns true by default (stop as soon as the main scan is done).
+   *
+   * @protected
+   * @returns {boolean}
+   */
+  _shouldStopPolling() {
+    return true;
   }
 
   /**

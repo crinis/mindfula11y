@@ -594,8 +594,8 @@
                 <target>Scan starten</target>
             </trans-unit>
             <trans-unit id="scan.refresh" resname="scan.refresh">
-                <source>Refresh Results</source>
-                <target>Ergebnisse aktualisieren</target>
+                <source>Refresh Scan</source>
+                <target>Scan aktualisieren</target>
             </trans-unit>
             <trans-unit id="scan.loading" resname="scan.loading">
                 <source>Loading scan results...</source>

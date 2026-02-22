@@ -54,7 +54,9 @@ export default class AltTextGeneratorService {
   async generateAltText(options) {
     let responseData = null;
     try {
-      const response = await new AjaxRequest(this.ajaxUrl).post(options);
+      const response = await new AjaxRequest(this.ajaxUrl).post(options, {
+        headers: { "Content-Type": "application/json; charset=utf-8" },
+      });
       responseData = await response.resolve();
     } catch (error) {
       if (!error.response) {

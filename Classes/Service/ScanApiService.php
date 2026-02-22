@@ -84,15 +84,22 @@ class ScanApiService
     }
 
     /**
-     * Create a new scan for a given URL.
+     * Create a new scan for one or more URLs.
      *
-     * @param string $url The URL to scan.
+     * @param string[] $urls The URLs to scan (for crawl mode: the start URL(s)).
+     * @param bool $crawl Whether to use crawl mode.
+     * @param array $crawlOptions Optional crawl options (e.g. globs, maxPages) passed through to the API.
      * @return array|null The scan data or null if failed.
      */
-    public function createScan(string $url): ?array
+    public function createScan(array $urls, bool $crawl = false, array $crawlOptions = []): ?array
     {
         if (!$this->isConfigured()) {
             $this->logger->error('Accessibility scanner API is not configured');
+            return null;
+        }
+
+        if (empty($urls)) {
+            $this->logger->error('No URLs provided for scan');
             return null;
         }
 
@@ -106,15 +113,32 @@ class ScanApiService
                 $headers['Authorization'] = 'Bearer ' . $apiToken;
             }
 
+            if ($crawl) {
+                $body = [
+                    'mode' => 'crawl',
+                    'startUrls' => array_values($urls),
+                ];
+                if (!empty($crawlOptions)) {
+                    $body['crawlOptions'] = $crawlOptions;
+                }
+            } elseif (count($urls) === 1) {
+                $body = [
+                    'mode' => 'single_url',
+                    'url' => $urls[0],
+                ];
+            } else {
+                $body = [
+                    'mode' => 'url_list',
+                    'urls' => array_values($urls),
+                ];
+            }
+
             $response = $this->requestFactory->request(
                 $this->getApiUrl() . '/scans',
                 'POST',
                 [
                     'headers' => $headers,
-                    'body' => json_encode([
-                        'mode' => 'single_url',
-                        'url' => $url,
-                    ]),
+                    'body' => json_encode($body),
                     'timeout' => self::REQUEST_TIMEOUT,
                 ]
             );
@@ -138,12 +162,64 @@ class ScanApiService
     }
 
     /**
+     * Fetch a pre-rendered HTML or PDF report for a completed scan.
+     *
+     * @param string $scanId The scan ID.
+     * @param string $format Either 'html' or 'pdf'.
+     * @return string|null Raw report body, or null on failure.
+     */
+    public function getReport(string $scanId, string $format): ?string
+    {
+        if (!$this->isConfigured()) {
+            $this->logger->error('Accessibility scanner API is not configured');
+            return null;
+        }
+
+        try {
+            $accept = $format === 'pdf' ? 'application/pdf' : 'text/html';
+            $headers = ['Accept' => $accept];
+            $apiToken = $this->getApiToken();
+            if (!empty($apiToken)) {
+                $headers['Authorization'] = 'Bearer ' . $apiToken;
+            }
+
+            $response = $this->requestFactory->request(
+                $this->getApiUrl() . '/scans/' . rawurlencode($scanId) . '/reports/' . $format,
+                'GET',
+                [
+                    'headers' => $headers,
+                    'timeout' => 30,
+                ]
+            );
+
+            if ($response->getStatusCode() !== 200) {
+                $this->logger->error('Failed to get scan report', [
+                    'status' => $response->getStatusCode(),
+                    'scanId' => $scanId,
+                    'format' => $format,
+                ]);
+                return null;
+            }
+
+            return $response->getBody()->getContents();
+        } catch (\Exception $e) {
+            $this->logger->error('Exception while getting scan report', [
+                'exception' => $e->getMessage(),
+                'scanId' => $scanId,
+                'format' => $format,
+            ]);
+            return null;
+        }
+    }
+
+    /**
      * Get scan for a given scan ID.
      *
      * @param string $scanId The scan ID.
+     * @param string[] $pageUrls Optional page URL filter.
      * @return array|null The scan or null if failed.
      */
-    public function getScan(string $scanId): ?array
+    public function getScan(string $scanId, array $pageUrls = []): ?array
     {
         if (!$this->isConfigured()) {
             $this->logger->error('Accessibility scanner API is not configured');
@@ -157,8 +233,17 @@ class ScanApiService
                 $headers['Authorization'] = 'Bearer ' . $apiToken;
             }
 
+            $url = $this->getApiUrl() . '/scans/' . rawurlencode($scanId);
+            if (!empty($pageUrls)) {
+                $queryParts = [];
+                foreach ($pageUrls as $pageUrl) {
+                    $queryParts[] = 'pageUrl=' . rawurlencode($pageUrl);
+                }
+                $url .= '?' . implode('&', $queryParts);
+            }
+
             $response = $this->requestFactory->request(
-                $this->getApiUrl() . '/scans/' . $scanId,
+                $url,
                 'GET',
                 [
                     'headers' => $headers,
@@ -218,6 +303,4 @@ class ScanApiService
             return null;
         }
     }
-
-
 }

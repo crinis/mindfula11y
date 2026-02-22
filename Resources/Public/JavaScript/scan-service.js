@@ -41,7 +41,7 @@ export class ScanService {
     try {
       const response = await new AjaxRequest(
         TYPO3.settings.ajaxUrls.mindfula11y_createscan
-      ).post(createScanDemand);
+      ).post(createScanDemand, { headers: { "Content-Type": "application/json; charset=utf-8" } });
       const data = await response.resolve();
 
       return { scanId: data.scanId, status: data.status || "pending" };
@@ -63,12 +63,16 @@ export class ScanService {
    * @param {string} scanId
    * @returns {Promise<{status: string, violations: Array, totalIssueCount: number}|null>}
    */
-  async loadScan(scanId) {
+  async loadScan(scanId, pageUrls = []) {
     try {
+      const params = new URLSearchParams({ scanId });
+      for (const url of pageUrls) {
+        params.append("pageUrls[]", url);
+      }
       const response = await new AjaxRequest(
         TYPO3.settings.ajaxUrls.mindfula11y_getscan
       )
-        .withQueryArguments({ scanId })
+        .withQueryArguments(params)
         .get();
       const data = await response.resolve();
 
@@ -76,6 +80,9 @@ export class ScanService {
         status: data.status || "completed",
         violations: data.violations || [],
         totalIssueCount: data.totalIssueCount ?? 0,
+        mode: data.mode || null,
+        progress: data.progress ?? null,
+        updatedAt: data.updatedAt ?? null,
       };
     } catch (error) {
       if (error.response?.status === 404) {

@@ -62,6 +62,16 @@ class CreateScanDemand extends AbstractValueObject implements JsonSerializable
     protected int $workspaceId = 0;
 
     /**
+     * Page levels for tree scanning (0 = current page only).
+     */
+    protected int $pageLevels = 0;
+
+    /**
+     * Whether this demand creates a crawl scan (only valid for site root pages).
+     */
+    protected bool $crawl = false;
+
+    /**
      * Signature of the properties generated using hmac.
      */
     protected string $signature = '';
@@ -69,13 +79,15 @@ class CreateScanDemand extends AbstractValueObject implements JsonSerializable
     /**
      * Constructor.
      */
-    public function __construct(int $userId, int $pageId, string $previewUrl, int $languageId, int $workspaceId, string $signature = '')
+    public function __construct(int $userId, int $pageId, string $previewUrl, int $languageId, int $workspaceId, int $pageLevels = 0, bool $crawl = false, string $signature = '')
     {
         $this->userId = $userId;
         $this->pageId = $pageId;
         $this->previewUrl = $previewUrl;
         $this->languageId = $languageId;
         $this->workspaceId = $workspaceId;
+        $this->pageLevels = $pageLevels;
+        $this->crawl = $crawl;
         $this->signature = '' !== $signature ? $signature : $this->createSignature();
     }
 
@@ -120,6 +132,22 @@ class CreateScanDemand extends AbstractValueObject implements JsonSerializable
     }
 
     /**
+     * Get the page levels.
+     */
+    public function getPageLevels(): int
+    {
+        return $this->pageLevels;
+    }
+
+    /**
+     * Get whether this is a crawl scan.
+     */
+    public function getCrawl(): bool
+    {
+        return $this->crawl;
+    }
+
+    /**
      * Get the signature of the properties of this object for request validation.
      */
     public function getSignature(): string
@@ -141,7 +169,9 @@ class CreateScanDemand extends AbstractValueObject implements JsonSerializable
                 (string)$this->pageId,
                 $this->previewUrl,
                 (string)$this->languageId,
-                (string)$this->workspaceId
+                (string)$this->workspaceId,
+                (string)$this->pageLevels,
+                (string)(int)$this->crawl,
             ]),
             __CLASS__
         );
@@ -174,6 +204,8 @@ class CreateScanDemand extends AbstractValueObject implements JsonSerializable
             'previewUrl' => $this->previewUrl,
             'languageId' => $this->languageId,
             'workspaceId' => $this->workspaceId,
+            'pageLevels' => $this->pageLevels,
+            'crawl' => $this->crawl,
             'signature' => $this->signature,
         ];
     }

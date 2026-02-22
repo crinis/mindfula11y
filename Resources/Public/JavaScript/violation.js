@@ -170,6 +170,7 @@ export class Violation extends LitElement {
                         issueId="${issue.id}"
                         selector="${issue.selector}"
                         context="${issue.context}"
+                        pageUrl="${issue.pageUrl || ""}"
                       >
                       </mindfula11y-issue>
                     </li>

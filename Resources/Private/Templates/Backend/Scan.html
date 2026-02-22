@@ -19,8 +19,11 @@
         <div class="callout-body">
           <mindfula11y-scan
             createScanDemand="{createScanDemand -> f:format.json()}"
+            crawlScanDemand="{crawlScanDemand -> f:format.json()}"
             scanId="{scanId}"
             autoCreateScan="{autoCreateScan}"
+            pageUrlFilter="{pageUrlFilter -> f:format.json()}"
+            reportBaseUrl="{reportBaseUrl}"
           ></mindfula11y-scan>
         </div>
       </div>
