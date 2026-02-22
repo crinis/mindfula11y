@@ -327,6 +327,7 @@ class AccessibilityModuleController
             'scanUri' => $scanUri,
             'createScanDemand' => $createScanDemand,
             'autoCreateScan' => $this->generalModuleService->isAutoCreateScanEnabled($this->pageTsConfig),
+            'pageUrlFilter' => $previewUri !== null ? [(string)$previewUri] : [],
         ]);
 
         $this->pageRenderer->loadJavaScriptModule('@mindfulmarkup/mindfula11y/structure.js');
@@ -537,7 +538,15 @@ class AccessibilityModuleController
         // Create scan demand only if user can trigger scans
         $createScanDemand = null;
         $crawlScanDemand = null;
+        $urlList = [];
         if ($canTriggerScan) {
+            // Compute the expected URL list for the current pageLevels setting.
+            // Used by the frontend to detect when an existing scan was created with a different
+            // set of URLs and needs to be restarted (autoCreate + url_list mode mismatch).
+            $urlList = $pageLevels > 0
+                ? $this->generalModuleService->generatePageUrls($this->pageId, $this->languageId, $pageLevels, (string)$previewUri)
+                : [(string)$previewUri];
+
             $backendUser = $this->generalModuleService->getBackendUserAuthentication();
             $createScanDemand = new CreateScanDemand(
                 $backendUser->user['uid'],
@@ -571,6 +580,7 @@ class AccessibilityModuleController
             'crawlScanDemand' => $crawlScanDemand,
             'autoCreateScan' => $this->generalModuleService->isAutoCreateScanEnabled($this->pageTsConfig),
             'pageUrlFilter' => $pageUrlFilter,
+            'urlList' => $urlList,
             'reportBaseUrl' => $reportBaseUrl,
         ]);
 

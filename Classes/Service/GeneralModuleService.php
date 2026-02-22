@@ -35,6 +35,7 @@ use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
 use TYPO3\CMS\Core\Database\Query\Restriction\WorkspaceRestriction;
 use TYPO3\CMS\Core\Utility\RootlineUtility;
+use TYPO3\CMS\Backend\Routing\PreviewUriBuilder;
 
 /**
  * Service for general accessibility module functionality
@@ -463,5 +464,62 @@ class GeneralModuleService
         $pageRecord = BackendUtility::getRecordWSOL('pages', $liveUid);
 
         return is_array($pageRecord) ? $pageRecord : null;
+    }
+
+    /**
+     * Generate frontend URLs for pages in the page tree.
+     *
+     * Resolves the page tree from the given root page, filters to only pages that are
+     * visible and publicly accessible (no fe_group restrictions), and generates
+     * frontend preview URLs for each.
+     *
+     * @param int $pageId The root page ID.
+     * @param int $languageId The language ID.
+     * @param int $pageLevels The number of page tree levels to include.
+     * @param string $fallbackUrl URL to return when no pages are found (typically the current page preview URL).
+     *
+     * @return string[] Array of frontend URLs.
+     */
+    public function generatePageUrls(int $pageId, int $languageId, int $pageLevels, string $fallbackUrl = ''): array
+    {
+        $pageTreeIds = $this->permissionService->getPageTreeIds($pageId, $pageLevels);
+        $urls = [];
+
+        foreach ($pageTreeIds as $treePageId) {
+            $pageRecord = BackendUtility::getRecordWSOL('pages', $treePageId);
+            if (!is_array($pageRecord)) {
+                continue;
+            }
+
+            if ($languageId > 0) {
+                $localizedPage = $this->getLocalizedPageRecord($treePageId, $languageId);
+                if (null === $localizedPage) {
+                    continue;
+                }
+                $pageRecord = $localizedPage;
+            }
+
+            if (!$this->isPageFrontendAccessible($pageRecord)) {
+                continue;
+            }
+
+            $pageTsConfig = $this->getConvertedPageTsConfig($treePageId);
+            if (!$this->isPreviewEnabledForDoktype((int)($pageRecord['doktype'] ?? 0), $pageTsConfig)) {
+                continue;
+            }
+
+            $previewUri = PreviewUriBuilder::create($pageRecord)->buildUri();
+            if (null !== $previewUri) {
+                $urls[] = (string)$previewUri;
+            }
+        }
+
+        $urls = array_unique($urls);
+
+        if (empty($urls) && $fallbackUrl !== '') {
+            return [$fallbackUrl];
+        }
+
+        return $urls;
     }
 }

@@ -40,7 +40,8 @@
                 </f:if>
                 <f:if condition="{hasScanAccess} && ({scanId} || {createScanDemand})">
                     <mindfula11y-scan-issue-count createScanDemand="{createScanDemand -> f:format.json()}"
-                        scanId="{scanId}" scanUri="{scanUri}" autoCreateScan="{autoCreateScan}">
+                        scanId="{scanId}" scanUri="{scanUri}" autoCreateScan="{autoCreateScan}"
+                        pageUrlFilter="{pageUrlFilter -> f:format.json()}">
                     </mindfula11y-scan-issue-count>
                 </f:if>
             </div>

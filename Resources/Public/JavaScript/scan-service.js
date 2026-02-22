@@ -81,6 +81,7 @@ export class ScanService {
         violations: data.violations || [],
         totalIssueCount: data.totalIssueCount ?? 0,
         mode: data.mode || null,
+        targets: data.targets || [],
         progress: data.progress ?? null,
         updatedAt: data.updatedAt ?? null,
       };

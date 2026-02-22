@@ -44,6 +44,7 @@ export class ScanBase extends LitElement {
       scanId: { type: String },
       autoCreateScan: { type: Boolean },
       pageUrlFilter: { type: Array },
+      urlList: { type: Array },
       _scanId: { state: true },
       _status: { state: true },
       _violations: { state: true },
@@ -64,6 +65,7 @@ export class ScanBase extends LitElement {
     this.scanId = "";
     this.autoCreateScan = true;
     this.pageUrlFilter = [];
+    this.urlList = [];
     this._scanId = "";
     this._status = "";
     this._violations = [];
@@ -173,6 +175,21 @@ export class ScanBase extends LitElement {
     try {
       const result = await this._scanService.loadScan(scanId, this.pageUrlFilter);
       if (result) {
+        // If autoCreate is enabled and a non-empty urlList is provided, check whether the
+        // existing scan's targets match the expected URL list for the current pageLevels
+        // setting. A mismatch means pageLevels changed and the scan must be restarted.
+        if (
+          this.urlList?.length > 0 &&
+          this.autoCreateScan &&
+          this.createScanDemand &&
+          result.mode !== "crawl" &&
+          !this._urlListsMatch(result.targets || [], this.urlList)
+        ) {
+          this._isFetching = false;
+          this._createScan();
+          return;
+        }
+
         this._scanId = scanId;
         this._status = result.status;
         this._violations = result.violations;
@@ -251,6 +268,21 @@ export class ScanBase extends LitElement {
       this._isFetching ||
       this._scanService.isScanInProgress(this._status)
     );
+  }
+
+  /**
+   * Returns true when two URL arrays contain exactly the same set of URLs
+   * (order-independent comparison).
+   *
+   * @protected
+   * @param {string[]} a
+   * @param {string[]} b
+   * @returns {boolean}
+   */
+  _urlListsMatch(a, b) {
+    if (a.length !== b.length) return false;
+    const setA = new Set(a);
+    return b.every((url) => setA.has(url));
   }
 }
 
