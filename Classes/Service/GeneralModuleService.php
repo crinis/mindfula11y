@@ -280,6 +280,28 @@ class GeneralModuleService
     }
 
     /**
+     * Get HTTP Basic Authentication credentials for the scanner from Page TSconfig.
+     *
+     * Returns an associative array with 'username' and 'password' keys when both are
+     * configured, or null when either value is absent. Credentials are read exclusively
+     * on the server side and are never forwarded to the frontend.
+     *
+     * @param array &$pageTsConfig The page TSconfig array (passed by reference)
+     * @return array{username: string, password: string}|null
+     */
+    public function getScanBasicAuth(array &$pageTsConfig): ?array
+    {
+        $username = trim((string)($pageTsConfig['mod']['mindfula11y_accessibility']['scan']['basicAuthUsername'] ?? ''));
+        $password = trim((string)($pageTsConfig['mod']['mindfula11y_accessibility']['scan']['basicAuthPassword'] ?? ''));
+
+        if ($username === '' || $password === '') {
+            return null;
+        }
+
+        return ['username' => $username, 'password' => $password];
+    }
+
+    /**
      * Check if preview is enabled for a given doktype.
      *
      * @param int $doktype

@@ -375,7 +375,15 @@ class ScanAjaxController extends ActionController
                 $crawlOptions['globs'] = [$base . '/**'];
             }
         }
-        $scanData = $this->scanApiService->createScan($scanUrls, $crawl, $crawlOptions);
+
+        // Read basic auth credentials from PageTS (server-side only, never from client input).
+        $scanOptions = [];
+        $basicAuth = $this->generalModuleService->getScanBasicAuth($pageTsConfig);
+        if ($basicAuth !== null) {
+            $scanOptions['basicAuth'] = $basicAuth;
+        }
+
+        $scanData = $this->scanApiService->createScan($scanUrls, $crawl, $crawlOptions, $scanOptions);
 
         if (null === $scanData) {
             return $this->jsonResponse(

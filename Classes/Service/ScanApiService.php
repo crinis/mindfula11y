@@ -89,9 +89,10 @@ class ScanApiService
      * @param string[] $urls The URLs to scan (for crawl mode: the start URL(s)).
      * @param bool $crawl Whether to use crawl mode.
      * @param array $crawlOptions Optional crawl options (e.g. globs, maxPages) passed through to the API.
+     * @param array $scanOptions Optional scan options (e.g. basicAuth credentials) passed through to the API.
      * @return array|null The scan data or null if failed.
      */
-    public function createScan(array $urls, bool $crawl = false, array $crawlOptions = []): ?array
+    public function createScan(array $urls, bool $crawl = false, array $crawlOptions = [], array $scanOptions = []): ?array
     {
         if (!$this->isConfigured()) {
             $this->logger->error('Accessibility scanner API is not configured');
@@ -131,6 +132,9 @@ class ScanApiService
                     'mode' => 'url_list',
                     'urls' => array_values($urls),
                 ];
+            }
+            if (!empty($scanOptions)) {
+                $body['scanOptions'] = $scanOptions;
             }
 
             $response = $this->requestFactory->request(

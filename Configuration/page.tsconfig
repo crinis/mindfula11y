@@ -16,6 +16,11 @@ mod {
         scan {
             enable = 0
             autoCreate = 1
+            # HTTP Basic Authentication credentials for pages protected behind basic auth.
+            # Both username and password must be set for credentials to be forwarded to the scanner.
+            # Credentials are read server-side only and are never exposed to the browser.
+            # basicAuthUsername =
+            # basicAuthPassword =
         }
     }
 

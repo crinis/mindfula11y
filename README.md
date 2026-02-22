@@ -78,6 +78,9 @@ mod {
             enable = 0
             # Automatically trigger a new scan when the module loads and the page has changed since the last scan
             autoCreate = 1
+            # HTTP Basic Authentication for pages protected behind basic auth (server-side only, never sent to the browser)
+            # basicAuthUsername =
+            # basicAuthPassword =
         }
     }
 
@@ -174,6 +177,22 @@ mod.mindfula11y_accessibility.scan {
 ```
 
 `enable = 1` must be set for the scanner panel to appear. If `autoCreate = 1`, a new scan is triggered automatically when the module loads and the page content has changed since the last scan.
+
+### 4. Basic Authentication for Protected Pages
+
+If the pages to be scanned are protected behind HTTP Basic Authentication, configure the credentials via Page TSconfig. The credentials are read exclusively on the server side and are never sent to the browser.
+
+```typo3_typoscript
+mod.mindfula11y_accessibility.scan {
+    enable = 1
+    basicAuthUsername = scanner-user
+    basicAuthPassword = scanner-password
+}
+```
+
+Both `basicAuthUsername` and `basicAuthPassword` must be set; if either is missing the credentials are not forwarded to the scanner. The MindfulAPI scanner uses them when loading pages in the headless browser, so any page behind basic auth is fully reachable without making it publicly accessible.
+
+> **Security note:** Page TSconfig is stored as plain text in the TYPO3 database and is accessible to editors with TSconfig editing rights. Treat the credentials accordingly and use a dedicated scanner account with minimal permissions.
 
 ### How It Works
 
