@@ -396,6 +396,42 @@ export class Scan extends ScanBase {
             </div>
           `
         : null}
+      ${!isCrawl && this._urlCoverageIncomplete
+        ? html`
+            <div class="callout callout-info mb-3">
+              <div class="callout-icon">
+                <span class="icon-emphasized">
+                  <typo3-backend-icon
+                    identifier="actions-info"
+                    size="small"
+                  ></typo3-backend-icon>
+                </span>
+              </div>
+              <div class="callout-content">
+                <h3 class="callout-title">${TYPO3.lang["mindfula11y.scan.scopeExpanded"]}</h3>
+                <div class="callout-body">${TYPO3.lang["mindfula11y.scan.scopeExpanded.description"]}</div>
+              </div>
+            </div>
+          `
+        : null}
+      ${!isCrawl && !hasScanId && !isBusy && this.urlList?.length > 1
+        ? html`
+            <div class="callout callout-info mb-3">
+              <div class="callout-icon">
+                <span class="icon-emphasized">
+                  <typo3-backend-icon
+                    identifier="actions-info"
+                    size="small"
+                  ></typo3-backend-icon>
+                </span>
+              </div>
+              <div class="callout-content">
+                <h3 class="callout-title">${TYPO3.lang["mindfula11y.scan.multiPage.manualScan"]}</h3>
+                <div class="callout-body">${TYPO3.lang["mindfula11y.scan.multiPage.manualScan.description"]}</div>
+              </div>
+            </div>
+          `
+        : null}
       ${config
         ? html`
             <div

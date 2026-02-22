@@ -578,7 +578,7 @@ class AccessibilityModuleController
             'scanId' => $scanId,
             'createScanDemand' => $createScanDemand,
             'crawlScanDemand' => $crawlScanDemand,
-            'autoCreateScan' => $this->generalModuleService->isAutoCreateScanEnabled($this->pageTsConfig),
+            'autoCreateScan' => $pageLevels === 0 && $this->generalModuleService->isAutoCreateScanEnabled($this->pageTsConfig),
             'pageUrlFilter' => $pageUrlFilter,
             'urlList' => $urlList,
             'reportBaseUrl' => $reportBaseUrl,

@@ -46,6 +46,7 @@ export class ScanBase extends LitElement {
       pageUrlFilter: { type: Array },
       urlList: { type: Array },
       _scanId: { state: true },
+      _urlCoverageIncomplete: { state: true },
       _status: { state: true },
       _violations: { state: true },
       _isFetching: { state: true },
@@ -67,6 +68,7 @@ export class ScanBase extends LitElement {
     this.pageUrlFilter = [];
     this.urlList = [];
     this._scanId = "";
+    this._urlCoverageIncomplete = false;
     this._status = "";
     this._violations = [];
     this._isFetching = false;
@@ -175,26 +177,15 @@ export class ScanBase extends LitElement {
     try {
       const result = await this._scanService.loadScan(scanId, this.pageUrlFilter);
       if (result) {
-        // If autoCreate is enabled and a non-empty urlList is provided, check whether the
-        // existing scan's targets match the expected URL list for the current pageLevels
-        // setting. A mismatch means pageLevels changed and the scan must be restarted.
-        if (
-          this.urlList?.length > 0 &&
-          this.autoCreateScan &&
-          this.createScanDemand &&
-          result.mode !== "crawl" &&
-          !this._urlListsMatch(result.targets || [], this.urlList)
-        ) {
-          this._isFetching = false;
-          this._createScan();
-          return;
-        }
-
         this._scanId = scanId;
         this._status = result.status;
         this._violations = result.violations;
         this._totalIssueCount = result.totalIssueCount;
         this._scanUpdatedAt = result.updatedAt ?? null;
+        this._urlCoverageIncomplete =
+          this.urlList?.length > 0 &&
+          result.mode !== "crawl" &&
+          !this._urlListCovered(this.urlList, result.targets || []);
 
         if (
           result.status === "completed" ||
@@ -211,6 +202,7 @@ export class ScanBase extends LitElement {
         this._violations = [];
         this._totalIssueCount = 0;
         this._scanUpdatedAt = null;
+        this._urlCoverageIncomplete = false;
       }
     } catch (error) {
       this._status = "failed";
@@ -271,18 +263,18 @@ export class ScanBase extends LitElement {
   }
 
   /**
-   * Returns true when two URL arrays contain exactly the same set of URLs
-   * (order-independent comparison).
+   * Returns true when every URL in `urlList` is already present in `targets`.
+   * Used to determine whether an existing scan covers the current pageLevels
+   * selection so that a restart is only triggered when new URLs are required.
    *
    * @protected
-   * @param {string[]} a
-   * @param {string[]} b
+   * @param {string[]} urlList
+   * @param {string[]} targets
    * @returns {boolean}
    */
-  _urlListsMatch(a, b) {
-    if (a.length !== b.length) return false;
-    const setA = new Set(a);
-    return b.every((url) => setA.has(url));
+  _urlListCovered(urlList, targets) {
+    const targetSet = new Set(targets);
+    return urlList.every((url) => targetSet.has(url));
   }
 }
 

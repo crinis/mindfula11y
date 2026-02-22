@@ -613,6 +613,22 @@
                 <source>Automatically discovers and scans all reachable pages from this root page by following links. An external crawler performs the analysis — all pages must be publicly accessible on the internet.</source>
                 <target>Erkennt und scannt automatisch alle erreichbaren Seiten von dieser Wurzelseite durch das Verfolgen von Links. Ein externer Crawler führt die Analyse durch – alle Seiten müssen öffentlich im Internet zugänglich sein.</target>
             </trans-unit>
+            <trans-unit id="scan.multiPage.manualScan" resname="scan.multiPage.manualScan">
+                <source>Manual scan required</source>
+                <target>Manueller Scan erforderlich</target>
+            </trans-unit>
+            <trans-unit id="scan.multiPage.manualScan.description" resname="scan.multiPage.manualScan.description">
+                <source>Automatic scanning is disabled when multiple pages are in scope. Click "Start Scan" to analyse all selected pages.</source>
+                <target>Automatisches Scannen ist deaktiviert, wenn mehrere Seiten im Umfang enthalten sind. Klicken Sie auf „Scan starten", um alle ausgewählten Seiten zu analysieren.</target>
+            </trans-unit>
+            <trans-unit id="scan.scopeExpanded" resname="scan.scopeExpanded">
+                <source>Scan scope has changed</source>
+                <target>Scan-Umfang hat sich geändert</target>
+            </trans-unit>
+            <trans-unit id="scan.scopeExpanded.description" resname="scan.scopeExpanded.description">
+                <source>The selected pages have changed since the last scan. Start a new scan to include all currently selected pages.</source>
+                <target>Die ausgewählten Seiten haben sich seit dem letzten Scan geändert. Starten Sie einen neuen Scan, um alle aktuell ausgewählten Seiten einzubeziehen.</target>
+            </trans-unit>
             <trans-unit id="scan.crawl.idle.title" resname="scan.crawl.idle.title">
                 <source>No crawl scan started yet</source>
                 <target>Noch kein Crawl-Scan gestartet</target>
