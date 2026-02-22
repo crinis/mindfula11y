@@ -60,22 +60,22 @@
             </trans-unit>
 
             <trans-unit id="module.menu.pageLevels" resname="module.menu.pageLevels">
-                <source>Check Recursive</source>
+                <source>Scan Scope</source>
             </trans-unit>
             <trans-unit id="module.menu.pageLevels.1" resname="module.menu.pageLevels.1">
-                <source>Levels 1</source>
+                <source>1 level deep</source>
             </trans-unit>
             <trans-unit id="module.menu.pageLevels.0" resname="module.menu.pageLevels.0">
                 <source>This page</source>
             </trans-unit>
             <trans-unit id="module.menu.pageLevels.5" resname="module.menu.pageLevels.5">
-                <source>Levels 5</source>
+                <source>5 levels deep</source>
             </trans-unit>
             <trans-unit id="module.menu.pageLevels.10" resname="module.menu.pageLevels.10">
-                <source>Levels 10</source>
+                <source>10 levels deep</source>
             </trans-unit>
             <trans-unit id="module.menu.pageLevels.99" resname="module.menu.pageLevels.99">
-                <source>Levels 99</source>
+                <source>All levels</source>
             </trans-unit>
 
             <trans-unit id="module.menu.tables" resname="module.menu.tables">
@@ -507,10 +507,22 @@
                 <source>%scanned of %discovered pages scanned</source>
             </trans-unit>
             <trans-unit id="scan.tab.scan" resname="scan.tab.scan">
-                <source>Scan</source>
+                <source>Targeted Scan</source>
             </trans-unit>
             <trans-unit id="scan.tab.crawl" resname="scan.tab.crawl">
-                <source>Crawl</source>
+                <source>Full Site Crawl</source>
+            </trans-unit>
+            <trans-unit id="scan.tab.scan.description" resname="scan.tab.scan.description">
+                <source>Scans this page and optionally its child pages based on the selected scope.</source>
+            </trans-unit>
+            <trans-unit id="scan.tab.crawl.description" resname="scan.tab.crawl.description">
+                <source>Automatically discovers and scans all reachable pages from this root page by following links.</source>
+            </trans-unit>
+            <trans-unit id="scan.crawl.idle.title" resname="scan.crawl.idle.title">
+                <source>No crawl scan started yet</source>
+            </trans-unit>
+            <trans-unit id="scan.crawl.idle.description" resname="scan.crawl.idle.description">
+                <source>Click "Start Crawl" to begin. The crawler will follow all links on this root page and analyse every reachable page automatically.</source>
             </trans-unit>
             <trans-unit id="scan.error.crawlNotRootPage" resname="scan.error.crawlNotRootPage">
                 <source>Crawl not available</source>

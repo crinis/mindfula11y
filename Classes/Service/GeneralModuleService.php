@@ -158,6 +158,10 @@ class GeneralModuleService
             'mindfula11y.scan.crawl.progress' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.crawl.progress'),
             'mindfula11y.scan.tab.scan' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.tab.scan'),
             'mindfula11y.scan.tab.crawl' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.tab.crawl'),
+            'mindfula11y.scan.tab.scan.description' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.tab.scan.description'),
+            'mindfula11y.scan.tab.crawl.description' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.tab.crawl.description'),
+            'mindfula11y.scan.crawl.idle.title' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.crawl.idle.title'),
+            'mindfula11y.scan.crawl.idle.description' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.crawl.idle.description'),
             'mindfula11y.scan.report.html' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.report.html'),
             'mindfula11y.scan.report.pdf' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.report.pdf'),
 

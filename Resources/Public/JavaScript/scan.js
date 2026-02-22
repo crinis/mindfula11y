@@ -369,6 +369,31 @@ export class Scan extends ScanBase {
                     `}
               </button>
             </div>
+            ${!hasScanId && !isBusy
+              ? html`<p class="text-body-secondary small mb-3">
+                  ${isCrawl
+                    ? TYPO3.lang["mindfula11y.scan.tab.crawl.description"]
+                    : TYPO3.lang["mindfula11y.scan.tab.scan.description"]}
+                </p>`
+              : null}
+          `
+        : null}
+      ${!config && isCrawl && !this._isCrawlBusy
+        ? html`
+            <div class="callout callout-info">
+              <div class="callout-icon">
+                <span class="icon-emphasized">
+                  <typo3-backend-icon
+                    identifier="actions-info"
+                    size="small"
+                  ></typo3-backend-icon>
+                </span>
+              </div>
+              <div class="callout-content">
+                <h3 class="callout-title">${TYPO3.lang["mindfula11y.scan.crawl.idle.title"]}</h3>
+                <div class="callout-body">${TYPO3.lang["mindfula11y.scan.crawl.idle.description"]}</div>
+              </div>
+            </div>
           `
         : null}
       ${config
