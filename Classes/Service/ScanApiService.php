@@ -237,7 +237,7 @@ class ScanApiService
             if (!empty($pageUrls)) {
                 $queryParts = [];
                 foreach ($pageUrls as $pageUrl) {
-                    $queryParts[] = 'pageUrl=' . rawurlencode($pageUrl);
+                    $queryParts[] = 'pageUrls=' . rawurlencode($pageUrl);
                 }
                 $url .= '?' . implode('&', $queryParts);
             }
