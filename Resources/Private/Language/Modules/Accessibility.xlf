@@ -513,16 +513,16 @@
                 <source>Full Site Crawl</source>
             </trans-unit>
             <trans-unit id="scan.tab.scan.description" resname="scan.tab.scan.description">
-                <source>Scans this page and optionally its child pages based on the selected scope.</source>
+                <source>Scans this page and optionally its child pages based on the selected scope. An external service performs the analysis — pages must be publicly accessible on the internet.</source>
             </trans-unit>
             <trans-unit id="scan.tab.crawl.description" resname="scan.tab.crawl.description">
-                <source>Automatically discovers and scans all reachable pages from this root page by following links.</source>
+                <source>Automatically discovers and scans all reachable pages from this root page by following links. An external crawler performs the analysis — all pages must be publicly accessible on the internet.</source>
             </trans-unit>
             <trans-unit id="scan.crawl.idle.title" resname="scan.crawl.idle.title">
                 <source>No crawl scan started yet</source>
             </trans-unit>
             <trans-unit id="scan.crawl.idle.description" resname="scan.crawl.idle.description">
-                <source>Click "Start Crawl" to begin. The crawler will follow all links on this root page and analyse every reachable page automatically.</source>
+                <source>Click "Start Crawl" to begin. The crawler follows all links from this root page and analyses every reachable page. All pages must be publicly accessible on the internet — the crawler cannot access password-protected or restricted pages.</source>
             </trans-unit>
             <trans-unit id="scan.error.crawlNotRootPage" resname="scan.error.crawlNotRootPage">
                 <source>Crawl not available</source>

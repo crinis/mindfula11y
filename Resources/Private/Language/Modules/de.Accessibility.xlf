@@ -606,20 +606,20 @@
                 <target>Vollständiger Website-Crawl</target>
             </trans-unit>
             <trans-unit id="scan.tab.scan.description" resname="scan.tab.scan.description">
-                <source>Scans this page and optionally its child pages based on the selected scope.</source>
-                <target>Scannt diese Seite und optional ihre Unterseiten basierend auf dem ausgewählten Umfang.</target>
+                <source>Scans this page and optionally its child pages based on the selected scope. An external service performs the analysis — pages must be publicly accessible on the internet.</source>
+                <target>Scannt diese Seite und optional ihre Unterseiten basierend auf dem ausgewählten Umfang. Ein externer Dienst führt die Analyse durch – Seiten müssen öffentlich im Internet zugänglich sein.</target>
             </trans-unit>
             <trans-unit id="scan.tab.crawl.description" resname="scan.tab.crawl.description">
-                <source>Automatically discovers and scans all reachable pages from this root page by following links.</source>
-                <target>Erkennt und scannt automatisch alle erreichbaren Seiten von dieser Wurzelseite durch das Verfolgen von Links.</target>
+                <source>Automatically discovers and scans all reachable pages from this root page by following links. An external crawler performs the analysis — all pages must be publicly accessible on the internet.</source>
+                <target>Erkennt und scannt automatisch alle erreichbaren Seiten von dieser Wurzelseite durch das Verfolgen von Links. Ein externer Crawler führt die Analyse durch – alle Seiten müssen öffentlich im Internet zugänglich sein.</target>
             </trans-unit>
             <trans-unit id="scan.crawl.idle.title" resname="scan.crawl.idle.title">
                 <source>No crawl scan started yet</source>
                 <target>Noch kein Crawl-Scan gestartet</target>
             </trans-unit>
             <trans-unit id="scan.crawl.idle.description" resname="scan.crawl.idle.description">
-                <source>Click "Start Crawl" to begin. The crawler will follow all links on this root page and analyse every reachable page automatically.</source>
-                <target>Klicken Sie auf „Crawl starten", um zu beginnen. Der Crawler folgt allen Links auf dieser Wurzelseite und analysiert automatisch jede erreichbare Seite.</target>
+                <source>Click "Start Crawl" to begin. The crawler follows all links from this root page and analyses every reachable page. All pages must be publicly accessible on the internet — the crawler cannot access password-protected or restricted pages.</source>
+                <target>Klicken Sie auf „Crawl starten", um zu beginnen. Der Crawler folgt allen Links von dieser Wurzelseite und analysiert jede erreichbare Seite. Alle Seiten müssen öffentlich im Internet zugänglich sein – der Crawler kann keine passwortgeschützten oder eingeschränkten Seiten aufrufen.</target>
             </trans-unit>
             <trans-unit id="scan.loading" resname="scan.loading">
                 <source>Loading scan results...</source>
