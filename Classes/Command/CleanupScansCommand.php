@@ -38,10 +38,10 @@ use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
  * Command for cleaning up old accessibility scan IDs.
  */
 #[AsCommand(
-    name: 'mindfula11y:cleanup-scan-ids',
+    name: 'mindfula11y:cleanupscans',
     description: 'Clean up old accessibility scan IDs based on a configurable age threshold (default: 30 days).',
 )]
-class CleanupScanIdsCommand extends Command
+class CleanupScansCommand extends Command
 {
     /**
      * Configure the command.
