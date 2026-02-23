@@ -579,6 +579,18 @@
             <trans-unit id="scan.error.notConfigured.description" resname="scan.error.notConfigured.description">
                 <source>The accessibility scanner API URL and token are not configured.</source>
             </trans-unit>
+            <trans-unit id="scan.error.apiNotReachable" resname="scan.error.apiNotReachable">
+                <source>Scanner API not reachable</source>
+            </trans-unit>
+            <trans-unit id="scan.error.apiNotReachable.description" resname="scan.error.apiNotReachable.description">
+                <source>The accessibility scanner API could not be reached. Please check the API URL in the extension configuration or contact your administrator.</source>
+            </trans-unit>
+            <trans-unit id="scan.status.apiReachable" resname="scan.status.apiReachable">
+                <source>Scanner API reachable</source>
+            </trans-unit>
+            <trans-unit id="scan.status.apiReachable.description" resname="scan.status.apiReachable.description">
+                <source>The accessibility scanner API is reachable and ready to use.</source>
+            </trans-unit>
             <trans-unit id="scan.error.createFailed" resname="scan.error.createFailed">
                 <source>Failed to create scan</source>
             </trans-unit>
@@ -592,13 +604,13 @@
                 <source>No scan ID was found for this page. Please start a new scan.</source>
             </trans-unit>
             <trans-unit id="scan.error.getFailed" resname="scan.error.getFailed">
-                <source>Failed to load scan results</source>
+                <source>Failed to load scan results.</source>
             </trans-unit>
             <trans-unit id="scan.error.getFailed.description" resname="scan.error.getFailed.description">
                 <source>Could not load the accessibility scan results. Please try again.</source>
             </trans-unit>
             <trans-unit id="scan.error.storeFailed" resname="scan.error.storeFailed">
-                <source>Failed to store scan ID</source>
+                <source>Failed to store scan ID.</source>
             </trans-unit>
             <trans-unit id="scan.error.storeFailed.description" resname="scan.error.storeFailed.description">
                 <source>Could not store the scan ID in the database. Please try again.</source>

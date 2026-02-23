@@ -199,7 +199,7 @@ export class LandmarkStructure extends LitElement {
       errorMessages,
       children: [],
       availableRoles: isEditable
-        ? JSON.parse(element.dataset.mindfula11yAvailableRoles || "{}")
+        ? this._parseAvailableRoles(element)
         : {},
       recordTableName: element.dataset.mindfula11yRecordTableName || "",
       recordColumnName: element.dataset.mindfula11yRecordColumnName || "",
@@ -207,6 +207,22 @@ export class LandmarkStructure extends LitElement {
       recordEditLink: element.dataset.mindfula11yRecordEditLink || "",
       landmarkId: this.createLandmarkId(landmarkData),
     };
+  }
+
+  /**
+   * Safely parses available landmark roles from element dataset.
+   *
+   * @private
+   * @param {HTMLElement} element - The landmark element
+   * @returns {Object} Available landmark roles
+   */
+  _parseAvailableRoles(element) {
+    try {
+      return JSON.parse(element.dataset.mindfula11yAvailableRoles || "{}");
+    } catch (error) {
+      console.warn("Failed to parse available roles:", error);
+      return {};
+    }
   }
 
   /**

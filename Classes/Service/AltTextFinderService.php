@@ -286,7 +286,7 @@ class AltTextFinderService
         $fileColumns = [];
         $ignoreColumns = explode(',', $pageTsConfig['mod.']['mindfula11y_missingalttext.'][$tableName] ?? '');
 
-        foreach ($GLOBALS['TCA'][$tableName]['columns'] as $column => $fieldConfig) {
+        foreach ($GLOBALS['TCA'][$tableName]['columns'] ?? [] as $column => $fieldConfig) {
             if (
                 $fieldConfig['config']['type'] === 'file'
                 && !in_array($column, $ignoreColumns, true)

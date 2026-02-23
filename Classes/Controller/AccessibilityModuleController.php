@@ -486,6 +486,21 @@ class AccessibilityModuleController
             return $this->moduleTemplate->renderResponse('Backend/Info');
         }
 
+        if (!$this->scanApiService->checkStatus()) {
+            $this->addFlashMessage(
+                $this->generalModuleService->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.apiNotReachable'),
+                $this->generalModuleService->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.apiNotReachable.description'),
+                ContextualFeedbackSeverity::WARNING
+            );
+            return $this->moduleTemplate->renderResponse('Backend/Info');
+        } else {
+            $this->addFlashMessage(
+                $this->generalModuleService->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.status.apiReachable'),
+                $this->generalModuleService->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.status.apiReachable.description'),
+                ContextualFeedbackSeverity::OK
+            );
+        }
+
         // Get localized page info for preview URL generation
         $finalPageInfo = $this->localizedPageInfo ?: $this->pageInfo;
 

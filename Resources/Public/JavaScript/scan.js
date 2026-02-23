@@ -144,6 +144,7 @@ export class Scan extends ScanBase {
    */
   async _loadCrawlView(scanId = this._scanId) {
     if (!scanId || !this.crawlScanDemand) return;
+    if (this._crawlIsFetching) return; // Skip tick — previous fetch still in progress
 
     this._crawlIsFetching = true;
 

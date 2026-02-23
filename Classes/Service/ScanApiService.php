@@ -84,6 +84,45 @@ class ScanApiService
     }
 
     /**
+     * Check if the external scanner API is reachable.
+     * Any HTTP response (including 4xx/5xx) counts as reachable; only network-level
+     * failures (connection refused, DNS failure, timeout) return false.
+     *
+     * @return bool True if the API responds, false if a connection error occurs.
+     */
+    public function checkStatus(): bool
+    {
+        if (!$this->isConfigured()) {
+            return false;
+        }
+
+        try {
+            $headers = ['Accept' => 'application/json'];
+            $apiToken = $this->getApiToken();
+            if (!empty($apiToken)) {
+                $headers['Authorization'] = 'Bearer ' . $apiToken;
+            }
+
+            $this->requestFactory->request(
+                $this->getApiUrl() . '/scans',
+                'GET',
+                [
+                    'headers' => $headers,
+                    'timeout' => 5,
+                ]
+            );
+
+            // Any HTTP response (even 4xx/5xx) means the server is reachable.
+            return true;
+        } catch (\Exception $e) {
+            $this->logger->warning('Accessibility scanner API is not reachable', [
+                'exception' => $e->getMessage(),
+            ]);
+            return false;
+        }
+    }
+
+    /**
      * Create a new scan for one or more URLs.
      *
      * @param string[] $urls The URLs to scan (for crawl mode: the start URL(s)).
@@ -155,7 +194,17 @@ class ScanApiService
                 return null;
             }
 
-            $data = json_decode($response->getBody()->getContents(), true);
+            $body = $response->getBody()->getContents();
+            $data = json_decode($body, true);
+
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                $this->logger->error('Invalid JSON response from scan API', [
+                    'json_error' => json_last_error_msg(),
+                    'body' => $body,
+                ]);
+                return null;
+            }
+
             return $data;
         } catch (\Exception $e) {
             $this->logger->error('Exception while creating scan', [

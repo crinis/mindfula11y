@@ -170,12 +170,13 @@ export class ScanBase extends LitElement {
    */
   async _loadScan(scanId = this._scanId) {
     if (!scanId) return;
+    if (this._isFetching) return; // Skip tick — previous fetch still in progress
 
     this._isFetching = true;
     this._errorMessage = "";
 
     try {
-      const result = await this._scanService.loadScan(scanId, this.pageUrlFilter);
+      const result = await this._scanService.loadScan(scanId, this.pageUrlFilter ?? []);
       if (result) {
         this._scanId = scanId;
         this._status = result.status;

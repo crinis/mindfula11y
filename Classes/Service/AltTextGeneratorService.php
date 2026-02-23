@@ -56,6 +56,12 @@ class AltTextGeneratorService
      */
     public function generate(FileInterface $file, string $languageCode = 'en'): ?string
     {
+        try {
+            $imageUrl = $this->getBase64ImageUrlFromFile($file);
+        } catch (\Exception $e) {
+            return null;
+        }
+
         return $this->openAIService->respond(
             $this->buildInstructions($languageCode),
             [
@@ -64,7 +70,7 @@ class AltTextGeneratorService
                     'content' => [
                         [
                             'type' => 'input_image',
-                            'image_url' => $this->getBase64ImageUrlFromFile($file),
+                            'image_url' => $imageUrl,
                             'detail' => $this->getChatImageDetail(),
                         ],
                     ],

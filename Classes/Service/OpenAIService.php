@@ -77,12 +77,11 @@ class OpenAIService
             'headers' => $headers,
             'body' => json_encode($body),
         ];
-        /** @var ResponseInterface $response */
-        $response = $this->requestFactory->request($url, 'POST', $options);
-
         try {
+            /** @var ResponseInterface $response */
+            $response = $this->requestFactory->request($url, 'POST', $options);
             $responseBody = $response->getBody()->getContents();
-        } catch (RuntimeException $e) {
+        } catch (\Exception $e) {
             return null;
         }
 

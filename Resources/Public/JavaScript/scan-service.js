@@ -47,11 +47,18 @@ export class ScanService {
       return { scanId: data.scanId, status: data.status || "pending" };
     } catch (error) {
       if (error.response) {
-        const errorData = await error.response.json();
-        if (errorData?.error) {
-          const customError = new Error(errorData.error.title);
-          customError.description = errorData.error.description;
-          throw customError;
+        try {
+          const errorData = await error.response.json();
+          if (errorData?.error) {
+            const customError = new Error(errorData.error.title);
+            customError.description = errorData.error.description;
+            throw customError;
+          }
+        } catch (parseError) {
+          if (parseError.description !== undefined) {
+            throw parseError; // Re-throw our own custom error
+          }
+          // JSON parse failed; fall through to rethrow the original network error
         }
       }
       throw error;
@@ -90,11 +97,18 @@ export class ScanService {
         return null; // Scan not found
       }
       if (error.response) {
-        const errorData = await error.response.json();
-        if (errorData?.error) {
-          const customError = new Error(errorData.error.title);
-          customError.description = errorData.error.description;
-          throw customError;
+        try {
+          const errorData = await error.response.json();
+          if (errorData?.error) {
+            const customError = new Error(errorData.error.title);
+            customError.description = errorData.error.description;
+            throw customError;
+          }
+        } catch (parseError) {
+          if (parseError.description !== undefined) {
+            throw parseError; // Re-throw our own custom error
+          }
+          // JSON parse failed; fall through to rethrow the original network error
         }
       }
       throw error;
