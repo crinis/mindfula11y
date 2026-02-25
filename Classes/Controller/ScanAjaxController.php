@@ -451,10 +451,7 @@ class ScanAjaxController extends ActionController
         }
 
         // Get scan with optional page URL filter
-        $pageUrls = $queryParams['pageUrls'] ?? [];
-        if (!is_array($pageUrls)) {
-            $pageUrls = [];
-        }
+        $pageUrls = $this->extractPageUrls($request);
         // Sanitize: only allow valid URL strings
         $pageUrls = array_values(array_filter($pageUrls, function ($url) {
             return is_string($url) && filter_var($url, FILTER_VALIDATE_URL) !== false;
@@ -513,6 +510,50 @@ class ScanAjaxController extends ActionController
     protected function getBackendUserAuthentication(): BackendUserAuthentication
     {
         return $GLOBALS['BE_USER'];
+    }
+
+    /**
+     * Extract page URL filters from the request query.
+     *
+     * Supports repeated OpenAPI query keys (`pageUrls=https://a&pageUrls=https://b`).
+     *
+     * @param ServerRequestInterface $request
+     * @return string[]
+     */
+    private function extractPageUrls(ServerRequestInterface $request): array
+    {
+        $pageUrls = [];
+        $queryParams = $request->getQueryParams();
+
+        $value = $queryParams['pageUrls'] ?? null;
+        if (is_array($value)) {
+            $pageUrls = array_merge($pageUrls, $value);
+        } elseif (is_string($value) && $value !== '') {
+            $pageUrls[] = $value;
+        }
+
+        // Parse raw query manually to preserve repeated pageUrls keys.
+        $rawQuery = (string)$request->getUri()->getQuery();
+        if ($rawQuery !== '') {
+            foreach (explode('&', $rawQuery) as $pair) {
+                if ($pair === '') {
+                    continue;
+                }
+
+                [$rawName, $rawValue] = array_pad(explode('=', $pair, 2), 2, '');
+                $name = urldecode($rawName);
+                if ($name !== 'pageUrls') {
+                    continue;
+                }
+
+                $value = urldecode($rawValue);
+                if ($value !== '') {
+                    $pageUrls[] = $value;
+                }
+            }
+        }
+
+        return array_values(array_unique($pageUrls));
     }
 
     /**

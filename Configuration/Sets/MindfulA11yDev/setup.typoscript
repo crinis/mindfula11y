@@ -7,7 +7,7 @@ page.5 {
   
   10 = COA
   10 {
-    wrap = <ul class="main-navigation">|</ul><main></main>
+    wrap = <ul class="main-navigation">|</ul>
     
     10 = TEXT
     10.value = Home

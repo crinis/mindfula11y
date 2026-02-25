@@ -74,7 +74,7 @@ export class ScanService {
     try {
       const params = new URLSearchParams({ scanId });
       for (const url of pageUrls) {
-        params.append("pageUrls[]", url);
+        params.append("pageUrls", url);
       }
       const response = await new AjaxRequest(
         TYPO3.settings.ajaxUrls.mindfula11y_getscan
