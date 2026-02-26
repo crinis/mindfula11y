@@ -3,7 +3,7 @@
 # cat=mindfula11y//a; type=string; label=LLL:EXT:mindfula11y/Resources/Private/Language/Configuration.xlf:openAI.apiKey
 openAIApiKey = 
 
-# cat=mindfula11y//b; type=options[gpt-5-mini,gpt-5-nano,gpt-5.1,gpt-5.2]; label=LLL:EXT:mindfula11y/Resources/Private/Language/Configuration.xlf:openAI.chat.model
+# cat=mindfula11y//b; type=options[gpt-5-nano,gpt-5-mini,gpt-5.1,gpt-5.2]; label=LLL:EXT:mindfula11y/Resources/Private/Language/Configuration.xlf:openAI.chat.model
 openAIChatModel = gpt-5-mini
 
 # cat=mindfula11y//c; type=options[auto,low,high]; label=LLL:EXT:mindfula11y/Resources/Private/Language/Configuration.xlf:openAI.chat.imageDetail

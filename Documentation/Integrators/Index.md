@@ -19,7 +19,7 @@ Configure in **Admin Tools > Settings > Extension Configuration**.
 | Setting | Purpose |
 | --- | --- |
 | `openAIApiKey` | API key used for AI alt text generation. |
-| `openAIChatModel` | Model used for generation (`gpt-5-mini`, `gpt-5-nano`, `gpt-5.1`, `gpt-5.2`). |
+| `openAIChatModel` | Model used for generation (`gpt-5-nano`,`gpt-5-mini`, `gpt-5.1`, `gpt-5.2`). |
 | `openAIChatImageDetail` | Image analysis depth (`auto`, `low`, `high`) for quality/cost tuning. |
 | `disableAltTextGeneration` | Turn off AI generation globally while keeping manual alt editing. |
 | `scannerApiUrl` | Base URL of your scanner service. Use full format with protocol and optional port, without path. Example: `http://localhost:3000` (MindfulAPI Docker default) or `https://scanner.example.com`. |
@@ -91,6 +91,8 @@ TCEFORM.tt_content.tx_mindfula11y_landmark {
 
 Before enabling scanner features, you must set up an external scanner service.
 
+Scanner functionality stays disabled until you explicitly set `mod.mindfula11y_accessibility.scan.enable = 1` in Page TSconfig.
+
 **Required:** [MindfulAPI](https://github.com/crinis/mindfulapi) running via Docker.
 
 Minimal setup:
@@ -111,6 +113,8 @@ Common setup:
 1. Ensure MindfulAPI is running via Docker.
 2. Set `scannerApiUrl` and optional `scannerApiToken`.
 3. Enable scanner in TSconfig: `mod.mindfula11y_accessibility.scan.enable = 1`.
+
+Without both a reachable MindfulAPI service and `mod.mindfula11y_accessibility.scan.enable = 1`, scanner UI/actions remain unavailable.
 
 ### Scan modes: Targeted Scan vs Full Site Crawl
 

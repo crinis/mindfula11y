@@ -67,8 +67,6 @@ When your project templates use Mindful A11y heading/landmark output, the module
 
 ## Scanner usage
 
-If scanner integration is enabled and configured:
-
 - you can trigger scans from the module
 - **Targeted Scan** checks the current page, or current page plus child pages based on the selected scope menu
 - **Full Site Crawl** follows links from a site root page and scans reachable pages in that site area

@@ -49,7 +49,7 @@ class OpenAIService
     /**
      * Generate a response via the OpenAI Responses API (/v1/responses).
      * 
-     * All supported GPT-5 models (gpt-5-mini, gpt-5-nano, gpt-5.1, gpt-5.2) are
+     * All supported GPT-5 models (gpt-5-nano, gpt-5-mini, gpt-5.1, gpt-5.2) are
      * served exclusively through this endpoint. The `instructions` parameter carries
      * the system prompt; image content items use type `input_image` with a plain
      * string `image_url` and a `detail` level.
