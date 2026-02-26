@@ -198,6 +198,7 @@ export class ScanBase extends LitElement {
         }
       } else {
         // Scan not found
+        this._stopPolling();
         this._scanId = "";
         this._status = "";
         this._violations = [];

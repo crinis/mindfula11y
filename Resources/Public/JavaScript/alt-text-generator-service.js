@@ -60,6 +60,10 @@ export default class AltTextGeneratorService {
       responseData = await response.resolve();
     } catch (error) {
       if (!error.response) {
+        Notification.error(
+          TYPO3.lang["mindfula11y.altText.generate.error.unknown"],
+          TYPO3.lang["mindfula11y.altText.generate.error.unknown.description"]
+        );
         return null;
       }
       try {
@@ -78,6 +82,11 @@ export default class AltTextGeneratorService {
         );
         return null;
       }
+      Notification.error(
+        TYPO3.lang["mindfula11y.altText.generate.error.unknown"],
+        TYPO3.lang["mindfula11y.altText.generate.error.unknown.description"]
+      );
+      return null;
     }
     return responseData && responseData.altText ? responseData.altText : null;
   }

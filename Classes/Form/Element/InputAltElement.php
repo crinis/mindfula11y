@@ -203,9 +203,9 @@ class InputAltElement extends AbstractFormElement
         }
 
         if ('sys_file_reference' === $table) {
-            $fileUid = (int)$row['uid_local'][0]['uid'];
+            $fileUid = isset($row['uid_local'][0]['uid']) ? (int)$row['uid_local'][0]['uid'] : null;
         } elseif ('sys_file_metadata' === $table) {
-            $fileUid = (int)$row['file'][0];
+            $fileUid = isset($row['file'][0]) ? (int)$row['file'][0] : null;
         } else {
             $fileUid = null;
         }

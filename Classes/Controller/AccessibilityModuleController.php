@@ -542,7 +542,7 @@ class AccessibilityModuleController
 
         // Only use existing scan ID if content hasn't changed — stored per language on $finalPageInfo
         $scanId = null;
-        if ($finalPageInfo['tx_mindfula11y_scanid'] ?? false && !$contentChanged) {
+        if (($finalPageInfo['tx_mindfula11y_scanid'] ?? false) && !$contentChanged) {
             $scanId = $finalPageInfo['tx_mindfula11y_scanid'] ?? null;
         }
 

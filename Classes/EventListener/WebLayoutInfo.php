@@ -65,14 +65,19 @@ class WebLayoutInfo
         $pageId = (int)($request->getParsedBody()['id'] ?? $request->getQueryParams()['id'] ?? 0);
         $site = $request->getAttribute('site', null);
         $moduleData = $request->getAttribute('moduleData', null);
+
+        $backendUser = $this->generalModuleService->getBackendUserAuthentication();
+
+        if (!$backendUser->check('modules', 'mindfula11y_accessibility') || 0 === $pageId || null === $moduleData || null === $site) {
+            return;
+        }
+
         $languageId = (int)$moduleData->get('language', 0);
         if ($languageId === -1) {
             $languageId = 0;
         }
 
-        $backendUser = $this->generalModuleService->getBackendUserAuthentication();
-
-        if (!$backendUser->check('modules', 'mindfula11y_accessibility') || 0 === $pageId || null === $moduleData || null === $site || !$this->permissionService->checkLanguageAccess($languageId)) {
+        if (!$this->permissionService->checkLanguageAccess($languageId)) {
             return;
         }
 

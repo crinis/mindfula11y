@@ -283,6 +283,9 @@ class PermissionService
 
             if ($pageL10nParent > 0) {
                 $pageRow = BackendUtility::getRecordWSOL('pages', $pageL10nParent);
+                if (!is_array($pageRow)) {
+                    return false;
+                }
             }
 
             $pagePerms = new Permission($backendUser->calcPerms($pageRow));

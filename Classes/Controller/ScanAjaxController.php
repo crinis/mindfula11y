@@ -385,7 +385,7 @@ class ScanAjaxController extends ActionController
 
         $scanData = $this->scanApiService->createScan($scanUrls, $crawl, $crawlOptions, $scanOptions);
 
-        if (null === $scanData) {
+        if (null === $scanData || !isset($scanData['id'])) {
             return $this->jsonResponse(
                 json_encode([
                     'error' => [
@@ -396,8 +396,10 @@ class ScanAjaxController extends ActionController
             )->withStatus(500);
         }
 
+        $newScanId = (string)$scanData['id'];
+
         // Store scan ID in database
-        if (!$this->storeScanId($page['uid'], (string)$scanData['id'])) {
+        if (!$this->storeScanId($page['uid'], $newScanId)) {
             return $this->jsonResponse(
                 json_encode([
                     'error' => [
@@ -409,7 +411,7 @@ class ScanAjaxController extends ActionController
         }
 
         return $this->jsonResponse(json_encode([
-            'scanId' => $scanData['id'],
+            'scanId' => $newScanId,
             'status' => $scanData['status'] ?? 'pending',
         ]))->withStatus(201);
     }
