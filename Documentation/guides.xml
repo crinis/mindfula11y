@@ -3,14 +3,15 @@
         xmlns="https://www.phpdoc.org/guides"
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:schemaLocation="https://www.phpdoc.org/guides ../vendor/phpdocumentor/guides-cli/resources/schema/guides.xsd"
+        links-are-relative="true"
         input-format="md"
         index-name="Index"
         automatic-menu="true"
 >
     <project
             title="Mindful A11y"
-            version="main"
-            copyright="2025 by Mindful Markup"
+            version="local"
+            copyright="since 2025 by Mindful Markup &amp; Contributors"
     />
     <extension
             class="\T3Docs\Typo3DocsTheme\DependencyInjection\Typo3DocsThemeExtension"
