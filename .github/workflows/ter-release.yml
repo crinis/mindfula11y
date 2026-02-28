@@ -1,0 +1,67 @@
+name: Publish to TER
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  publish:
+    name: Publish new version to TER
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate release tag
+        run: |
+          if ! [[ $GITHUB_REF =~ ^refs/tags/v[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
+            exit 1
+          fi
+
+      - name: Extract version from release tag
+        env:
+          TAG_NAME: ${{ github.event.release.tag_name }}
+        run: echo "version=${TAG_NAME#v}" >> "$GITHUB_ENV"
+
+      - name: Prepare release description
+        env:
+          VERSION: ${{ env.version }}
+          RELEASE_BODY: ${{ github.event.release.body }}
+        run: |
+          delimiter="$(openssl rand -hex 8)"
+          if [[ -z "${RELEASE_BODY// }" ]]; then
+            echo "description=Released version ${VERSION} of mindfula11y" >> "$GITHUB_ENV"
+          else
+            {
+              echo "description<<${delimiter}"
+              echo "$RELEASE_BODY"
+              echo "${delimiter}"
+            } >> "$GITHUB_ENV"
+          fi
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: intl, mbstring, json, zip, curl
+          tools: composer:v2
+
+      - name: Install tailor
+        run: composer global require typo3/tailor --prefer-dist --no-progress
+
+      - name: Set extension version
+        env:
+          VERSION: ${{ env.version }}
+        run: tailor set-version "$VERSION"
+
+      - name: Publish to TER
+        env:
+          TYPO3_API_TOKEN: ${{ secrets.TYPO3_API_TOKEN }}
+          VERSION: ${{ env.version }}
+          TER_DESCRIPTION: ${{ env.description }}
+        run: tailor ter:publish --comment "$TER_DESCRIPTION" "$VERSION"
+
