@@ -28,8 +28,6 @@ Scanner features work only when both conditions are met:
 - Your project runs the external [MindfulAPI](https://github.com/crinis/mindfulapi) scanner service
 - Page TSconfig enables scanner: `mod.mindfula11y_accessibility.scan.enable = 1`
 
-Screenshot placeholders are embedded directly in the relevant editor and integrator chapters.
-
 ## Requirements
 
 - TYPO3 `13.4.x`
