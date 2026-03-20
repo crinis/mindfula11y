@@ -15,8 +15,8 @@
                 <target>OpenAI API-Schlüssel</target>
             </trans-unit>
             <trans-unit id="openAI.chat.model" xml:space="preserve">
-                <source>OpenAI Model: Model used for alt text generation. All models use the Responses API. gpt-5-mini is the recommended cost-efficient default; gpt-5-nano is the cheapest option.</source>
-                <target>OpenAI-Modell: Verwendetes Modell für die Alt-Text-Generierung. Alle Modelle nutzen die Responses API. gpt-5-mini ist die empfohlene kostengünstige Standardoption; gpt-5-nano ist die günstigste Option.</target>
+                <source>OpenAI Model: Model used for alt text generation. All models use the Responses API. gpt-5.4-mini is the recommended cost-efficient default; gpt-5.4-nano is the cheapest option. Legacy models gpt-5-mini, gpt-5-nano, gpt-5.1 and gpt-5.2 are still supported.</source>
+                <target>OpenAI-Modell: Verwendetes Modell für die Alt-Text-Generierung. Alle Modelle nutzen die Responses API. gpt-5.4-mini ist die empfohlene kostengünstige Standardoption; gpt-5.4-nano ist die günstigste Option. Ältere Modelle gpt-5-mini, gpt-5-nano, gpt-5.1 und gpt-5.2 werden weiterhin unterstützt.</target>
             </trans-unit>
             <trans-unit id="openAI.chat.imageDetail" xml:space="preserve">
                 <source>OpenAI Image Detail: Detail level for vision input. "auto" lets the model decide (recommended), "low" uses fewer tokens at reduced resolution, "high" enables full resolution at higher cost.</source>

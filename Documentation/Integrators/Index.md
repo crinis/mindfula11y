@@ -19,7 +19,7 @@ Configure in **Admin Tools > Settings > Extension Configuration**.
 | Setting | Purpose |
 | --- | --- |
 | `openAIApiKey` | API key used for AI alt text generation. |
-| `openAIChatModel` | Model used for generation (`gpt-5-nano`,`gpt-5-mini`, `gpt-5.1`, `gpt-5.2`). |
+| `openAIChatModel` | Model used for generation (`gpt-5.4-mini`, `gpt-5.4-nano`, `gpt-5-mini`, `gpt-5-nano`, `gpt-5.1`, `gpt-5.2`). |
 | `openAIChatImageDetail` | Image analysis depth (`auto`, `low`, `high`) for quality/cost tuning. |
 | `disableAltTextGeneration` | Turn off AI generation globally while keeping manual alt editing. |
 | `scannerApiUrl` | Base URL of your scanner service. Use full format with protocol and optional port, without path. Example: `http://localhost:3000` (MindfulAPI Docker default) or `https://scanner.example.com`. |
