@@ -29,6 +29,7 @@ use MindfulMarkup\MindfulA11y\Service\PermissionService;
 use TYPO3\CMS\Backend\Form\Element\AbstractFormElement;
 use TYPO3\CMS\Core\Imaging\IconFactory;
 use TYPO3\CMS\Core\Imaging\IconSize;
+use TYPO3\CMS\Core\Information\Typo3Version;
 use TYPO3\CMS\Core\Page\JavaScriptModuleInstruction;
 use TYPO3\CMS\Core\Page\PageRenderer;
 use TYPO3\CMS\Core\Resource\ResourceFactory;
@@ -46,15 +47,17 @@ use TYPO3\CMS\Core\Utility\StringUtility;
 class InputAltElement extends AbstractFormElement
 {
     /**
-     * Default field information enabled for this element.
+     * Field information nodes. Populated per TYPO3 major in the constructor:
+     * on v13 the 'tcaDescription' node is registered (as core's
+     * InputTextElement does) because descriptions are NOT auto-rendered there;
+     * on v14.2+ it is omitted, since TCA 'description' renders automatically
+     * and the node is deprecated (#109280). AbstractFormElement itself does
+     * not register it, so removing it unconditionally would silently drop the
+     * field description on v13.
      *
      * @var array
      */
-    protected $defaultFieldInformation = [
-        'tcaDescription' => [
-            'renderType' => 'tcaDescription',
-        ],
-    ];
+    protected $defaultFieldInformation = [];
 
     /**
      * Default field wizards enabled for this element.
@@ -85,7 +88,20 @@ class InputAltElement extends AbstractFormElement
         protected readonly ResourceFactory $resourceFactory,
         protected readonly PageRenderer $pageRenderer,
         protected readonly PermissionService $permissionService,
-    ) {}
+    ) {
+        // v13 does not auto-render field descriptions, so register the
+        // tcaDescription field-information node there (mirrors core's
+        // InputTextElement). v14.2+ auto-renders TCA 'description' and
+        // deprecated this node (#109280), so it is omitted on v14 to avoid the
+        // deprecation while keeping descriptions visible on both majors.
+        if ((new Typo3Version())->getMajorVersion() < 14) {
+            $this->defaultFieldInformation = [
+                'tcaDescription' => [
+                    'renderType' => 'tcaDescription',
+                ],
+            ];
+        }
+    }
 
     /**
      * This will render a single-line input form field, possibly with various control/validation features

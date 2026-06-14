@@ -42,6 +42,8 @@ use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Type\Bitmask\Permission;
 use TYPO3\CMS\Core\Resource\Exception\FileDoesNotExistException;
 use TYPO3\CMS\Core\Resource\ResourceFactory;
+use TYPO3\CMS\Core\Schema\Capability\TcaSchemaCapability;
+use TYPO3\CMS\Core\Schema\TcaSchemaFactory;
 
 /**
  * Class AltTextAjaxController.
@@ -70,7 +72,24 @@ class AltTextAjaxController extends ActionController
         protected readonly ResourceFactory $resourceFactory,
         protected readonly ConnectionPool $connectionPool,
         protected readonly PermissionService $permissionService,
+        protected readonly TcaSchemaFactory $tcaSchemaFactory,
     ) {}
+
+    /**
+     * Whether the given table ignores the root-level restriction.
+     *
+     * Schema API replacement for the deprecated BackendUtility root-level
+     * restriction helper (Deprecation #106393). The Schema API exists in both
+     * TYPO3 v13.2+ and v14, so no version branch is required. Returns false for
+     * tables not present in TCA, matching the behaviour of the previous method.
+     */
+    protected function tableIgnoresRootLevelRestriction(string $table): bool
+    {
+        return $this->tcaSchemaFactory->has($table)
+            && $this->tcaSchemaFactory->get($table)
+                ->getCapability(TcaSchemaCapability::RestrictionRootLevel)
+                ->shallIgnoreRootLevelRestriction();
+    }
 
     /**
      * Assert allowed HTTP method for the generate action.
@@ -183,7 +202,7 @@ class AltTextAjaxController extends ActionController
         // Root-level tables like sys_file_metadata have ignoreRootLevelRestriction=true in TCA
         // and are not governed by page tree permissions when their records sit at pid=0.
         // Only skip when both conditions are true: the record is at root AND the table allows it.
-        if (!(0 === $pageUid && BackendUtility::isRootLevelRestrictionIgnored($recordTable))) {
+        if (!(0 === $pageUid && $this->tableIgnoresRootLevelRestriction($recordTable))) {
             $pageInfo = BackendUtility::readPageAccess($pageUid, $backendUser->getPagePermsClause(Permission::PAGE_SHOW));
             if (false === $pageInfo) {
                 return $this->jsonResponse(
@@ -219,7 +238,7 @@ class AltTextAjaxController extends ActionController
         // is file-mount based (editMeta), not page-based. checkRecordEditAccess relies on a
         // parent page row which does not exist for root-level records (pid=0), so skip it when
         // the record is at root on a table that explicitly allows it, and enforce editMeta below.
-        if (!(0 === $pageUid && BackendUtility::isRootLevelRestrictionIgnored($recordTable))
+        if (!(0 === $pageUid && $this->tableIgnoresRootLevelRestriction($recordTable))
             && is_array($recordData)
             && !$this->permissionService->checkRecordEditAccess($recordTable, $recordData, $recordColumns)
         ) {
@@ -237,7 +256,7 @@ class AltTextAjaxController extends ActionController
         // because it cannot resolve a parent page row. Enforce the equivalent guards manually:
         // table write access and non-exclude field access — matching what checkRecordEditAccess
         // would verify via checkTableWriteAccess and checkNonExcludeFields.
-        if (0 === $pageUid && BackendUtility::isRootLevelRestrictionIgnored($recordTable)) {
+        if (0 === $pageUid && $this->tableIgnoresRootLevelRestriction($recordTable)) {
             if (!$this->permissionService->checkTableWriteAccess($recordTable)
                 || !$this->permissionService->checkNonExcludeFields($recordTable, $recordColumns)
             ) {

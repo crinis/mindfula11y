@@ -33,8 +33,8 @@ use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Backend\Routing\PreviewUriBuilder;
 use TYPO3\CMS\Core\Page\PageRenderer;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
-use TYPO3\CMS\Fluid\View\StandaloneView;
+use TYPO3\CMS\Core\View\ViewFactoryData;
+use TYPO3\CMS\Core\View\ViewFactoryInterface;
 use TYPO3\CMS\Core\Domain\Repository\PageRepository;
 use TYPO3\CMS\Core\Type\Bitmask\Permission;
 
@@ -50,6 +50,7 @@ class WebLayoutInfo
         protected readonly ScanApiService $scanApiService,
         protected readonly UriBuilder $backendUriBuilder,
         protected readonly PageRenderer $pageRenderer,
+        protected readonly ViewFactoryInterface $viewFactory,
     ) {}
 
     /**
@@ -174,12 +175,17 @@ class WebLayoutInfo
             );
         }
 
-        // Render the template
-        $view = GeneralUtility::makeInstance(StandaloneView::class);
-        $view->setTemplateRootPaths(['EXT:mindfula11y/Resources/Private/Templates/']);
-        $view->setLayoutRootPaths(['EXT:mindfula11y/Resources/Private/Layouts/']);
-        $view->setPartialRootPaths(['EXT:mindfula11y/Resources/Private/Partials/']);
-        $view->setTemplate('Backend/WebLayout/GeneralAccessibility');
+        // Render the template.
+        // StandaloneView was removed in TYPO3 v14 (Breaking #105377); the generic
+        // ViewFactoryInterface (introduced in v13.3, Feature #104773) is the
+        // version-agnostic replacement and works on both v13.4 and v14.
+        $viewFactoryData = new ViewFactoryData(
+            templateRootPaths: ['EXT:mindfula11y/Resources/Private/Templates/'],
+            partialRootPaths: ['EXT:mindfula11y/Resources/Private/Partials/'],
+            layoutRootPaths: ['EXT:mindfula11y/Resources/Private/Layouts/'],
+            request: $request,
+        );
+        $view = $this->viewFactory->create($viewFactoryData);
         $view->assignMultiple([
             'fileReferenceCount' => $fileReferenceCount,
             'previewUrl' => (null !== $previewUri ? (string) $previewUri : null),
@@ -194,7 +200,7 @@ class WebLayoutInfo
             'autoCreateScan' => $this->generalModuleService->isAutoCreateScanEnabled($pageTsConfig),
         ]);
 
-        $renderedContent = $view->render();
+        $renderedContent = $view->render('Backend/WebLayout/GeneralAccessibility');
 
         $currentHeaderContent = $event->getHeaderContent();
         $event->setHeaderContent($renderedContent . $currentHeaderContent);

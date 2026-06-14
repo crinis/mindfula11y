@@ -28,6 +28,8 @@ use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Resource\FileInterface;
+use TYPO3\CMS\Core\Schema\Capability\TcaSchemaCapability;
+use TYPO3\CMS\Core\Schema\TcaSchemaFactory;
 use TYPO3\CMS\Core\Type\Bitmask\Permission;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Versioning\VersionState;
@@ -40,6 +42,25 @@ use TYPO3\CMS\Core\Versioning\VersionState;
  */
 class PermissionService
 {
+    public function __construct(
+        protected readonly TcaSchemaFactory $tcaSchemaFactory,
+    ) {}
+
+    /**
+     * Whether the given table is workspace-aware.
+     *
+     * Schema API replacement for the deprecated BackendUtility workspace-enabled
+     * helper (Deprecation #106393). The Schema API exists in both TYPO3 v13.2+
+     * and v14, so no version branch is required. Returns false for tables not
+     * present in TCA, matching the behaviour of the previous method.
+     */
+    protected function isTableWorkspaceAware(string $tableName): bool
+    {
+        return $this->tcaSchemaFactory->has($tableName)
+            && $this->tcaSchemaFactory->get($tableName)
+                ->hasCapability(TcaSchemaCapability::Workspace);
+    }
+
     /**
      * Get allowed values for each authMode column of a table.
      * 
@@ -159,7 +180,7 @@ class PermissionService
 
         if (
             !$backendUser->check('tables_select', $tableName)
-            || (BackendUtility::isTableWorkspaceEnabled($tableName) && !$backendUser->workspaceAllowsLiveEditingInTable($tableName))
+            || ($this->isTableWorkspaceAware($tableName) && !$backendUser->workspaceAllowsLiveEditingInTable($tableName))
         ) {
             return false;
         }
@@ -196,7 +217,7 @@ class PermissionService
 
         if (
             !$backendUser->check('tables_modify', $tableName)
-            || (BackendUtility::isTableWorkspaceEnabled($tableName) && !$backendUser->workspaceAllowsLiveEditingInTable($tableName))
+            || ($this->isTableWorkspaceAware($tableName) && !$backendUser->workspaceAllowsLiveEditingInTable($tableName))
         ) {
             return false;
         }
