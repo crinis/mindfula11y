@@ -39,6 +39,18 @@ use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
  * on a frontend request), so this single listener is dual-compat with NO
  * version branch. The event firing already implies a backend user context, so
  * no explicit isLoggedIn check is needed.
+ *
+ * KNOWN LIMITATION (TYPO3 platform constraint, not specific to this code):
+ * TsConfigTreeBuilder caches the assembled user TSconfig per package-state and
+ * only dispatches this event on a cache MISS. A per-request, header-conditional
+ * addition therefore cannot be applied reliably per request — the hide is
+ * effectively bound to whichever request first (re)built the cache. The same
+ * limitation applied to the old addUserTSConfig() middleware ever since that
+ * cache was introduced (v13.0); this is not a regression. In practice the panel
+ * is simply not hidden during scans (the cache is normally first built by a
+ * regular login). If reliable per-request hiding is required, fetch the page
+ * for analysis without the backend session (so the admin panel never renders),
+ * or strip the panel markup client-side in the scanner.
  */
 final class HideAdminPanelForStructureAnalysis
 {
