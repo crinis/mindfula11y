@@ -638,7 +638,7 @@ class AccessibilityModuleController
     {
         if ((new \TYPO3\CMS\Core\Information\Typo3Version())->getMajorVersion() >= 14) {
             /** @var MenuItem $menuItem */
-            $menuItem = GeneralUtility::makeInstance(
+            $menuItem = $this->makeVersionOnlyInstance(
                 'TYPO3\\CMS\\Backend\\Template\\Components\\ComponentFactory'
             )->createMenuItem();
 
@@ -649,11 +649,28 @@ class AccessibilityModuleController
     }
 
     /**
+     * makeInstance() of a class that only exists on a newer TYPO3 major,
+     * returned as a bare object.
+     *
+     * The class name is taken as a plain `string` (not a `class-string<T>`
+     * literal), so static analysis against an OLDER core cannot resolve — and
+     * therefore cannot reject — the version-only class referenced inside a
+     * Typo3Version-guarded branch. Method calls on the returned `object` are
+     * not checked by PHPStan, which is what we want for these guarded v14-only
+     * factory APIs. Callers annotate the concrete return type via `@var`.
+     */
+    protected function makeVersionOnlyInstance(string $className): object
+    {
+        return GeneralUtility::makeInstance($className);
+    }
+
+    /**
      * Create a new DropDownButton in a way that works on both TYPO3 v13 and v14+.
      *
      * On TYPO3 v14 ButtonBar::makeDropDownButton() is deprecated
      * (Deprecation-107823) in favour of ComponentFactory::createDropDownButton().
-     * The factory only exists on v14, hence the FQCN-string makeInstance() guard.
+     * The factory only exists on v14, so it is created through
+     * makeVersionOnlyInstance() to stay invisible to v13 static analysis.
      *
      * @param ButtonBar $buttonBar The button bar the button will be added to (used on v13).
      */
@@ -661,7 +678,7 @@ class AccessibilityModuleController
     {
         if ((new \TYPO3\CMS\Core\Information\Typo3Version())->getMajorVersion() >= 14) {
             /** @var DropDownButton $button */
-            $button = GeneralUtility::makeInstance(
+            $button = $this->makeVersionOnlyInstance(
                 'TYPO3\\CMS\\Backend\\Template\\Components\\ComponentFactory'
             )->createDropDownButton();
 
@@ -936,10 +953,11 @@ class AccessibilityModuleController
              * v14.2 and therefore absent on v13 — returns RawRecord[] indexed by language ID,
              * so the translated language IDs are simply the array keys.
              *
-             * Referenced as an FQCN string via makeInstance() so static analysis against the
-             * v13 core does not choke on the v14-only class in this guarded branch.
+             * Created via makeVersionOnlyInstance() so static analysis against the v13 core
+             * does not choke on the v14-only class / getPageTranslations() method in this
+             * guarded branch (the helper returns a bare object).
              */
-            $repository = GeneralUtility::makeInstance(
+            $repository = $this->makeVersionOnlyInstance(
                 'TYPO3\\CMS\\Backend\\Domain\\Repository\\Localization\\LocalizationRepository'
             );
             foreach (array_keys($repository->getPageTranslations($this->pageId)) as $languageId) {
