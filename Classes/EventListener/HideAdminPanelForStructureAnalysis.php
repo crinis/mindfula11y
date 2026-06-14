@@ -31,26 +31,15 @@ use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
  * Hide the (optional) admin panel during structure-analysis requests so its
  * markup does not pollute the analysed frontend DOM.
  *
- * Replaces the former DisableAdminPanel middleware, which used
- * ExtensionManagementUtility::addUserTSConfig() — deprecated in TYPO3 v13
- * (#101807) and removed in v14 (Breaking #105377). BeforeLoadedUserTsConfigEvent
- * exists identically in v13 and v14 (TsConfigTreeBuilder dispatches it while
- * assembling a backend user's TSconfig, including for a logged-in backend user
- * on a frontend request), so this single listener is dual-compat with NO
- * version branch. The event firing already implies a backend user context, so
- * no explicit isLoggedIn check is needed.
+ * Replaces the former DisableAdminPanel middleware, whose addUserTSConfig() API
+ * was removed in v14 (#105377). BeforeLoadedUserTsConfigEvent behaves
+ * identically on v13 and v14 and only fires for an authenticated backend user,
+ * so neither a version branch nor an isLoggedIn check is needed.
  *
- * KNOWN LIMITATION (TYPO3 platform constraint, not specific to this code):
- * TsConfigTreeBuilder caches the assembled user TSconfig per package-state and
- * only dispatches this event on a cache MISS. A per-request, header-conditional
- * addition therefore cannot be applied reliably per request — the hide is
- * effectively bound to whichever request first (re)built the cache. The same
- * limitation applied to the old addUserTSConfig() middleware ever since that
- * cache was introduced (v13.0); this is not a regression. In practice the panel
- * is simply not hidden during scans (the cache is normally first built by a
- * regular login). If reliable per-request hiding is required, fetch the page
- * for analysis without the backend session (so the admin panel never renders),
- * or strip the panel markup client-side in the scanner.
+ * Note: user TSconfig is cached per package-state, so this header-conditional
+ * hide is best-effort (the cache is normally first built by a regular login).
+ * For a guaranteed clean DOM, fetch the analysed page without the backend
+ * session so the admin panel never renders.
  */
 final class HideAdminPanelForStructureAnalysis
 {

@@ -42,21 +42,10 @@ class AltlessFileReferenceTable extends AbstractValueObject
      */
     public function __construct(
         protected string $tableName,
-        /**
-         * File column names.
-         */
         protected array $fileColumnNames,
-        /**
-         * Associative array of authMode column names and their allowed values.
-         */
         protected array $authModeColumns,
-        /**
-         * The page IDs to filter table rows by.
-         */
-        protected array $pageIds
-    )
-    {
-    }
+        protected array $pageIds,
+    ) {}
 
     /**
      * Get the table name.

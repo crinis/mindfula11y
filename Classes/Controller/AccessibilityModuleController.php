@@ -54,6 +54,7 @@ use TYPO3\CMS\Core\Pagination\ArrayPaginator;
 use TYPO3\CMS\Core\Pagination\SimplePagination;
 use TYPO3\CMS\Core\Type\Bitmask\Permission;
 use TYPO3\CMS\Core\Type\ContextualFeedbackSeverity;
+use TYPO3\CMS\Core\Information\Typo3Version;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 
@@ -625,67 +626,40 @@ class AccessibilityModuleController
     }
 
     /**
-     * Create a new MenuItem in a way that works on both TYPO3 v13 and v14+.
+     * Create a backend menu item.
      *
-     * On TYPO3 v14 the container-bound factory methods (Menu::makeMenuItem())
-     * are deprecated (Deprecation-107823) in favour of ComponentFactory. The
-     * factory class only exists on v14, so it is referenced via an FQCN string
-     * through makeInstance() to keep static analysis against the v13 core happy.
-     *
-     * @param Menu $menu The menu the item will be added to (used on v13).
+     * Uses GeneralUtility::makeInstance() directly instead of the container
+     * method Menu::makeMenuItem(), which is deprecated on TYPO3 v14 (#107823).
+     * The two are equivalent (makeMenuItem() itself just calls makeInstance),
+     * so this works unchanged on both v13 and v14.
      */
-    protected function createMenuItem(Menu $menu): MenuItem
+    protected function createMenuItem(): MenuItem
     {
-        if ((new \TYPO3\CMS\Core\Information\Typo3Version())->getMajorVersion() >= 14) {
-            /** @var MenuItem $menuItem */
-            $menuItem = $this->makeVersionOnlyInstance(
-                'TYPO3\\CMS\\Backend\\Template\\Components\\ComponentFactory'
-            )->createMenuItem();
-
-            return $menuItem;
-        }
-
-        return $menu->makeMenuItem();
+        return GeneralUtility::makeInstance(MenuItem::class);
     }
 
     /**
-     * makeInstance() of a class that only exists on a newer TYPO3 major,
-     * returned as a bare object.
+     * Create a backend dropdown button.
      *
-     * The class name is taken as a plain `string` (not a `class-string<T>`
-     * literal), so static analysis against an OLDER core cannot resolve — and
-     * therefore cannot reject — the version-only class referenced inside a
-     * Typo3Version-guarded branch. Method calls on the returned `object` are
-     * not checked by PHPStan, which is what we want for these guarded v14-only
-     * factory APIs. Callers annotate the concrete return type via `@var`.
+     * Uses GeneralUtility::makeInstance() directly instead of
+     * ButtonBar::makeDropDownButton(), deprecated on TYPO3 v14 (#107823);
+     * equivalent and dual-compat (v13 + v14).
+     */
+    protected function createDropDownButton(): DropDownButton
+    {
+        return GeneralUtility::makeInstance(DropDownButton::class);
+    }
+
+    /**
+     * makeInstance() of a class only present on a newer TYPO3 major, returned
+     * as a bare object so static analysis against the older core cannot resolve
+     * — and therefore cannot reject — the version-only class inside a
+     * Typo3Version-guarded branch. Used for the v14.2-only LocalizationRepository
+     * in getAvailableLanguageIds(); the caller annotates the type via `@var`.
      */
     protected function makeVersionOnlyInstance(string $className): object
     {
         return GeneralUtility::makeInstance($className);
-    }
-
-    /**
-     * Create a new DropDownButton in a way that works on both TYPO3 v13 and v14+.
-     *
-     * On TYPO3 v14 ButtonBar::makeDropDownButton() is deprecated
-     * (Deprecation-107823) in favour of ComponentFactory::createDropDownButton().
-     * The factory only exists on v14, so it is created through
-     * makeVersionOnlyInstance() to stay invisible to v13 static analysis.
-     *
-     * @param ButtonBar $buttonBar The button bar the button will be added to (used on v13).
-     */
-    protected function createDropDownButton(ButtonBar $buttonBar): DropDownButton
-    {
-        if ((new \TYPO3\CMS\Core\Information\Typo3Version())->getMajorVersion() >= 14) {
-            /** @var DropDownButton $button */
-            $button = $this->makeVersionOnlyInstance(
-                'TYPO3\\CMS\\Backend\\Template\\Components\\ComponentFactory'
-            )->createDropDownButton();
-
-            return $button;
-        }
-
-        return $buttonBar->makeDropDownButton();
     }
 
     protected function buildFeatureMenu(): Menu
@@ -700,7 +674,7 @@ class AccessibilityModuleController
                 Feature::SCAN => $this->generalModuleService->hasScanAccess($this->pageTsConfig),
             };
             if ($enabled) {
-                $menuItem = $this->createMenuItem($menu)->setTitle(
+                $menuItem = $this->createMenuItem()->setTitle(
                     $this->generalModuleService->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:module.menu.features.' . $feature->value)
                 )->setHref(
                     $this->getMenuItemUri(['feature' => $feature->value])
@@ -732,7 +706,7 @@ class AccessibilityModuleController
                 'LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:module.menu.tables'
             );
         foreach ($tables as $tableName) {
-            $menuItem = $this->createMenuItem($menu)->setTitle(
+            $menuItem = $this->createMenuItem()->setTitle(
                 $this->getTableTitle($tableName)
             )->setHref(
                 $this->getMenuItemUri(
@@ -765,7 +739,7 @@ class AccessibilityModuleController
             );
 
         foreach ([1, 5, 10, 99] as $pageLevels) {
-            $menuItem = $this->createMenuItem($menu)->setTitle(
+            $menuItem = $this->createMenuItem()->setTitle(
                 $this->generalModuleService->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:module.menu.pageLevels.' . $pageLevels)
             )->setHref(
                 $this->getMenuItemUri(
@@ -796,7 +770,7 @@ class AccessibilityModuleController
             );
 
         foreach ([0, 1, 5, 10, 99] as $pageLevels) {
-            $menuItem = $this->createMenuItem($menu)->setTitle(
+            $menuItem = $this->createMenuItem()->setTitle(
                 $this->generalModuleService->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:module.menu.pageLevels.' . $pageLevels)
             )->setHref(
                 $this->getMenuItemUri(
@@ -821,7 +795,7 @@ class AccessibilityModuleController
     protected function buildFilterDropdown(string $currentTableName, int $currentPageLevels, bool $filterFileMetaData): DropDownButton
     {
         $buttonBar = $this->moduleTemplate->getDocHeaderComponent()->getButtonBar();
-        $button = $this->createDropDownButton($buttonBar)
+        $button = $this->createDropDownButton()
             ->setLabel($this->generalModuleService->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:module.menu.filter'))
             ->setShowLabelText(true);
 
@@ -870,7 +844,7 @@ class AccessibilityModuleController
                 continue;
             }
 
-            $menuItem = $this->createMenuItem($menu)->setTitle(
+            $menuItem = $this->createMenuItem()->setTitle(
                 $language->getTitle()
             )->setHref(
                 $this->getMenuItemUri(
@@ -946,25 +920,25 @@ class AccessibilityModuleController
     {
         $availableLanguageIds = [0]; // Default language is always available
 
-        if ((new \TYPO3\CMS\Core\Information\Typo3Version())->getMajorVersion() >= 14) {
-            /*
-             * TYPO3 v14.2+: BackendUtility::getExistingPageTranslations() is deprecated
-             * (Deprecation-108810). LocalizationRepository::getPageTranslations() — added in
-             * v14.2 and therefore absent on v13 — returns RawRecord[] indexed by language ID,
-             * so the translated language IDs are simply the array keys.
-             *
-             * Created via makeVersionOnlyInstance() so static analysis against the v13 core
-             * does not choke on the v14-only class / getPageTranslations() method in this
-             * guarded branch (the helper returns a bare object).
-             */
+        // LocalizationRepository::getPageTranslations() and the deprecation of
+        // the legacy BackendUtility::getExistingPageTranslations() both landed
+        // in TYPO3 v14.2 (#108799 / #108810); on v13 and v14.0/v14.1 the legacy
+        // method is the only one that exists.
+        if (version_compare((new Typo3Version())->getVersion(), '14.2', '>=')) {
+            // Pass the backend user's workspace so the result matches the
+            // workspace-aware legacy path. getPageTranslations() returns
+            // RawRecord[] keyed by language id, so the ids are the array keys.
+            // The v14.2-only repository is created via makeVersionOnlyInstance()
+            // to keep static analysis against the v13 core happy.
+            $workspaceId = $this->generalModuleService->getBackendUserAuthentication()->workspace;
             $repository = $this->makeVersionOnlyInstance(
                 'TYPO3\\CMS\\Backend\\Domain\\Repository\\Localization\\LocalizationRepository'
             );
-            foreach (array_keys($repository->getPageTranslations($this->pageId)) as $languageId) {
+            foreach (array_keys($repository->getPageTranslations($this->pageId, [], $workspaceId)) as $languageId) {
                 $availableLanguageIds[] = (int)$languageId;
             }
         } else {
-            // TYPO3 v13: use the legacy BackendUtility API; it returns page rows.
+            // TYPO3 v13 / v14.0 / v14.1: the legacy API returns page rows.
             $pageTranslations = BackendUtility::getExistingPageTranslations($this->pageId);
             foreach ($pageTranslations as $pageTranslation) {
                 $languageId = $pageTranslation[$GLOBALS['TCA']['pages']['ctrl']['languageField']] ?? null;

@@ -42,24 +42,24 @@ class GenerateAltTextDemand extends AbstractValueObject implements JsonSerializa
     protected string $signature = '';
 
     /**
-     * Constructor.
+     * @param int $userId Current user ID.
+     * @param int $pageUid Page UID we are working on.
+     * @param int $languageUid Language UID we are working in.
+     * @param int $workspaceId Current workspace ID.
+     * @param string $recordTable Record table name.
+     * @param int $recordUid Record UID.
+     * @param int $fileUid File UID to generate alt text for.
+     * @param array<string> $recordColumns Affected record columns.
+     * @param string $signature Optional pre-computed HMAC signature; generated from the other properties when empty.
      */
     public function __construct(
-        // Current user ID.
         protected int $userId,
-        // Page UID we are working on.
         protected int $pageUid,
-        // Language UID we are working in.
         protected int $languageUid,
-        // Current workspace ID.
         protected int $workspaceId,
-        // Record table name.
         protected string $recordTable,
-        // Record UID.
         protected int $recordUid,
-        // File UID to generate alt text for.
         protected int $fileUid,
-        // Affected record columns.
         protected array $recordColumns,
         string $signature = '',
     ) {

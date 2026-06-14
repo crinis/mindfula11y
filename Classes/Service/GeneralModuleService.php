@@ -23,6 +23,7 @@ declare(strict_types=1);
 
 namespace MindfulMarkup\MindfulA11y\Service;
 
+use TYPO3\CMS\Core\Context\Context;
 use TYPO3\CMS\Core\Domain\Repository\PageRepository;
 use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\TypoScript\TypoScriptService;
@@ -335,7 +336,7 @@ class GeneralModuleService
             return false;
         }
 
-        $now = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance(\TYPO3\CMS\Core\Context\Context::class)->getPropertyFromAspect('date', 'timestamp') ?? time();
+        $now = GeneralUtility::makeInstance(Context::class)->getPropertyFromAspect('date', 'timestamp') ?? time();
 
         // Check starttime
         $starttimeField = $enableColumns['starttime'] ?? 'starttime';

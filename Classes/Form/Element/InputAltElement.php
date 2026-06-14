@@ -47,13 +47,13 @@ use TYPO3\CMS\Core\Utility\StringUtility;
 class InputAltElement extends AbstractFormElement
 {
     /**
-     * Field information nodes. Populated per TYPO3 major in the constructor:
-     * on v13 the 'tcaDescription' node is registered (as core's
-     * InputTextElement does) because descriptions are NOT auto-rendered there;
-     * on v14.2+ it is omitted, since TCA 'description' renders automatically
-     * and the node is deprecated (#109280). AbstractFormElement itself does
-     * not register it, so removing it unconditionally would silently drop the
-     * field description on v13.
+     * Field information nodes. Populated version-dependently in the constructor:
+     * before TYPO3 v14.2 the 'tcaDescription' node is registered (as core's
+     * InputTextElement does) because descriptions are not auto-rendered yet;
+     * from v14.2 it is omitted, since TCA 'description' renders automatically
+     * and the node is deprecated (#109280). AbstractFormElement does not
+     * register it, so removing it unconditionally would drop the description on
+     * v13/v14.0/v14.1.
      *
      * @var array
      */
@@ -89,12 +89,12 @@ class InputAltElement extends AbstractFormElement
         protected readonly PageRenderer $pageRenderer,
         protected readonly PermissionService $permissionService,
     ) {
-        // v13 does not auto-render field descriptions, so register the
-        // tcaDescription field-information node there (mirrors core's
-        // InputTextElement). v14.2+ auto-renders TCA 'description' and
-        // deprecated this node (#109280), so it is omitted on v14 to avoid the
-        // deprecation while keeping descriptions visible on both majors.
-        if ((new Typo3Version())->getMajorVersion() < 14) {
+        // Auto-rendering of the TCA 'description' (and the deprecation of the
+        // tcaDescription node, #109280) only arrived in TYPO3 v14.2. Before
+        // that — v13 and v14.0/v14.1 — descriptions are NOT auto-rendered, so
+        // register the node (as core's InputTextElement does); from v14.2 it is
+        // omitted to avoid the deprecation while descriptions stay visible.
+        if (version_compare((new Typo3Version())->getVersion(), '14.2', '<')) {
             $this->defaultFieldInformation = [
                 'tcaDescription' => [
                     'renderType' => 'tcaDescription',

@@ -42,22 +42,22 @@ class CreateScanDemand extends AbstractValueObject implements JsonSerializable
     protected string $signature = '';
 
     /**
-     * Constructor.
+     * @param int $userId Current user ID.
+     * @param int $pageId Original page ID (not translated).
+     * @param string $previewUrl Preview URL for the page.
+     * @param int $languageId Language ID.
+     * @param int $workspaceId Current workspace ID.
+     * @param int $pageLevels Page levels for tree scanning (0 = current page only).
+     * @param bool $crawl Whether this demand creates a crawl scan (only valid for site root pages).
+     * @param string $signature Optional pre-computed HMAC signature; generated from the other properties when empty.
      */
     public function __construct(
-        // Current user ID.
         protected int $userId,
-        // Original page ID (not translated).
         protected int $pageId,
-        // Preview URL for the page.
         protected string $previewUrl,
-        // Language ID.
         protected int $languageId,
-        // Current workspace ID.
         protected int $workspaceId,
-        // Page levels for tree scanning (0 = current page only).
         protected int $pageLevels = 0,
-        // Whether this demand creates a crawl scan (only valid for site root pages).
         protected bool $crawl = false,
         string $signature = '',
     ) {
