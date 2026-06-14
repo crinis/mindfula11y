@@ -33,32 +33,6 @@ use TYPO3\CMS\Extbase\DomainObject\AbstractValueObject;
 class AltlessFileReferenceTable extends AbstractValueObject
 {
     /**
-     * Table name.
-     */
-    protected string $tableName = '';
-
-    /**
-     * File column names.
-     * 
-     * @var array<string>
-     */
-    protected array $fileColumnNames = [];
-
-    /**
-     * Associative array of authMode column names and their allowed values.
-     * 
-     * @var array<string, array<string>>
-     */
-    protected array $authModeColumns = [];
-
-    /**
-     * The page IDs to filter table rows by.
-     * 
-     * @var array<int>
-     */
-    protected array $pageIds = [];
-
-    /**
      * Constructor.
      * 
      * @param string $tableName The name of the table to filter.
@@ -67,15 +41,21 @@ class AltlessFileReferenceTable extends AbstractValueObject
      * @param array<int> $pageIds The page IDs to filter by.
      */
     public function __construct(
-        string $tableName,
-        array $fileColumnNames,
-        array $authModeColumns,
-        array $pageIds
-    ) {
-        $this->tableName = $tableName;
-        $this->fileColumnNames = $fileColumnNames;
-        $this->authModeColumns = $authModeColumns;
-        $this->pageIds = $pageIds;
+        protected string $tableName,
+        /**
+         * File column names.
+         */
+        protected array $fileColumnNames,
+        /**
+         * Associative array of authMode column names and their allowed values.
+         */
+        protected array $authModeColumns,
+        /**
+         * The page IDs to filter table rows by.
+         */
+        protected array $pageIds
+    )
+    {
     }
 
     /**

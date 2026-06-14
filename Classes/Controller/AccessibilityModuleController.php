@@ -183,7 +183,7 @@ class AccessibilityModuleController
         $languageToCheck = $this->localizedPageInfo === null ? 0 : $this->languageId;
         if (!$this->permissionService->checkLanguageAccess($languageToCheck)) {
             // Try to find the first available language that the user has access to
-            $availableLanguageId = $this->getFirstAvailableLanguageId($backendUser);
+            $availableLanguageId = $this->getFirstAvailableLanguageId();
             if (null !== $availableLanguageId) {
                 // Redirect to the first available language
                 $uri = $this->backendUriBuilder->buildUriFromRoute(

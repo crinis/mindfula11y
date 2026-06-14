@@ -203,44 +203,17 @@ class LandmarkViewHelper extends AbstractTagBasedViewHelper
 
         $landmarkType = AriaLandmark::tryFrom($role);
 
-        switch ($landmarkType) {
-            case AriaLandmark::NAVIGATION:
-                $this->tag->setTagName('nav');
-                break;
-
-            case AriaLandmark::MAIN:
-                $this->tag->setTagName('main');
-                break;
-
-            case AriaLandmark::BANNER:
-                $this->tag->setTagName('header');
-                break;
-
-            case AriaLandmark::CONTENTINFO:
-                $this->tag->setTagName('footer');
-                break;
-
-            case AriaLandmark::COMPLEMENTARY:
-                $this->tag->setTagName('aside');
-                break;
-
-            case AriaLandmark::SEARCH:
-                $this->tag->setTagName('search');
-                break;
-
-            case AriaLandmark::FORM:
-                $this->tag->setTagName('form');
-                break;
-
-            case AriaLandmark::REGION:
-                $this->tag->setTagName('section');
-                break;
-
-            case AriaLandmark::NONE:
-            default:
-                $this->tag->setTagName('div');
-                break;
-        }
+        match ($landmarkType) {
+            AriaLandmark::NAVIGATION => $this->tag->setTagName('nav'),
+            AriaLandmark::MAIN => $this->tag->setTagName('main'),
+            AriaLandmark::BANNER => $this->tag->setTagName('header'),
+            AriaLandmark::CONTENTINFO => $this->tag->setTagName('footer'),
+            AriaLandmark::COMPLEMENTARY => $this->tag->setTagName('aside'),
+            AriaLandmark::SEARCH => $this->tag->setTagName('search'),
+            AriaLandmark::FORM => $this->tag->setTagName('form'),
+            AriaLandmark::REGION => $this->tag->setTagName('section'),
+            default => $this->tag->setTagName('div'),
+        };
     }
 
     /**

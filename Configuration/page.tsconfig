@@ -28,7 +28,7 @@ mod {
         mindfula11y {
             hideInfo = 0
         }
-    } 
+    }
 }
 
 # Hide structural landmarks from content editors by default

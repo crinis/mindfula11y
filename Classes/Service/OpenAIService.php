@@ -81,7 +81,7 @@ class OpenAIService
             /** @var ResponseInterface $response */
             $response = $this->requestFactory->request($url, 'POST', $options);
             $responseBody = $response->getBody()->getContents();
-        } catch (\Exception $e) {
+        } catch (\Exception) {
             return null;
         }
 

@@ -213,7 +213,7 @@ class InputAltElement extends AbstractFormElement
         if ($fileUid !== null) {
             try {
                 $file = $this->resourceFactory->getFileObject($fileUid);
-            } catch (Exception $e) {
+            } catch (Exception) {
                 $file = null;
             }
         } else {
@@ -228,7 +228,7 @@ class InputAltElement extends AbstractFormElement
         $config['placeholder'] = $canReadPlaceholder && null !== $file ? $file->getProperty('alternative') : '';
 
         if (!empty($config['placeholder'])) {
-            $attributes['placeholder'] = trim($config['placeholder']);
+            $attributes['placeholder'] = trim((string) $config['placeholder']);
         }
         if (isset($config['autocomplete'])) {
             $attributes['autocomplete'] = empty($config['autocomplete']) ? 'new-' . $fieldName : 'on';

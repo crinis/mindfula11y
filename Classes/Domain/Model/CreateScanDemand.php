@@ -37,41 +37,6 @@ use TYPO3\CMS\Extbase\DomainObject\AbstractValueObject;
 class CreateScanDemand extends AbstractValueObject implements JsonSerializable
 {
     /**
-     * Current user ID.
-     */
-    protected int $userId = 0;
-
-    /**
-     * Original page ID (not translated).
-     */
-    protected int $pageId = 0;
-
-    /**
-     * Preview URL for the page.
-     */
-    protected string $previewUrl = '';
-
-    /**
-     * Language ID.
-     */
-    protected int $languageId = 0;
-
-    /**
-     * Current workspace ID.
-     */
-    protected int $workspaceId = 0;
-
-    /**
-     * Page levels for tree scanning (0 = current page only).
-     */
-    protected int $pageLevels = 0;
-
-    /**
-     * Whether this demand creates a crawl scan (only valid for site root pages).
-     */
-    protected bool $crawl = false;
-
-    /**
      * Signature of the properties generated using hmac.
      */
     protected string $signature = '';
@@ -79,15 +44,23 @@ class CreateScanDemand extends AbstractValueObject implements JsonSerializable
     /**
      * Constructor.
      */
-    public function __construct(int $userId, int $pageId, string $previewUrl, int $languageId, int $workspaceId, int $pageLevels = 0, bool $crawl = false, string $signature = '')
-    {
-        $this->userId = $userId;
-        $this->pageId = $pageId;
-        $this->previewUrl = $previewUrl;
-        $this->languageId = $languageId;
-        $this->workspaceId = $workspaceId;
-        $this->pageLevels = $pageLevels;
-        $this->crawl = $crawl;
+    public function __construct(
+        // Current user ID.
+        protected int $userId,
+        // Original page ID (not translated).
+        protected int $pageId,
+        // Preview URL for the page.
+        protected string $previewUrl,
+        // Language ID.
+        protected int $languageId,
+        // Current workspace ID.
+        protected int $workspaceId,
+        // Page levels for tree scanning (0 = current page only).
+        protected int $pageLevels = 0,
+        // Whether this demand creates a crawl scan (only valid for site root pages).
+        protected bool $crawl = false,
+        string $signature = '',
+    ) {
         $this->signature = '' !== $signature ? $signature : $this->createSignature();
     }
 
@@ -173,7 +146,7 @@ class CreateScanDemand extends AbstractValueObject implements JsonSerializable
                 (string)$this->pageLevels,
                 (string)(int)$this->crawl,
             ]),
-            __CLASS__
+            self::class
         );
     }
 

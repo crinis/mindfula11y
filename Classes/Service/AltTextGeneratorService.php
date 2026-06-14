@@ -58,7 +58,7 @@ class AltTextGeneratorService
     {
         try {
             $imageUrl = $this->getBase64ImageUrlFromFile($file);
-        } catch (\Exception $e) {
+        } catch (\Exception) {
             return null;
         }
 

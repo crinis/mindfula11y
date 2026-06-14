@@ -254,7 +254,7 @@ class AltTextAjaxController extends ActionController
 
         try {
             $languageCode = $this->siteLanguageService->getLanguageCode($demand->getLanguageUid(), $demand->getPageUid());
-        } catch (\Exception $e) {
+        } catch (\Exception) {
             $languageCode = 'en';
         }
 

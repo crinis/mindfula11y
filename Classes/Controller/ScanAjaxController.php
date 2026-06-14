@@ -455,9 +455,7 @@ class ScanAjaxController extends ActionController
         // Get scan with optional page URL filter
         $pageUrls = $this->extractPageUrls($request);
         // Sanitize: only allow valid URL strings
-        $pageUrls = array_values(array_filter($pageUrls, function ($url) {
-            return is_string($url) && filter_var($url, FILTER_VALIDATE_URL) !== false;
-        }));
+        $pageUrls = array_values(array_filter($pageUrls, fn($url) => is_string($url) && filter_var($url, FILTER_VALIDATE_URL) !== false));
 
         // Finding 3 fix: restrict pageUrls to the site's own base URLs to prevent
         // unintended filter parameters being forwarded to the external scanner API
@@ -483,7 +481,7 @@ class ScanAjaxController extends ActionController
                     }
                     return false;
                 }));
-            } catch (\Exception $e) {
+            } catch (\Exception) {
                 $pageUrls = [];
             }
         }

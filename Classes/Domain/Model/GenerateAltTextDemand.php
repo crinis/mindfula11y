@@ -37,46 +37,6 @@ use TYPO3\CMS\Extbase\DomainObject\AbstractValueObject;
 class GenerateAltTextDemand extends AbstractValueObject implements JsonSerializable
 {
     /**
-     * Current user ID.
-     */
-    protected int $userId = 0;
-
-    /**
-     * Page UID we are working on.
-     */
-    protected int $pageUid = 0;
-
-    /**
-     * Language UID we are working in.
-     */
-    protected int $languageUid = 0;
-
-    /**
-     * Current workspace ID.
-     */
-    protected int $workspaceId = 0;
-
-    /**
-     * Record table name.
-     */
-    protected string $recordTable = '';
-
-    /**
-     * Record UID.
-     */
-    protected int $recordUid = 0;
-
-    /**
-     * File UID to generate alt text for.
-     */
-    protected int $fileUid = 0;
-
-    /**
-     * Affected record columns.
-     */
-    protected array $recordColumns = [];
-
-    /**
      * Signature of all properties generated using hmac.
      */
     protected string $signature = '';
@@ -84,16 +44,25 @@ class GenerateAltTextDemand extends AbstractValueObject implements JsonSerializa
     /**
      * Constructor.
      */
-    public function __construct(int $userId, int $pageUid, int $languageUid, int $workspaceId, string $recordTable, int $recordUid, int $fileUid, array $recordColumns, string $signature = '')
-    {
-        $this->userId = $userId;
-        $this->pageUid = $pageUid;
-        $this->languageUid = $languageUid;
-        $this->workspaceId = $workspaceId;
-        $this->recordTable = $recordTable;
-        $this->recordUid = $recordUid;
-        $this->fileUid = $fileUid;
-        $this->recordColumns = $recordColumns;
+    public function __construct(
+        // Current user ID.
+        protected int $userId,
+        // Page UID we are working on.
+        protected int $pageUid,
+        // Language UID we are working in.
+        protected int $languageUid,
+        // Current workspace ID.
+        protected int $workspaceId,
+        // Record table name.
+        protected string $recordTable,
+        // Record UID.
+        protected int $recordUid,
+        // File UID to generate alt text for.
+        protected int $fileUid,
+        // Affected record columns.
+        protected array $recordColumns,
+        string $signature = '',
+    ) {
         $this->signature = '' !== $signature ? $signature : $this->createSignature();
     }
 
@@ -191,7 +160,7 @@ class GenerateAltTextDemand extends AbstractValueObject implements JsonSerializa
                     implode(',', $this->recordColumns),
                 ]
             ),
-            __CLASS__
+            self::class
         );
     }
 

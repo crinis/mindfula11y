@@ -4,26 +4,26 @@ page = PAGE
 page.5 = COA
 page.5 {
   wrap = <header><nav role="navigation" aria-label="Main navigation">|</nav></header>
-  
+
   10 = COA
   10 {
     wrap = <ul class="main-navigation">|</ul>
-    
+
     10 = TEXT
     10.value = Home
     10.typolink.parameter = /
     10.wrap = <li>|</li>
-    
+
     20 = TEXT
     20.value = About
     20.typolink.parameter = /about
     20.wrap = <li>|</li>
-    
+
     30 = TEXT
     30.value = Services
     30.typolink.parameter = /services
     30.wrap = <li>|</li>
-    
+
     40 = TEXT
     40.value = Contact
     40.typolink.parameter = /contact

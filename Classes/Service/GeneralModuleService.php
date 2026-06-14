@@ -335,7 +335,7 @@ class GeneralModuleService
             return false;
         }
 
-        $now = $GLOBALS['EXEC_TIME'] ?? time();
+        $now = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance(\TYPO3\CMS\Core\Context\Context::class)->getPropertyFromAspect('date', 'timestamp') ?? time();
 
         // Check starttime
         $starttimeField = $enableColumns['starttime'] ?? 'starttime';
@@ -399,7 +399,7 @@ class GeneralModuleService
                     return false;
                 }
             }
-        } catch (\Exception $e) {
+        } catch (\Exception) {
             // If the rootline cannot be resolved, treat as inaccessible to be safe
             return false;
         }
