@@ -33,10 +33,9 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Backend\Attribute\AsController;
 use TYPO3\CMS\Backend\Routing\PreviewUriBuilder;
+use TYPO3\CMS\Backend\Template\Components\Buttons\DropDown\DropDownRadio;
 use TYPO3\CMS\Backend\Template\Components\Buttons\DropDown\DropDownToggle;
 use TYPO3\CMS\Backend\Template\Components\Buttons\DropDownButton;
-use TYPO3\CMS\Backend\Template\Components\Menu\Menu;
-use TYPO3\CMS\Backend\Template\Components\Menu\MenuItem;
 use TYPO3\CMS\Core\Http\RedirectResponse;
 use MindfulMarkup\MindfulA11y\Service\PermissionService;
 use TYPO3\CMS\Backend\Module\ModuleData;
@@ -211,8 +210,8 @@ class AccessibilityModuleController
 
         $this->feature = Feature::tryFrom($this->moduleData->get('feature', Feature::GENERAL->value)) ?? Feature::GENERAL;
         $this->pageTsConfig = $this->generalModuleService->getConvertedPageTsConfig($this->pageId);
-        $this->moduleTemplate->getDocHeaderComponent()->getMenuRegistry()->addMenu($this->buildFeatureMenu());
-        $this->moduleTemplate->getDocHeaderComponent()->getMenuRegistry()->addMenu($this->buildLanguageMenu());
+        $this->addDocHeaderDropDown($this->buildFeatureMenu(), 1);
+        $this->addDocHeaderDropDown($this->buildLanguageMenu(), 2);
         $this->pageRenderer->addInlineLanguageLabelArray($this->generalModuleService->getInlineLanguageLabels());
 
         $this->pageRenderer->addCssFile('EXT:mindfula11y/Resources/Public/Css/mindfula11y.css');
@@ -364,12 +363,12 @@ class AccessibilityModuleController
 
         $filterFileMetaData = (bool)$this->moduleData->get('filterFileMetaData', true);
 
-        $this->moduleTemplate->getDocHeaderComponent()->getMenuRegistry()->addMenu($this->buildPageLevelsMenu($tableName, $pageLevels, $filterFileMetaData));
-        $this->moduleTemplate->getDocHeaderComponent()->getMenuRegistry()->addMenu($this->buildTableMenu(
+        $this->addDocHeaderDropDown($this->buildPageLevelsMenu($tableName, $pageLevels, $filterFileMetaData), 3);
+        $this->addDocHeaderDropDown($this->buildTableMenu(
             $tableName,
             $pageLevels,
             $filterFileMetaData
-        ));
+        ), 4);
 
         if (
             $this->permissionService->checkTableReadAccess('sys_file_metadata')
@@ -534,7 +533,7 @@ class AccessibilityModuleController
             $pageLevels = 0;
         }
 
-        $this->moduleTemplate->getDocHeaderComponent()->getMenuRegistry()->addMenu($this->buildScanPageLevelsMenu($pageLevels));
+        $this->addDocHeaderDropDown($this->buildScanPageLevelsMenu($pageLevels), 3);
 
         // Check if user has edit access to the page record (needed to trigger new scans)
         $canTriggerScan = $this->permissionService->checkRecordEditAccess('pages', $finalPageInfo, ['tx_mindfula11y_scanid', 'tx_mindfula11y_scanupdated']);
@@ -626,16 +625,65 @@ class AccessibilityModuleController
     }
 
     /**
-     * Create a backend menu item.
+     * Build a doc header dropdown button from a list of single-select items.
      *
-     * Uses GeneralUtility::makeInstance() directly instead of the container
-     * method Menu::makeMenuItem(), which is deprecated on TYPO3 v14 (#107823).
-     * The two are equivalent (makeMenuItem() itself just calls makeInstance),
-     * so this works unchanged on both v13 and v14.
+     * The selector menus (feature, language, page levels, table) are rendered as
+     * button bar DropDownButtons rather than registered MenuRegistry menus: TYPO3
+     * v14's DocHeaderComponent only renders the *first* registered MenuRegistry
+     * menu (it calls reset($menus)), so registering several would silently drop
+     * all but one. DropDownButtons in the button bar render on both v13 and v14.
+     *
+     * Mirrors the previous select-box UX by showing "<category>: <active item>" as
+     * the button label (setShowActiveLabelText() is v14-only, so the active value
+     * is baked into the label here for dual compatibility). Returns null when there
+     * are fewer than two items, matching the old behaviour of hiding menus that
+     * offer no real choice.
+     *
+     * @param string $categoryLabel Already-localised category label (e.g. "Language").
+     * @param array<int,array{title: string, href: string, active: bool}> $items
      */
-    protected function createMenuItem(): MenuItem
+    protected function buildDocHeaderDropDown(string $categoryLabel, array $items): ?DropDownButton
     {
-        return GeneralUtility::makeInstance(MenuItem::class);
+        if (count($items) < 2) {
+            return null;
+        }
+
+        $button = $this->createDropDownButton()->setShowLabelText(true);
+
+        $activeTitle = null;
+        foreach ($items as $item) {
+            /** @var DropDownRadio $radio */
+            $radio = GeneralUtility::makeInstance(DropDownRadio::class)
+                ->setLabel($item['title'])
+                ->setHref($item['href'])
+                ->setActive($item['active']);
+            $button->addItem($radio);
+            if ($item['active']) {
+                $activeTitle = $item['title'];
+            }
+        }
+
+        $button->setLabel($activeTitle !== null ? $categoryLabel . ': ' . $activeTitle : $categoryLabel);
+
+        return $button;
+    }
+
+    /**
+     * Add a selector dropdown to the module doc header button bar (left position).
+     *
+     * Null buttons (fewer than two items) are skipped so the button bar never
+     * receives an invalid button.
+     */
+    protected function addDocHeaderDropDown(?DropDownButton $button, int $group): void
+    {
+        if ($button === null) {
+            return;
+        }
+        $this->moduleTemplate->getDocHeaderComponent()->getButtonBar()->addButton(
+            $button,
+            ButtonBar::BUTTON_POSITION_LEFT,
+            $group
+        );
     }
 
     /**
@@ -662,11 +710,10 @@ class AccessibilityModuleController
         return GeneralUtility::makeInstance($className);
     }
 
-    protected function buildFeatureMenu(): Menu
+    protected function buildFeatureMenu(): ?DropDownButton
     {
-        $menu = $this->moduleTemplate->getDocHeaderComponent()->getMenuRegistry()->makeMenu()
-            ->setIdentifier('MindfulA11yFeatures')
-            ->setLabel($this->generalModuleService->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:module.menu.features'));
+        $languageService = $this->generalModuleService->getLanguageService();
+        $items = [];
         foreach ([Feature::GENERAL, Feature::MISSING_ALT_TEXT, Feature::SCAN] as $feature) {
             $enabled = match ($feature) {
                 Feature::GENERAL => true,
@@ -674,18 +721,18 @@ class AccessibilityModuleController
                 Feature::SCAN => $this->generalModuleService->hasScanAccess($this->pageTsConfig),
             };
             if ($enabled) {
-                $menuItem = $this->createMenuItem()->setTitle(
-                    $this->generalModuleService->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:module.menu.features.' . $feature->value)
-                )->setHref(
-                    $this->getMenuItemUri(['feature' => $feature->value])
-                )->setActive(
-                    $this->feature === $feature
-                );
-                $menu->addMenuItem($menuItem);
+                $items[] = [
+                    'title' => $languageService->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:module.menu.features.' . $feature->value),
+                    'href' => $this->getMenuItemUri(['feature' => $feature->value]),
+                    'active' => $this->feature === $feature,
+                ];
             }
         }
 
-        return $menu;
+        return $this->buildDocHeaderDropDown(
+            $languageService->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:module.menu.features'),
+            $items
+        );
     }
 
     /**
@@ -695,32 +742,30 @@ class AccessibilityModuleController
      * @param int $currentPageLevels The current page levels.
      * @param bool $filterFileMetaData Whether to filter file metadata.
      */
-    protected function buildTableMenu(string $currentTableName, int $currentPageLevels, bool $filterFileMetaData): Menu
+    protected function buildTableMenu(string $currentTableName, int $currentPageLevels, bool $filterFileMetaData): ?DropDownButton
     {
         $tables = $this->altTextFinderService->getTablesWithFiles($this->pageTsConfig);
         // Add an empty string as the first menu item (for "all tables" option)
         array_unshift($tables, '');
-        $menu = $this->moduleTemplate->getDocHeaderComponent()->getMenuRegistry()->makeMenu();
-        $menu->setIdentifier('MindfulA11yMissingAltTextTable')
-            ->setLabel(
-                'LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:module.menu.tables'
-            );
+        $items = [];
         foreach ($tables as $tableName) {
-            $menuItem = $this->createMenuItem()->setTitle(
-                $this->getTableTitle($tableName)
-            )->setHref(
-                $this->getMenuItemUri(
+            $items[] = [
+                'title' => $this->getTableTitle($tableName),
+                'href' => $this->getMenuItemUri(
                     [
                         'tableName' => $tableName,
                         'pageLevels' => $currentPageLevels,
                         'filterFileMetaData' => $filterFileMetaData,
                     ]
-                )
-            )->setActive($tableName === $currentTableName);
-            $menu->addMenuItem($menuItem);
+                ),
+                'active' => $tableName === $currentTableName,
+            ];
         }
 
-        return $menu;
+        return $this->buildDocHeaderDropDown(
+            $this->generalModuleService->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:module.menu.tables'),
+            $items
+        );
     }
 
     /**
@@ -730,30 +775,28 @@ class AccessibilityModuleController
      * @param int $currentPageLevels The current page levels.
      * @param bool $filterFileMetaData Whether to filter file metadata.
      */
-    protected function buildPageLevelsMenu(string $currentTableName, int $currentPageLevels, bool $filterFileMetaData): Menu
+    protected function buildPageLevelsMenu(string $currentTableName, int $currentPageLevels, bool $filterFileMetaData): ?DropDownButton
     {
-        $menu = $this->moduleTemplate->getDocHeaderComponent()->getMenuRegistry()->makeMenu();
-        $menu->setIdentifier('MindfulA11yMissingAltTextPageLevels')
-            ->setLabel(
-                'LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:module.menu.pageLevels'
-            );
-
+        $languageService = $this->generalModuleService->getLanguageService();
+        $items = [];
         foreach ([1, 5, 10, 99] as $pageLevels) {
-            $menuItem = $this->createMenuItem()->setTitle(
-                $this->generalModuleService->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:module.menu.pageLevels.' . $pageLevels)
-            )->setHref(
-                $this->getMenuItemUri(
+            $items[] = [
+                'title' => $languageService->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:module.menu.pageLevels.' . $pageLevels),
+                'href' => $this->getMenuItemUri(
                     [
                         'tableName' => $currentTableName,
                         'pageLevels' => $pageLevels,
                         'filterFileMetaData' => $filterFileMetaData,
                     ]
-                )
-            )->setActive($pageLevels === $currentPageLevels);
-            $menu->addMenuItem($menuItem);
+                ),
+                'active' => $pageLevels === $currentPageLevels,
+            ];
         }
 
-        return $menu;
+        return $this->buildDocHeaderDropDown(
+            $languageService->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:module.menu.pageLevels'),
+            $items
+        );
     }
 
     /**
@@ -761,28 +804,26 @@ class AccessibilityModuleController
      *
      * @param int $currentPageLevels The current page levels.
      */
-    protected function buildScanPageLevelsMenu(int $currentPageLevels): Menu
+    protected function buildScanPageLevelsMenu(int $currentPageLevels): ?DropDownButton
     {
-        $menu = $this->moduleTemplate->getDocHeaderComponent()->getMenuRegistry()->makeMenu();
-        $menu->setIdentifier('MindfulA11yScanPageLevels')
-            ->setLabel(
-                'LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:module.menu.pageLevels'
-            );
-
+        $languageService = $this->generalModuleService->getLanguageService();
+        $items = [];
         foreach ([0, 1, 5, 10, 99] as $pageLevels) {
-            $menuItem = $this->createMenuItem()->setTitle(
-                $this->generalModuleService->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:module.menu.pageLevels.' . $pageLevels)
-            )->setHref(
-                $this->getMenuItemUri(
+            $items[] = [
+                'title' => $languageService->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:module.menu.pageLevels.' . $pageLevels),
+                'href' => $this->getMenuItemUri(
                     [
                         'scanPageLevels' => $pageLevels,
                     ]
-                )
-            )->setActive($pageLevels === $currentPageLevels);
-            $menu->addMenuItem($menuItem);
+                ),
+                'active' => $pageLevels === $currentPageLevels,
+            ];
         }
 
-        return $menu;
+        return $this->buildDocHeaderDropDown(
+            $languageService->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:module.menu.pageLevels'),
+            $items
+        );
     }
 
     /**
@@ -794,7 +835,6 @@ class AccessibilityModuleController
      */
     protected function buildFilterDropdown(string $currentTableName, int $currentPageLevels, bool $filterFileMetaData): DropDownButton
     {
-        $buttonBar = $this->moduleTemplate->getDocHeaderComponent()->getButtonBar();
         $button = $this->createDropDownButton()
             ->setLabel($this->generalModuleService->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:module.menu.filter'))
             ->setShowLabelText(true);
@@ -819,10 +859,10 @@ class AccessibilityModuleController
      * 
      * Add menu listing all available languages for the user based on the active site
      * configuration for the current page, but only for languages where the page is translated.
-     * 
-     * @return Menu|null The language menu or null if no languages are available.
+     *
+     * @return DropDownButton|null The language dropdown or null if fewer than two languages are available.
      */
-    protected function buildLanguageMenu(): ?Menu
+    protected function buildLanguageMenu(): ?DropDownButton
     {
         $allowedLanguages = $this->getAllowedSiteLanguages();
 
@@ -832,31 +872,28 @@ class AccessibilityModuleController
 
         $availableLanguageIds = $this->getAvailableLanguageIds();
 
-        $menu = $this->moduleTemplate->getDocHeaderComponent()->getMenuRegistry()->makeMenu();
-        $menu->setIdentifier('MindfulA11yAccessibilityLanguage')
-            ->setLabel(
-                'LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:module.menu.language'
-            );
-
+        $items = [];
         foreach ($allowedLanguages as $language) {
             // Only show languages where the page is actually translated
             if (0 !== $language->getLanguageId() && !in_array($language->getLanguageId(), $availableLanguageIds, true)) {
                 continue;
             }
 
-            $menuItem = $this->createMenuItem()->setTitle(
-                $language->getTitle()
-            )->setHref(
-                $this->getMenuItemUri(
+            $items[] = [
+                'title' => $language->getTitle(),
+                'href' => $this->getMenuItemUri(
                     [
                         'languageId' => $language->getLanguageId(),
                     ]
-                )
-            )->setActive($language->getLanguageId() === $this->languageId);
-            $menu->addMenuItem($menuItem);
+                ),
+                'active' => $language->getLanguageId() === $this->languageId,
+            ];
         }
 
-        return $menu;
+        return $this->buildDocHeaderDropDown(
+            $this->generalModuleService->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:module.menu.language'),
+            $items
+        );
     }
 
     /**
