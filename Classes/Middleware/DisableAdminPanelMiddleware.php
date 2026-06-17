@@ -26,44 +26,27 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
-use TYPO3\CMS\Core\Context\Context;
-use TYPO3\CMS\Frontend\Cache\CacheInstruction;
+use TYPO3\CMS\Core\TypoScript\FrontendTypoScript;
 
 /**
- * Disable frontend cache for structure analysis requests.
+ * Disable admin panel rendering for structure analysis requests.
  */
-class DisableCacheMiddleware implements MiddlewareInterface
+class DisableAdminPanelMiddleware implements MiddlewareInterface
 {
     private const STRUCTURE_ANALYSIS_HEADER = 'Mindfula11y-Structure-Analysis';
 
-    public function __construct(
-        protected readonly Context $context,
-    ) {}
-
-    /**
-     * Process the request and disable frontend cache if the Mindfula11y-Structure-Analysis header is set.
-     */
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
-        if (!$this->isStructureAnalysisRequest($request)) {
-            return $handler->handle($request);
-        }
-
-        if ($this->context->getPropertyFromAspect('backend.user', 'isLoggedIn', false)) {
-            $cacheInstruction = $request->getAttribute(
-                'frontend.cache.instruction',
-                new CacheInstruction()
-            );
-
-            $cacheInstruction->disableCache('EXT:mindfula11y: Mindfula11y-Structure-Analysis header set.');
-            $request = $request->withAttribute('frontend.cache.instruction', $cacheInstruction);
+        if ($request->hasHeader(self::STRUCTURE_ANALYSIS_HEADER)) {
+            $frontendTypoScript = $request->getAttribute('frontend.typoscript');
+            if ($frontendTypoScript instanceof FrontendTypoScript) {
+                $config = $frontendTypoScript->getConfigArray();
+                $config['admPanel'] = 0;
+                $frontendTypoScript->setConfigArray($config);
+                $request = $request->withAttribute('frontend.typoscript', $frontendTypoScript);
+            }
         }
 
         return $handler->handle($request);
-    }
-
-    private function isStructureAnalysisRequest(ServerRequestInterface $request): bool
-    {
-        return $request->hasHeader(self::STRUCTURE_ANALYSIS_HEADER);
     }
 }

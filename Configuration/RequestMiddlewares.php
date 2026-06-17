@@ -20,6 +20,7 @@ declare(strict_types=1);
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+use MindfulMarkup\MindfulA11y\Middleware\DisableAdminPanelMiddleware;
 use MindfulMarkup\MindfulA11y\Middleware\DisableCacheMiddleware;
 
 return [
@@ -30,11 +31,14 @@ return [
                 'typo3/cms-frontend/prepare-tsfe-rendering',
             ],
         ],
-        // Admin-panel hiding during structure-analysis requests is now handled
-        // by EventListener\HideAdminPanelForStructureAnalysis (listening to
-        // BeforeLoadedUserTsConfigEvent) rather than a middleware: the
-        // ExtensionManagementUtility::addUserTSConfig() it relied on was
-        // deprecated in v13 and removed in v14 (Breaking #105377). The event
-        // is dual-compat (v13 + v14), so no version branch is needed.
+        'mindfulmarkup/mindfula11y/disable-admin-panel' => [
+            'target' => DisableAdminPanelMiddleware::class,
+            'after' => [
+                'typo3/cms-frontend/content-length-headers',
+            ],
+            'before' => [
+                'typo3/cms-adminpanel/renderer',
+            ],
+        ],
     ],
 ];
