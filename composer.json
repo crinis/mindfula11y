@@ -9,7 +9,7 @@
         {
             "name": "Felix Spittel",
             "role": "Developer",
-            "homepage": "https://www.websites-fuer-alle.de"
+            "homepage": "https://www.mindfulmarkup.de"
         }
     ],
     "support": {
@@ -18,12 +18,12 @@
     },
     "require": {
         "php": ">=8.2 <=8.4",
-        "typo3/cms-core": "^13.4 || ^14.0",
-        "typo3/cms-backend": "^13.4 || ^14.0",
-        "typo3/cms-fluid": "^13.4 || ^14.0",
-        "typo3/cms-frontend": "^13.4 || ^14.0",
-        "typo3/cms-extbase": "^13.4 || ^14.0",
-        "typo3/cms-install": "^13.4 || ^14.0"
+        "typo3/cms-core": "^13.4 || ^14.3",
+        "typo3/cms-backend": "^13.4 || ^14.3",
+        "typo3/cms-fluid": "^13.4 || ^14.3",
+        "typo3/cms-frontend": "^13.4 || ^14.3",
+        "typo3/cms-extbase": "^13.4 || ^14.3",
+        "typo3/cms-install": "^13.4 || ^14.3"
     },
     "autoload": {
         "psr-4": {
