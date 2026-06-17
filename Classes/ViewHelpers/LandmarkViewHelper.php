@@ -153,6 +153,15 @@ class LandmarkViewHelper extends AbstractTagBasedViewHelper
             $this->tag->removeAttribute('aria-labelledby');
         }
 
+        // Never emit empty aria-label/aria-labelledby attributes. An empty value
+        // (e.g. a region landmark whose record has neither a header nor an explicit
+        // label) provides no accessible name and only adds noise to the markup.
+        foreach (['aria-label', 'aria-labelledby'] as $ariaAttribute) {
+            if ($this->tag->hasAttribute($ariaAttribute) && trim((string)$this->tag->getAttribute($ariaAttribute)) === '') {
+                $this->tag->removeAttribute($ariaAttribute);
+            }
+        }
+
         if ($this->isStructureAnalysisRequest() && $this->hasRecordInformation()) {
             $this->tag->addAttribute('data-mindfula11y-record-table-name', $this->arguments['recordTableName']);
             $this->tag->addAttribute('data-mindfula11y-record-column-name', $this->arguments['recordColumnName']);
