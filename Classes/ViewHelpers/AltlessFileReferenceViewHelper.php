@@ -29,6 +29,7 @@ use MindfulMarkup\MindfulA11y\Service\OpenAIService;
 use MindfulMarkup\MindfulA11y\Service\PermissionService;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
+use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
 use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractTagBasedViewHelper;
@@ -203,9 +204,9 @@ class AltlessFileReferenceViewHelper extends AbstractTagBasedViewHelper
     /**
      * Get backend user authentication.
      * 
-     * @return \TYPO3\CMS\Core\Authentication\BackendUserAuthentication
+     * @return BackendUserAuthentication
      */
-    protected function getBackendUserAuthentication(): \TYPO3\CMS\Core\Authentication\BackendUserAuthentication
+    protected function getBackendUserAuthentication(): BackendUserAuthentication
     {
         return $GLOBALS['BE_USER'];
     }

@@ -28,6 +28,7 @@ use TYPO3\CMS\Core\Cache\Frontend\FrontendInterface;
 use TYPO3\CMS\Core\Context\Context;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Core\Cache\CacheManager;
+use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use MindfulMarkup\MindfulA11y\Enum\HeadingType;
 
@@ -36,8 +37,6 @@ use MindfulMarkup\MindfulA11y\Enum\HeadingType;
  *
  * Provides shared logic for runtime cache, context, request handling, and database access.
  * All heading ViewHelpers should extend this class to ensure consistent behavior and dependency injection.
- *
- * @package MindfulMarkup\MindfulA11y\ViewHelpers
  */
 abstract class AbstractHeadingViewHelper extends AbstractTagBasedViewHelper
 {
@@ -182,7 +181,7 @@ abstract class AbstractHeadingViewHelper extends AbstractTagBasedViewHelper
             ->select(...$columns)
             ->from($tableName)
             ->where(
-                $queryBuilder->expr()->eq('uid', $queryBuilder->createNamedParameter($uid, \TYPO3\CMS\Core\Database\Connection::PARAM_INT))
+                $queryBuilder->expr()->eq('uid', $queryBuilder->createNamedParameter($uid, Connection::PARAM_INT))
             )
             ->setMaxResults(1);
         $record = $queryBuilder->executeQuery()->fetchAssociative();
