@@ -1,8 +1,8 @@
 <?php
 
 $EM_CONF[$_EXTKEY] = [
-    'title' => 'WFA Accessibility Toolkit',
-    'description' => 'Find and fix accessibility issues in TYPO3: viewhelpers for semantic headings and landmarks, missing image alt detection and generation with AI (ChatGPT). Integration of an external axe-core scanner. A backend module for quick remediation.',
+    'title' => 'Accessibility Toolkit',
+    'description' => 'Find and fix accessibility issues directly in the TYPO3 backend: a remediation module with missing alt-text detection and AI generation (OpenAI), accessibility fields and Fluid ViewHelpers for semantic headings and landmarks, plus optional axe-core page scanning.',
     'category' => 'module',
     'author' => 'Felix Spittel',
     'author_email' => 'felix@mindfulmarkup.de',
