@@ -21,13 +21,13 @@ Scanner features are available only when **both** requirements are met:
 - MindfulAPI is installed and reachable from TYPO3
 - Page TSconfig sets `mod.mindfula11y_accessibility.scan.enable = 1` (default is `0`)
 
-![Placeholder: Accessibility module overview in TYPO3 backend with feature selector menu and status callouts for missing alt text, structure checks, and scanner issues](Documentation/Images/readme-accessibility-module-overview.png)
-![Placeholder: Missing alternative text workflow showing preview, editable field, generate action, and save action](Documentation/Images/readme-missing-alt-text-workflow.png)
-![Placeholder: Scanner results panel showing issue severity badges, selector and context details, and HTML/PDF report buttons](Documentation/Images/readme-scanner-results.png)
+![Accessibility module overview in TYPO3 backend with feature selector menu and status callouts for missing alt text, structure checks, and scanner issues](Documentation/Images/readme-accessibility-module-overview.png)
+![Missing alternative text workflow showing preview, editable field, generate action, and save action](Documentation/Images/readme-missing-alt-text-workflow.png)
+![Scanner results panel showing issue severity badges, selector and context details, and HTML/PDF report buttons](Documentation/Images/readme-scanner-results.png)
 
 ## Requirements
 
-- TYPO3 `13.4.x`
+- TYPO3 `13.4.x` or `14.x`
 - PHP `8.2` to `8.4`
 
 ## Installation
