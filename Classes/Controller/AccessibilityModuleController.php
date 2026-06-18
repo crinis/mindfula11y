@@ -28,24 +28,27 @@ use MindfulMarkup\MindfulA11y\Domain\Model\CreateScanDemand;
 use MindfulMarkup\MindfulA11y\Enum\Feature;
 use MindfulMarkup\MindfulA11y\Service\AltTextFinderService;
 use MindfulMarkup\MindfulA11y\Service\GeneralModuleService;
+use MindfulMarkup\MindfulA11y\Service\PermissionService;
 use MindfulMarkup\MindfulA11y\Service\ScanApiService;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Backend\Attribute\AsController;
+use TYPO3\CMS\Backend\Domain\Repository\Localization\LocalizationRepository;
+use TYPO3\CMS\Backend\Module\ModuleData;
+use TYPO3\CMS\Backend\Module\ModuleProvider;
 use TYPO3\CMS\Backend\Routing\PreviewUriBuilder;
+use TYPO3\CMS\Backend\Routing\UriBuilder;
+use TYPO3\CMS\Backend\Template\Components\ButtonBar;
 use TYPO3\CMS\Backend\Template\Components\Buttons\DropDown\DropDownRadio;
 use TYPO3\CMS\Backend\Template\Components\Buttons\DropDown\DropDownToggle;
 use TYPO3\CMS\Backend\Template\Components\Buttons\DropDownButton;
-use TYPO3\CMS\Core\Http\RedirectResponse;
-use MindfulMarkup\MindfulA11y\Service\PermissionService;
-use TYPO3\CMS\Backend\Module\ModuleData;
-use TYPO3\CMS\Backend\Module\ModuleProvider;
-use TYPO3\CMS\Backend\Routing\UriBuilder;
-use TYPO3\CMS\Backend\Template\Components\ButtonBar;
 use TYPO3\CMS\Backend\Template\ModuleTemplate;
 use TYPO3\CMS\Backend\Template\ModuleTemplateFactory;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
+use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Http\AllowedMethodsTrait;
+use TYPO3\CMS\Core\Http\RedirectResponse;
+use TYPO3\CMS\Core\Information\Typo3Version;
 use TYPO3\CMS\Core\Messaging\FlashMessage;
 use TYPO3\CMS\Core\Messaging\FlashMessageService;
 use TYPO3\CMS\Core\Page\PageRenderer;
@@ -53,9 +56,7 @@ use TYPO3\CMS\Core\Pagination\ArrayPaginator;
 use TYPO3\CMS\Core\Pagination\SimplePagination;
 use TYPO3\CMS\Core\Type\Bitmask\Permission;
 use TYPO3\CMS\Core\Type\ContextualFeedbackSeverity;
-use TYPO3\CMS\Core\Information\Typo3Version;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
-use TYPO3\CMS\Core\Database\ConnectionPool;
 
 /**
  * Class AccessibilityModuleController.
@@ -211,7 +212,7 @@ class AccessibilityModuleController
         $this->feature = Feature::tryFrom($this->moduleData->get('feature', Feature::GENERAL->value)) ?? Feature::GENERAL;
         $this->pageTsConfig = $this->generalModuleService->getConvertedPageTsConfig($this->pageId);
         $this->addDocHeaderDropDown($this->buildFeatureMenu(), 1);
-        $this->addDocHeaderDropDown($this->buildLanguageMenu(), 2);
+        $this->addLanguageSelector($this->buildLanguageMenu());
         $this->pageRenderer->addInlineLanguageLabelArray($this->generalModuleService->getInlineLanguageLabels());
 
         $this->pageRenderer->addCssFile('EXT:mindfula11y/Resources/Public/Css/mindfula11y.css');
@@ -633,11 +634,11 @@ class AccessibilityModuleController
      * menu (it calls reset($menus)), so registering several would silently drop
      * all but one. DropDownButtons in the button bar render on both v13 and v14.
      *
-     * Mirrors the previous select-box UX by showing "<category>: <active item>" as
-     * the button label (setShowActiveLabelText() is v14-only, so the active value
-     * is baked into the label here for dual compatibility). Returns null when there
-     * are fewer than two items, matching the old behaviour of hiding menus that
-     * offer no real choice.
+     * TYPO3 v14 renders the active item via setShowActiveLabelText(), which keeps
+     * the category label visually hidden and announced to screen readers. TYPO3 v13
+     * gets the previous dual-compatible label fallback, "<category>: <active item>".
+     * Returns null when there are fewer than two items, matching the old behaviour
+     * of hiding menus that offer no real choice.
      *
      * @param string $categoryLabel Already-localised category label (e.g. "Language").
      * @param array<int,array{title: string, href: string, active: bool}> $items
@@ -648,7 +649,12 @@ class AccessibilityModuleController
             return null;
         }
 
-        $button = $this->createDropDownButton()->setShowLabelText(true);
+        $button = $this->createDropDownButton()
+            ->setLabel($categoryLabel)
+            ->setShowLabelText(true);
+        if ($this->isTypo3VersionAtLeast('14.0')) {
+            $button->setShowActiveLabelText(true);
+        }
 
         $activeTitle = null;
         foreach ($items as $item) {
@@ -663,7 +669,9 @@ class AccessibilityModuleController
             }
         }
 
-        $button->setLabel($activeTitle !== null ? $categoryLabel . ': ' . $activeTitle : $categoryLabel);
+        if (!$this->isTypo3VersionAtLeast('14.0')) {
+            $button->setLabel($activeTitle !== null ? $categoryLabel . ': ' . $activeTitle : $categoryLabel);
+        }
 
         return $button;
     }
@@ -687,6 +695,24 @@ class AccessibilityModuleController
     }
 
     /**
+     * Add the language selector using TYPO3 v14's dedicated DocHeader slot.
+     *
+     * TYPO3 v13 does not have that slot, so it keeps the previous button-bar
+     * placement.
+     */
+    protected function addLanguageSelector(?DropDownButton $button): void
+    {
+        if ($button === null) {
+            return;
+        }
+        if ($this->isTypo3VersionAtLeast('14.0')) {
+            $this->moduleTemplate->getDocHeaderComponent()->setLanguageSelector($button);
+            return;
+        }
+        $this->addDocHeaderDropDown($button, 2);
+    }
+
+    /**
      * Create a backend dropdown button.
      *
      * Uses GeneralUtility::makeInstance() directly instead of
@@ -698,16 +724,9 @@ class AccessibilityModuleController
         return GeneralUtility::makeInstance(DropDownButton::class);
     }
 
-    /**
-     * makeInstance() of a class only present on a newer TYPO3 major, returned
-     * as a bare object so static analysis against the older core cannot resolve
-     * — and therefore cannot reject — the version-only class inside a
-     * Typo3Version-guarded branch. Used for the v14.2-only LocalizationRepository
-     * in getAvailableLanguageIds(); the caller annotates the type via `@var`.
-     */
-    protected function makeVersionOnlyInstance(string $className): object
+    protected function isTypo3VersionAtLeast(string $version): bool
     {
-        return GeneralUtility::makeInstance($className);
+        return version_compare((new Typo3Version())->getVersion(), $version, '>=');
     }
 
     protected function buildFeatureMenu(): ?DropDownButton
@@ -961,16 +980,12 @@ class AccessibilityModuleController
         // the legacy BackendUtility::getExistingPageTranslations() both landed
         // in TYPO3 v14.2 (#108799 / #108810); on v13 and v14.0/v14.1 the legacy
         // method is the only one that exists.
-        if (version_compare((new Typo3Version())->getVersion(), '14.2', '>=')) {
+        if ($this->isTypo3VersionAtLeast('14.2')) {
             // Pass the backend user's workspace so the result matches the
             // workspace-aware legacy path. getPageTranslations() returns
             // RawRecord[] keyed by language id, so the ids are the array keys.
-            // The v14.2-only repository is created via makeVersionOnlyInstance()
-            // to keep static analysis against the v13 core happy.
             $workspaceId = $this->generalModuleService->getBackendUserAuthentication()->workspace;
-            $repository = $this->makeVersionOnlyInstance(
-                'TYPO3\\CMS\\Backend\\Domain\\Repository\\Localization\\LocalizationRepository'
-            );
+            $repository = GeneralUtility::makeInstance(LocalizationRepository::class);
             foreach (array_keys($repository->getPageTranslations($this->pageId, [], $workspaceId)) as $languageId) {
                 $availableLanguageIds[] = (int)$languageId;
             }
