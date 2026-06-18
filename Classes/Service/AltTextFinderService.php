@@ -22,6 +22,7 @@ declare(strict_types=1);
 
 namespace MindfulMarkup\MindfulA11y\Service;
 
+use MindfulMarkup\MindfulA11y\Domain\Model\AltlessFileReference;
 use MindfulMarkup\MindfulA11y\Domain\Model\AltlessFileReferenceTable;
 use MindfulMarkup\MindfulA11y\Domain\Repository\AltlessFileReferenceRepository;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
@@ -75,15 +76,14 @@ class AltTextFinderService
             $tables[] = $this->createAltlessFileReferenceTable($tableName, $pageIds, $pageTsConfig);
         }
 
-        return $this->filterByFileReadAccess(
-            $this->altlessFileReferenceRepository->findForTables(
-                $tables,
-                $languageId,
-                $this->getBackendUserAuthentication()->workspace,
-                $firstResult,
-                $maxResults,
-                $filterFileMetaData
-            )
+        return $this->altlessFileReferenceRepository->findForTables(
+            $tables,
+            $languageId,
+            $this->getBackendUserAuthentication()->workspace,
+            $firstResult,
+            $maxResults,
+            $filterFileMetaData,
+            $this->permissionService->checkFileReadAccess(...)
         );
     }
 
@@ -119,15 +119,14 @@ class AltTextFinderService
         $pageTreeIds = $this->permissionService->getPageTreeIds($pageId, $pageLevels);
         $table = $this->createAltlessFileReferenceTable($tableName, $pageTreeIds, $pageTsConfig);
 
-        return $this->filterByFileReadAccess(
-            $this->altlessFileReferenceRepository->findForTables(
-                [$table],
-                $languageId,
-                $this->getBackendUserAuthentication()->workspace,
-                $firstResult,
-                $maxResults,
-                $filterFileMetaData
-            )
+        return $this->altlessFileReferenceRepository->findForTables(
+            [$table],
+            $languageId,
+            $this->getBackendUserAuthentication()->workspace,
+            $firstResult,
+            $maxResults,
+            $filterFileMetaData,
+            $this->permissionService->checkFileReadAccess(...)
         );
     }
 
@@ -167,7 +166,8 @@ class AltTextFinderService
             $tables,
             $languageId,
             $this->getBackendUserAuthentication()->workspace,
-            $filterFileMetaData
+            $filterFileMetaData,
+            $this->permissionService->checkFileReadAccess(...)
         );
     }
 
@@ -203,7 +203,8 @@ class AltTextFinderService
             [$table],
             $languageId,
             $this->getBackendUserAuthentication()->workspace,
-            $filterFileMetaData
+            $filterFileMetaData,
+            $this->permissionService->checkFileReadAccess(...)
         );
     }
 
@@ -277,12 +278,6 @@ class AltTextFinderService
      */
     protected function getFileColumns(string $tableName, array &$pageTsConfig): array
     {
-        $backendUser = $this->getBackendUserAuthentication();
-
-        if (null === $backendUser) {
-            return [];
-        }
-
         $fileColumns = [];
         $ignoreColumns = explode(',', $pageTsConfig['mod.']['mindfula11y_missingalttext.'][$tableName] ?? '');
 
@@ -298,23 +293,6 @@ class AltTextFinderService
         }
 
         return $fileColumns;
-    }
-
-    /**
-     * Filter file references to only those the current backend user may read,
-     * respecting file mount boundaries.
-     *
-     * @param array<AltlessFileReference> $fileReferences
-     * @return array<AltlessFileReference>
-     */
-    protected function filterByFileReadAccess(array $fileReferences): array
-    {
-        return array_values(array_filter(
-            $fileReferences,
-            fn($ref) => $this->permissionService->checkFileReadAccess(
-                $ref->getOriginalResource()->getOriginalFile()
-            )
-        ));
     }
 
     /**

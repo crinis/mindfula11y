@@ -27,6 +27,7 @@ use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
 use TYPO3\CMS\Core\Database\Query\Restriction\WorkspaceRestriction;
 use TYPO3\CMS\Core\DataHandling\PlainDataResolver;
+use TYPO3\CMS\Core\Resource\ResourceFactory;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use Doctrine\DBAL\Exception;
 use MindfulMarkup\MindfulA11y\Domain\Model\AltlessFileReference;
@@ -43,6 +44,8 @@ use TYPO3\CMS\Extbase\Persistence\Repository;
  */
 class AltlessFileReferenceRepository extends Repository
 {
+    private const COUNT_FILTER_CHUNK_SIZE = 500;
+
     protected ConnectionPool $connectionPool;
 
     protected DataMapper $dataMapper;
@@ -69,8 +72,9 @@ class AltlessFileReferenceRepository extends Repository
      * @param int $languageId The language UID to select file references for.
      * @param int $workspaceId The workspace ID to select file references for.
      * @param int $firstResult The offset for the query.
-     * @param int $maxResults The maximum number of results to return.
-     * @param bool $filterMetaAlternative If true, filter rows if they have alternative text in the file metadata.
+     * @param int|null $maxResults The maximum number of results to return, or null for no limit.
+     * @param bool $filterFileMetaData If true, filter rows if they have alternative text in the file metadata.
+     * @param callable(\TYPO3\CMS\Core\Resource\FileInterface): bool|null $fileFilter Optional file-access filter applied before paging.
      * 
      * @return array<AltlessFileReference> An array of file reference rows.
      * 
@@ -83,12 +87,19 @@ class AltlessFileReferenceRepository extends Repository
         int $languageId,
         int $workspaceId = 0,
         int $firstResult = 0,
-        int $maxResults = 100,
-        bool $filterFileMetaData = true
+        ?int $maxResults = 100,
+        bool $filterFileMetaData = true,
+        ?callable $fileFilter = null
     ): array {
+        if ($fileFilter !== null) {
+            return $this->findForTablesWithFileFilter($tables, $languageId, $workspaceId, $firstResult, $maxResults, $filterFileMetaData, $fileFilter);
+        }
+
         $queryBuilder = $this->createQueryBuilderForTables($tables, $languageId, $workspaceId)
-            ->setMaxResults($maxResults)
             ->setFirstResult($firstResult);
+        if ($maxResults !== null) {
+            $queryBuilder->setMaxResults($maxResults);
+        }
 
         if ($filterFileMetaData) {
             $this->addFilterByFileMetaDataClauses($queryBuilder);
@@ -111,7 +122,10 @@ class AltlessFileReferenceRepository extends Repository
                 if ($filterFileMetaData) {
                     $this->addFilterByFileMetaDataClauses($queryBuilder);
                 }
-                $queryBuilder->setMaxResults($maxResults)->setFirstResult($firstResult);
+                $queryBuilder->setFirstResult($firstResult);
+                if ($maxResults !== null) {
+                    $queryBuilder->setMaxResults($maxResults);
+                }
                 $rows = $queryBuilder->executeQuery()->fetchAllAssociative();
             } else {
                 $rows = [];
@@ -122,12 +136,53 @@ class AltlessFileReferenceRepository extends Repository
     }
 
     /**
+     * Find references with a FAL file permission filter applied before paging.
+     *
+     * @param array<AltlessFileReferenceTable> $tables
+     * @param callable(\TYPO3\CMS\Core\Resource\FileInterface): bool $fileFilter
+     * @return array<AltlessFileReference>
+     */
+    protected function findForTablesWithFileFilter(
+        array $tables,
+        int $languageId,
+        int $workspaceId,
+        int $firstResult,
+        ?int $maxResults,
+        bool $filterFileMetaData,
+        callable $fileFilter
+    ): array {
+        $selectedReferenceUids = [];
+        $accessibleOffset = 0;
+
+        foreach ($this->streamAccessibleReferenceUids($tables, $languageId, $workspaceId, $filterFileMetaData, $fileFilter) as $referenceUid) {
+            if ($accessibleOffset++ < $firstResult) {
+                continue;
+            }
+
+            $selectedReferenceUids[] = $referenceUid;
+            if ($maxResults !== null && count($selectedReferenceUids) >= $maxResults) {
+                break;
+            }
+        }
+
+        if (empty($selectedReferenceUids)) {
+            return [];
+        }
+
+        return $this->dataMapper->map(
+            AltlessFileReference::class,
+            $this->fetchReferenceRowsForReferenceUids($tables, $languageId, $workspaceId, $filterFileMetaData, $selectedReferenceUids)
+        );
+    }
+
+    /**
      * Count file references without alternative text.
      * 
      * @param array<AltlessFileReferenceTable> $tables Array of table configurations to select file references by.
      * @param int $languageId The language UID to select file references for.
      * @param int $workspaceId The workspace ID to select file references for.
      * @param bool $filterFileMetaData If true, filter rows if they have alternative text in the file metadata.
+     * @param callable(\TYPO3\CMS\Core\Resource\FileInterface): bool|null $fileFilter Optional file-access filter applied before counting.
      * 
      * @return int The count of file references without alternative text.
      */
@@ -135,8 +190,13 @@ class AltlessFileReferenceRepository extends Repository
         array $tables,
         int $languageId,
         int $workspaceId = 0,
-        bool $filterFileMetaData = true
+        bool $filterFileMetaData = true,
+        ?callable $fileFilter = null
     ): int {
+        if ($fileFilter !== null) {
+            return $this->countForTablesWithFileFilter($tables, $languageId, $workspaceId, $filterFileMetaData, $fileFilter);
+        }
+
         $queryBuilder = $this->createQueryBuilderForTables($tables, $languageId, $workspaceId);
 
         if ($filterFileMetaData) {
@@ -168,12 +228,179 @@ class AltlessFileReferenceRepository extends Repository
     }
 
     /**
+     * Count references with a FAL file permission filter without hydrating all matches at once.
+     *
+     * @param array<AltlessFileReferenceTable> $tables
+     * @param callable(\TYPO3\CMS\Core\Resource\FileInterface): bool $fileFilter
+     */
+    protected function countForTablesWithFileFilter(
+        array $tables,
+        int $languageId,
+        int $workspaceId,
+        bool $filterFileMetaData,
+        callable $fileFilter
+    ): int {
+        return iterator_count(
+            $this->streamAccessibleReferenceUids($tables, $languageId, $workspaceId, $filterFileMetaData, $fileFilter)
+        );
+    }
+
+    /**
+     * Stream the UIDs of references whose file passes the FAL permission filter.
+     *
+     * Walks the matches in keyset-paginated chunks so the full result set is never hydrated
+     * at once, yielding one reference UID per accessible file reference in ascending UID order.
+     * Consumers that stop iterating early (e.g. once a page is filled) abandon the generator,
+     * so no further chunks are fetched.
+     *
+     * @param array<AltlessFileReferenceTable> $tables
+     * @param callable(\TYPO3\CMS\Core\Resource\FileInterface): bool $fileFilter
+     * @return \Generator<int>
+     */
+    protected function streamAccessibleReferenceUids(
+        array $tables,
+        int $languageId,
+        int $workspaceId,
+        bool $filterFileMetaData,
+        callable $fileFilter
+    ): \Generator {
+        $lastReferenceUid = 0;
+        $resourceFactory = GeneralUtility::makeInstance(ResourceFactory::class);
+
+        do {
+            $referenceUids = $this->fetchReferenceUidChunk($tables, $languageId, $workspaceId, $filterFileMetaData, $lastReferenceUid);
+            if (empty($referenceUids)) {
+                break;
+            }
+
+            $lastReferenceUid = max($referenceUids);
+            $resolvedReferenceUids = $workspaceId > 0 ? $this->resolveWorkspaceReferenceUids($referenceUids, $workspaceId) : $referenceUids;
+            if (empty($resolvedReferenceUids)) {
+                continue;
+            }
+
+            foreach ($this->fetchFileRowsForReferenceUids($tables, $languageId, $workspaceId, $filterFileMetaData, $resolvedReferenceUids) as $fileRow) {
+                $referenceUid = (int)$fileRow['reference_uid'];
+                unset($fileRow['reference_uid']);
+
+                if ($fileFilter($resourceFactory->getFileObject((int)$fileRow['uid'], $fileRow))) {
+                    yield $referenceUid;
+                }
+            }
+        } while (count($referenceUids) === self::COUNT_FILTER_CHUNK_SIZE);
+    }
+
+    /**
+     * @param array<AltlessFileReferenceTable> $tables
+     * @return array<int>
+     */
+    protected function fetchReferenceUidChunk(
+        array $tables,
+        int $languageId,
+        int $workspaceId,
+        bool $filterFileMetaData,
+        int $lastReferenceUid
+    ): array {
+        $queryBuilder = $this->createFilteredQueryBuilder($tables, $languageId, $workspaceId, $filterFileMetaData);
+
+        return array_map(
+            'intval',
+            $queryBuilder
+                ->select('sys_file_reference.uid')
+                ->andWhere($queryBuilder->expr()->gt('sys_file_reference.uid', $queryBuilder->createNamedParameter($lastReferenceUid, Connection::PARAM_INT)))
+                ->orderBy('sys_file_reference.uid', 'ASC')
+                ->setMaxResults(self::COUNT_FILTER_CHUNK_SIZE)
+                ->executeQuery()
+                ->fetchFirstColumn()
+        );
+    }
+
+    /**
+     * @param array<int> $referenceUids
+     * @return array<int>
+     */
+    protected function resolveWorkspaceReferenceUids(array $referenceUids, int $workspaceId): array
+    {
+        $resolver = GeneralUtility::makeInstance(PlainDataResolver::class, 'sys_file_reference', $referenceUids);
+        $resolver->setWorkspaceId($workspaceId);
+        $resolver->setKeepDeletePlaceholder(false);
+        $resolver->setKeepMovePlaceholder(true);
+        $resolver->setKeepLiveIds(false);
+
+        return array_map('intval', $resolver->get());
+    }
+
+    /**
+     * @param array<AltlessFileReferenceTable> $tables
+     * @param array<int> $referenceUids
+     * @return array<array<string, mixed>>
+     */
+    protected function fetchFileRowsForReferenceUids(
+        array $tables,
+        int $languageId,
+        int $workspaceId,
+        bool $filterFileMetaData,
+        array $referenceUids
+    ): array {
+        $queryBuilder = $this->createFilteredQueryBuilder($tables, $languageId, $workspaceId, $filterFileMetaData);
+
+        return $queryBuilder
+            ->select('mindfula11y_sys_file.*')
+            ->addSelect('sys_file_reference.uid AS reference_uid')
+            ->andWhere($queryBuilder->expr()->in('sys_file_reference.uid', $queryBuilder->createNamedParameter($referenceUids, Connection::PARAM_INT_ARRAY)))
+            ->orderBy('sys_file_reference.uid', 'ASC')
+            ->executeQuery()
+            ->fetchAllAssociative();
+    }
+
+    /**
+     * @param array<AltlessFileReferenceTable> $tables
+     * @param array<int> $referenceUids
+     * @return array<array<string, mixed>>
+     */
+    protected function fetchReferenceRowsForReferenceUids(
+        array $tables,
+        int $languageId,
+        int $workspaceId,
+        bool $filterFileMetaData,
+        array $referenceUids
+    ): array {
+        $queryBuilder = $this->createFilteredQueryBuilder($tables, $languageId, $workspaceId, $filterFileMetaData);
+
+        return $queryBuilder
+            ->andWhere($queryBuilder->expr()->in('sys_file_reference.uid', $queryBuilder->createNamedParameter($referenceUids, Connection::PARAM_INT_ARRAY)))
+            ->orderBy('sys_file_reference.uid', 'ASC')
+            ->executeQuery()
+            ->fetchAllAssociative();
+    }
+
+    /**
+     * Create the base query builder and optionally apply the file-metadata filter.
+     *
+     * @param array<AltlessFileReferenceTable> $tables
+     * @return QueryBuilder
+     */
+    protected function createFilteredQueryBuilder(
+        array $tables,
+        int $languageId,
+        int $workspaceId,
+        bool $filterFileMetaData
+    ): QueryBuilder {
+        $queryBuilder = $this->createQueryBuilderForTables($tables, $languageId, $workspaceId);
+        if ($filterFileMetaData) {
+            $this->addFilterByFileMetaDataClauses($queryBuilder);
+        }
+
+        return $queryBuilder;
+    }
+
+    /**
      * Create query builder instance to list file references for a given table.
-     * 
+     *
      * @param array<AltlessFileReferenceTable> $tables Array of table configurations to select file references by.
      * @param int $languageId The language UID to select file references for.
      * @param int $workspaceId The workspace ID to select file references for.
-     * 
+     *
      * @return QueryBuilder QueryBuilder instance used as a base for the query.
      */
     protected function createQueryBuilderForTables(
@@ -183,10 +410,10 @@ class AltlessFileReferenceRepository extends Repository
     ): QueryBuilder {
         $queryBuilder = $this->connectionPool->getQueryBuilderForTable('sys_file_reference');
 
-        $queryBuilder->getRestrictions()->removeAll()->add(
-            GeneralUtility::makeInstance(DeletedRestriction::class),
-            GeneralUtility::makeInstance(WorkspaceRestriction::class, $workspaceId)
-        );
+        $queryBuilder->getRestrictions()
+            ->removeAll()
+            ->add(GeneralUtility::makeInstance(DeletedRestriction::class))
+            ->add(GeneralUtility::makeInstance(WorkspaceRestriction::class, $workspaceId));
 
         $queryBuilder
             ->select(
@@ -278,7 +505,7 @@ class AltlessFileReferenceRepository extends Repository
      */
     protected function getImageFileExtensions(): array
     {
-        return explode(',', $GLOBALS['TYPO3_CONF_VARS']['GFX']['imagefile_ext'] ?? []);
+        return explode(',', $GLOBALS['TYPO3_CONF_VARS']['GFX']['imagefile_ext'] ?? '');
     }
 
     /**
