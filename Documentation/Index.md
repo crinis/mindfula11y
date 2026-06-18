@@ -30,5 +30,5 @@ Scanner features work only when both conditions are met:
 
 ## Requirements
 
-- TYPO3 `13.4.x` or `14.x`
+- TYPO3 `13.4.x LTS` or `14.3.x LTS`
 - PHP `8.2` to `8.4`

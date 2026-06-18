@@ -170,8 +170,10 @@ than hard errors.
 | `sys_file_reference` write + field access to `alternative` | Manual alt text edits | Alt field is read-only or saving fails. |
 | `sys_file_metadata` access to `alternative` | Inherited alt context / filtering | Inherited alt text is not considered. |
 | File metadata edit (file mount `editMeta`) | Metadata-level AI generation | Generation is disabled for file metadata. |
-| Page field access: `pages.tx_mindfula11y_scanid`, `pages.tx_mindfula11y_scanupdated` | Storing scanner state | Scan state is not persisted. |
 | Page content edit permission | Triggering new scans | Scan actions are disabled. |
+
+Scanner state fields on `pages` are internal. Editors do not need direct field
+access to `pages.tx_mindfula11y_scanid` or `pages.tx_mindfula11y_scanupdated`.
 
 ## Maintenance command
 

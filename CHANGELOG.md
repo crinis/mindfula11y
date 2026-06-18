@@ -10,14 +10,36 @@ the `Publish to TER` workflow uses the release body as the TER upload comment.
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-06-18
+
+TYPO3 14 LTS compatibility release. Mindful A11y now supports TYPO3
+14.3 LTS alongside TYPO3 13.4 LTS, with backend module adjustments,
+scanner hardening, and permission-aware missing-alt results for editor
+workflows.
+
 ### Added
 
-- TYPO3 v14 (14.x) compatibility alongside TYPO3 v13.4 LTS.
+- TYPO3 14.3 LTS compatibility alongside TYPO3 13.4 LTS.
 
 ### Changed
 
 - Renamed the extension title to "Accessibility Toolkit" and refreshed the
   composer/EM description to cover the full feature set.
+- Updated backend module selector handling for TYPO3 14 while retaining
+  TYPO3 13.4 compatibility.
+
+### Fixed
+
+- Aligned missing-alt counts and pagination with backend user file-mount
+  permissions.
+- Adjusted scanner permissions so editors no longer need direct access to
+  internal scan-state page fields.
+
+### Security
+
+- Blocked direct backend writes to internal scanner state fields.
+- Validated scanner-provided URLs before rendering backend links or images.
+- Made demand HMAC input construction unambiguous.
 
 ---
 
