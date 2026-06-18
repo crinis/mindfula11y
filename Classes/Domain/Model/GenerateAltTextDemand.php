@@ -148,7 +148,7 @@ class GenerateAltTextDemand extends AbstractValueObject implements JsonSerializa
         $hashService = GeneralUtility::makeInstance(HashService::class);
         return $hashService->hmac(
             implode(
-                '',
+                '|',
                 [
                     (int)$this->userId,
                     (int)$this->pageUid,

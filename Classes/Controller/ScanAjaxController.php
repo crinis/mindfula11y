@@ -25,6 +25,7 @@ namespace MindfulMarkup\MindfulA11y\Controller;
 
 use InvalidArgumentException;
 use MindfulMarkup\MindfulA11y\Domain\Model\CreateScanDemand;
+use MindfulMarkup\MindfulA11y\Hooks\ScanStateDataHandlerGuard;
 use MindfulMarkup\MindfulA11y\Service\ScanApiService;
 use MindfulMarkup\MindfulA11y\Service\GeneralModuleService;
 use MindfulMarkup\MindfulA11y\Service\PermissionService;
@@ -33,13 +34,10 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
-use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Http\AllowedMethodsTrait;
 use TYPO3\CMS\Extbase\Mvc\Controller\ActionController;
 use TYPO3\CMS\Core\Http\Error\MethodNotAllowedException;
 use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
-use TYPO3\CMS\Core\Database\Connection;
-use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
 use TYPO3\CMS\Core\Type\Bitmask\Permission;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -61,14 +59,12 @@ class ScanAjaxController extends ActionController
      * @param ScanApiService $scanApiService The accessibility scanner service.
      * @param GeneralModuleService $generalModuleService The general module service.
      * @param PermissionService $permissionService The permission service.
-     * @param ConnectionPool $connectionPool The connection pool.
      * @param SiteLanguageService $siteLanguageService The site language service.
      */
     public function __construct(
         protected readonly ScanApiService $scanApiService,
         protected readonly GeneralModuleService $generalModuleService,
         protected readonly PermissionService $permissionService,
-        protected readonly ConnectionPool $connectionPool,
         protected readonly SiteFinder $siteFinder,
         protected readonly SiteLanguageService $siteLanguageService,
     ) {}
@@ -314,7 +310,7 @@ class ScanAjaxController extends ActionController
         }
 
         // Verify the current backend user actually has access to the page
-        if (!$this->permissionService->checkRecordEditAccess('pages', $page) || !$this->permissionService->checkNonExcludeFields('pages', ['tx_mindfula11y_scanid', 'tx_mindfula11y_scanupdated'])) {
+        if (!$this->permissionService->checkRecordEditAccess('pages', $page)) {
             return $this->jsonResponse(
                 json_encode([
                     'error' => [
@@ -455,7 +451,7 @@ class ScanAjaxController extends ActionController
         // Get scan with optional page URL filter
         $pageUrls = $this->extractPageUrls($request);
         // Sanitize: only allow valid URL strings
-        $pageUrls = array_values(array_filter($pageUrls, fn($url) => is_string($url) && filter_var($url, FILTER_VALIDATE_URL) !== false));
+        $pageUrls = array_values(array_filter($pageUrls, fn(string $url): bool => filter_var($url, FILTER_VALIDATE_URL) !== false));
 
         // Finding 3 fix: restrict pageUrls to the site's own base URLs to prevent
         // unintended filter parameters being forwarded to the external scanner API
@@ -527,7 +523,11 @@ class ScanAjaxController extends ActionController
 
         $value = $queryParams['pageUrls'] ?? null;
         if (is_array($value)) {
-            $pageUrls = array_merge($pageUrls, $value);
+            foreach ($value as $pageUrl) {
+                if (is_string($pageUrl) && $pageUrl !== '') {
+                    $pageUrls[] = $pageUrl;
+                }
+            }
         } elseif (is_string($value) && $value !== '') {
             $pageUrls[] = $value;
         }
@@ -628,16 +628,18 @@ class ScanAjaxController extends ActionController
     protected function storeScanId(int $pageUid, string $scanId): bool
     {
         $dataHandler = GeneralUtility::makeInstance(DataHandler::class);
-        $dataHandler->start([
-            'pages' => [
-                $pageUid => [
-                    'tx_mindfula11y_scanid' => $scanId,
-                    'tx_mindfula11y_scanupdated' => time(),
+        ScanStateDataHandlerGuard::withInternalWriteScope(static function () use ($dataHandler, $pageUid, $scanId): void {
+            $dataHandler->start([
+                'pages' => [
+                    $pageUid => [
+                        'tx_mindfula11y_scanid' => $scanId,
+                        'tx_mindfula11y_scanupdated' => time(),
+                    ]
                 ]
-            ]
-        ], []);
+            ], []);
 
-        $dataHandler->process_datamap();
+            $dataHandler->process_datamap();
+        });
 
         // Check if there were any errors
         if (!empty($dataHandler->errorLog)) {
@@ -645,29 +647,5 @@ class ScanAjaxController extends ActionController
         }
 
         return true;
-    }
-
-    /**
-     * Get scan ID from database.
-     *
-     * @param int $pageUid The page UID.
-     *
-     * @return string|null The scan ID or null if not found.
-     */
-    protected function getScanId(int $pageUid): ?string
-    {
-        $queryBuilder = $this->connectionPool->getQueryBuilderForTable('pages');
-        $queryBuilder->getRestrictions()->removeAll()
-            ->add(GeneralUtility::makeInstance(DeletedRestriction::class));
-        $result = $queryBuilder
-            ->select('tx_mindfula11y_scanid')
-            ->from('pages')
-            ->where(
-                $queryBuilder->expr()->eq('uid', $queryBuilder->createNamedParameter($pageUid, Connection::PARAM_INT))
-            )
-            ->executeQuery()
-            ->fetchOne();
-
-        return $result ?: null;
     }
 }

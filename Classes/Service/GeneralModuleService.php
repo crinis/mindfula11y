@@ -243,7 +243,6 @@ class GeneralModuleService
     public function hasScanAccess(array &$pageTsConfig): bool
     {
         return $this->permissionService->checkTableReadAccess('pages')
-            && $this->permissionService->checkNonExcludeFields('pages', ['tx_mindfula11y_scanid', 'tx_mindfula11y_scanupdated'])
             && !!($pageTsConfig['mod']['mindfula11y_accessibility']['scan']['enable'] ?? false);
     }
 

@@ -19,6 +19,7 @@
  */
 
 use MindfulMarkup\MindfulA11y\Form\Element\InputAltElement;
+use MindfulMarkup\MindfulA11y\Hooks\ScanStateDataHandlerGuard;
 
 defined('TYPO3') or die();
 
@@ -28,4 +29,7 @@ defined('TYPO3') or die();
         'priority' => 40,
         'class' => InputAltElement::class,
     ];
+
+    $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['t3lib/class.t3lib_tcemain.php']['processDatamapClass'][ScanStateDataHandlerGuard::class]
+        = ScanStateDataHandlerGuard::class;
 })();

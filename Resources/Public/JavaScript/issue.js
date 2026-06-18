@@ -22,6 +22,7 @@
  * @description Web component for rendering individual accessibility issues.
  */
 import { LitElement, html } from "lit";
+import { safeHttpUrl } from "./url-utils.js";
 
 /**
  * Web component for rendering individual accessibility issues.
@@ -90,13 +91,13 @@ export class Issue extends LitElement {
                   class="mindfula11y-issue__screenshot-preview"
                 >
                   <img
-                    src="${this.screenshotUrl}"
+                    src="${safeHttpUrl(this.screenshotUrl)}"
                     alt="${TYPO3.lang["mindfula11y.scan.screenshot"]}"
                     class="img-fluid mindfula11y-issue__screenshot-img"
                   />
                 </div>
                 <a
-                  href="${this.screenshotUrl}"
+                  href="${safeHttpUrl(this.screenshotUrl)}"
                   target="_blank"
                   rel="noopener noreferrer"
                   class="btn btn-default btn-sm w-100"
@@ -116,7 +117,7 @@ export class Issue extends LitElement {
                 </dt>
                 <dd class="col-sm-9 mb-2">
                   <a
-                    href="${this.pageUrl}"
+                    href="${safeHttpUrl(this.pageUrl)}"
                     target="_blank"
                     rel="noopener noreferrer"
                     class="text-break small"

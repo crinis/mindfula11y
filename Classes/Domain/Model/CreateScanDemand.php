@@ -137,7 +137,7 @@ class CreateScanDemand extends AbstractValueObject implements JsonSerializable
     {
         $hashService = GeneralUtility::makeInstance(HashService::class);
         return $hashService->hmac(
-            implode('', [
+            implode('|', [
                 (string)$this->userId,
                 (string)$this->pageId,
                 $this->previewUrl,

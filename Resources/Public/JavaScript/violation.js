@@ -24,6 +24,7 @@
 import { LitElement, html } from "lit";
 import "@typo3/backend/element/icon-element.js";
 import "./issue.js";
+import { safeHttpUrl } from "./url-utils.js";
 
 /**
  * Web component for rendering individual accessibility violations.
@@ -145,7 +146,7 @@ export class Violation extends LitElement {
           ? html`
               <div class="mb-3">
                 <a
-                  href="${this.rule.helpUrl}"
+                  href="${safeHttpUrl(this.rule.helpUrl)}"
                   target="_blank"
                   rel="noopener noreferrer"
                   class="btn btn-default btn-sm"

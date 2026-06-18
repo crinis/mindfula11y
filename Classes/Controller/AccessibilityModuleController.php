@@ -537,7 +537,7 @@ class AccessibilityModuleController
         $this->addDocHeaderDropDown($this->buildScanPageLevelsMenu($pageLevels), 3);
 
         // Check if user has edit access to the page record (needed to trigger new scans)
-        $canTriggerScan = $this->permissionService->checkRecordEditAccess('pages', $finalPageInfo, ['tx_mindfula11y_scanid', 'tx_mindfula11y_scanupdated']);
+        $canTriggerScan = $this->permissionService->checkRecordEditAccess('pages', $finalPageInfo);
 
         // Check if content has changed since last scan
         $contentChanged = $this->generalModuleService->shouldInvalidateScan($finalPageInfo, (int)($this->pageInfo['SYS_LASTCHANGED'] ?? 0));
