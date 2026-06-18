@@ -14,7 +14,7 @@ Install/activate the extension in TYPO3 as usual.
 
 Configure in **Admin Tools > Settings > Extension Configuration**.
 
-![Placeholder: TYPO3 extension configuration screen for Mindful A11y showing OpenAI settings and scanner API URL/token settings](../Images/integrators-extension-settings.png)
+![TYPO3 extension configuration screen for Mindful A11y showing OpenAI settings and scanner API URL/token settings](../Images/integrators-extension-settings.png)
 
 | Setting | Purpose |
 | --- | --- |
@@ -123,7 +123,7 @@ Without both a reachable MindfulAPI service and `mod.mindfula11y_accessibility.s
 - Full Site Crawl is available **only** for site root pages (`is_siteroot = 1`).
 - On non-root pages, editors only get Targeted Scan.
 
-![Placeholder: Scanner panel in TYPO3 backend after successful MindfulAPI integration, showing scan controls and status](../Images/integrators-scanner-enabled.png)
+![Scanner panel in TYPO3 backend after successful MindfulAPI integration, showing scan controls and status](../Images/integrators-scanner-enabled.png)
 
 ### Scanner quality and limitations
 
@@ -144,24 +144,34 @@ Both values are required; if one is missing, no credentials are sent.
 
 > Security note: keep scanner credentials scoped to a low-privilege account. Page TSconfig is backend-managed configuration and should be treated as sensitive project configuration.
 
+### Scanner troubleshooting
+
+| Symptom | Likely cause | Fix |
+| --- | --- | --- |
+| Scanner area not visible in the module | `scan.enable` is still `0` | Set `mod.mindfula11y_accessibility.scan.enable = 1` in Page TSconfig. |
+| Connection refused / timeout when scanning | `scannerApiUrl` points at the wrong host/port, or MindfulAPI is not running | Confirm MindfulAPI is up (`docker compose ps`) and reachable **from the TYPO3 container**; check protocol and port, and omit any path. |
+| `401` / `403` from the scanner | `scannerApiToken` missing or not matching MindfulAPI | Align the token in Extension Configuration with the token configured in MindfulAPI. |
+| Scans fail or return nothing for a protected site | Frontend behind HTTP Basic Auth, credentials not set | Set **both** `scan.basicAuthUsername` and `scan.basicAuthPassword` (both are required). |
+| Full Site Crawl option is missing | Selected page is not a site root | Crawl is only offered on `is_siteroot = 1` pages; use Targeted Scan elsewhere. |
+| Stale results after MindfulAPI retention cleanup | An outdated `scanid` is still referenced on the page | Run `mindfula11y:cleanupscans` (schedule it to match your retention policy). |
+
 ## Permissions checklist
 
-Grant users at least:
+Grant the relevant editor groups the permissions below. Missing permissions
+typically surface as partial module functionality or disabled actions rather
+than hard errors.
 
-- backend module access: `mindfula11y_accessibility`
-- page read access in relevant trees (`PAGE_SHOW`)
-- allowed languages for selected page language contexts
-- file mount read access for media used in alt text workflows
-
-For editing/generation features, additionally ensure:
-
-- `sys_file_reference` write access and field access to `alternative` (manual alt edits)
-- `sys_file_metadata` access to `alternative` (inherited alt context/filtering)
-- file metadata edit permissions for metadata-level AI generation (file mount `editMeta`)
-- page field access for scanner state fields: `pages.tx_mindfula11y_scanid` and `pages.tx_mindfula11y_scanupdated`
-- page content edit permission when users should be allowed to trigger new scans
-
-Without these permissions, editors may see partial module functionality or disabled actions.
+| Permission | Needed for | What breaks without it |
+| --- | --- | --- |
+| Backend module `mindfula11y_accessibility` | Opening the module | Module is not listed under **Web**. |
+| Page read access (`PAGE_SHOW`) in relevant trees | Selecting pages to check | "No page selected" / empty results. |
+| Allowed languages for the page language contexts | Per-language checks | Language menu is missing or empty. |
+| File mount read access | Listing media in alt text workflows | Missing-alt images are not listed. |
+| `sys_file_reference` write + field access to `alternative` | Manual alt text edits | Alt field is read-only or saving fails. |
+| `sys_file_metadata` access to `alternative` | Inherited alt context / filtering | Inherited alt text is not considered. |
+| File metadata edit (file mount `editMeta`) | Metadata-level AI generation | Generation is disabled for file metadata. |
+| Page field access: `pages.tx_mindfula11y_scanid`, `pages.tx_mindfula11y_scanupdated` | Storing scanner state | Scan state is not persisted. |
+| Page content edit permission | Triggering new scans | Scan actions are disabled. |
 
 ## Maintenance command
 
@@ -180,4 +190,4 @@ Purpose of this command:
 
 Use Scheduler/cron to keep TYPO3 scan references aligned with your MindfulAPI retention policy.
 
-![Placeholder: TYPO3 scheduler task configuration for periodic mindfula11y scan ID cleanup command](../Images/integrators-scheduler-cleanup-task.png)
+![TYPO3 scheduler task configuration for periodic mindfula11y scan ID cleanup command](../Images/integrators-scheduler-cleanup-task.png)
