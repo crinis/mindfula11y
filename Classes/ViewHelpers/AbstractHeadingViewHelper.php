@@ -151,10 +151,12 @@ abstract class AbstractHeadingViewHelper extends AbstractTagBasedViewHelper
         $record = $this->getCachedRecord($recordTableName, $recordUid, $columns);
 
         if (null !== $record && !empty($record[$recordColumnName])) {
-            $headingType = HeadingType::tryFrom($record[$recordColumnName]);
+            // tryFrom() already returns ?HeadingType (null for an unknown value),
+            // which is exactly what the callers expect to call ->value/->increment() on.
+            return HeadingType::tryFrom($record[$recordColumnName]);
         }
 
-        return ($headingType instanceof HeadingType) ? $headingType->value : null;
+        return null;
     }
 
     /**
