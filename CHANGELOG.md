@@ -10,6 +10,29 @@ the `Publish to TER` workflow uses the release body as the TER upload comment.
 
 ## [Unreleased]
 
+## [0.11.1] - 2026-06-30
+
+Bugfix release. Resolves a fatal error in the heading ViewHelpers when the
+heading level is resolved from the database, and clarifies how to reference
+translated records from templates.
+
+### Fixed
+
+- Fixed a fatal `TypeError` in `mindfula11y:heading`, `mindfula11y:heading.sibling`
+  and `mindfula11y:heading.descendant` when the heading type is resolved from the
+  database — i.e. the ViewHelper is used with the record arguments but without an
+  explicit `type`. `AbstractHeadingViewHelper::resolveHeadingType()` returned a
+  string instead of the declared `HeadingType`, so the frontend rendered a 500
+  error whenever the referenced record had a stored heading type. Present since
+  v0.5.0.
+
+### Documentation
+
+- Documented resolving the localized record uid for translated content
+  (`data._LOCALIZED_UID` in the classic data-array rendering, and
+  `record.computedProperties.localizedUid` in the TYPO3 14 `record` / `PAGEVIEW`
+  pipeline), including why the Fluid `{… ?: …}` shorthand must not be used for it.
+
 ## [0.11.0] - 2026-06-18
 
 TYPO3 14 LTS compatibility release. Mindful A11y now supports TYPO3
