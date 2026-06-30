@@ -16,7 +16,7 @@ Use this for the primary heading output of a record.
 
 ```html
 <mindfula11y:heading
-    recordUid="{data.uid}"
+    recordUid="{f:if(condition: data._LOCALIZED_UID, then: data._LOCALIZED_UID, else: data.uid)}"
     type="{data.tx_mindfula11y_headingtype}"
     relationId="{data.uid}">
     {data.header}
@@ -29,6 +29,14 @@ Edge cases:
 - If `type` is not set, the ViewHelper resolves the heading type from the configured record field.
 - If neither is available, it falls back to `h2`.
 - Use `relationId` if you want to reference this heading from descendant/sibling headings.
+- **Translated content:** `recordUid` must be the *localized* record's uid, otherwise editing
+  targets the default-language record. With the classic `data` array (above) that is
+  `data._LOCALIZED_UID` falling back to `data.uid`; in the TYPO3 14 `record` / `PAGEVIEW`
+  pipeline use `{record.computedProperties.localizedUid}` instead, because `data._LOCALIZED_UID`
+  is not populated there. Resolve it with `f:if` as shown — do **not** use the
+  `{data._LOCALIZED_UID ?: data.uid}` shorthand: Fluid's ternary returns the literal text
+  `data._LOCALIZED_UID` when the variable is undefined (every default-language record), so it
+  silently breaks the fallback.
 
 Static heading (no record context):
 
@@ -81,11 +89,13 @@ Use `<mindfula11y:landmark>` to render semantic landmark containers from editor-
 
 ```html
 <mindfula11y:landmark
-    recordUid="{data.uid}"
+    recordUid="{f:if(condition: data._LOCALIZED_UID, then: data._LOCALIZED_UID, else: data.uid)}"
     role="{data.tx_mindfula11y_landmark}">
     {data.bodytext}
 </mindfula11y:landmark>
 ```
+
+`recordUid` follows the same localization rule as `<mindfula11y:heading>` above.
 
 Optional tag override:
 
