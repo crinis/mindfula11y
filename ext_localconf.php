@@ -19,6 +19,7 @@
  */
 
 use MindfulMarkup\MindfulA11y\Form\FieldControl\GenerateAltTextControl;
+use MindfulMarkup\MindfulA11y\Form\ValidationErrorDetector;
 use MindfulMarkup\MindfulA11y\Form\FormDataProvider\MetadataAlternativePlaceholderAccessGuard;
 use MindfulMarkup\MindfulA11y\Hooks\DecorativeFileReferenceGuard;
 use MindfulMarkup\MindfulA11y\Hooks\ScanStateDataHandlerGuard;
@@ -44,4 +45,13 @@ defined('TYPO3') or die();
         'depends' => [TcaColumnsRemoveUnused::class],
     ];
     $formDataProviders[TcaInputPlaceholders::class]['depends'][] = MetadataAlternativePlaceholderAccessGuard::class;
+
+    // TYPO3 13 EXT:form hook. TYPO3 14 provides the equivalent PSR-14 event,
+    // registered in Services.yaml. Guarding both classes keeps EXT:form optional.
+    if (class_exists(\TYPO3\CMS\Form\Domain\Runtime\FormRuntime::class)
+        && !class_exists(\TYPO3\CMS\Form\Event\BeforeRenderableIsRenderedEvent::class)
+    ) {
+        $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['ext/form']['beforeRendering'][ValidationErrorDetector::class]
+            = ValidationErrorDetector::class;
+    }
 })();

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<xliff version="1.2" xmlns="urn:oasis:names:tc:xliff:document:1.2">
+    <file source-language="en" target-language="de" datatype="plaintext"
+        original="EXT:mindfula11y/Resources/Private/Language/Frontend.xlf"
+        product-name="mindfula11y">
+        <header />
+        <body>
+            <trans-unit id="validationError.titlePrefix" xml:space="preserve">
+                <source>Error:</source>
+                <target>Fehler:</target>
+            </trans-unit>
+        </body>
+    </file>
+</xliff>

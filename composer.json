@@ -23,6 +23,9 @@
         "typo3/cms-extbase": "^13.4 || ^14.3",
         "typo3/cms-install": "^13.4 || ^14.3"
     },
+    "suggest": {
+        "typo3/cms-form": "Adds the localized page-title error prefix after failed server-side EXT:form validation."
+    },
     "autoload": {
         "psr-4": {
             "MindfulMarkup\\MindfulA11y\\": "Classes/"

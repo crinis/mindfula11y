@@ -2,6 +2,21 @@
 
 This guide focuses on implementing Mindful A11y features in templates and custom record types.
 
+## Server-side validation-error titles
+
+Mindful A11y automatically detects failed TYPO3 EXT:form validation and prefixes the final page
+title with a localized `Error:`. EXT:form is optional and no template integration is required.
+
+Detection uses EXT:form's post-validation rendering lifecycle: the `beforeRendering` hook on
+TYPO3 13 and `BeforeRenderableIsRenderedEvent` on TYPO3 14. A frontend middleware applies the
+prefix to the completed response because TYPO3 13 renders uncached USER_INT form errors after the
+cached page shell and title have already been generated. This also means a title provider called
+from a form template is not a cross-version solution.
+
+The behavior is controlled globally by `enableValidationErrorTitlePrefix` in Extension
+Configuration and is enabled by default. Client-side HTML5 validation needs no handling because it
+does not cause a page load.
+
 ## Fluid namespace
 
 ```html

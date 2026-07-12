@@ -22,6 +22,7 @@ declare(strict_types=1);
 
 use MindfulMarkup\MindfulA11y\Middleware\DisableAdminPanelMiddleware;
 use MindfulMarkup\MindfulA11y\Middleware\DisableCacheMiddleware;
+use MindfulMarkup\MindfulA11y\Middleware\ValidationErrorTitleMiddleware;
 
 return [
     'frontend' => [
@@ -29,6 +30,12 @@ return [
             'target' => DisableCacheMiddleware::class,
             'before' => [
                 'typo3/cms-frontend/prepare-tsfe-rendering',
+            ],
+        ],
+        'mindfulmarkup/mindfula11y/validation-error-title' => [
+            'target' => ValidationErrorTitleMiddleware::class,
+            'after' => [
+                'typo3/cms-frontend/content-length-headers',
             ],
         ],
         'mindfulmarkup/mindfula11y/disable-admin-panel' => [

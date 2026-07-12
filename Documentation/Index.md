@@ -8,6 +8,7 @@ Mindful A11y brings accessibility checks and remediation workflows directly into
 - Check heading and landmark structure in backend workflows
 - Run optional automated page accessibility scans
 - Use TYPO3 fields and Fluid ViewHelpers for accessible output
+- Prefix the page title after failed server-side EXT:form validation so assistive technology announces the error state on load
 
 ## Read by role
 
@@ -32,3 +33,6 @@ Scanner features work only when both conditions are met:
 
 - TYPO3 `13.4.x LTS` or `14.3.x LTS`
 - PHP `8.2` to `8.4`
+
+`typo3/cms-form` is optional. When installed, Mindful A11y automatically adds the localized
+validation-error title prefix; no form-template integration is required.

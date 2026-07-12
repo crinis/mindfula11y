@@ -14,6 +14,7 @@ Mindful A11y helps editors and integrators find and fix common accessibility iss
 - **Fluid ViewHelpers** for accessible heading and landmark rendering and integration with the backend module.
 - **Page module info box** with quick accessibility status and links.
 - **CLI cleanup command** to cleanup outdated scan results.
+- **Accessible server-side form errors** with a localized `Error:` page-title prefix for failed TYPO3 EXT:form validation.
 
 Scanner functionality uses the external [MindfulAPI](https://github.com/crinis/mindfulapi) project and is **required** for scanner features. MindfulAPI runs axe-core based technical scans in a headless browser environment. These automated checks are reliable for technical violations but only cover a subset of accessibility issues.
 

@@ -8,6 +8,14 @@ services:
     resource: "../Classes/*"
     exclude: "../Classes/Domain/Model/*"
 
+  MindfulMarkup\MindfulA11y\Form\ValidationErrorDetector:
+    public: true
+    tags:
+      - name: event.listener
+        identifier: 'mindfula11y-form-validation-error'
+        event: 'TYPO3\CMS\Form\Event\BeforeRenderableIsRenderedEvent'
+        method: '__invoke'
+
   # Event listeners
   MindfulMarkup\MindfulA11y\EventListener\WebLayoutInfo:
     tags:

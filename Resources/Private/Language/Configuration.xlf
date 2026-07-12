@@ -27,6 +27,9 @@
             <trans-unit id="scan.apiToken" xml:space="preserve">
                 <source>Mindful API Token: Authentication token for the external accessibility scanner API.</source>
             </trans-unit>
+            <trans-unit id="validationError.enableTitlePrefix" xml:space="preserve">
+                <source>Validation error title prefix: Prefix the page title with a localized “Error:” after failed server-side TYPO3 form validation.</source>
+            </trans-unit>
 		</body>
 	</file>
 </xliff>

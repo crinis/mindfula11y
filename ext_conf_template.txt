@@ -17,3 +17,6 @@ scannerApiUrl =
 
 # cat=mindfula11y//f; type=string; label=LLL:EXT:mindfula11y/Resources/Private/Language/Configuration.xlf:scan.apiToken
 scannerApiToken =
+
+# cat=mindfula11y//g; type=boolean; label=LLL:EXT:mindfula11y/Resources/Private/Language/Configuration.xlf:validationError.enableTitlePrefix
+enableValidationErrorTitlePrefix = 1

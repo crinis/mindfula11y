@@ -34,6 +34,10 @@
                 <source>Mindful API Token: Authentication token for the external accessibility scanner API.</source>
                 <target>Mindful API Token: Authentifizierungstoken für die externe Accessibility-Scanner-API.</target>
             </trans-unit>
+            <trans-unit id="validationError.enableTitlePrefix" xml:space="preserve">
+                <source>Validation error title prefix: Prefix the page title with a localized “Error:” after failed server-side TYPO3 form validation.</source>
+                <target>Titelpräfix bei Validierungsfehlern: Stellt dem Seitentitel nach fehlgeschlagener serverseitiger TYPO3-Formularvalidierung ein lokalisiertes „Fehler:“ voran.</target>
+            </trans-unit>
 		</body>
 	</file>
 </xliff>
