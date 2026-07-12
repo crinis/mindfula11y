@@ -272,9 +272,9 @@ class ScanAjaxController extends ActionController
             )->withStatus(403);
         }
 
-        // The AI audit is opt-in via Page TSconfig; the skill list is read
-        // server-side only, so clients cannot request arbitrary skills.
-        $aiAuditSkills = [];
+        // The AI audit is opt-in via Page TSconfig. MindfulAPI owns skill
+        // selection and applies its server-side whitelist.
+        $aiAuditSkills = null;
         if ($aiAuditRequested) {
             if (!$this->generalModuleService->hasAiAuditAccess($pageTsConfig)) {
                 return $this->jsonResponse(
@@ -401,7 +401,14 @@ class ScanAjaxController extends ActionController
         }
 
         try {
-            $scanData = $this->scanApiService->createScan($scanUrls, $crawl, $crawlOptions, $scanOptions, $aiAuditSkills);
+            $scanData = $this->scanApiService->createScan(
+                $scanUrls,
+                $crawl,
+                $crawlOptions,
+                $scanOptions,
+                $aiAuditRequested,
+                $aiAuditSkills,
+            );
         } catch (ScanApiRequestException $exception) {
             // Surface the API's own explanation (e.g. "AI audit is not enabled
             // on this server.") so editors see an actionable message.

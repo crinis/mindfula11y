@@ -32,13 +32,17 @@ later for scanner features** — the extension now talks to the versioned
   per scan via an "Include AI review" toggle; findings render in a dedicated
   AI review section with severity, confidence, WCAG reference and suggestion.
   Configured via `mod.mindfula11y_accessibility.scan.aiAudit.*` Page TSconfig
-  (`enable`, `default`, `skills`) — automatically created scans never request
+  (`enable`, `default`) — automatically created scans never request
   an audit, so no LLM cost is incurred by simply browsing the backend.
 - Frontend CI (lint, typecheck, build, committed-output verification); TER
   publication is now gated on the same verification of the tagged commit.
 
 ### Changed
 
+- AI review requests now run every skill enabled by MindfulAPI's `AGENT_SKILLS`
+  setting when Page TSconfig omits `aiAudit.skills`. Integrators can still
+  configure a smaller subset or an empty list; TYPO3 forwards explicit lists
+  unchanged so MindfulAPI remains the single validation and whitelist authority.
 - **Frontend rewritten as TypeScript/Lit shadow-DOM web components.** Typed
   sources under `Resources/Private/Source/` are compiled to the shipped ES
   modules; every component renders into its own shadow root with layered CSS

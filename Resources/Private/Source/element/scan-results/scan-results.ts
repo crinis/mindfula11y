@@ -58,14 +58,17 @@ export function impactState(impact: ImpactSeverity): NoticeState {
     return IMPACT_STATES[impact];
 }
 
-/** Skill order for the AI review groups. */
-const SKILL_ORDER: readonly AiAuditSkill[] = [
-    'image_alt_text',
-    'heading_structure',
-    'link_purpose',
-    'form_labels',
-    'page_title',
-];
+const skillLabel = (skill: AiAuditSkill): string => {
+    const translated = lll(`mindfula11y.scan.aiAudit.skill.${skill}`);
+    if (translated !== '') {
+        return translated;
+    }
+    return skill
+        .split('_')
+        .filter((part) => part !== '')
+        .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
+        .join(' ');
+};
 
 /**
  * Presentational scan results: an impact summary chip row, the axe violations
@@ -258,13 +261,19 @@ export class ScanResults extends LitElement {
     }
 
     private renderSkillGroups(findings: AgentFindingDto[]): TemplateResult {
-        const groups = SKILL_ORDER.map(
-            (skill) => [skill, findings.filter((finding) => finding.skill === skill)] as const,
-        ).filter(([, skillFindings]) => skillFindings.length > 0);
-        return html`${groups.map(
+        const groups = new Map<AiAuditSkill, AgentFindingDto[]>();
+        for (const finding of findings) {
+            const group = groups.get(finding.skill);
+            if (group === undefined) {
+                groups.set(finding.skill, [finding]);
+            } else {
+                group.push(finding);
+            }
+        }
+        return html`${[...groups].map(
             ([skill, skillFindings]) => html`<section class="skill">
                 <h3 class="skill-title">
-                    ${lll(`mindfula11y.scan.aiAudit.skill.${skill}`)}
+                    ${skillLabel(skill)}
                     <span class="skill-count"
                         >${lll(
                             skillFindings.length === 1

@@ -648,7 +648,7 @@
                 <source>Include AI review</source>
             </trans-unit>
             <trans-unit id="scan.aiAudit.toggle.description" resname="scan.aiAudit.toggle.description">
-                <source>A language model additionally reviews content quality aspects: %s. AI findings are suggestions and need human judgement.</source>
+                <source>A language model additionally reviews all content quality aspects enabled on the scanner. AI findings are suggestions and need human judgement.</source>
             </trans-unit>
             <trans-unit id="scan.aiAudit.section" resname="scan.aiAudit.section">
                 <source>AI review</source>

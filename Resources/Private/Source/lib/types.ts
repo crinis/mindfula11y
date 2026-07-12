@@ -47,8 +47,8 @@ export enum AiAuditStatus {
     Completed = 'completed',
 }
 
-/** AI-audit skills the scanner API can run. */
-export type AiAuditSkill = 'image_alt_text' | 'heading_structure' | 'link_purpose' | 'form_labels' | 'page_title';
+/** Server-owned AI-audit skill identifier. MindfulAPI may add skills independently. */
+export type AiAuditSkill = string;
 
 /** axe-core impact scale; agent findings reuse it as their severity. */
 export type ImpactSeverity = 'critical' | 'serious' | 'moderate' | 'minor';

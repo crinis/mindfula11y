@@ -595,7 +595,6 @@ class AccessibilityModuleController
         // The AI audit toggle is only offered when TSConfig enables it and the
         // user can trigger scans at all; the skill list is shown for transparency.
         $aiAuditAvailable = $canTriggerScan && $this->generalModuleService->hasAiAuditAccess($this->pageTsConfig);
-
         $this->moduleTemplate->assignMultiple([
             'scanId' => $scanId,
             'createScanDemand' => $createScanDemand,
@@ -606,7 +605,6 @@ class AccessibilityModuleController
             'reportBaseUrl' => $reportBaseUrl,
             'aiAuditAvailable' => $aiAuditAvailable,
             'aiAuditDefault' => $aiAuditAvailable && $this->generalModuleService->isAiAuditDefaultEnabled($this->pageTsConfig),
-            'aiAuditSkills' => $aiAuditAvailable ? $this->generalModuleService->getAiAuditSkills($this->pageTsConfig) : [],
         ]);
 
         $this->pageRenderer->loadJavaScriptModule('@mindfulmarkup/mindfula11y/element/scan/scan.js');

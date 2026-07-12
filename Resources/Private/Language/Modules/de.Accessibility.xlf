@@ -762,8 +762,8 @@
                 <target>KI-Prüfung einbeziehen</target>
             </trans-unit>
             <trans-unit id="scan.aiAudit.toggle.description" resname="scan.aiAudit.toggle.description">
-                <source>A language model additionally reviews content quality aspects: %s. AI findings are suggestions and need human judgement.</source>
-                <target>Ein Sprachmodell prüft zusätzlich inhaltliche Qualitätsaspekte: %s. KI-Befunde sind Vorschläge und erfordern menschliche Beurteilung.</target>
+                <source>A language model additionally reviews all content quality aspects enabled on the scanner. AI findings are suggestions and need human judgement.</source>
+                <target>Ein Sprachmodell prüft zusätzlich alle auf dem Scanner aktivierten inhaltlichen Qualitätsaspekte. KI-Befunde sind Vorschläge und erfordern menschliche Beurteilung.</target>
             </trans-unit>
             <trans-unit id="scan.aiAudit.section" resname="scan.aiAudit.section">
                 <source>AI review</source>

@@ -30,13 +30,13 @@ const IMPACT_STATES = {
 function impactState(impact) {
   return IMPACT_STATES[impact];
 }
-const SKILL_ORDER = [
-  "image_alt_text",
-  "heading_structure",
-  "link_purpose",
-  "form_labels",
-  "page_title"
-];
+const skillLabel = (skill) => {
+  const translated = lll(`mindfula11y.scan.aiAudit.skill.${skill}`);
+  if (translated !== "") {
+    return translated;
+  }
+  return skill.split("_").filter((part) => part !== "").map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`).join(" ");
+};
 let ScanResults = class extends LitElement {
   constructor() {
     super(...arguments);
@@ -181,13 +181,19 @@ let ScanResults = class extends LitElement {
         </section>`;
   }
   renderSkillGroups(findings) {
-    const groups = SKILL_ORDER.map(
-      (skill) => [skill, findings.filter((finding) => finding.skill === skill)]
-    ).filter(([, skillFindings]) => skillFindings.length > 0);
-    return html`${groups.map(
+    const groups = /* @__PURE__ */ new Map();
+    for (const finding of findings) {
+      const group = groups.get(finding.skill);
+      if (group === void 0) {
+        groups.set(finding.skill, [finding]);
+      } else {
+        group.push(finding);
+      }
+    }
+    return html`${[...groups].map(
       ([skill, skillFindings]) => html`<section class="skill">
                 <h3 class="skill-title">
-                    ${lll(`mindfula11y.scan.aiAudit.skill.${skill}`)}
+                    ${skillLabel(skill)}
                     <span class="skill-count"
                         >${lll(
         skillFindings.length === 1 ? "mindfula11y.scan.aiAudit.findingCount" : "mindfula11y.scan.aiAudit.findingsCount",

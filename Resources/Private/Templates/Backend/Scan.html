@@ -19,7 +19,6 @@
       page-url-filter="{pageUrlFilter -> f:format.json()}"
       url-list="{urlList -> f:format.json()}"
       report-base-url="{reportBaseUrl}"
-      ai-audit-skills="{aiAuditSkills -> f:format.json()}"
       {f:if(condition: autoCreateScan, then: 'auto-create-scan')}
       {f:if(condition: aiAuditAvailable, then: 'ai-audit-available')}
       {f:if(condition: aiAuditDefault, then: 'ai-audit-default')}

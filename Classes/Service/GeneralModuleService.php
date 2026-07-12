@@ -43,17 +43,6 @@ use TYPO3\CMS\Backend\Routing\PreviewUriBuilder;
  */
 class GeneralModuleService
 {
-    /**
-     * AI audit skills known to the scanner API (mindfulapi AgentSkill enum).
-     */
-    public const AI_AUDIT_SKILLS = [
-        'image_alt_text',
-        'heading_structure',
-        'link_purpose',
-        'form_labels',
-        'page_title',
-    ];
-
     public function __construct(
         protected readonly PermissionService $permissionService,
         protected readonly TypoScriptService $typoScriptService,
@@ -412,22 +401,25 @@ class GeneralModuleService
     }
 
     /**
-     * Get the AI audit skills to request, restricted to the skills the scanner
-     * API knows. The list is read exclusively on the server side at scan
-     * creation so clients cannot request arbitrary skills.
+     * Get the optional MindfulAPI skill selection. A missing setting returns
+     * null so the API runs every server-enabled skill; an explicitly empty
+     * setting returns [] so the API runs no AI skills.
      *
      * @param array &$pageTsConfig The page TSconfig array (passed by reference)
-     * @return string[]
+     * @return string[]|null
      */
-    public function getAiAuditSkills(array &$pageTsConfig): array
+    public function getAiAuditSkills(array &$pageTsConfig): ?array
     {
-        $configured = GeneralUtility::trimExplode(
+        $aiAuditConfiguration = $pageTsConfig['mod']['mindfula11y_accessibility']['scan']['aiAudit'] ?? [];
+        if (!is_array($aiAuditConfiguration) || !array_key_exists('skills', $aiAuditConfiguration)) {
+            return null;
+        }
+
+        return GeneralUtility::trimExplode(
             ',',
-            (string)($pageTsConfig['mod']['mindfula11y_accessibility']['scan']['aiAudit']['skills'] ?? ''),
+            (string)$aiAuditConfiguration['skills'],
             true
         );
-        $skills = array_values(array_intersect($configured, self::AI_AUDIT_SKILLS));
-        return $skills !== [] ? $skills : self::AI_AUDIT_SKILLS;
     }
 
     /**

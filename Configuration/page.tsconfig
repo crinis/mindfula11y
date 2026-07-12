@@ -32,9 +32,9 @@ mod {
                 enable = 0
                 # Pre-select the toggle for new scans. Editors can still switch it off per scan.
                 default = 0
-                # Skills requested from the scanner API. Align with the server's AGENT_SKILLS
-                # whitelist — requesting a skill the server does not allow fails the scan creation.
-                skills = image_alt_text,heading_structure,link_purpose,form_labels,page_title
+                # Optional subset. Leave unset to run every skill enabled on MindfulAPI.
+                # Set an empty value to run no AI skills.
+                # skills = image_alt_text,page_title
             }
         }
     }

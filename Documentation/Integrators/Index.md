@@ -177,9 +177,9 @@ mod.mindfula11y_accessibility.scan.aiAudit {
     enable = 1
     # Pre-select the toggle for new scans (editors can still switch it off per scan).
     default = 0
-    # Skills requested from the scanner. Align with the server's AGENT_SKILLS whitelist —
-    # requesting a skill the server does not allow fails the scan creation.
-    skills = image_alt_text,heading_structure,link_purpose,form_labels,page_title
+    # Optional comma-separated subset. Leave unset to run every skill enabled
+    # by MindfulAPI's AGENT_SKILLS setting. Set an empty value to run no skills.
+    # skills = image_alt_text,page_title
 }
 ```
 
@@ -187,7 +187,8 @@ Notes:
 
 - The AI audit runs **only** when an editor starts a scan with the toggle checked. Automatically created scans (page module info panel, General tab) never request it, so no LLM cost is incurred by simply browsing the backend.
 - Each audit consumes LLM tokens on the MindfulAPI side; use `default = 1` deliberately.
-- If the server has the feature disabled or a requested skill is not whitelisted, scan creation fails with the API's explanation shown to the editor.
+- Without `skills`, TYPO3 requests every skill enabled by MindfulAPI's `AGENT_SKILLS` setting. Set `skills` only to request a smaller subset; MindfulAPI validates the values and its whitelist remains authoritative.
+- If the server has the feature disabled, scan creation fails with the API's explanation shown to the editor.
 
 ### Scanner troubleshooting
 
