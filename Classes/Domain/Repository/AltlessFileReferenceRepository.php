@@ -429,6 +429,10 @@ class AltlessFileReferenceRepository extends Repository
                     $queryBuilder->expr()->isNull('sys_file_reference.alternative'),
                     $queryBuilder->expr()->eq('sys_file_reference.alternative', $queryBuilder->createNamedParameter('', Connection::PARAM_STR))
                 ),
+                $queryBuilder->expr()->eq(
+                    'sys_file_reference.tx_mindfula11y_decorative',
+                    $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)
+                ),
                 $queryBuilder->expr()->in('mindfula11y_sys_file.extension', $queryBuilder->createNamedParameter($this->getImageFileExtensions(), Connection::PARAM_STR_ARRAY)),
                 $queryBuilder->expr()->eq(
                     'sys_file_reference.' . $this->getLanguageField('sys_file_reference'),

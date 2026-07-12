@@ -231,6 +231,14 @@
                 <source>Alternative text</source>
                 <target>Alternativtext</target>
             </trans-unit>
+            <trans-unit id="altText.decorative.label" resname="altText.decorative.label">
+                <source>Decorative image</source>
+                <target>Dekoratives Bild</target>
+            </trans-unit>
+            <trans-unit id="altText.decorative.description" resname="altText.decorative.description">
+                <source>Use only when the image adds no information. Saving removes the alternative text and title from this reference.</source>
+                <target>Nur verwenden, wenn das Bild keine Informationen vermittelt. Beim Speichern werden Alternativtext und Titel dieses Verweises entfernt.</target>
+            </trans-unit>
             <trans-unit id="altText.altPlaceholder" resname="altText.altPlaceholder">
                 <source>Enter alternative text for the image</source>
                 <target>Alternativtext für das Bild eingeben</target>
@@ -240,12 +248,12 @@
                 <target>Speichern</target>
             </trans-unit>
             <trans-unit id="altText.save.success" resname="altText.save.success">
-                <source>Alternative text saved.</source>
-                <target>Alternativtext gespeichert.</target>
+                <source>Changes saved.</source>
+                <target>Änderungen gespeichert.</target>
             </trans-unit>
             <trans-unit id="altText.save.error" resname="altText.save.error">
-                <source>Could not save alternative text</source>
-                <target>Alternativtext konnte nicht gespeichert werden</target>
+                <source>Could not save changes</source>
+                <target>Änderungen konnten nicht gespeichert werden</target>
             </trans-unit>
             <trans-unit id="altText.save.error.description" resname="altText.save.error.description">
                 <source>The change was not stored. Please try again or edit the record directly.</source>

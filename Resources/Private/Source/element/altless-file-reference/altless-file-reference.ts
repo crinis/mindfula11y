@@ -26,7 +26,7 @@ import '@typo3/backend/element/icon-element.js';
 import '@typo3/backend/element/spinner-element.js';
 import '../notice/notice.js';
 import { LiveAnnouncer } from '../../lib/live-announcer.js';
-import type { GenerateAltTextDemand, RecordReference } from '../../lib/types.js';
+import type { GenerateAltTextDemand } from '../../lib/types.js';
 import { AltTextService } from '../../service/alt-text-service.js';
 import { RecordService } from '../../service/record-service.js';
 import { RequestError } from '../../service/request-error.js';
@@ -35,10 +35,12 @@ import buttonStyles from '../../styles/button.css.js';
 import noticeStyles from '../../styles/notice.css.js';
 import componentStyles from './altless-file-reference.css.js';
 
+const DECORATIVE_FIELD = 'tx_mindfula11y_decorative';
+
 /**
  * One image file reference lacking alternative text in the "Missing alt text"
- * module: preview, editable alt-text field with optional AI generation, and a
- * save action writing sys_file_reference.alternative via the core DataHandler.
+ * module: preview, editable alt-text field with optional AI generation, a
+ * per-reference decorative toggle, and a save action using the core DataHandler.
  *
  * Feedback renders inline (notices + pre-rendered live region) instead of
  * toasts: the card sits in a long list, and a toast cannot say which item it
@@ -55,12 +57,15 @@ export class AltlessFileReference extends LitElement {
     @property({ type: Number }) uid: number = 0;
     @property({ attribute: 'record-edit-link' }) recordEditLink: string = '';
     @property({ attribute: 'record-edit-link-label' }) recordEditLinkLabel: string = '';
+    @property({ attribute: 'decorative-editable', type: Boolean }) decorativeEditable: boolean = false;
     @property({ attribute: 'generate-alt-text-demand', type: Object })
     generateAltTextDemand: GenerateAltTextDemand | null = null;
     @property({ attribute: 'fallback-alternative' }) fallbackAlternative: string = '';
 
     @state() private value: string = '';
     @state() private lastSavedValue: string = '';
+    @state() private decorative: boolean = false;
+    @state() private lastSavedDecorative: boolean = false;
     @state() private busy: 'idle' | 'generating' | 'saving' = 'idle';
     @state() private actionError: { title: string; description: string } | null = null;
     @state() private saved: boolean = false;
@@ -108,19 +113,42 @@ export class AltlessFileReference extends LitElement {
             return nothing;
         }
         return html`<div class="editor">
-            <label class="label" for="alt">${lll('mindfula11y.altText.altLabel')}</label>
-            <textarea
-                id="alt"
-                class="input"
-                rows="3"
-                .value=${live(this.value)}
-                placeholder=${lll('mindfula11y.altText.altPlaceholder')}
-                ?readonly=${this.busy !== 'idle'}
-                @input=${this.handleInput}
-            ></textarea>
+            ${
+                this.decorativeEditable
+                    ? html`<div class="decorative-option">
+                          <label class="decorative-label">
+                              <input
+                                  type="checkbox"
+                                  .checked=${live(this.decorative)}
+                                  ?disabled=${this.busy !== 'idle'}
+                                  aria-describedby="decorative-description"
+                                  @change=${this.handleDecorativeChange}
+                              />
+                              <span>${lll('mindfula11y.altText.decorative.label')}</span>
+                          </label>
+                          <p id="decorative-description" class="hint">
+                              ${lll('mindfula11y.altText.decorative.description')}
+                          </p>
+                      </div>`
+                    : nothing
+            }
+            ${
+                this.decorative
+                    ? nothing
+                    : html`<label class="label" for="alt">${lll('mindfula11y.altText.altLabel')}</label>
+                          <textarea
+                              id="alt"
+                              class="input"
+                              rows="3"
+                              .value=${live(this.value)}
+                              placeholder=${lll('mindfula11y.altText.altPlaceholder')}
+                              ?readonly=${this.busy !== 'idle'}
+                              @input=${this.handleInput}
+                          ></textarea>`
+            }
             <div class="actions">
                 ${
-                    this.generateAltTextDemand !== null
+                    this.generateAltTextDemand !== null && !this.decorative
                         ? html`<button
                               type="button"
                               class="button"
@@ -142,7 +170,10 @@ export class AltlessFileReference extends LitElement {
                 <button
                     type="button"
                     class="button"
-                    ?disabled=${this.busy !== 'idle' || this.value === this.lastSavedValue}
+                    ?disabled=${
+                        this.busy !== 'idle' ||
+                        (this.value === this.lastSavedValue && this.decorative === this.lastSavedDecorative)
+                    }
                     @click=${this.handleSave}
                 >
                     ${
@@ -196,6 +227,11 @@ export class AltlessFileReference extends LitElement {
         this.saved = false;
     }
 
+    private handleDecorativeChange(event: Event): void {
+        this.decorative = (event.target as HTMLInputElement).checked;
+        this.saved = false;
+    }
+
     private async handleGenerate(): Promise<void> {
         if (this.generateAltTextDemand === null || this.busy !== 'idle') {
             return;
@@ -225,17 +261,21 @@ export class AltlessFileReference extends LitElement {
         if (this.busy !== 'idle') {
             return;
         }
-        const record: RecordReference = {
-            tableName: 'sys_file_reference',
-            columnName: 'alternative',
-            uid: this.uid,
-            editLink: this.recordEditLink,
-        };
         this.busy = 'saving';
         this.actionError = null;
         try {
-            await this.recordService.updateField(record, this.value);
+            const fields: Record<string, string> = {
+                alternative: this.decorative ? '' : this.value,
+            };
+            if (this.decorativeEditable) {
+                fields[DECORATIVE_FIELD] = this.decorative ? '1' : '0';
+            }
+            await this.recordService.updateFields('sys_file_reference', this.uid, fields);
+            if (this.decorative) {
+                this.value = '';
+            }
             this.lastSavedValue = this.value;
+            this.lastSavedDecorative = this.decorative;
             this.saved = true;
             await this.announcer.announce(lll('mindfula11y.altText.save.success'));
         } catch {

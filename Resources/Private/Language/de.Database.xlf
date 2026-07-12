@@ -6,6 +6,14 @@
 		product-name="mindfula11y">
 		<header />
 		<body>
+			<trans-unit id="sysFileReference.columns.mindfula11y.decorative" resname="sysFileReference.columns.mindfula11y.decorative">
+				<source>Decorative image</source>
+				<target>Dekoratives Bild</target>
+			</trans-unit>
+			<trans-unit id="sysFileReference.columns.mindfula11y.decorative.description" resname="sysFileReference.columns.mindfula11y.decorative.description">
+				<source>Enable only when this image adds no information and should be ignored by assistive technology. Saving removes alternative text and the title stored on this reference. A visible caption can still be provided in the description field.</source>
+				<target>Nur aktivieren, wenn dieses Bild keine Informationen vermittelt und von assistiven Technologien ignoriert werden soll. Beim Speichern werden Alternativtext und Titel dieser Referenz entfernt. Eine sichtbare Bildunterschrift kann weiterhin im Beschreibungsfeld angegeben werden.</target>
+			</trans-unit>
 			<!-- Corrected mindfulA11y -> mindfula11y in ids/resnames for heading type entries -->
 			<trans-unit id="ttContent.columns.mindfula11y.headingType" resname="ttContent.columns.mindfula11y.headingType">
 				<source>Heading Type</source>

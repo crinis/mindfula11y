@@ -23,6 +23,7 @@ import { baseStyles } from "../../styles/base-styles.js";
 import buttonStyles from "../../styles/button.css.js";
 import noticeStyles from "../../styles/notice.css.js";
 import componentStyles from "./altless-file-reference.css.js";
+const DECORATIVE_FIELD = "tx_mindfula11y_decorative";
 let AltlessFileReference = class extends LitElement {
   constructor() {
     super(...arguments);
@@ -31,10 +32,13 @@ let AltlessFileReference = class extends LitElement {
     this.uid = 0;
     this.recordEditLink = "";
     this.recordEditLinkLabel = "";
+    this.decorativeEditable = false;
     this.generateAltTextDemand = null;
     this.fallbackAlternative = "";
     this.value = "";
     this.lastSavedValue = "";
+    this.decorative = false;
+    this.lastSavedDecorative = false;
     this.busy = "idle";
     this.actionError = null;
     this.saved = false;
@@ -75,18 +79,33 @@ let AltlessFileReference = class extends LitElement {
       return nothing;
     }
     return html`<div class="editor">
-            <label class="label" for="alt">${lll("mindfula11y.altText.altLabel")}</label>
-            <textarea
-                id="alt"
-                class="input"
-                rows="3"
-                .value=${live(this.value)}
-                placeholder=${lll("mindfula11y.altText.altPlaceholder")}
-                ?readonly=${this.busy !== "idle"}
-                @input=${this.handleInput}
-            ></textarea>
+            ${this.decorativeEditable ? html`<div class="decorative-option">
+                          <label class="decorative-label">
+                              <input
+                                  type="checkbox"
+                                  .checked=${live(this.decorative)}
+                                  ?disabled=${this.busy !== "idle"}
+                                  aria-describedby="decorative-description"
+                                  @change=${this.handleDecorativeChange}
+                              />
+                              <span>${lll("mindfula11y.altText.decorative.label")}</span>
+                          </label>
+                          <p id="decorative-description" class="hint">
+                              ${lll("mindfula11y.altText.decorative.description")}
+                          </p>
+                      </div>` : nothing}
+            ${this.decorative ? nothing : html`<label class="label" for="alt">${lll("mindfula11y.altText.altLabel")}</label>
+                          <textarea
+                              id="alt"
+                              class="input"
+                              rows="3"
+                              .value=${live(this.value)}
+                              placeholder=${lll("mindfula11y.altText.altPlaceholder")}
+                              ?readonly=${this.busy !== "idle"}
+                              @input=${this.handleInput}
+                          ></textarea>`}
             <div class="actions">
-                ${this.generateAltTextDemand !== null ? html`<button
+                ${this.generateAltTextDemand !== null && !this.decorative ? html`<button
                               type="button"
                               class="button"
                               ?disabled=${this.busy !== "idle"}
@@ -101,7 +120,7 @@ let AltlessFileReference = class extends LitElement {
                 <button
                     type="button"
                     class="button"
-                    ?disabled=${this.busy !== "idle" || this.value === this.lastSavedValue}
+                    ?disabled=${this.busy !== "idle" || this.value === this.lastSavedValue && this.decorative === this.lastSavedDecorative}
                     @click=${this.handleSave}
                 >
                     ${this.busy === "saving" ? html`<typo3-backend-spinner size="small"></typo3-backend-spinner>` : html`<typo3-backend-icon identifier="actions-save" size="small"></typo3-backend-icon>`}
@@ -139,6 +158,10 @@ let AltlessFileReference = class extends LitElement {
     this.value = event.target.value;
     this.saved = false;
   }
+  handleDecorativeChange(event) {
+    this.decorative = event.target.checked;
+    this.saved = false;
+  }
   async handleGenerate() {
     if (this.generateAltTextDemand === null || this.busy !== "idle") {
       return;
@@ -164,17 +187,21 @@ let AltlessFileReference = class extends LitElement {
     if (this.busy !== "idle") {
       return;
     }
-    const record = {
-      tableName: "sys_file_reference",
-      columnName: "alternative",
-      uid: this.uid,
-      editLink: this.recordEditLink
-    };
     this.busy = "saving";
     this.actionError = null;
     try {
-      await this.recordService.updateField(record, this.value);
+      const fields = {
+        alternative: this.decorative ? "" : this.value
+      };
+      if (this.decorativeEditable) {
+        fields[DECORATIVE_FIELD] = this.decorative ? "1" : "0";
+      }
+      await this.recordService.updateFields("sys_file_reference", this.uid, fields);
+      if (this.decorative) {
+        this.value = "";
+      }
       this.lastSavedValue = this.value;
+      this.lastSavedDecorative = this.decorative;
       this.saved = true;
       await this.announcer.announce(lll("mindfula11y.altText.save.success"));
     } catch {
@@ -205,6 +232,9 @@ __decorateClass([
   property({ attribute: "record-edit-link-label" })
 ], AltlessFileReference.prototype, "recordEditLinkLabel", 2);
 __decorateClass([
+  property({ attribute: "decorative-editable", type: Boolean })
+], AltlessFileReference.prototype, "decorativeEditable", 2);
+__decorateClass([
   property({ attribute: "generate-alt-text-demand", type: Object })
 ], AltlessFileReference.prototype, "generateAltTextDemand", 2);
 __decorateClass([
@@ -216,6 +246,12 @@ __decorateClass([
 __decorateClass([
   state()
 ], AltlessFileReference.prototype, "lastSavedValue", 2);
+__decorateClass([
+  state()
+], AltlessFileReference.prototype, "decorative", 2);
+__decorateClass([
+  state()
+], AltlessFileReference.prototype, "lastSavedDecorative", 2);
 __decorateClass([
   state()
 ], AltlessFileReference.prototype, "busy", 2);

@@ -8,6 +8,23 @@ This guide focuses on implementing Mindful A11y features in templates and custom
 <html xmlns:mindfula11y="http://typo3.org/ns/MindfulMarkup/MindfulA11y/ViewHelpers" data-namespace-typo3-fluid="true">
 ```
 
+## Decorative file references and native image ViewHelpers
+
+The **Decorative image** checkbox is stored per `sys_file_reference`. When enabled, Mindful A11y
+stores explicit empty reference alternatives and titles so TYPO3 does not fall back to file
+metadata. Native image rendering therefore needs no custom ViewHelper:
+
+```html
+<f:image image="{fileReference}" />
+<f:media file="{fileReference}" />
+```
+
+`f:image` and the image fallback in `f:media` both render `alt=""` for the decorative reference.
+They do not emit a metadata-derived `title` attribute. The reference description remains available
+to templates as an optional visible caption.
+Do not pass a non-empty explicit `alt` argument when the template should honor the editor's choice;
+explicit `alt` and `title` arguments retain TYPO3's normal precedence and override reference data.
+
 ## Heading ViewHelpers
 
 ### 1) Main heading: `<mindfula11y:heading>`

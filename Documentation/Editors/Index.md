@@ -47,9 +47,15 @@ You can:
 - change scan depth in the page tree (`1`, `5`, `10`, `99` levels)
 - switch language
 - edit alt text inline
+- mark an image reference as decorative directly in the module card or in its file-reference editor
 - jump to the original record
 
 If OpenAI is configured and your file type is supported (`jpg`, `jpeg`, `png`, `webp`, `gif`), a **Generate** button appears for automatic suggestions.
+
+Use **Decorative image** directly on the affected module card only when an image adds no information. Saving this option removes the
+reference's alternative text and title, hides both fields, and removes the reference from the
+missing-alt check. A visible caption can still be entered in the description field. Turn the
+option off before entering alternative text or a title again.
 
 ![Missing alternative text feature listing file references with image preview, editable alt text field, generate action, and save action](../Images/editors-missing-alt-text.png)
 

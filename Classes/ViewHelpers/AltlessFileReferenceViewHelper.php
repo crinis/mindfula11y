@@ -27,6 +27,7 @@ use MindfulMarkup\MindfulA11y\Domain\Model\AltlessFileReference;
 use MindfulMarkup\MindfulA11y\Domain\Model\GenerateAltTextDemand;
 use MindfulMarkup\MindfulA11y\Service\OpenAIService;
 use MindfulMarkup\MindfulA11y\Service\PermissionService;
+use MindfulMarkup\MindfulA11y\Service\GeneralModuleService;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
@@ -46,6 +47,8 @@ class AltlessFileReferenceViewHelper extends AbstractTagBasedViewHelper
      * Permission service instance.
      */
     protected readonly PermissionService $permissionService;
+
+    protected readonly GeneralModuleService $generalModuleService;
 
     /**
      * OpenAI service instance.
@@ -73,6 +76,11 @@ class AltlessFileReferenceViewHelper extends AbstractTagBasedViewHelper
     public function injectPermissionService(PermissionService $permissionService): void
     {
         $this->permissionService = $permissionService;
+    }
+
+    public function injectGeneralModuleService(GeneralModuleService $generalModuleService): void
+    {
+        $this->generalModuleService = $generalModuleService;
     }
 
     /**
@@ -146,6 +154,9 @@ class AltlessFileReferenceViewHelper extends AbstractTagBasedViewHelper
                 ],
             ]));
             $this->tag->addAttribute('record-edit-link-label', sprintf($this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:altText.editRecord.label'), $recordTableName, $recordUid));
+            if ($this->permissionService->checkNonExcludeFields('sys_file_reference', ['tx_mindfula11y_decorative'])) {
+                $this->tag->addAttribute('decorative-editable', true);
+            }
             if (
                 $this->openAIService->isEnabledAndConfigured()
             ) {
@@ -158,7 +169,7 @@ class AltlessFileReferenceViewHelper extends AbstractTagBasedViewHelper
 
         $this->tag->addAttribute('uid', $fileReference->getUid());
 
-        if ($this->permissionService->checkTableReadAccess('sys_file_metadata') && $this->permissionService->checkNonExcludeFields('sys_file_metadata', ['alternative'])) {
+        if ($this->generalModuleService->canReadFileMetadataAlternative()) {
             $fallbackAlternative = $fileReference->getOriginalResource()->getOriginalFile()->getProperty('alternative');
             if (is_string($fallbackAlternative) && '' !== $fallbackAlternative) {
                 $this->tag->addAttribute('fallback-alternative', $fallbackAlternative);

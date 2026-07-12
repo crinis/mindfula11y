@@ -21,6 +21,11 @@ later for scanner features** — the extension now talks to the versioned
 
 ### Added
 
+- Per-reference **Decorative image** control for image references. Decorative references store an
+  explicit empty alternative and title, are omitted from missing-alt counts and render as
+  `alt=""` without a `title` attribute through native `f:image` and image-mode `f:media`;
+  templates must not override them with non-empty explicit `alt` or `title` arguments. The
+  description remains available as a visible caption.
 - Optional **AI review (agent audit)** for scans: MindfulAPI (v0.7.0+) can run
   a language-model audit alongside the axe-core scan, covering image alt text,
   heading structure, link purpose, form labels and page title. Editors opt in
@@ -66,6 +71,16 @@ later for scanner features** — the extension now talks to the versioned
 
 ### Fixed
 
+- New inline image references are no longer discarded when the decorative-image
+  permission guard cannot resolve submitted relation columns. The guard resolves
+  the parent file field and rejects only unauthorized decorative-state changes,
+  preserving alt text, title, crop and link metadata.
+- The decorative-image visibility condition now composes with existing TCA
+  `displayCond` rules for file-reference alternative text and titles.
+- File-metadata alternative placeholders are shown only to backend users who
+  may read `sys_file_metadata.alternative`.
+- Decorative image changes now enforce edit access to the reference's parent record and file
+  field, preventing direct DataHandler requests from bypassing the module's permissions.
 - `mod.mindfula11y_accessibility.missingAltText.ignoreColumns` is now
   actually read (it was documented but never consumed); the undocumented
   legacy path `mod.mindfula11y_missingalttext.<table>` keeps working for
@@ -73,10 +88,10 @@ later for scanner features** — the extension now talks to the versioned
   it had always been inert, and activating it would have hidden the standard
   image/textpic content element references from the check.
 - `mod.mindfula11y_accessibility.missingAltText.ignoreFileMetadata` is now
-  implemented: with `1` (default) references without their own alternative
-  text are listed even when the file metadata provides a fallback; with `0`
-  the metadata fallback counts as sufficient and editors get a filter toggle
-  to show the covered references anyway.
+  implemented without changing existing missing-alt results: with `0`
+  (default), the metadata fallback counts as sufficient and editors get a
+  filter toggle to show covered references anyway. Set it to `1` to require
+  alternative text directly on every file reference.
 - Scan status polling no longer floods screen readers: the interim loading
   view and unchanged statuses stay out of the live region, which now only
   announces actual status transitions.

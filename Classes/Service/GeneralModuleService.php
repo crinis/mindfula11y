@@ -144,6 +144,8 @@ class GeneralModuleService
             'mindfula11y.altText.generate.error.unknown.description' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:altText.generate.error.unknown.description'),
             'mindfula11y.altText.generate.button' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:altText.generate.button'),
             'mindfula11y.altText.altLabel' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:altText.altLabel'),
+            'mindfula11y.altText.decorative.label' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:altText.decorative.label'),
+            'mindfula11y.altText.decorative.description' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:altText.decorative.description'),
             'mindfula11y.altText.save' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:altText.save'),
             'mindfula11y.altText.imagePreview' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:altText.imagePreview'),
             'mindfula11y.altText.altPlaceholder' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:altText.altPlaceholder'),
@@ -273,17 +275,26 @@ class GeneralModuleService
     /**
      * Check whether file metadata fallback alt text is ignored by the missing alt text feature.
      *
-     * When ignored (the shipped default), file references without their own alternative
-     * text are reported even if the file's metadata provides a fallback. Setting
-     * mod.mindfula11y_accessibility.missingAltText.ignoreFileMetadata = 0 treats the
-     * metadata fallback as sufficient and offers editors the metadata filter toggle.
+     * By default, file metadata fallback text counts as a valid alternative, matching
+     * TYPO3's rendered FileReference behavior. Setting
+     * mod.mindfula11y_accessibility.missingAltText.ignoreFileMetadata = 1 opts into
+     * requiring alternative text directly on every file reference.
      *
      * @param array &$pageTsConfig The page TSconfig array (passed by reference)
      * @return bool
      */
     public function isFileMetadataIgnored(array &$pageTsConfig): bool
     {
-        return !!($pageTsConfig['mod']['mindfula11y_accessibility']['missingAltText']['ignoreFileMetadata'] ?? true);
+        return !!($pageTsConfig['mod']['mindfula11y_accessibility']['missingAltText']['ignoreFileMetadata'] ?? false);
+    }
+
+    /**
+     * Check whether the current backend user may read metadata alternative text.
+     */
+    public function canReadFileMetadataAlternative(): bool
+    {
+        return $this->permissionService->checkTableReadAccess('sys_file_metadata')
+            && $this->permissionService->checkNonExcludeFields('sys_file_metadata', ['alternative']);
     }
 
     /**

@@ -258,8 +258,7 @@ class AccessibilityModuleController
             $hasMissingAltTextAccess
         ) {
             $filterFileMetaData = !$this->generalModuleService->isFileMetadataIgnored($this->pageTsConfig)
-                && $this->permissionService->checkTableReadAccess('sys_file_metadata')
-                && $this->permissionService->checkNonExcludeFields('sys_file_metadata', ['alternative']);
+                && $this->generalModuleService->canReadFileMetadataAlternative();
             $fileReferenceCount = $this->altTextFinderService->countAltlessFileReferences(
                 $this->pageId,
                 0,
@@ -367,8 +366,7 @@ class AccessibilityModuleController
         // Metadata fallback alt text is only considered when the TSconfig option allows
         // it AND the user may read it; the editor toggle then decides per module view.
         $canConsiderFileMetaData = !$this->generalModuleService->isFileMetadataIgnored($this->pageTsConfig)
-            && $this->permissionService->checkTableReadAccess('sys_file_metadata')
-            && $this->permissionService->checkNonExcludeFields('sys_file_metadata', ['alternative']);
+            && $this->generalModuleService->canReadFileMetadataAlternative();
         $filterFileMetaData = $canConsiderFileMetaData && (bool)$this->moduleData->get('filterFileMetaData', true);
 
         $this->addDocHeaderDropDown($this->buildPageLevelsMenu($tableName, $pageLevels, $filterFileMetaData), 3);

@@ -19,7 +19,11 @@
  */
 
 use MindfulMarkup\MindfulA11y\Form\FieldControl\GenerateAltTextControl;
+use MindfulMarkup\MindfulA11y\Form\FormDataProvider\MetadataAlternativePlaceholderAccessGuard;
+use MindfulMarkup\MindfulA11y\Hooks\DecorativeFileReferenceGuard;
 use MindfulMarkup\MindfulA11y\Hooks\ScanStateDataHandlerGuard;
+use TYPO3\CMS\Backend\Form\FormDataProvider\TcaColumnsRemoveUnused;
+use TYPO3\CMS\Backend\Form\FormDataProvider\TcaInputPlaceholders;
 
 defined('TYPO3') or die();
 
@@ -32,4 +36,12 @@ defined('TYPO3') or die();
 
     $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['t3lib/class.t3lib_tcemain.php']['processDatamapClass'][ScanStateDataHandlerGuard::class]
         = ScanStateDataHandlerGuard::class;
+    $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['t3lib/class.t3lib_tcemain.php']['processDatamapClass'][DecorativeFileReferenceGuard::class]
+        = DecorativeFileReferenceGuard::class;
+
+    $formDataProviders = &$GLOBALS['TYPO3_CONF_VARS']['SYS']['formEngine']['formDataGroup']['tcaDatabaseRecord'];
+    $formDataProviders[MetadataAlternativePlaceholderAccessGuard::class] = [
+        'depends' => [TcaColumnsRemoveUnused::class],
+    ];
+    $formDataProviders[TcaInputPlaceholders::class]['depends'][] = MetadataAlternativePlaceholderAccessGuard::class;
 })();

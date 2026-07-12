@@ -194,6 +194,12 @@
             <trans-unit id="altText.altLabel" resname="altText.altLabel">
                 <source>Alternative text</source>
             </trans-unit>
+            <trans-unit id="altText.decorative.label" resname="altText.decorative.label">
+                <source>Decorative image</source>
+            </trans-unit>
+            <trans-unit id="altText.decorative.description" resname="altText.decorative.description">
+                <source>Use only when the image adds no information. Saving removes the alternative text and title from this reference.</source>
+            </trans-unit>
             <trans-unit id="altText.altPlaceholder" resname="altText.altPlaceholder">
                 <source>Enter alternative text for the image</source>
             </trans-unit>
@@ -201,10 +207,10 @@
                 <source>Save</source>
             </trans-unit>
             <trans-unit id="altText.save.success" resname="altText.save.success">
-                <source>Alternative text saved.</source>
+                <source>Changes saved.</source>
             </trans-unit>
             <trans-unit id="altText.save.error" resname="altText.save.error">
-                <source>Could not save alternative text</source>
+                <source>Could not save changes</source>
             </trans-unit>
             <trans-unit id="altText.save.error.description" resname="altText.save.error.description">
                 <source>The change was not stored. Please try again or edit the record directly.</source>

@@ -9,6 +9,7 @@ Mindful A11y helps editors and integrators find and fix common accessibility iss
   - **Missing alternative text**: list, filter, and edit image/file references without alt text.
   - **Scanner (optional)**: run scans, review findings, and export HTML/PDF reports for single or multiple pages or crawls of the entire page tree.
 - **Optional AI alt text generation** via OpenAI for missing image alt text.
+- **Per-reference decorative images** that render with native `f:image`/`f:media` and stay out of missing-alt results.
 - **Accessibility fields for content elements** (heading type, landmark, ARIA labels).
 - **Fluid ViewHelpers** for accessible heading and landmark rendering and integration with the backend module.
 - **Page module info box** with quick accessibility status and links.
@@ -49,6 +50,10 @@ composer require mindfulmarkup/mindfula11y
    - `mod.mindfula11y_accessibility.headingStructure.enable`
    - `mod.mindfula11y_accessibility.landmarkStructure.enable`
    - `mod.mindfula11y_accessibility.scan.enable = 1` to use scanner features (off by default)
+
+The validation-error page-title prefix is enabled globally by default. Disable it with
+`enableValidationErrorTitlePrefix` under **Admin Tools → Settings → Extension Configuration**.
+`typo3/cms-form` is optional; without it, this integration remains inactive.
 
 ## Full documentation
 

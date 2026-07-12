@@ -28,17 +28,19 @@ export class RecordUpdateError extends Error {
     }
 }
 
-/** Persists single-field record updates through TYPO3's DataHandler. */
+/** Persists record field updates through TYPO3's DataHandler. */
 export class RecordService {
     async updateField(record: RecordReference, value: string): Promise<void> {
+        await this.updateFields(record.tableName, record.uid, { [record.columnName]: value });
+    }
+
+    async updateFields(tableName: string, uid: number, fields: Record<string, string>): Promise<void> {
         let result: { hasErrors: boolean };
         try {
             result = await AjaxDataHandler.process({
                 data: {
-                    [record.tableName]: {
-                        [record.uid]: {
-                            [record.columnName]: value,
-                        },
+                    [tableName]: {
+                        [uid]: fields,
                     },
                 },
             });
@@ -46,7 +48,7 @@ export class RecordService {
             throw new RecordUpdateError(error instanceof Error ? error.message : String(error));
         }
         if (result.hasErrors) {
-            throw new RecordUpdateError(`DataHandler reported errors updating ${record.tableName}:${record.uid}`);
+            throw new RecordUpdateError(`DataHandler reported errors updating ${tableName}:${uid}`);
         }
     }
 }
