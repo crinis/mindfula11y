@@ -13,6 +13,7 @@ import { lll } from "@typo3/core/lit-helper.js";
 import { html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import "@typo3/backend/element/spinner-element.js";
+import { LiveAnnouncer } from "../../lib/live-announcer.js";
 import { ScanStatus } from "../../lib/types.js";
 import { ScanService } from "../../service/scan-service.js";
 import { baseStyles } from "../../styles/base-styles.js";
@@ -28,7 +29,9 @@ let ScanIssueCount = class extends LitElement {
     this.pageUrlFilter = [];
     this.createdScanId = "";
     this.scanService = new ScanService();
+    this.announcer = new LiveAnnouncer(this);
     this.lastStatus = "";
+    this.lastAnnounced = "";
     this.scanTask = new Task(this, {
       args: () => [
         this.scanId || this.createdScanId,
@@ -99,15 +102,26 @@ let ScanIssueCount = class extends LitElement {
   }
   updated() {
     this.toggleAttribute("hidden", this.scanTask.status === TaskStatus.COMPLETE && this.scanTask.value === null);
+    const view = this.scanTask.value;
+    if (this.scanTask.status === TaskStatus.COMPLETE && view !== null && view !== void 0) {
+      this.announceIfChanged(view.text);
+    } else if (this.scanTask.status === TaskStatus.ERROR) {
+      this.announceIfChanged(this.errorText(this.scanTask.error));
+    }
   }
   render() {
-    return html`<div role="status">
-            ${this.scanTask.render({
+    return html`${this.scanTask.render({
       pending: () => this.renderView({ state: "info", text: lll("mindfula11y.scan.loading"), showSpinner: true }),
       complete: (view) => view === null ? nothing : this.renderView(view),
       error: (error) => this.renderView({ state: "danger", text: this.errorText(error) })
-    })}
-        </div>`;
+    })}${this.announcer.render()}`;
+  }
+  announceIfChanged(text) {
+    if (text === this.lastAnnounced) {
+      return;
+    }
+    this.lastAnnounced = text;
+    void this.announcer.announce(text);
   }
   renderView(view) {
     return html`<mindfula11y-notice state=${view.state}>

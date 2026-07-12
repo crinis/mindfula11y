@@ -23,6 +23,7 @@ import type { CSSResult, TemplateResult } from 'lit';
 import { html, LitElement, nothing } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import '@typo3/backend/element/spinner-element.js';
+import { LiveAnnouncer } from '../../lib/live-announcer.js';
 import type { CreateScanDemand, NoticeState } from '../../lib/types.js';
 import { ScanStatus } from '../../lib/types.js';
 import { ScanService } from '../../service/scan-service.js';
@@ -59,8 +60,10 @@ export class ScanIssueCount extends LitElement {
     @state() private createdScanId: string = '';
 
     private readonly scanService: ScanService = new ScanService();
+    private readonly announcer: LiveAnnouncer = new LiveAnnouncer(this);
     private pollTimer: number | undefined;
     private lastStatus: ScanStatus | '' = '';
+    private lastAnnounced: string = '';
 
     private readonly scanTask = new Task(this, {
         args: (): readonly [string, CreateScanDemand | null, string[]] => [
@@ -148,21 +151,37 @@ export class ScanIssueCount extends LitElement {
         // Without a scan to show, the host must not occupy layout — siblings
         // are spaced with flex gap, and an empty block would leave a hole.
         this.toggleAttribute('hidden', this.scanTask.status === TaskStatus.COMPLETE && this.scanTask.value === null);
+
+        // Announce settled statuses only when their text actually changed:
+        // polling re-runs the task every five seconds, and the interim PENDING
+        // state or an unchanged status must not reach the live region.
+        const view = this.scanTask.value;
+        if (this.scanTask.status === TaskStatus.COMPLETE && view !== null && view !== undefined) {
+            this.announceIfChanged(view.text);
+        } else if (this.scanTask.status === TaskStatus.ERROR) {
+            this.announceIfChanged(this.errorText(this.scanTask.error));
+        }
     }
 
     override render(): TemplateResult {
-        // The live region is rendered once and only its content is swapped, so
-        // screen readers announce status changes reliably.
-        return html`<div role="status">
-            ${this.scanTask.render({
-                pending: (): TemplateResult =>
-                    this.renderView({ state: 'info', text: lll('mindfula11y.scan.loading'), showSpinner: true }),
-                complete: (view: StatusView | null): TemplateResult | typeof nothing =>
-                    view === null ? nothing : this.renderView(view),
-                error: (error: unknown): TemplateResult =>
-                    this.renderView({ state: 'danger', text: this.errorText(error) }),
-            })}
-        </div>`;
+        // The task UI stays out of the live region: the announcer's stable,
+        // initially empty region receives status texts from updated() instead.
+        return html`${this.scanTask.render({
+            pending: (): TemplateResult =>
+                this.renderView({ state: 'info', text: lll('mindfula11y.scan.loading'), showSpinner: true }),
+            complete: (view: StatusView | null): TemplateResult | typeof nothing =>
+                view === null ? nothing : this.renderView(view),
+            error: (error: unknown): TemplateResult =>
+                this.renderView({ state: 'danger', text: this.errorText(error) }),
+        })}${this.announcer.render()}`;
+    }
+
+    private announceIfChanged(text: string): void {
+        if (text === this.lastAnnounced) {
+            return;
+        }
+        this.lastAnnounced = text;
+        void this.announcer.announce(text);
     }
 
     private renderView(view: StatusView): TemplateResult {
