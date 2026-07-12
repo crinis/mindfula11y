@@ -8,4 +8,4 @@ label: "Mindful A11Y Visual Editor Demo (TYPO3 14)"
 # This set is TYPO3 v14 only and intended for the development install; it is not
 # loaded by the regular MindfulA11yDev set.
 dependencies:
-  - typo3/fluid-styled-content
+  - mindfulmarkup/mindfula11y-dev

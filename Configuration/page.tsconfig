@@ -49,5 +49,5 @@ mod {
 # Hide structural landmarks from content editors by default
 # These should typically be controlled at template level
 TCEFORM.tt_content.tx_mindfula11y_landmark {
-    removeItems = main,banner,contentinfo
+    removeItems = main,banner,contentinfo,form
 }

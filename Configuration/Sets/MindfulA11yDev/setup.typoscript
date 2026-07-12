@@ -3,7 +3,7 @@ page = PAGE
 # Add navigation with placeholder links
 page.5 = COA
 page.5 {
-  wrap = <header><nav role="navigation" aria-label="Main navigation">|</nav></header>
+  wrap = <header><nav aria-label="Main navigation">|</nav></header>
 
   10 = COA
   10 {
@@ -39,7 +39,7 @@ page.10 {
     table = tt_content
     select.where = colPos = 0
     select.orderBy = sorting
-    wrap = <main>|<section aria-label="">test</section></main>
+    wrap = <main>|</main>
   }
 
   20 = TEXT

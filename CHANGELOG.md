@@ -10,6 +10,8 @@ the `Publish to TER` workflow uses the release body as the TER upload comment.
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-07-12
+
 Frontend platform release. The entire backend frontend is rewritten as
 TypeScript/Lit shadow-DOM web components, scans gain an optional AI review
 via MindfulAPI's agent audit, and the heading structure check now validates
@@ -84,6 +86,8 @@ later for scanner features** — the extension now talks to the versioned
 
 ### Fixed
 
+- The form landmark is hidden from content editors by default, alongside the
+  other structural landmarks intended to be controlled at template level.
 - The **Use header as landmark name** toggle no longer reloads the content
   element form; saving still selects the header or custom landmark name.
 - New inline image references are no longer discarded when the decorative-image
