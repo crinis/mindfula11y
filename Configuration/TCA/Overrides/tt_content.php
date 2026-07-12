@@ -99,7 +99,6 @@ ExtensionManagementUtility::addTCAcolumns(
             'label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.ariaLabelledby',
             'description' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.ariaLabelledby.description',
             'displayCond' => 'FIELD:tx_mindfula11y_landmark:!=:',
-            'onChange' => 'reload',
             'config' => [
                 'type' => 'check',
                 'renderType' => 'checkboxToggle',
