@@ -30,6 +30,9 @@ jobs:
       - name: Lint (Biome, Stylelint, tsc)
         run: npm run lint
 
+      - name: Test
+        run: npm test
+
       - name: Build
         run: npm run build
 
@@ -101,4 +104,3 @@ jobs:
           VERSION: ${{ env.version }}
           TER_DESCRIPTION: ${{ env.description }}
         run: tailor ter:publish --comment "$TER_DESCRIPTION" "$VERSION"
-

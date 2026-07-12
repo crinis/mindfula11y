@@ -10,6 +10,7 @@
 /Resources/Private/Build export-ignore
 /Resources/Private/Source export-ignore
 /Resources/Private/VisualEditorDemo export-ignore
+/Tests export-ignore
 /package.json export-ignore
 /package-lock.json export-ignore
 /tsconfig.json export-ignore

@@ -33,6 +33,7 @@ return [
         'tailor-version-artefact',
         'tailor-version-upload',
         'tests',
+        'Tests',
         'tools',
         'vendor',
         // Development-only site sets and their Fluid resources — the dev set

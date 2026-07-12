@@ -18,5 +18,5 @@
         "skipLibCheck": true,
         "noEmit": true
     },
-    "include": ["Resources/Private/Source/**/*.ts", "Resources/Private/Build/types/**/*.d.ts"]
+    "include": ["Resources/Private/Source/**/*.ts", "Resources/Private/Build/types/**/*.d.ts", "Tests/Frontend/**/*.ts"]
 }

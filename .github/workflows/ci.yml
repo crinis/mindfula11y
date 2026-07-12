@@ -26,6 +26,9 @@ jobs:
       - name: Lint (Biome, Stylelint, tsc)
         run: npm run lint
 
+      - name: Test
+        run: npm test
+
       - name: Build
         run: npm run build
 
