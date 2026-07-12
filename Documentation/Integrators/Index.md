@@ -93,7 +93,7 @@ Before enabling scanner features, you must set up an external scanner service.
 
 Scanner functionality stays disabled until you explicitly set `mod.mindfula11y_accessibility.scan.enable = 1` in Page TSconfig.
 
-**Required:** [MindfulAPI](https://github.com/crinis/mindfulapi) running via Docker.
+**Required:** [MindfulAPI](https://github.com/crinis/mindfulapi) **version 0.7 or later** running via Docker (the extension talks to the versioned `/v1` API routes).
 
 Minimal setup:
 
@@ -143,6 +143,33 @@ The extension sends these credentials server-side to the scanner so protected pa
 Both values are required; if one is missing, no credentials are sent.
 
 > Security note: keep scanner credentials scoped to a low-privilege account. Page TSconfig is backend-managed configuration and should be treated as sensitive project configuration.
+
+### AI review (agent audit)
+
+MindfulAPI 0.7+ can optionally run an **AI audit** alongside the axe-core scan: a language model reviews content quality aspects (image alternative text, heading structure, link purpose, form labels, page title) and reports findings with severity, confidence and suggestions. AI findings are shown in a separate "AI review" section and always need human judgement.
+
+Requirements and configuration:
+
+1. Enable the agent feature in MindfulAPI (`AGENT_ENABLED=true` plus provider/model/API key — see the MindfulAPI README; `AGENT_SKILLS` whitelists the allowed skills).
+2. Enable the toggle per page tree via Page TSconfig:
+
+```
+mod.mindfula11y_accessibility.scan.aiAudit {
+    # Offer the "Include AI review" toggle in the scan module.
+    enable = 1
+    # Pre-select the toggle for new scans (editors can still switch it off per scan).
+    default = 0
+    # Skills requested from the scanner. Align with the server's AGENT_SKILLS whitelist —
+    # requesting a skill the server does not allow fails the scan creation.
+    skills = image_alt_text,heading_structure,link_purpose,form_labels,page_title
+}
+```
+
+Notes:
+
+- The AI audit runs **only** when an editor starts a scan with the toggle checked. Automatically created scans (page module info panel, General tab) never request it, so no LLM cost is incurred by simply browsing the backend.
+- Each audit consumes LLM tokens on the MindfulAPI side; use `default = 1` deliberately.
+- If the server has the feature disabled or a requested skill is not whitelisted, scan creation fails with the API's explanation shown to the editor.
 
 ### Scanner troubleshooting
 

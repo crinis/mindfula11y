@@ -1,0 +1,221 @@
+/*
+ * Mindful A11y extension for TYPO3 integrating accessibility tools into the backend.
+ * Copyright (C) 2026  Mindful Markup, Felix Spittel
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+
+/*
+ * Scan results: impact chips (styles/findings.css), violation disclosure
+ * cards and the AI review section. Severity is always carried by pill text
+ * from the shared notice pattern — color is reinforcement only.
+ */
+@layer component {
+    .results {
+        display: flex;
+        flex-direction: column;
+        gap: var(--mindfula11y-space-s);
+        container-type: inline-size;
+    }
+
+    .violations {
+        display: flex;
+        flex-direction: column;
+        gap: var(--mindfula11y-space-2xs);
+    }
+
+    .violation {
+        background-color: var(--mindfula11y-component-bg);
+        border: 1px solid var(--mindfula11y-border);
+        border-radius: var(--mindfula11y-radius);
+
+        &[open] .marker {
+            rotate: 180deg;
+        }
+    }
+
+    .disclosure {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--mindfula11y-space-2xs);
+        align-items: center;
+        min-block-size: var(--mindfula11y-control-min-size);
+        padding-block: var(--mindfula11y-space-2xs);
+        padding-inline: var(--mindfula11y-space-xs);
+        cursor: pointer;
+        list-style: none;
+
+        &::-webkit-details-marker {
+            display: none;
+        }
+    }
+
+    .rule-description {
+        flex: 1;
+        min-inline-size: 12rem;
+        font-weight: 600;
+        overflow-wrap: anywhere;
+    }
+
+    .rule-id {
+        font-family: var(--mindfula11y-font-family-monospace);
+        font-size: var(--mindfula11y-font-size-xs);
+        color: var(--mindfula11y-text-subtle);
+    }
+
+    .issue-count {
+        font-size: var(--mindfula11y-font-size-xs);
+        color: var(--mindfula11y-text-subtle);
+        white-space: nowrap;
+    }
+
+    .body {
+        display: flex;
+        flex-direction: column;
+        gap: var(--mindfula11y-space-2xs);
+        padding-block: var(--mindfula11y-space-2xs) var(--mindfula11y-space-xs);
+        padding-inline: var(--mindfula11y-space-xs);
+        border-block-start: 1px solid var(--mindfula11y-border);
+    }
+
+    .help {
+        inline-size: fit-content;
+        color: var(--mindfula11y-text);
+    }
+
+    .issues {
+        display: flex;
+        flex-direction: column;
+        gap: var(--mindfula11y-space-xs);
+    }
+
+    .issue {
+        display: flex;
+        flex-direction: column;
+        gap: var(--mindfula11y-space-3xs);
+
+        & + & {
+            padding-block-start: var(--mindfula11y-space-xs);
+            border-block-start: 1px solid var(--mindfula11y-border);
+        }
+    }
+
+    .detail {
+        max-inline-size: 70ch;
+        overflow-wrap: anywhere;
+    }
+
+    .detail-label {
+        font-weight: 600;
+    }
+
+    .code {
+        font-family: var(--mindfula11y-font-family-monospace);
+        font-size: var(--mindfula11y-font-size-xs);
+    }
+
+    /* Markup excerpts scroll instead of forcing the page wide (WCAG 1.4.10). */
+    .context {
+        max-block-size: 12rem;
+        padding: var(--mindfula11y-space-fixed-2xs);
+        overflow: auto;
+        background-color: var(--mindfula11y-surface-high);
+        border-radius: var(--mindfula11y-radius);
+    }
+
+    .ai {
+        display: flex;
+        flex-direction: column;
+        gap: var(--mindfula11y-space-xs);
+    }
+
+    .ai-title {
+        font-size: var(--mindfula11y-font-size-display-lg);
+        font-weight: 700;
+    }
+
+    .skill {
+        display: flex;
+        flex-direction: column;
+        gap: var(--mindfula11y-space-2xs);
+    }
+
+    .skill-title {
+        display: flex;
+        gap: var(--mindfula11y-space-2xs);
+        align-items: baseline;
+        font-size: var(--mindfula11y-font-size-sm);
+        font-weight: 700;
+    }
+
+    .skill-count {
+        font-size: var(--mindfula11y-font-size-xs);
+        font-weight: 400;
+        color: var(--mindfula11y-text-subtle);
+    }
+
+    .ai-findings {
+        display: flex;
+        flex-direction: column;
+        gap: var(--mindfula11y-space-2xs);
+    }
+
+    .card {
+        display: flex;
+        flex-direction: column;
+        gap: var(--mindfula11y-space-3xs);
+        padding-block: var(--mindfula11y-space-2xs);
+        padding-inline: var(--mindfula11y-space-xs);
+        background-color: var(--mindfula11y-component-bg);
+        border: 1px solid var(--mindfula11y-border);
+        border-radius: var(--mindfula11y-radius);
+    }
+
+    .card-head {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--mindfula11y-space-2xs);
+        align-items: center;
+        font-size: var(--mindfula11y-font-size-xs);
+    }
+
+    .wcag {
+        color: var(--mindfula11y-text-subtle);
+    }
+
+    .message {
+        max-inline-size: 70ch;
+    }
+
+    /* Suggestions read as advisory, quote-like insets — informational accent. */
+    .suggestion {
+        max-inline-size: 70ch;
+        padding-inline-start: var(--mindfula11y-space-xs);
+        border-inline-start: 3px solid var(--mindfula11y-state-info-border);
+    }
+
+    .card-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--mindfula11y-space-2xs);
+        font-size: var(--mindfula11y-font-size-xs);
+        color: var(--mindfula11y-text-subtle);
+    }
+
+    .ai-appropriate {
+        font-size: var(--mindfula11y-font-size-xs);
+        color: var(--mindfula11y-text-subtle);
+    }
+}

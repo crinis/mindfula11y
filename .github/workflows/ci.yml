@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    # Tags too: Packagist serves git archives as soon as a tag exists, so a bad
+    # tag must at least turn red immediately (TER is additionally gated by the
+    # verify job in ter-release.yml).
+    tags: ['v*']
+  pull_request:
+
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint (Biome, Stylelint, tsc)
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+
+      - name: Verify committed build output is current
+        # --intent-to-add stages new untracked output so the diff also fails on
+        # files that were built but never committed.
+        run: |
+          git add --intent-to-add Resources/Public/JavaScript
+          git diff --exit-code -- Resources/Public/JavaScript

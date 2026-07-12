@@ -1,0 +1,136 @@
+/*
+ * Mindful A11y extension for TYPO3 integrating accessibility tools into the backend.
+ * Copyright (C) 2026  Mindful Markup, Felix Spittel
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+
+/*
+ * Inline issues are shared `.notice` inline variants and the wrapper/edit
+ * link/empty state come from styles/structure-view.css; rules here own the
+ * tree geometry and the level chip.
+ */
+@layer component {
+    /*
+     * Nested ordered lists ARE the hierarchy; every nested level gets an
+     * indentation rail. All geometry comes from the rem space scale so the
+     * tree scales with root font size and zoom.
+     */
+    .tree {
+        display: flex;
+        flex-direction: column;
+        gap: var(--mindfula11y-space-3xs);
+
+        .tree {
+            padding-inline-start: var(--mindfula11y-space-2xs);
+            margin-block-start: var(--mindfula11y-space-3xs);
+            margin-inline-start: var(--mindfula11y-space-2xs);
+            border-inline-start: 1px solid var(--mindfula11y-border);
+        }
+    }
+
+    @container (inline-size >= 28rem) {
+        .tree {
+            .tree {
+                padding-inline-start: var(--mindfula11y-space-xs);
+                margin-inline-start: var(--mindfula11y-space-xs);
+            }
+        }
+    }
+
+    .row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--mindfula11y-space-2xs);
+        align-items: center;
+        padding-block: var(--mindfula11y-space-3xs);
+        padding-inline: var(--mindfula11y-space-2xs);
+        border-radius: var(--mindfula11y-input-radius);
+
+        &:hover {
+            background-color: var(--mindfula11y-component-hover-bg);
+        }
+    }
+
+    /*
+     * The level chip: one geometry, three variants (select, locked display,
+     * relation jump button) so the tree scans as an aligned column. Em-based
+     * minimum sizes keep the hit target >= 24px at every zoom level.
+     */
+    .level {
+        display: inline-flex;
+        gap: var(--mindfula11y-space-3xs);
+        align-items: center;
+        justify-content: center;
+        min-inline-size: 3.5em;
+        min-block-size: var(--mindfula11y-control-min-size);
+        padding-block: var(--mindfula11y-control-padding-block);
+        padding-inline: var(--mindfula11y-control-padding-inline);
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+        color: var(--mindfula11y-input-color);
+        text-align: center;
+        background-color: var(--mindfula11y-input-bg);
+        border: 1px solid var(--mindfula11y-input-border);
+        border-radius: var(--mindfula11y-input-radius);
+
+        &:hover {
+            border-color: var(--mindfula11y-input-hover-border);
+        }
+
+        &[data-relation] {
+            cursor: pointer;
+            border-style: dashed;
+        }
+
+        &[data-locked] {
+            color: var(--mindfula11y-text-subtle);
+            background-color: var(--mindfula11y-surface-high);
+            border-color: transparent;
+        }
+
+        /*
+         * Placeholder chip for a skipped level — neutral-on-tint like every
+         * status surface (solid state pairings cap near 5:1, below AAA).
+         */
+        &[data-missing] {
+            color: var(--mindfula11y-text);
+            background-color: color-mix(
+                in srgb,
+                var(--mindfula11y-state-danger-bg) 15%,
+                var(--mindfula11y-component-bg)
+            );
+            border-color: var(--mindfula11y-state-danger-border);
+            border-style: dashed;
+        }
+    }
+
+    .text {
+        overflow-wrap: anywhere;
+
+        &[data-empty] {
+            font-style: italic;
+            color: var(--mindfula11y-text-subtle);
+        }
+    }
+
+    .issues {
+        display: flex;
+        flex-direction: column;
+        gap: var(--mindfula11y-space-3xs);
+        margin-block-start: var(--mindfula11y-space-3xs);
+        margin-inline-start: var(--mindfula11y-space-2xs);
+    }
+}

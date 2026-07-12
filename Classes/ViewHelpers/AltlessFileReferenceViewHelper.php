@@ -120,6 +120,10 @@ class AltlessFileReferenceViewHelper extends AbstractTagBasedViewHelper
          */
         $fileReference = $this->arguments['fileReference'];
 
+        // Custom elements must not be self-closed — HTML has no self-closing
+        // syntax for them, so `<tag />` would leave the element open.
+        $this->tag->forceClosingTag(true);
+
         $recordTableName = $fileReference->getOriginalResource()->getReferenceProperty('tablenames');
         $recordColumnName = $fileReference->getOriginalResource()->getReferenceProperty('fieldname');
         $recordUid = $fileReference->getOriginalResource()->getReferenceProperty('uid_foreign');
@@ -134,19 +138,19 @@ class AltlessFileReferenceViewHelper extends AbstractTagBasedViewHelper
             && null !== $record
             && $this->permissionService->checkRecordEditAccess($recordTableName, $record, [$recordColumnName])
         ) {
-            $this->tag->addAttribute('recordEditLink', $this->backendUriBuilder->buildUriFromRoute('record_edit', [
+            $this->tag->addAttribute('record-edit-link', $this->backendUriBuilder->buildUriFromRoute('record_edit', [
                 'edit' => [
                     $recordTableName => [
                         $recordUid => 'edit'
                     ]
                 ],
             ]));
-            $this->tag->addAttribute('recordEditLinkLabel', sprintf($this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:altText.editRecord.label'), $recordTableName, $recordUid));
+            $this->tag->addAttribute('record-edit-link-label', sprintf($this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:altText.editRecord.label'), $recordTableName, $recordUid));
             if (
                 $this->openAIService->isEnabledAndConfigured()
             ) {
                 $this->tag->addAttribute(
-                    'generateAltTextDemand',
+                    'generate-alt-text-demand',
                     json_encode($this->getGenerateAltTextDemand($fileReference))
                 );
             }
@@ -155,14 +159,17 @@ class AltlessFileReferenceViewHelper extends AbstractTagBasedViewHelper
         $this->tag->addAttribute('uid', $fileReference->getUid());
 
         if ($this->permissionService->checkTableReadAccess('sys_file_metadata') && $this->permissionService->checkNonExcludeFields('sys_file_metadata', ['alternative'])) {
-            $this->tag->addAttribute('fallbackAlternative', $fileReference->getOriginalResource()->getOriginalFile()->getProperty('alternative'));
+            $fallbackAlternative = $fileReference->getOriginalResource()->getOriginalFile()->getProperty('alternative');
+            if (is_string($fallbackAlternative) && '' !== $fallbackAlternative) {
+                $this->tag->addAttribute('fallback-alternative', $fallbackAlternative);
+            }
         }
 
         if (!empty($this->arguments['previewUrl'])) {
-            $this->tag->addAttribute('previewUrl', $this->arguments['previewUrl']);
+            $this->tag->addAttribute('preview-url', $this->arguments['previewUrl']);
         }
         if (!empty($this->arguments['originalUrl'])) {
-            $this->tag->addAttribute('originalUrl', $this->arguments['originalUrl']);
+            $this->tag->addAttribute('original-url', $this->arguments['originalUrl']);
         }
 
         return $this->tag->render();

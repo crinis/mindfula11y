@@ -1,0 +1,92 @@
+/*
+ * Mindful A11y extension for TYPO3 integrating accessibility tools into the backend.
+ * Copyright (C) 2026  Mindful Markup, Felix Spittel
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+
+@layer component {
+    /* Chrome + query container only; the queried layout lives on .body below. */
+    .card {
+        padding: var(--mindfula11y-space-fixed-s);
+        container-type: inline-size;
+        background-color: var(--mindfula11y-component-bg);
+        border: 1px solid var(--mindfula11y-border);
+        border-radius: var(--mindfula11y-radius);
+    }
+
+    .body {
+        display: flex;
+        flex-direction: column;
+        gap: var(--mindfula11y-space-fixed-s);
+
+        @container (inline-size >= 36rem) {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            align-items: start;
+        }
+    }
+
+    .image {
+        max-block-size: var(--mindfula11y-space-fixed-3xl);
+        border-radius: var(--mindfula11y-radius);
+    }
+
+    .content {
+        display: flex;
+        flex-direction: column;
+        gap: var(--mindfula11y-space-xs);
+    }
+
+    .editor {
+        display: flex;
+        flex-direction: column;
+        gap: var(--mindfula11y-space-2xs);
+    }
+
+    .label {
+        font-weight: 600;
+    }
+
+    .input {
+        inline-size: 100%;
+        max-inline-size: 70ch;
+        padding-block: var(--mindfula11y-control-padding-block);
+        padding-inline: var(--mindfula11y-control-padding-inline);
+        color: var(--mindfula11y-input-color);
+        resize: block;
+        background-color: var(--mindfula11y-input-bg);
+        border: 1px solid var(--mindfula11y-input-border);
+        border-radius: var(--mindfula11y-input-radius);
+
+        &:hover {
+            border-color: var(--mindfula11y-input-hover-border);
+        }
+    }
+
+    .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--mindfula11y-space-fixed-2xs);
+    }
+
+    .edit {
+        color: var(--mindfula11y-text-subtle);
+
+        &:hover {
+            color: var(--mindfula11y-component-hover-color);
+        }
+    }
+}

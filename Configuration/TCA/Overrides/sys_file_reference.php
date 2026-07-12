@@ -32,6 +32,7 @@ if (
     !$extensionConfiguration->get('mindfula11y', 'disableAltTextGeneration') &&
     !empty($extensionConfiguration->get('mindfula11y', 'openAIApiKey'))
 ) {
-    $GLOBALS['TCA']['sys_file_reference']['columns']['alternative']['config']['type'] = 'user';
-    $GLOBALS['TCA']['sys_file_reference']['columns']['alternative']['config']['renderType'] = 'mindfula11yAltText';
+    $GLOBALS['TCA']['sys_file_reference']['columns']['alternative']['config']['fieldControl']['mindfula11yGenerateAltText'] = [
+        'renderType' => 'mindfula11yGenerateAltText',
+    ];
 }

@@ -215,7 +215,6 @@ class AccessibilityModuleController
         $this->addLanguageSelector($this->buildLanguageMenu());
         $this->pageRenderer->addInlineLanguageLabelArray($this->generalModuleService->getInlineLanguageLabels());
 
-        $this->pageRenderer->addCssFile('EXT:mindfula11y/Resources/Public/Css/mindfula11y.css');
 
         switch ($this->feature) {
             case Feature::GENERAL:
@@ -332,8 +331,9 @@ class AccessibilityModuleController
             'pageUrlFilter' => $previewUri !== null ? [(string)$previewUri] : [],
         ]);
 
-        $this->pageRenderer->loadJavaScriptModule('@mindfulmarkup/mindfula11y/structure.js');
-        $this->pageRenderer->loadJavaScriptModule('@mindfulmarkup/mindfula11y/scan-issue-count.js');
+        $this->pageRenderer->loadJavaScriptModule('@mindfulmarkup/mindfula11y/element/structure/structure.js');
+        $this->pageRenderer->loadJavaScriptModule('@mindfulmarkup/mindfula11y/element/scan-issue-count/scan-issue-count.js');
+        $this->pageRenderer->loadJavaScriptModule('@mindfulmarkup/mindfula11y/element/notice/notice.js');
 
         return $this->moduleTemplate->renderResponse('Backend/General');
     }
@@ -460,7 +460,8 @@ class AccessibilityModuleController
             'paginator' => $paginator
         ]);
 
-        $this->pageRenderer->loadJavaScriptModule('@mindfulmarkup/mindfula11y/altless-file-reference.js');
+        $this->pageRenderer->loadJavaScriptModule('@mindfulmarkup/mindfula11y/element/altless-file-reference/altless-file-reference.js');
+        $this->pageRenderer->loadJavaScriptModule('@mindfulmarkup/mindfula11y/element/notice/notice.js');
 
         return $this->moduleTemplate->renderResponse('Backend/MissingAltText');
     }
@@ -591,6 +592,10 @@ class AccessibilityModuleController
         // JS appends scanId and format before use.
         $reportBaseUrl = (string)$this->backendUriBuilder->buildUriFromRoute('mindfula11y_scanreport');
 
+        // The AI audit toggle is only offered when TSConfig enables it and the
+        // user can trigger scans at all; the skill list is shown for transparency.
+        $aiAuditAvailable = $canTriggerScan && $this->generalModuleService->hasAiAuditAccess($this->pageTsConfig);
+
         $this->moduleTemplate->assignMultiple([
             'scanId' => $scanId,
             'createScanDemand' => $createScanDemand,
@@ -599,9 +604,12 @@ class AccessibilityModuleController
             'pageUrlFilter' => $pageUrlFilter,
             'urlList' => $urlList,
             'reportBaseUrl' => $reportBaseUrl,
+            'aiAuditAvailable' => $aiAuditAvailable,
+            'aiAuditDefault' => $aiAuditAvailable && $this->generalModuleService->isAiAuditDefaultEnabled($this->pageTsConfig),
+            'aiAuditSkills' => $aiAuditAvailable ? $this->generalModuleService->getAiAuditSkills($this->pageTsConfig) : [],
         ]);
 
-        $this->pageRenderer->loadJavaScriptModule('@mindfulmarkup/mindfula11y/scan.js');
+        $this->pageRenderer->loadJavaScriptModule('@mindfulmarkup/mindfula11y/element/scan/scan.js');
 
         return $this->moduleTemplate->renderResponse('Backend/Scan');
     }

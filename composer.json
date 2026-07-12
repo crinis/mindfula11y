@@ -2,9 +2,7 @@
     "name": "mindfulmarkup/mindfula11y",
     "description": "Find and fix accessibility issues directly in the TYPO3 backend: a remediation module with missing alt-text detection and AI generation (OpenAI), accessibility fields and Fluid ViewHelpers for semantic headings and landmarks, plus optional axe-core page scanning.",
     "type": "typo3-cms-extension",
-    "license": [
-        "GPL-2.0-or-later"
-    ],
+    "license": ["GPL-2.0-or-later"],
     "authors": [
         {
             "name": "Felix Spittel",

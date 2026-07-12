@@ -1,0 +1,163 @@
+/*
+ * Mindful A11y extension for TYPO3 integrating accessibility tools into the backend.
+ * Copyright (C) 2026  Mindful Markup, Felix Spittel
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+
+/*
+ * Inline issues are shared `.notice` inline variants and the wrapper/edit
+ * link/empty state come from styles/structure-view.css; rules here own the
+ * page schematic and the role pill.
+ */
+@layer component {
+    /*
+     * The page schematic: the root list is the page frame, nested lists render
+     * their cards physically inside the parent card. Document order and
+     * containment are the only geometry we truthfully know — regions are
+     * always full-width stacked blocks.
+     */
+    .map {
+        display: flex;
+        flex-direction: column;
+        gap: var(--mindfula11y-space-2xs);
+
+        &[data-root] {
+            /* Container edge: the px scale holds the frame under text zoom (WCAG 1.4.10). */
+            padding: var(--mindfula11y-space-fixed-xs);
+            background-color: var(--mindfula11y-surface);
+            border: 1px solid var(--mindfula11y-border);
+            border-radius: var(--mindfula11y-radius);
+        }
+    }
+
+    .map .map {
+        padding-inline-start: var(--mindfula11y-space-3xs);
+        margin-block-start: var(--mindfula11y-space-2xs);
+    }
+
+    @container (inline-size >= 24rem) {
+        .map .map {
+            padding-inline-start: var(--mindfula11y-space-2xs);
+        }
+    }
+
+    /*
+     * Region card. One internal accent token, re-pointed per landmark role
+     * (role names are always printed — the accent is decorative reinforcement,
+     * never the sole conveyor).
+     */
+    .region {
+        --mindfula11y-landmark-structure-accent: var(--mindfula11y-role-region);
+
+        padding-block: var(--mindfula11y-space-2xs);
+        padding-inline: var(--mindfula11y-space-xs);
+        background-color: color-mix(
+            in srgb,
+            var(--mindfula11y-landmark-structure-accent) 7%,
+            var(--mindfula11y-component-bg)
+        );
+        border: 1px solid
+            color-mix(in srgb, var(--mindfula11y-landmark-structure-accent) 30%, var(--mindfula11y-border));
+        border-inline-start: 0.25rem solid var(--mindfula11y-landmark-structure-accent);
+        border-radius: var(--mindfula11y-radius);
+
+        &[data-role="banner"] {
+            --mindfula11y-landmark-structure-accent: var(--mindfula11y-role-banner);
+        }
+
+        &[data-role="navigation"] {
+            --mindfula11y-landmark-structure-accent: var(--mindfula11y-role-navigation);
+        }
+
+        &[data-role="main"] {
+            --mindfula11y-landmark-structure-accent: var(--mindfula11y-role-main);
+        }
+
+        &[data-role="complementary"] {
+            --mindfula11y-landmark-structure-accent: var(--mindfula11y-role-complementary);
+        }
+
+        &[data-role="contentinfo"] {
+            --mindfula11y-landmark-structure-accent: var(--mindfula11y-role-contentinfo);
+        }
+
+        &[data-role="search"] {
+            --mindfula11y-landmark-structure-accent: var(--mindfula11y-role-search);
+        }
+
+        &[data-role="form"] {
+            --mindfula11y-landmark-structure-accent: var(--mindfula11y-role-form);
+        }
+    }
+
+    .head {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--mindfula11y-space-2xs);
+        align-items: center;
+    }
+
+    /* Role pill: same recipe as the heading level chip, pill-shaped and accent-tinted. */
+    .role {
+        display: inline-flex;
+        gap: var(--mindfula11y-space-3xs);
+        align-items: center;
+        min-block-size: var(--mindfula11y-control-min-size);
+        padding-block: var(--mindfula11y-control-padding-block);
+        padding-inline: var(--mindfula11y-control-padding-inline);
+        font-weight: 700;
+        color: var(--mindfula11y-input-color);
+        background-color: color-mix(
+            in srgb,
+            var(--mindfula11y-landmark-structure-accent) 14%,
+            var(--mindfula11y-input-bg)
+        );
+        border: 1px solid
+            color-mix(in srgb, var(--mindfula11y-landmark-structure-accent) 45%, var(--mindfula11y-input-border));
+        border-radius: 999em;
+
+        /* Hover affordance only on the editable select — the locked span is inert. */
+        &:not([data-locked]):hover {
+            border-color: color-mix(
+                in srgb,
+                var(--mindfula11y-landmark-structure-accent) 65%,
+                var(--mindfula11y-input-hover-border)
+            );
+        }
+
+        &[data-locked] {
+            color: var(--mindfula11y-text-subtle);
+        }
+    }
+
+    .name {
+        font-weight: 600;
+        overflow-wrap: anywhere;
+
+        &[data-unlabelled] {
+            font-style: italic;
+            font-weight: 400;
+            color: var(--mindfula11y-text-subtle);
+        }
+    }
+
+    .issues {
+        display: flex;
+        flex-direction: column;
+        gap: var(--mindfula11y-space-3xs);
+        margin-block-start: var(--mindfula11y-space-2xs);
+    }
+}

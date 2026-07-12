@@ -18,16 +18,16 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-use MindfulMarkup\MindfulA11y\Form\Element\InputAltElement;
+use MindfulMarkup\MindfulA11y\Form\FieldControl\GenerateAltTextControl;
 use MindfulMarkup\MindfulA11y\Hooks\ScanStateDataHandlerGuard;
 
 defined('TYPO3') or die();
 
 (static function (): void {
     $GLOBALS['TYPO3_CONF_VARS']['SYS']['formEngine']['nodeRegistry'][1744207980] = [
-        'nodeName' => 'mindfula11yAltText',
+        'nodeName' => 'mindfula11yGenerateAltText',
         'priority' => 40,
-        'class' => InputAltElement::class,
+        'class' => GenerateAltTextControl::class,
     ];
 
     $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['t3lib/class.t3lib_tcemain.php']['processDatamapClass'][ScanStateDataHandlerGuard::class]

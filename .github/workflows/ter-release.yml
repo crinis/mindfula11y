@@ -5,9 +5,43 @@ on:
     types: [published]
 
 jobs:
+  # Repeats the CI verification on the tagged commit: releases can be created
+  # from commits whose CI run failed, is still pending, or never ran, and a
+  # published TER artefact with stale committed JavaScript is unrecoverable
+  # (the sources and build tooling are excluded from packaging).
+  verify:
+    name: Verify committed build output
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint (Biome, Stylelint, tsc)
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+
+      - name: Verify committed build output is current
+        run: |
+          git add --intent-to-add Resources/Public/JavaScript
+          git diff --exit-code -- Resources/Public/JavaScript
+
   publish:
     name: Publish new version to TER
     if: startsWith(github.ref, 'refs/tags/v')
+    needs: verify
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -61,6 +95,9 @@ jobs:
       - name: Publish to TER
         env:
           TYPO3_API_TOKEN: ${{ secrets.TYPO3_API_TOKEN }}
+          # Replaces tailor's default packaging excludes so frontend sources,
+          # build tooling and dev configs never ship in the TER artefact.
+          TYPO3_EXCLUDE_FROM_PACKAGING: ${{ github.workspace }}/.github/ExcludeFromPackaging.php
           VERSION: ${{ env.version }}
           TER_DESCRIPTION: ${{ env.description }}
         run: tailor ter:publish --comment "$TER_DESCRIPTION" "$VERSION"

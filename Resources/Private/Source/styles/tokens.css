@@ -1,0 +1,197 @@
+/*
+ * Mindful A11y extension for TYPO3 integrating accessibility tools into the backend.
+ * Copyright (C) 2026  Mindful Markup, Felix Spittel
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+
+/*
+ * Token bridge — the ONLY file allowed to reference TYPO3's `--typo3-*` CSS
+ * variables. TYPO3 declares its backend CSS framework internal API with no
+ * stability guarantee (changelog Feature-108240), so every consumption gets a
+ * hardcoded light-mode fallback and components reference only the
+ * `--mindfula11y-*` aliases: a future core rename is a one-file fix here.
+ *
+ * The `--typo3-*` values resolve through `light-dark()` against the inherited
+ * `color-scheme`, so every alias follows the backend light/dark scheme
+ * automatically — never re-implement dark mode per component.
+ */
+@layer base {
+    :host {
+        /* Typography */
+        --mindfula11y-font-family: var(--typo3-font-family, verdana, arial, helvetica, sans-serif);
+        --mindfula11y-font-family-monospace: var(
+            --typo3-font-family-monospace,
+            sfmono-regular,
+            menlo,
+            monaco,
+            consolas,
+            monospace
+        );
+        /*
+         * Fixed text scale — mbase's rem sizes, project-owned (deliberately
+         * NOT bridged to core's 12px/11px `--typo3-font-size[-small]`: this
+         * extension presents reading-heavy audit content and holds itself to
+         * readable text sizes). Exact rem values, never fluid, so text-only
+         * zoom stays precise (WCAG 1.4.4). Roles as in mbase:
+         *   base — body/reading copy;  sm — compact UI text (the :host
+         *   default);  xs — small supporting text (badges, inline issues).
+         */
+        --mindfula11y-font-size-base: 1.125rem;
+        --mindfula11y-font-size-sm: 1rem;
+        --mindfula11y-font-size-xs: 0.875rem;
+        --mindfula11y-line-height: var(--typo3-line-height, 1.5);
+
+        /*
+         * Fluid display type scale (Utopia, https://utopia.fyi) — headings and
+         * titles only, never body/UI text (fixed scale above; text zoom stays
+         * exact). Steps derive from the 16px UI text they head with a
+         * 1.2 → 1.25 modular ratio across the 320 → 1440px viewport range;
+         * `vi` resolves against the module iframe's inline size. Regenerate
+         * with mbase's generator: `mbase-tokens --section=type --min-font=16
+         * --max-font=16 --min-scale=1.2 --max-scale=1.25 --steps-up=2`.
+         */
+        --mindfula11y-font-size-display-lg: clamp(1.2rem, 1.1857rem + 0.0714vi, 1.25rem);
+        --mindfula11y-font-size-display-xl: clamp(1.44rem, 1.405rem + 0.175vi, 1.5625rem);
+
+        /*
+         * Control geometry — canonical padding and minimum hit area for every
+         * chip-sized control (tabs, chips, pills, small buttons). Declared in
+         * `em` so the values resolve against the *using* control's own text
+         * size and the whole control scales with its label.
+         */
+        --mindfula11y-control-padding-block: 0.375em;
+        --mindfula11y-control-padding-inline: 0.75em;
+        --mindfula11y-control-min-size: 1.5em;
+
+        /* Text */
+        --mindfula11y-text: var(--typo3-text-color-base, #1a1a1a);
+
+        /*
+         * Core's variant color is the base color at 65% alpha (~5:1 on light
+         * surfaces) — WCAG AA but short of the AAA 7:1 this extension holds
+         * itself to. Mixing base color back in lifts every subtle-text use
+         * above 7:1 in both schemes while keeping the muted look.
+         */
+        --mindfula11y-text-subtle: color-mix(
+            in srgb,
+            var(--typo3-text-color-base, #1a1a1a) 45%,
+            var(--typo3-text-color-variant, #6a6a6a)
+        );
+
+        /* Surfaces (page background < low < high elevation) */
+        --mindfula11y-surface: var(--typo3-surface-base, #f5f5f5);
+        --mindfula11y-surface-low: var(--typo3-surface-container-low, #fafafa);
+        --mindfula11y-surface-high: var(--typo3-surface-container-high, #ececec);
+
+        /* Generic component chrome */
+        --mindfula11y-component-bg: var(--typo3-component-bg, #fff);
+        --mindfula11y-component-color: var(--typo3-component-color, #1a1a1a);
+        --mindfula11y-component-hover-bg: var(--typo3-component-hover-bg, #ececec);
+        --mindfula11y-component-hover-color: var(--typo3-component-hover-color, #1a1a1a);
+        --mindfula11y-border: var(--typo3-component-border-color, #d4d4d4);
+        --mindfula11y-radius: var(--typo3-component-border-radius, 0.75em);
+
+        /*
+         * Fluid space scale (Utopia) — the ONLY spacing values components may
+         * use; never hand-calc spacing from a base token. The `s` step anchors
+         * on core's `--typo3-spacing` rhythm (1rem) at the 320px end and grows
+         * to 18px at 1440px module width; every step is a t-shirt multiple
+         * (3xs ×0.25 … 3xl ×6) with whole-px endpoints, Utopia-style.
+         *
+         * Two parallel scales, same curve, split by text-zoom behaviour:
+         *   --mindfula11y-space-*       (rem) grows with text zoom — gaps,
+         *                               padding and margins around text.
+         *   --mindfula11y-space-fixed-* (px) holds its size under text zoom —
+         *                               container-edge padding where a growing
+         *                               gap would steal reflow width
+         *                               (WCAG SC 1.4.10).
+         * Regenerate with mbase's generator: `mbase-tokens --section=space
+         * --min-font=16 --max-font=18 --one-up=false --pairs= --grid-gutter=s`.
+         */
+        --mindfula11y-space-3xs: clamp(0.25rem, 0.2321rem + 0.0893vi, 0.3125rem);
+        --mindfula11y-space-2xs: clamp(0.5rem, 0.4821rem + 0.0893vi, 0.5625rem);
+        --mindfula11y-space-xs: clamp(0.75rem, 0.7143rem + 0.1786vi, 0.875rem);
+        --mindfula11y-space-s: clamp(1rem, 0.9643rem + 0.1786vi, 1.125rem);
+        --mindfula11y-space-m: clamp(1.5rem, 1.4464rem + 0.2679vi, 1.6875rem);
+        --mindfula11y-space-l: clamp(2rem, 1.9286rem + 0.3571vi, 2.25rem);
+        --mindfula11y-space-xl: clamp(3rem, 2.8929rem + 0.5357vi, 3.375rem);
+        --mindfula11y-space-2xl: clamp(4rem, 3.8571rem + 0.7143vi, 4.5rem);
+        --mindfula11y-space-3xl: clamp(6rem, 5.7857rem + 1.0714vi, 6.75rem);
+        --mindfula11y-space-fixed-3xs: clamp(4px, 3.7143px + 0.0893vi, 5px);
+        --mindfula11y-space-fixed-2xs: clamp(8px, 7.7143px + 0.0893vi, 9px);
+        --mindfula11y-space-fixed-xs: clamp(12px, 11.4286px + 0.1786vi, 14px);
+        --mindfula11y-space-fixed-s: clamp(16px, 15.4286px + 0.1786vi, 18px);
+        --mindfula11y-space-fixed-m: clamp(24px, 23.1429px + 0.2679vi, 27px);
+        --mindfula11y-space-fixed-l: clamp(32px, 30.8571px + 0.3571vi, 36px);
+        --mindfula11y-space-fixed-xl: clamp(48px, 46.2857px + 0.5357vi, 54px);
+        --mindfula11y-space-fixed-2xl: clamp(64px, 61.7143px + 0.7143vi, 72px);
+        --mindfula11y-space-fixed-3xl: clamp(96px, 92.5714px + 1.0714vi, 108px);
+
+        /* Form controls */
+        --mindfula11y-input-bg: var(--typo3-input-bg, #fefefe);
+        --mindfula11y-input-color: var(--typo3-input-color, #1a1a1a);
+        --mindfula11y-input-border: var(--typo3-input-border-color, #bebebe);
+        --mindfula11y-input-hover-border: var(--typo3-input-hover-border-color, #9e9e9e);
+        --mindfula11y-input-radius: var(--typo3-input-border-radius, 0.75em);
+
+        /* Focus ring (composed with color-mix in base.css, like core) */
+        --mindfula11y-outline-width: var(--typo3-outline-width, 0.25rem);
+        --mindfula11y-outline-style: var(--typo3-outline-style, solid);
+        --mindfula11y-focus-color: var(--typo3-component-focus-border-color, #0078e6);
+
+        /*
+         * State colors, consumed through the shared `.notice` pattern
+         * (styles/notice.css). Core's companion `--typo3-state-*-color`
+         * ON-colors are deliberately NOT bridged: they only clear ~5:1 on
+         * core's solid state surfaces, which the AAA contrast rule
+         * (AGENTS.md §5) bans for text — the tint recipe never needs them.
+         */
+        --mindfula11y-state-info-bg: var(--typo3-state-info-bg, #e1f0fa);
+        --mindfula11y-state-info-border: var(--typo3-state-info-border-color, #a8d7f0);
+        --mindfula11y-state-success-bg: var(--typo3-state-success-bg, #e6f4ea);
+        --mindfula11y-state-success-border: var(--typo3-state-success-border-color, #a8d8b9);
+        --mindfula11y-state-warning-bg: var(--typo3-state-warning-bg, #fdf5e1);
+        --mindfula11y-state-warning-border: var(--typo3-state-warning-border-color, #f2d788);
+
+        /*
+         * "Serious" sits between warning and danger — axe impacts have four
+         * severity steps but core's semantic states only three alarm colors,
+         * so the orange state family fills the gap (matching the scanner's
+         * PDF/HTML report palette: critical red, serious orange).
+         */
+        --mindfula11y-state-serious-bg: var(--typo3-state-orange-bg, #f4953e);
+        --mindfula11y-state-serious-border: var(--typo3-state-orange-border-color, #f17a0e);
+        --mindfula11y-state-danger-bg: var(--typo3-state-danger-bg, #fbe7e7);
+        --mindfula11y-state-danger-border: var(--typo3-state-danger-border-color, #f0a8a8);
+
+        /*
+         * Landmark role accents — a categorical palette owned by mindfula11y:
+         * core's semantic layer has none, and its state colors would falsely
+         * signal severity on innocent landmarks. Decorative reinforcement only
+         * (role names are always printed next to the accent). The light-dark()
+         * pairs resolve against the inherited backend color-scheme; hues are
+         * spaced for color-vision safety and tuned to ~3:1 against surfaces.
+         */
+        --mindfula11y-role-banner: light-dark(#0b7285, #3bc9db);
+        --mindfula11y-role-navigation: light-dark(#5f3dc4, #9775fa);
+        --mindfula11y-role-main: light-dark(#1864ab, #4dabf7);
+        --mindfula11y-role-complementary: light-dark(#087f5b, #38d9a9);
+        --mindfula11y-role-contentinfo: light-dark(#495057, #adb5bd);
+        --mindfula11y-role-region: light-dark(#8a5d0b, #d9a648);
+        --mindfula11y-role-search: light-dark(#a61e4d, #f783ac);
+        --mindfula11y-role-form: light-dark(#96530f, #e8935c);
+    }
+}

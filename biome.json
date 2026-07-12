@@ -1,0 +1,153 @@
+{
+    "$schema": "https://biomejs.dev/schemas/2.5.3/schema.json",
+    "vcs": {
+        "enabled": true,
+        "clientKind": "git",
+        "useIgnoreFile": true
+    },
+    "formatter": {
+        "enabled": true,
+        "indentStyle": "space",
+        "indentWidth": 4,
+        "lineWidth": 120
+    },
+    "javascript": {
+        "formatter": {
+            "quoteStyle": "single",
+            "trailingCommas": "all"
+        }
+    },
+    "css": {
+        "formatter": {
+            "enabled": true,
+            "quoteStyle": "double"
+        },
+        "linter": {
+            "enabled": true
+        }
+    },
+    "linter": {
+        "enabled": true,
+        "rules": {
+            "preset": "recommended",
+            "complexity": {
+                "noUselessReturn": "error",
+                "noImportantStyles": "error"
+            },
+            "correctness": {
+                "noUnknownMediaFeatureName": "off",
+                "useImportExtensions": {
+                    "level": "error",
+                    "options": {
+                        "extensionMappings": {
+                            "ts": "js"
+                        }
+                    }
+                }
+            },
+            "nursery": {
+                "noFloatingPromises": "error",
+                "noMisusedPromises": "error",
+                "useAwaitThenable": "error",
+                "useExplicitType": "error",
+                "useNullishCoalescing": "error",
+                "noDuplicateSelectors": "error",
+                "noExcessiveSelectorClasses": {
+                    "level": "error",
+                    "options": {
+                        "maxClasses": 3
+                    }
+                },
+                "useBaseline": {
+                    "level": "error",
+                    "options": {
+                        "available": 2026,
+                        "allowProperties": ["interpolate-size", "resize", "accent-color", "field-sizing"],
+                        "allowPropertyValues": { "text-wrap": ["pretty"] }
+                    }
+                }
+            },
+            "style": {
+                "noDescendingSpecificity": "warn",
+                "noHexColors": "error",
+                "useImportType": "error",
+                "useExportType": "error",
+                "noNonNullAssertion": "error",
+                "useConsistentArrayType": {
+                    "level": "error",
+                    "options": {
+                        "syntax": "shorthand"
+                    }
+                },
+                "useNamingConvention": "error"
+            },
+            "suspicious": {
+                "noUnknownAtRules": "off",
+                "noShorthandPropertyOverrides": "error",
+                "noConsole": {
+                    "level": "error",
+                    "options": {
+                        "allow": ["warn", "error"]
+                    }
+                },
+                "noShadow": "error",
+                "noDeprecatedMediaType": "error",
+                "noEmptySource": "error"
+            }
+        }
+    },
+    "assist": {
+        "enabled": true,
+        "actions": {
+            "source": {
+                "useSortedProperties": "on"
+            }
+        }
+    },
+    "files": {
+        "ignoreUnknown": true,
+        "includes": ["**", "!**/Resources/Public", "!**/*.html", "!**/*.svg", "!**/Documentation"]
+    },
+    "overrides": [
+        {
+            "includes": ["**/Resources/Private/Source/styles/tokens.css"],
+            "linter": {
+                "rules": {
+                    "style": {
+                        "noHexColors": "off"
+                    }
+                }
+            }
+        },
+        {
+            "includes": ["**/Resources/Private/Source/styles/reset.css"],
+            "linter": {
+                "rules": {
+                    "complexity": {
+                        "noImportantStyles": "off"
+                    }
+                }
+            }
+        },
+        {
+            "includes": ["**/Resources/Private/Build/build.mjs"],
+            "linter": {
+                "rules": {
+                    "suspicious": {
+                        "noConsole": "off"
+                    }
+                }
+            }
+        },
+        {
+            "includes": ["**/Resources/Private/Build/types/*.d.ts"],
+            "linter": {
+                "rules": {
+                    "style": {
+                        "useNamingConvention": "off"
+                    }
+                }
+            }
+        }
+    ]
+}

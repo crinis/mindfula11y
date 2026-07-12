@@ -1,4 +1,19 @@
+# Trim development files from dist artefacts (Composer/Packagist installs use
+# GitHub's git-archive zips, which honor export-ignore). The TER channel is
+# covered separately by .github/ExcludeFromPackaging.php (tailor).
 /.github export-ignore
 /.gitignore export-ignore
 /.gitattributes export-ignore
+/Configuration/Sets/MindfulA11yDev export-ignore
+/Configuration/Sets/MindfulA11yVisualEditorDemo export-ignore
 /Documentation export-ignore
+/Resources/Private/Build export-ignore
+/Resources/Private/Source export-ignore
+/Resources/Private/VisualEditorDemo export-ignore
+/package.json export-ignore
+/package-lock.json export-ignore
+/tsconfig.json export-ignore
+/biome.json export-ignore
+/stylelint.config.mjs export-ignore
+/AGENTS.md export-ignore
+/CLAUDE.md export-ignore

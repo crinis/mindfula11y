@@ -1,0 +1,2 @@
+import { unsafeCSS } from 'lit';
+export default unsafeCSS("@layer reset{*,:before,:after{box-sizing:border-box}*{margin:0}img,svg{max-inline-size:100%;display:block}button,input,select,textarea{font:inherit;color:inherit}ul,ol{padding:0;list-style:none}@media (prefers-reduced-motion:reduce){*,:before,:after{scroll-behavior:auto!important;transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important}}}");

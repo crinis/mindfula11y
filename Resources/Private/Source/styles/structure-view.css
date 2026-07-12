@@ -1,0 +1,80 @@
+/*
+ * Mindful A11y extension for TYPO3 integrating accessibility tools into the backend.
+ * Copyright (C) 2026  Mindful Markup, Felix Spittel
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+
+/*
+ * Chrome shared by the two structure views (heading tree and landmark
+ * schematic): the container-query wrapper, page-scoped issue spacing, the
+ * record edit link, the empty state and the focus-jump highlight flash.
+ */
+@layer component {
+    .view {
+        container-type: inline-size;
+    }
+
+    .issue {
+        &[data-scope="page"] {
+            margin-block-end: var(--mindfula11y-space-2xs);
+        }
+    }
+
+    .edit {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: var(--mindfula11y-control-padding-block);
+        color: var(--mindfula11y-text-subtle);
+        border-radius: var(--mindfula11y-input-radius);
+
+        &:hover {
+            color: var(--mindfula11y-component-hover-color);
+            background-color: var(--mindfula11y-component-hover-bg);
+        }
+    }
+
+    .empty {
+        display: flex;
+        flex-direction: column;
+        gap: var(--mindfula11y-space-2xs);
+        align-items: center;
+        max-inline-size: 70ch;
+        padding-block: var(--mindfula11y-space-l);
+        margin-inline: auto;
+        color: var(--mindfula11y-text-subtle);
+        text-align: center;
+    }
+
+    .empty-title {
+        font-weight: 700;
+    }
+
+    /* Focus-jump highlight (reduced motion is globally guarded in reset.css). */
+    [data-highlight] {
+        animation: flash 1.2s ease-out;
+    }
+
+    @keyframes flash {
+        from {
+            background-color: color-mix(in srgb, var(--mindfula11y-focus-color) 15%, transparent);
+        }
+
+        to {
+            background-color: transparent;
+        }
+    }
+}

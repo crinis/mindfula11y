@@ -198,6 +198,7 @@ class WebLayoutInfo
             'scanUri' => $scanUri,
             'createScanDemand' => $createScanDemand,
             'autoCreateScan' => $this->generalModuleService->isAutoCreateScanEnabled($pageTsConfig),
+            'pageUrlFilter' => null !== $previewUri ? [(string) $previewUri] : [],
         ]);
 
         $renderedContent = $view->render('Backend/WebLayout/GeneralAccessibility');
@@ -208,11 +209,10 @@ class WebLayoutInfo
         // Register language labels for JavaScript
         $this->pageRenderer->addInlineLanguageLabelArray($this->generalModuleService->getInlineLanguageLabels());
 
-        // Load the CSS
-        $this->pageRenderer->addCssFile('EXT:mindfula11y/Resources/Public/Css/mindfula11y.css');
-
-        // Load the JavaScript modules
-        $this->pageRenderer->loadJavaScriptModule('@mindfulmarkup/mindfula11y/structure.js');
-        $this->pageRenderer->loadJavaScriptModule('@mindfulmarkup/mindfula11y/scan-issue-count.js');
+        // Load the JavaScript modules; all styling lives in the components'
+        // shadow roots, so no global CSS file is needed here.
+        $this->pageRenderer->loadJavaScriptModule('@mindfulmarkup/mindfula11y/element/structure/structure.js');
+        $this->pageRenderer->loadJavaScriptModule('@mindfulmarkup/mindfula11y/element/scan-issue-count/scan-issue-count.js');
+        $this->pageRenderer->loadJavaScriptModule('@mindfulmarkup/mindfula11y/element/notice/notice.js');
     }
 }

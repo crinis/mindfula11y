@@ -36,4 +36,8 @@ return [
         'path' => '/mindfula11y/scan/get',
         'target' => ScanAjaxController::class . '::getAction',
     ],
+    'mindfula11y_cancelscan' => [
+        'path' => '/mindfula11y/scan/cancel',
+        'target' => ScanAjaxController::class . '::cancelAction',
+    ],
 ];

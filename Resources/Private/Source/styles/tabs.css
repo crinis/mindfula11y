@@ -1,0 +1,90 @@
+/*
+ * Mindful A11y extension for TYPO3 integrating accessibility tools into the backend.
+ * Copyright (C) 2026  Mindful Markup, Felix Spittel
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+
+/*
+ * Shared segmented-control tab pattern (structure + scan containers): a
+ * `.tabs` track holding `[role="tab"]` buttons, the selected tab reading as
+ * the raised segment, with an optional `.notice count` severity badge pill.
+ * The container query needs an ancestor with `container-type: inline-size`
+ * — every adopting component sets it on its wrapper element.
+ */
+@layer component {
+    /* Segmented control track; the selected tab reads as the raised segment. */
+    .tabs {
+        display: inline-flex;
+        gap: var(--mindfula11y-space-3xs);
+        align-self: stretch;
+        /* Container edge around the tab buttons — the px twin holds the track inset under text zoom. */
+        padding: var(--mindfula11y-space-fixed-3xs);
+        background-color: var(--mindfula11y-surface-high);
+        border-radius: var(--mindfula11y-radius);
+    }
+
+    [role="tab"] {
+        display: inline-flex;
+        flex: 1;
+        gap: var(--mindfula11y-space-3xs);
+        align-items: center;
+        justify-content: center;
+        min-block-size: var(--mindfula11y-control-min-size);
+        padding-block: var(--mindfula11y-control-padding-block);
+        padding-inline: var(--mindfula11y-control-padding-inline);
+        font-weight: 600;
+        color: var(--mindfula11y-text-subtle);
+        cursor: pointer;
+        background-color: transparent;
+        border: 1px solid transparent;
+        border-radius: var(--mindfula11y-input-radius);
+
+        &:hover {
+            color: var(--mindfula11y-text);
+        }
+
+        &[aria-selected="true"] {
+            color: var(--mindfula11y-component-color);
+            background-color: var(--mindfula11y-component-bg);
+            border-color: var(--mindfula11y-border);
+        }
+
+        &:disabled {
+            cursor: default;
+        }
+    }
+
+    /* Mobile-first: the track stretches and tabs share it; wide hosts hug content. */
+    @container (inline-size >= 24rem) {
+        .tabs {
+            align-self: flex-start;
+        }
+
+        [role="tab"] {
+            flex: none;
+        }
+    }
+
+    /* Numeric severity badge inside a tab — a tighter notice pill. */
+    .count {
+        justify-content: center;
+        min-inline-size: var(--mindfula11y-control-min-size);
+        padding-block: 0;
+        padding-inline: 0.4em;
+        font-size: var(--mindfula11y-font-size-xs);
+        font-weight: 700;
+    }
+}

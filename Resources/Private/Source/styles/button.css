@@ -1,0 +1,50 @@
+/*
+ * Mindful A11y extension for TYPO3 integrating accessibility tools into the backend.
+ * Copyright (C) 2026  Mindful Markup, Felix Spittel
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+
+/*
+ * Shared input-styled action pattern (`<button>` or link): core input tokens,
+ * em-based control geometry for ≥ 24px targets at every zoom. Combine with a
+ * role class for per-component tweaks (`class="button retry"`).
+ */
+@layer component {
+    .button {
+        display: inline-flex;
+        gap: var(--mindfula11y-space-3xs);
+        align-items: center;
+        min-block-size: var(--mindfula11y-control-min-size);
+        padding-block: var(--mindfula11y-control-padding-block);
+        padding-inline: var(--mindfula11y-control-padding-inline);
+        font-weight: 600;
+        color: var(--mindfula11y-input-color);
+        text-decoration: none;
+        cursor: pointer;
+        background-color: var(--mindfula11y-input-bg);
+        border: 1px solid var(--mindfula11y-input-border);
+        border-radius: var(--mindfula11y-input-radius);
+
+        &:hover {
+            border-color: var(--mindfula11y-input-hover-border);
+        }
+
+        &:disabled {
+            color: var(--mindfula11y-text-subtle);
+            cursor: default;
+        }
+    }
+}

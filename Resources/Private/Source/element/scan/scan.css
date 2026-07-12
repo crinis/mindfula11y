@@ -1,0 +1,92 @@
+/*
+ * Mindful A11y extension for TYPO3 integrating accessibility tools into the backend.
+ * Copyright (C) 2026  Mindful Markup, Felix Spittel
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+
+/*
+ * Scan module chrome: segmented tabs, action buttons and the loading
+ * placeholder come from the shared pattern modules (styles/tabs.css,
+ * styles/button.css, styles/placeholder.css), status surfaces from the
+ * notice pattern; rules here own the action row and the AI toggle.
+ */
+@layer component {
+    .scan {
+        display: flex;
+        flex-direction: column;
+        gap: var(--mindfula11y-space-xs);
+        container-type: inline-size;
+    }
+
+    .panel {
+        display: flex;
+        flex-direction: column;
+        gap: var(--mindfula11y-space-xs);
+
+        /* The explicit display would beat the UA [hidden] rule on inactive panels. */
+        &[hidden] {
+            display: none;
+        }
+    }
+
+    .description {
+        max-inline-size: 70ch;
+        color: var(--mindfula11y-text-subtle);
+    }
+
+    /* Checkbox and label share the first row; the description sits below,
+       aligned with the label text rather than the checkbox. */
+    .toggle {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: var(--mindfula11y-space-3xs) var(--mindfula11y-space-3xs);
+        align-items: center;
+    }
+
+    .checkbox {
+        /* em-sized so the target stays ≥ 24px at every zoom (WCAG 2.5.8). */
+        inline-size: 1.5em;
+        block-size: 1.5em;
+        accent-color: var(--mindfula11y-focus-color);
+
+        &:not(:disabled) {
+            cursor: pointer;
+        }
+    }
+
+    .toggle-label {
+        font-weight: 600;
+    }
+
+    .toggle-description {
+        grid-column: 2;
+        max-inline-size: 70ch;
+        font-size: var(--mindfula11y-font-size-xs);
+        color: var(--mindfula11y-text-subtle);
+    }
+
+    .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--mindfula11y-space-fixed-2xs);
+        align-items: center;
+    }
+
+    .meta {
+        font-size: var(--mindfula11y-font-size-xs);
+        color: var(--mindfula11y-text-subtle);
+    }
+}

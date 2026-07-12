@@ -1,0 +1,114 @@
+/*
+ * Mindful A11y extension for TYPO3 integrating accessibility tools into the backend.
+ * Copyright (C) 2026  Mindful Markup, Felix Spittel
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+
+/*
+ * Shared notice pattern — the single implementation of every status surface
+ * (callouts, inline issues, findings chips, count badges, pills).
+ * Adopt alongside baseStyles and combine the class with the element's role
+ * class (`class="notice issue"`); `data-state` picks the palette by
+ * re-pointing the internal token pair, `data-variant` adjusts the shape.
+ * Block-level callouts (the variant-less default) are not written by hand:
+ * they render through the `<mindfula11y-notice>` element, which works from
+ * Fluid light DOM and inside other components' shadow roots alike.
+ *
+ * Neutral-on-tint recipe: core's solid state surfaces cap text contrast near
+ * 5:1, so text stays the neutral color on a 15% state tint with the saturated
+ * state border — above the AAA 7:1 floor in both schemes while tint, border
+ * and icon still convey severity.
+ */
+@layer component {
+    .notice {
+        --mindfula11y-notice-bg: var(--mindfula11y-state-info-bg);
+        --mindfula11y-notice-border: var(--mindfula11y-state-info-border);
+
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--mindfula11y-space-2xs);
+        align-items: center;
+        max-inline-size: 70ch;
+        color: var(--mindfula11y-text);
+        background-color: color-mix(in srgb, var(--mindfula11y-notice-bg) 15%, var(--mindfula11y-component-bg));
+        border: 1px solid var(--mindfula11y-notice-border);
+        border-radius: var(--mindfula11y-radius);
+
+        /*
+         * State and shape selectors stay at zero added specificity via
+         * :where() so a component's role class (adopted later) can override
+         * any pattern declaration without specificity gymnastics.
+         */
+        &:where([data-state="success"]) {
+            --mindfula11y-notice-bg: var(--mindfula11y-state-success-bg);
+            --mindfula11y-notice-border: var(--mindfula11y-state-success-border);
+        }
+
+        &:where([data-state="warning"]) {
+            --mindfula11y-notice-bg: var(--mindfula11y-state-warning-bg);
+            --mindfula11y-notice-border: var(--mindfula11y-state-warning-border);
+        }
+
+        &:where([data-state="serious"]) {
+            --mindfula11y-notice-bg: var(--mindfula11y-state-serious-bg);
+            --mindfula11y-notice-border: var(--mindfula11y-state-serious-border);
+        }
+
+        &:where([data-state="danger"]) {
+            --mindfula11y-notice-bg: var(--mindfula11y-state-danger-bg);
+            --mindfula11y-notice-border: var(--mindfula11y-state-danger-border);
+        }
+
+        /*
+         * Default shape — a callout echoing core's design: the thick state
+         * accent bar (inline-start, like core's .callout) makes block-level
+         * status messages clearly visible without the pill rounding.
+         */
+        &:where(:not([data-variant])) {
+            gap: var(--mindfula11y-space-xs);
+            padding-block: var(--mindfula11y-space-xs);
+            padding-inline: var(--mindfula11y-space-s);
+            border-inline-start-width: 0.375rem;
+        }
+
+        /*
+         * Compact shapes shared by both variants — em padding tracks the
+         * notice's own text size, like every other chip-sized control.
+         */
+        &:where([data-variant="inline"], [data-variant="pill"]) {
+            inline-size: fit-content;
+            padding-block: var(--mindfula11y-control-padding-block);
+            padding-inline: var(--mindfula11y-control-padding-inline);
+        }
+
+        /* Compact form for per-item inline issues. */
+        &:where([data-variant="inline"]) {
+            align-items: flex-start;
+            font-size: var(--mindfula11y-font-size-xs);
+        }
+
+        /* Pill form for chips and badges. */
+        &:where([data-variant="pill"]) {
+            display: inline-flex;
+            min-block-size: var(--mindfula11y-control-min-size);
+            border-radius: 999em;
+        }
+    }
+
+    .notice-title {
+        font-weight: 700;
+    }
+}

@@ -21,6 +21,16 @@ mod {
             # Credentials are read server-side only and are never exposed to the browser.
             # basicAuthUsername =
             # basicAuthPassword =
+            aiAudit {
+                # Offer the "Include AI review" toggle in the scan module. Requires the
+                # scanner API to run with its optional agent feature enabled (AGENT_ENABLED).
+                enable = 0
+                # Pre-select the toggle for new scans. Editors can still switch it off per scan.
+                default = 0
+                # Skills requested from the scanner API. Align with the server's AGENT_SKILLS
+                # whitelist — requesting a skill the server does not allow fails the scan creation.
+                skills = image_alt_text,heading_structure,link_purpose,form_labels,page_title
+            }
         }
     }
 

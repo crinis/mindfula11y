@@ -1,0 +1,39 @@
+{
+    "name": "mindfula11y",
+    "private": true,
+    "description": "Frontend toolchain for the Mindful A11y TYPO3 extension — TypeScript/Lit sources in Resources/Private/Source, build tooling in Resources/Private/Build, transpiled ES modules in Resources/Public/JavaScript. Lit and @typo3/* modules are provided at runtime by the TYPO3 core importmap and are npm devDependencies for types only.",
+    "license": "GPL-2.0-or-later",
+    "type": "module",
+    "scripts": {
+        "build": "node Resources/Private/Build/build.mjs",
+        "watch": "node Resources/Private/Build/build.mjs --watch",
+        "typecheck": "tsc --noEmit",
+        "lint": "biome check . && stylelint \"Resources/Private/Source/**/*.css\" && npm run typecheck",
+        "lint:fix": "biome check --write . && stylelint --fix \"Resources/Private/Source/**/*.css\"",
+        "format": "biome format --write .",
+        "prepare": "simple-git-hooks"
+    },
+    "simple-git-hooks": {
+        "pre-commit": "npx lint-staged"
+    },
+    "lint-staged": {
+        "*.{ts,mjs,json}": "biome check --write --no-errors-on-unmatched",
+        "Resources/Private/Source/**/*.css": [
+            "biome check --write --no-errors-on-unmatched",
+            "stylelint --fix"
+        ]
+    },
+    "devDependencies": {
+        "@biomejs/biome": "^2.5.0",
+        "@lit/task": "^1.0.2",
+        "esbuild": "^0.25.5",
+        "lightningcss": "^1.32.0",
+        "lint-staged": "^16.1.0",
+        "lit": "~3.2.0",
+        "simple-git-hooks": "^2.13.0",
+        "stylelint": "^17.0.0",
+        "stylelint-config-standard": "^40.0.0",
+        "stylelint-declaration-block-no-ignored-properties": "^3.0.0",
+        "typescript": "^5.8.3"
+    }
+}

@@ -7,27 +7,22 @@
   <f:layout name="Module" />
 
   <f:section name="Content">
-    <section class="callout callout-notice">
-      <div class="callout-content">
-        <div class="callout-title">
-          <h1>
-            <f:translate
-              key="LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan"
-            />
-          </h1>
-        </div>
-        <div class="callout-body">
-          <mindfula11y-scan
-            createScanDemand="{createScanDemand -> f:format.json()}"
-            crawlScanDemand="{crawlScanDemand -> f:format.json()}"
-            scanId="{scanId}"
-            autoCreateScan="{autoCreateScan}"
-            pageUrlFilter="{pageUrlFilter -> f:format.json()}"
-            urlList="{urlList -> f:format.json()}"
-            reportBaseUrl="{reportBaseUrl}"
-          ></mindfula11y-scan>
-        </div>
-      </div>
-    </section>
+    <h1>
+      <f:translate
+        key="LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan"
+      />
+    </h1>
+    <mindfula11y-scan
+      scan-id="{scanId}"
+      create-scan-demand="{createScanDemand -> f:format.json()}"
+      crawl-scan-demand="{crawlScanDemand -> f:format.json()}"
+      page-url-filter="{pageUrlFilter -> f:format.json()}"
+      url-list="{urlList -> f:format.json()}"
+      report-base-url="{reportBaseUrl}"
+      ai-audit-skills="{aiAuditSkills -> f:format.json()}"
+      {f:if(condition: autoCreateScan, then: 'auto-create-scan')}
+      {f:if(condition: aiAuditAvailable, then: 'ai-audit-available')}
+      {f:if(condition: aiAuditDefault, then: 'ai-audit-default')}
+    ></mindfula11y-scan>
   </f:section>
 </html>

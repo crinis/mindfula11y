@@ -54,6 +54,18 @@
             <trans-unit id="structure" resname="structure">
                 <source>Structure</source>
             </trans-unit>
+            <trans-unit id="structure.analyzing" resname="structure.analyzing">
+                <source>Analyzing page structure …</source>
+            </trans-unit>
+            <trans-unit id="structure.analyzed" resname="structure.analyzed">
+                <source>Page structure analyzed: %d errors, %d warnings.</source>
+            </trans-unit>
+            <trans-unit id="structure.updated" resname="structure.updated">
+                <source>Page structure updated: %d errors, %d warnings.</source>
+            </trans-unit>
+            <trans-unit id="structure.retry" resname="structure.retry">
+                <source>Retry</source>
+            </trans-unit>
 
             <trans-unit id="general.viewDetails" resname="general.viewDetails">
                 <source>View Details</source>
@@ -188,6 +200,18 @@
             <trans-unit id="altText.save" resname="altText.save">
                 <source>Save</source>
             </trans-unit>
+            <trans-unit id="altText.save.success" resname="altText.save.success">
+                <source>Alternative text saved.</source>
+            </trans-unit>
+            <trans-unit id="altText.save.error" resname="altText.save.error">
+                <source>Could not save alternative text</source>
+            </trans-unit>
+            <trans-unit id="altText.save.error.description" resname="altText.save.error.description">
+                <source>The change was not stored. Please try again or edit the record directly.</source>
+            </trans-unit>
+            <trans-unit id="altText.opensNewTab" resname="altText.opensNewTab">
+                <source>(opens in a new tab)</source>
+            </trans-unit>
             <trans-unit id="altText.imagePreview" resname="altText.imagePreview">
                 <source>Image preview</source>
             </trans-unit>
@@ -264,7 +288,7 @@
             </trans-unit>
             <trans-unit id="structure.headings.error.skippedLevel.inline"
                 resname="structure.headings.error.skippedLevel.inline">
-                <source>Skipped H%1$d</source>
+                <source>Missing heading level %d — the following heading skips a level.</source>
             </trans-unit>
             <trans-unit id="structure.headings.error.missingH1"
                 resname="structure.headings.error.missingH1">
@@ -299,6 +323,9 @@
             </trans-unit>
             <trans-unit id="structure.headings.relation.descendant" resname="structure.headings.relation.descendant">
                 <source>Related to parent heading</source>
+            </trans-unit>
+            <trans-unit id="structure.headings.relation.jump" resname="structure.headings.relation.jump">
+                <source>Jump to the related heading.</source>
             </trans-unit>
             <trans-unit id="structure.headings.relation.sibling" resname="structure.headings.relation.sibling">
                 <source>Related to sibling heading</source>
@@ -503,8 +530,11 @@
             <trans-unit id="scan.crawl.refresh" resname="scan.crawl.refresh">
                 <source>Refresh Crawl</source>
             </trans-unit>
-            <trans-unit id="scan.crawl.progress" resname="scan.crawl.progress">
-                <source>%scanned of %discovered pages scanned</source>
+            <trans-unit id="scan.progress.pages" resname="scan.progress.pages">
+                <source>Scanned %d of %d pages</source>
+            </trans-unit>
+            <trans-unit id="scan.progress.pagesFailed" resname="scan.progress.pagesFailed">
+                <source>%d pages failed</source>
             </trans-unit>
             <trans-unit id="scan.tab.scan" resname="scan.tab.scan">
                 <source>Targeted Scan</source>
@@ -572,6 +602,108 @@
             <trans-unit id="scan.status.failed.description" resname="scan.status.failed.description">
                 <source>The accessibility scan failed. Please try again later or contact your administrator.</source>
             </trans-unit>
+            <trans-unit id="scan.status.analyzing" resname="scan.status.analyzing">
+                <source>AI review running</source>
+            </trans-unit>
+            <trans-unit id="scan.status.canceled" resname="scan.status.canceled">
+                <source>Scan canceled</source>
+            </trans-unit>
+            <trans-unit id="scan.status.canceled.description" resname="scan.status.canceled.description">
+                <source>The scan was canceled before it finished. Start a new scan to get results.</source>
+            </trans-unit>
+            <trans-unit id="scan.cancel" resname="scan.cancel">
+                <source>Cancel scan</source>
+            </trans-unit>
+            <trans-unit id="scan.error.cancelFailed" resname="scan.error.cancelFailed">
+                <source>Failed to cancel scan</source>
+            </trans-unit>
+            <trans-unit id="scan.error.cancelFailed.description" resname="scan.error.cancelFailed.description">
+                <source>The scan could not be canceled. It may already have finished.</source>
+            </trans-unit>
+            <trans-unit id="scan.error.aiAuditNotAllowed" resname="scan.error.aiAuditNotAllowed">
+                <source>AI review not allowed</source>
+            </trans-unit>
+            <trans-unit id="scan.error.aiAuditNotAllowed.description" resname="scan.error.aiAuditNotAllowed.description">
+                <source>The AI review is not enabled for this page. Ask your administrator to enable it in the page TSconfig.</source>
+            </trans-unit>
+            <trans-unit id="scan.announce.started" resname="scan.announce.started">
+                <source>Scan started.</source>
+            </trans-unit>
+            <trans-unit id="scan.announce.completed" resname="scan.announce.completed">
+                <source>Scan completed: %d issues found.</source>
+            </trans-unit>
+            <trans-unit id="scan.announce.canceled" resname="scan.announce.canceled">
+                <source>Scan canceled.</source>
+            </trans-unit>
+            <trans-unit id="scan.announce.failed" resname="scan.announce.failed">
+                <source>Scan failed.</source>
+            </trans-unit>
+            <trans-unit id="scan.aiAudit.toggle" resname="scan.aiAudit.toggle">
+                <source>Include AI review</source>
+            </trans-unit>
+            <trans-unit id="scan.aiAudit.toggle.description" resname="scan.aiAudit.toggle.description">
+                <source>A language model additionally reviews content quality aspects: %s. AI findings are suggestions and need human judgement.</source>
+            </trans-unit>
+            <trans-unit id="scan.aiAudit.section" resname="scan.aiAudit.section">
+                <source>AI review</source>
+            </trans-unit>
+            <trans-unit id="scan.aiAudit.disclaimer.title" resname="scan.aiAudit.disclaimer.title">
+                <source>AI-generated — verify before acting</source>
+            </trans-unit>
+            <trans-unit id="scan.aiAudit.disclaimer.description" resname="scan.aiAudit.disclaimer.description">
+                <source>The findings below were produced by a large language model (LLM), not the deterministic axe-core engine. They may be incomplete, inaccurate, or reflect subjective judgement. Confidence values are the model's own estimates; items marked "Needs human review" were low-confidence or could not be judged reliably. Treat every item as a suggestion to confirm manually, not a definitive accessibility result.</source>
+            </trans-unit>
+            <trans-unit id="scan.aiAudit.status.pending" resname="scan.aiAudit.status.pending">
+                <source>AI review queued</source>
+            </trans-unit>
+            <trans-unit id="scan.aiAudit.status.running" resname="scan.aiAudit.status.running">
+                <source>AI review running — %d of %d checks done</source>
+            </trans-unit>
+            <trans-unit id="scan.aiAudit.tasksFailed" resname="scan.aiAudit.tasksFailed">
+                <source>%d AI checks did not finish</source>
+            </trans-unit>
+            <trans-unit id="scan.aiAudit.appropriateCount" resname="scan.aiAudit.appropriateCount">
+                <source>%d elements were reviewed and assessed as appropriate.</source>
+            </trans-unit>
+            <trans-unit id="scan.aiAudit.noFindings" resname="scan.aiAudit.noFindings">
+                <source>The AI review found nothing to flag.</source>
+            </trans-unit>
+            <trans-unit id="scan.aiAudit.findingCount" resname="scan.aiAudit.findingCount">
+                <source>%d finding</source>
+            </trans-unit>
+            <trans-unit id="scan.aiAudit.findingsCount" resname="scan.aiAudit.findingsCount">
+                <source>%d findings</source>
+            </trans-unit>
+            <trans-unit id="scan.aiAudit.skill.image_alt_text" resname="scan.aiAudit.skill.image_alt_text">
+                <source>Image alternative text</source>
+            </trans-unit>
+            <trans-unit id="scan.aiAudit.skill.heading_structure" resname="scan.aiAudit.skill.heading_structure">
+                <source>Heading structure</source>
+            </trans-unit>
+            <trans-unit id="scan.aiAudit.skill.link_purpose" resname="scan.aiAudit.skill.link_purpose">
+                <source>Link purpose</source>
+            </trans-unit>
+            <trans-unit id="scan.aiAudit.skill.form_labels" resname="scan.aiAudit.skill.form_labels">
+                <source>Form labels</source>
+            </trans-unit>
+            <trans-unit id="scan.aiAudit.skill.page_title" resname="scan.aiAudit.skill.page_title">
+                <source>Page title</source>
+            </trans-unit>
+            <trans-unit id="scan.aiAudit.confidence" resname="scan.aiAudit.confidence">
+                <source>Confidence: %d %</source>
+            </trans-unit>
+            <trans-unit id="scan.aiAudit.needsHumanReview" resname="scan.aiAudit.needsHumanReview">
+                <source>Needs human review</source>
+            </trans-unit>
+            <trans-unit id="scan.aiAudit.suggestion" resname="scan.aiAudit.suggestion">
+                <source>Suggestion</source>
+            </trans-unit>
+            <trans-unit id="scan.aiAudit.wcag" resname="scan.aiAudit.wcag">
+                <source>WCAG %s</source>
+            </trans-unit>
+            <trans-unit id="scan.aiAudit.model" resname="scan.aiAudit.model">
+                <source>Reviewed by model: %s</source>
+            </trans-unit>
 
             <trans-unit id="scan.error.notConfigured" resname="scan.error.notConfigured">
                 <source>Scanner API not configured</source>
@@ -615,14 +747,11 @@
             <trans-unit id="scan.error.storeFailed.description" resname="scan.error.storeFailed.description">
                 <source>Could not store the scan ID in the database. Please try again.</source>
             </trans-unit>
-            <trans-unit id="scan.helpLinks" resname="scan.helpLinks">
-                <source>More information</source>
+            <trans-unit id="scan.helpUrl" resname="scan.helpUrl">
+                <source>How to fix this</source>
             </trans-unit>
-            <trans-unit id="scan.viewScreenshot" resname="scan.viewScreenshot">
-                <source>View Screenshot</source>
-            </trans-unit>
-            <trans-unit id="scan.screenshot" resname="scan.screenshot">
-                <source>Screenshot:</source>
+            <trans-unit id="scan.opensNewTab" resname="scan.opensNewTab">
+                <source>(opens in a new tab)</source>
             </trans-unit>
             <trans-unit id="scan.issueCount" resname="scan.issueCount">
                 <source>%d Issue</source>
@@ -644,6 +773,9 @@
             </trans-unit>
             <trans-unit id="scan.issuesFound" resname="scan.issuesFound">
                 <source>Last external scan: %d accessibility issues found</source>
+            </trans-unit>
+            <trans-unit id="scan.summary.jumpHint" resname="scan.summary.jumpHint">
+                <source>Jump to the first issue</source>
             </trans-unit>
             <trans-unit id="scan.noIssues" resname="scan.noIssues">
                 <source>Last external scan: No accessibility issues found</source>

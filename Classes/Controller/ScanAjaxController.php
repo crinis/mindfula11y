@@ -25,6 +25,7 @@ namespace MindfulMarkup\MindfulA11y\Controller;
 
 use InvalidArgumentException;
 use MindfulMarkup\MindfulA11y\Domain\Model\CreateScanDemand;
+use MindfulMarkup\MindfulA11y\Exception\ScanApiRequestException;
 use MindfulMarkup\MindfulA11y\Hooks\ScanStateDataHandlerGuard;
 use MindfulMarkup\MindfulA11y\Service\ScanApiService;
 use MindfulMarkup\MindfulA11y\Service\GeneralModuleService;
@@ -194,6 +195,9 @@ class ScanAjaxController extends ActionController
         $pageLevels = isset($requestBody['pageLevels']) ? (int)$requestBody['pageLevels'] : 0;
         $crawl = (bool)($requestBody['crawl'] ?? false);
         $signature = $requestBody['signature'] ?? '';
+        // Editor choice riding alongside the signed demand fields: authorization
+        // happens via Page TSconfig below, so it needs no HMAC coverage.
+        $aiAuditRequested = (bool)($requestBody['aiAudit'] ?? false);
 
         if ($userId <= 0 || $pageId <= 0 || !is_string($signature) || $signature === '' || !is_string($previewUrl) || $previewUrl === '') {
             throw new InvalidArgumentException('Missing or invalid parameters for creating a scan');
@@ -266,6 +270,23 @@ class ScanAjaxController extends ActionController
                     ]
                 ])
             )->withStatus(403);
+        }
+
+        // The AI audit is opt-in via Page TSconfig; the skill list is read
+        // server-side only, so clients cannot request arbitrary skills.
+        $aiAuditSkills = [];
+        if ($aiAuditRequested) {
+            if (!$this->generalModuleService->hasAiAuditAccess($pageTsConfig)) {
+                return $this->jsonResponse(
+                    json_encode([
+                        'error' => [
+                            'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.aiAuditNotAllowed'),
+                            'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.aiAuditNotAllowed.description'),
+                        ]
+                    ])
+                )->withStatus(403);
+            }
+            $aiAuditSkills = $this->generalModuleService->getAiAuditSkills($pageTsConfig);
         }
 
         // Check if scanner is configured
@@ -379,7 +400,23 @@ class ScanAjaxController extends ActionController
             $scanOptions['basicAuth'] = $basicAuth;
         }
 
-        $scanData = $this->scanApiService->createScan($scanUrls, $crawl, $crawlOptions, $scanOptions);
+        try {
+            $scanData = $this->scanApiService->createScan($scanUrls, $crawl, $crawlOptions, $scanOptions, $aiAuditSkills);
+        } catch (ScanApiRequestException $exception) {
+            // Surface the API's own explanation (e.g. "AI audit is not enabled
+            // on this server.") so editors see an actionable message.
+            $description = $exception->getProblemDetail() !== ''
+                ? $exception->getProblemDetail()
+                : LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.createFailed.description');
+            return $this->jsonResponse(
+                json_encode([
+                    'error' => [
+                        'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.createFailed'),
+                        'description' => $description,
+                    ]
+                ])
+            )->withStatus($exception->getStatusCode() >= 400 && $exception->getStatusCode() < 500 ? 400 : 500);
+        }
 
         if (null === $scanData || !isset($scanData['id'])) {
             return $this->jsonResponse(
@@ -499,8 +536,101 @@ class ScanAjaxController extends ActionController
     }
 
     /**
+     * Assert allowed HTTP method for the cancel action.
+     *
+     * @throws MethodNotAllowedException If the request method is not allowed.
+     */
+    protected function initializeCancelAction(): void
+    {
+        $this->assertAllowedHttpMethod($this->request, 'POST');
+    }
+
+    /**
+     * Cancel a running scan.
+     *
+     * Requires the same page edit access as creating a scan, since canceling
+     * mutates the scan state.
+     *
+     * @param ServerRequestInterface $request
+     *
+     * @return ResponseInterface
+     *
+     * @throws MethodNotAllowedException If the request method is not allowed.
+     */
+    public function cancelAction(ServerRequestInterface $request): ResponseInterface
+    {
+        $backendUser = $this->getBackendUserAuthentication();
+
+        if ($error = $this->requireModuleAccess($backendUser)) {
+            return $error;
+        }
+
+        $requestBody = json_decode((string)$request->getBody(), true) ?? [];
+        $scanId = $requestBody['scanId'] ?? '';
+
+        if (!is_string($scanId) || $scanId === '') {
+            return $this->jsonResponse(
+                json_encode([
+                    'error' => [
+                        'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.noScanId'),
+                        'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.noScanId.description'),
+                    ]
+                ])
+            )->withStatus(404);
+        }
+
+        $pageRecord = $this->requireScanPageAccess($scanId);
+        if ($pageRecord instanceof ResponseInterface) {
+            return $pageRecord;
+        }
+
+        if (!$this->permissionService->checkRecordEditAccess('pages', $pageRecord)) {
+            return $this->jsonResponse(
+                json_encode([
+                    'error' => [
+                        'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.noPageAccess'),
+                        'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.noPageAccess.description'),
+                    ]
+                ])
+            )->withStatus(403);
+        }
+
+        try {
+            $scanData = $this->scanApiService->cancelScan($scanId);
+        } catch (ScanApiRequestException $exception) {
+            // 409 = scan already terminal; the client resolves it by reloading.
+            $description = $exception->getProblemDetail() !== ''
+                ? $exception->getProblemDetail()
+                : LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.cancelFailed.description');
+            return $this->jsonResponse(
+                json_encode([
+                    'error' => [
+                        'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.cancelFailed'),
+                        'description' => $description,
+                    ]
+                ])
+            )->withStatus($exception->getStatusCode() === 409 ? 409 : 500);
+        }
+
+        if (null === $scanData) {
+            return $this->jsonResponse(
+                json_encode([
+                    'error' => [
+                        'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.cancelFailed'),
+                        'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.cancelFailed.description'),
+                    ]
+                ])
+            )->withStatus(500);
+        }
+
+        return $this->jsonResponse(json_encode([
+            'status' => $scanData['status'] ?? 'canceled',
+        ]))->withStatus(200);
+    }
+
+    /**
      * Get backend user authentication.
-     * 
+     *
      * @return BackendUserAuthentication
      */
     protected function getBackendUserAuthentication(): BackendUserAuthentication

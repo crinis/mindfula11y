@@ -1,0 +1,2 @@
+import { unsafeCSS } from 'lit';
+export default unsafeCSS("@layer base{:host{font-family:var(--mindfula11y-font-family);font-size:var(--mindfula11y-font-size-sm);line-height:var(--mindfula11y-line-height);color:var(--mindfula11y-text);display:block}:host([hidden]){display:none}:focus-visible{outline:var(--mindfula11y-outline-width) var(--mindfula11y-outline-style) color-mix(in srgb, var(--mindfula11y-focus-color), transparent 25%)}}");
