@@ -41,9 +41,9 @@ mod {
     mindfula11y_accessibility {
         missingAltText {
             enable = 1
-            ignoreColumns {
-                tt_content = image
-            }
+            # ignoreColumns {
+            #     <table> = <column>,<column>
+            # }
             ignoreFileMetadata = 1
         }
         headingStructure {
@@ -77,8 +77,8 @@ TCEFORM.tt_content.tx_mindfula11y_landmark {
 | Option | Used for |
 | --- | --- |
 | `mod.mindfula11y_accessibility.missingAltText.enable` | Shows/hides Missing alternative text feature. |
-| `mod.mindfula11y_accessibility.missingAltText.ignoreColumns` | Excludes specific file fields from missing-alt checks. |
-| `mod.mindfula11y_accessibility.missingAltText.ignoreFileMetadata` | Controls whether inherited file metadata alt text is considered. |
+| `mod.mindfula11y_accessibility.missingAltText.ignoreColumns` | Excludes specific file fields from missing-alt checks, per table: `ignoreColumns { <table> = <column>,<column> }`. |
+| `mod.mindfula11y_accessibility.missingAltText.ignoreFileMetadata` | With `1` (default), file references without their own alternative text are listed even when the file's metadata provides a fallback (the fallback is shown on the item). Set `0` to treat metadata alt text as sufficient — covered references are then hidden and editors get a filter toggle to show them anyway. |
 | `mod.mindfula11y_accessibility.headingStructure.enable` | Enables heading structure checks in module. |
 | `mod.mindfula11y_accessibility.landmarkStructure.enable` | Enables landmark structure checks in module. |
 | `mod.mindfula11y_accessibility.scan.enable` | Enables scanner feature in module. |

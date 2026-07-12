@@ -26,6 +26,7 @@ use MindfulMarkup\MindfulA11y\Domain\Model\AltlessFileReference;
 use MindfulMarkup\MindfulA11y\Domain\Model\AltlessFileReferenceTable;
 use MindfulMarkup\MindfulA11y\Domain\Repository\AltlessFileReferenceRepository;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
  * Class AltTextFinderService.
@@ -279,7 +280,12 @@ class AltTextFinderService
     protected function getFileColumns(string $tableName, array &$pageTsConfig): array
     {
         $fileColumns = [];
-        $ignoreColumns = explode(',', $pageTsConfig['mod.']['mindfula11y_missingalttext.'][$tableName] ?? '');
+        // $pageTsConfig is the converted (dot-free) form; the legacy read keeps
+        // TSconfig from installs that used the undocumented pre-0.12 path working.
+        $ignoreColumns = array_merge(
+            GeneralUtility::trimExplode(',', (string)($pageTsConfig['mod']['mindfula11y_accessibility']['missingAltText']['ignoreColumns'][$tableName] ?? ''), true),
+            GeneralUtility::trimExplode(',', (string)($pageTsConfig['mod']['mindfula11y_missingalttext'][$tableName] ?? ''), true),
+        );
 
         foreach ($GLOBALS['TCA'][$tableName]['columns'] ?? [] as $column => $fieldConfig) {
             if (

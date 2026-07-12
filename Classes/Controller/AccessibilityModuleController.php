@@ -257,7 +257,9 @@ class AccessibilityModuleController
         if (
             $hasMissingAltTextAccess
         ) {
-            $filterFileMetaData = $this->permissionService->checkTableReadAccess('sys_file_metadata') && $this->permissionService->checkNonExcludeFields('sys_file_metadata', ['alternative']);
+            $filterFileMetaData = !$this->generalModuleService->isFileMetadataIgnored($this->pageTsConfig)
+                && $this->permissionService->checkTableReadAccess('sys_file_metadata')
+                && $this->permissionService->checkNonExcludeFields('sys_file_metadata', ['alternative']);
             $fileReferenceCount = $this->altTextFinderService->countAltlessFileReferences(
                 $this->pageId,
                 0,
@@ -362,7 +364,12 @@ class AccessibilityModuleController
             $tableName = '';
         }
 
-        $filterFileMetaData = (bool)$this->moduleData->get('filterFileMetaData', true);
+        // Metadata fallback alt text is only considered when the TSconfig option allows
+        // it AND the user may read it; the editor toggle then decides per module view.
+        $canConsiderFileMetaData = !$this->generalModuleService->isFileMetadataIgnored($this->pageTsConfig)
+            && $this->permissionService->checkTableReadAccess('sys_file_metadata')
+            && $this->permissionService->checkNonExcludeFields('sys_file_metadata', ['alternative']);
+        $filterFileMetaData = $canConsiderFileMetaData && (bool)$this->moduleData->get('filterFileMetaData', true);
 
         $this->addDocHeaderDropDown($this->buildPageLevelsMenu($tableName, $pageLevels, $filterFileMetaData), 3);
         $this->addDocHeaderDropDown($this->buildTableMenu(
@@ -371,10 +378,7 @@ class AccessibilityModuleController
             $filterFileMetaData
         ), 4);
 
-        if (
-            $this->permissionService->checkTableReadAccess('sys_file_metadata')
-            && $this->permissionService->checkNonExcludeFields('sys_file_metadata', ['alternative'])
-        ) {
+        if ($canConsiderFileMetaData) {
             $this->moduleTemplate->getDocHeaderComponent()->getButtonBar()->addButton(
                 $this->buildFilterDropdown(
                     $tableName,
@@ -383,8 +387,6 @@ class AccessibilityModuleController
                 ),
                 ButtonBar::BUTTON_POSITION_RIGHT
             );
-        } else {
-            $filterFileMetaData = false;
         }
 
         /**

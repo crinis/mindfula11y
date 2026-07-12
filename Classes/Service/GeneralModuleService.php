@@ -271,6 +271,22 @@ class GeneralModuleService
     }
 
     /**
+     * Check whether file metadata fallback alt text is ignored by the missing alt text feature.
+     *
+     * When ignored (the shipped default), file references without their own alternative
+     * text are reported even if the file's metadata provides a fallback. Setting
+     * mod.mindfula11y_accessibility.missingAltText.ignoreFileMetadata = 0 treats the
+     * metadata fallback as sufficient and offers editors the metadata filter toggle.
+     *
+     * @param array &$pageTsConfig The page TSconfig array (passed by reference)
+     * @return bool
+     */
+    public function isFileMetadataIgnored(array &$pageTsConfig): bool
+    {
+        return !!($pageTsConfig['mod']['mindfula11y_accessibility']['missingAltText']['ignoreFileMetadata'] ?? true);
+    }
+
+    /**
      * Check if the user has access to the heading structure feature.
      *
      * @param array &$pageTsConfig The page TSconfig array (passed by reference)

@@ -115,7 +115,9 @@ class WebLayoutInfo
         $fileReferenceCount = null;
 
         if ($hasMissingAltTextAccess) {
-            $filterFileMetaData = $this->permissionService->checkTableReadAccess('sys_file_metadata') && $this->permissionService->checkNonExcludeFields('sys_file_metadata', ['alternative']);
+            $filterFileMetaData = !$this->generalModuleService->isFileMetadataIgnored($pageTsConfig)
+                && $this->permissionService->checkTableReadAccess('sys_file_metadata')
+                && $this->permissionService->checkNonExcludeFields('sys_file_metadata', ['alternative']);
             $fileReferenceCount = $this->altTextFinderService->countAltlessFileReferences(
                 $pageId,
                 0,
