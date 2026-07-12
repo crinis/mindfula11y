@@ -10,6 +10,94 @@ the `Publish to TER` workflow uses the release body as the TER upload comment.
 
 ## [Unreleased]
 
+Frontend platform release. The entire backend frontend is rewritten as
+TypeScript/Lit shadow-DOM web components, scans gain an optional AI review
+via MindfulAPI's agent audit, and the heading structure check now validates
+the actual rendered outline with axe-core-aligned semantics.
+
+**Requires [MindfulAPI](https://github.com/crinis/mindfulapi) v0.7.0 or
+later for scanner features** — the extension now talks to the versioned
+`/v1` API routes and consumes the AI agent audit fields introduced there.
+
+### Added
+
+- Optional **AI review (agent audit)** for scans: MindfulAPI (v0.7.0+) can run
+  a language-model audit alongside the axe-core scan, covering image alt text,
+  heading structure, link purpose, form labels and page title. Editors opt in
+  per scan via an "Include AI review" toggle; findings render in a dedicated
+  AI review section with severity, confidence, WCAG reference and suggestion.
+  Configured via `mod.mindfula11y_accessibility.scan.aiAudit.*` Page TSconfig
+  (`enable`, `default`, `skills`) — automatically created scans never request
+  an audit, so no LLM cost is incurred by simply browsing the backend.
+- Frontend CI (lint, typecheck, build, committed-output verification); TER
+  publication is now gated on the same verification of the tagged commit.
+
+### Changed
+
+- **Frontend rewritten as TypeScript/Lit shadow-DOM web components.** Typed
+  sources under `Resources/Private/Source/` are compiled to the shipped ES
+  modules; every component renders into its own shadow root with layered CSS
+  over a token bridge onto TYPO3's backend variables. The module UI follows
+  the backend color scheme (including dark mode), holds its own text to WCAG
+  AAA contrast, announces status changes through pre-rendered live regions,
+  and is hardened for keyboard use, 200 % zoom and 320 px reflow. Scan
+  polling now also resumes when a running scan's element is re-inserted into
+  the DOM (e.g. after tab switches).
+- **The heading structure check validates the rendered outline.** All
+  `h1`–`h6` of the analyzed page are included — also headings rendered
+  without record binding (or without the ViewHelper), which were previously
+  invisible to the check. Missing `<h1>`, multiple `<h1>` and empty headings
+  are now flagged for those as well; record-bound headings remain editable
+  from the module.
+- **Skipped-level detection follows axe-core's `heading-order` semantics.**
+  Only an increase of more than one level against the nearest shallower
+  preceding heading is an error. Headings before the first `<h1>` (e.g.
+  navigation or sidebar region labels — a W3C WAI-recommended pattern) and
+  decreases in level are no longer flagged.
+- Alt-text generation in FormEngine moved from a custom renderType to a TCA
+  `fieldControl` on core's own input element: the Generate button is now an
+  icon control next to the field, and core's placeholder/override-checkbox
+  behavior applies unmodified to `sys_file_reference.alternative`.
+- Missing-alt cards were rebuilt with inline save/generate feedback and a
+  callout showing the file-metadata fallback label where one exists.
+- Development-only site sets, the visual-editor demo resources and the
+  rendered `Documentation` are excluded from both dist channels
+  (Packagist git archives and TER packages).
+
+### Fixed
+
+- `mod.mindfula11y_accessibility.missingAltText.ignoreColumns` is now
+  actually read (it was documented but never consumed); the undocumented
+  legacy path `mod.mindfula11y_missingalttext.<table>` keeps working for
+  existing installs. The shipped `tt_content = image` default was removed —
+  it had always been inert, and activating it would have hidden the standard
+  image/textpic content element references from the check.
+- `mod.mindfula11y_accessibility.missingAltText.ignoreFileMetadata` is now
+  implemented: with `1` (default) references without their own alternative
+  text are listed even when the file metadata provides a fallback; with `0`
+  the metadata fallback counts as sufficient and editors get a filter toggle
+  to show the covered references anyway.
+- Scan status polling no longer floods screen readers: the interim loading
+  view and unchanged statuses stay out of the live region, which now only
+  announces actual status transitions.
+
+### Removed
+
+- The `mindfula11yAltText` FormEngine renderType (`InputAltElement`). TCA
+  overrides referencing it must switch to the `mindfula11yGenerateAltText`
+  fieldControl; the extension's own overrides for `sys_file_reference` and
+  `sys_file_metadata` are migrated.
+- The flat legacy modules directly under `Resources/Public/JavaScript/`.
+  Modules now live under `element/`, `service/` and `lib/` paths, and
+  `@mindfulmarkup/mindfula11y/` maps the whole directory — imports of the
+  old flat module names must be updated.
+
+### Documentation
+
+- Documented the MindfulAPI v0.7.0 minimum requirement in the README, the
+  docs landing page and the integrators chapter, and clarified the
+  `ignoreColumns` / `ignoreFileMetadata` TSconfig semantics.
+
 ## [0.11.1] - 2026-06-30
 
 Bugfix release. Resolves a fatal error in the heading ViewHelpers when the

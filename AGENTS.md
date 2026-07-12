@@ -337,6 +337,17 @@ lint:fix` auto-fixes; a pre-commit hook formats staged files. The configs (`biom
 `stylelint.config.mjs`, `tsconfig.json`) are the source of truth — don't weaken tsconfig
 strictness, remove lint rules, or add per-file overrides to make a finding go away.
 
+**Changelog (applies to PHP changes too, despite this file's frontend scope):** every
+user-facing change — new features, behavior changes, bug fixes, removals/renames, requirement
+changes — gets an entry in the `[Unreleased]` section of `CHANGELOG.md` **in the same change
+set**, under the matching Keep a Changelog category (`Added`/`Changed`/`Fixed`/`Removed`/
+`Documentation`). Write for editors and integrators, not as a commit log: name the observable
+behavior and the option that controls it (TSconfig path, TCA field, ViewHelper argument), and
+give a migration hint for anything removed or renamed. Purely internal work (refactors without
+behavior change, build tooling, CI, dev-only assets) needs no entry — when unsure, add one.
+The section becomes the GitHub release notes and the TER upload comment at release time, so
+every entry must read correctly in that context.
+
 **Definition of Done for any frontend change:**
 
 1. `npm run lint` passes (includes typecheck).
@@ -350,3 +361,5 @@ strictness, remove lint rules, or add per-file overrides to make a finding go aw
    remaining legacy flat files in `Resources/Public/JavaScript/`.
 7. Stylesheet changes were reviewed with the `css-review` skill
    (`Resources/Private/Build/skills/css-review/`) and its findings addressed.
+8. User-facing changes have a `CHANGELOG.md` entry under `[Unreleased]` (see the changelog
+   note above).
