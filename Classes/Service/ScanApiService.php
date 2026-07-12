@@ -390,7 +390,9 @@ class ScanApiService
      *
      * @param string $scanId The scan ID.
      * @param string[] $pageUrls Optional page URL filter.
-     * @return array|null The scan or null if failed.
+     * @return array|null The scan or null on network/decode failure.
+     * @throws ScanApiRequestException With status 404 when the scanner no longer knows the
+     *   scan (retention pruning) — a recoverable state distinct from a failed request.
      */
     public function getScan(string $scanId, array $pageUrls = []): ?array
     {
@@ -399,22 +401,22 @@ class ScanApiService
             return null;
         }
 
+        $headers = ['Accept' => 'application/json'];
+        $apiToken = $this->getApiToken();
+        if (!empty($apiToken)) {
+            $headers['Authorization'] = 'Bearer ' . $apiToken;
+        }
+
+        $url = $this->getApiBaseUrl() . '/scans/' . rawurlencode($scanId);
+        if (!empty($pageUrls)) {
+            $queryParts = [];
+            foreach ($pageUrls as $pageUrl) {
+                $queryParts[] = 'pageUrls=' . rawurlencode($pageUrl);
+            }
+            $url .= '?' . implode('&', $queryParts);
+        }
+
         try {
-            $headers = ['Accept' => 'application/json'];
-            $apiToken = $this->getApiToken();
-            if (!empty($apiToken)) {
-                $headers['Authorization'] = 'Bearer ' . $apiToken;
-            }
-
-            $url = $this->getApiBaseUrl() . '/scans/' . rawurlencode($scanId);
-            if (!empty($pageUrls)) {
-                $queryParts = [];
-                foreach ($pageUrls as $pageUrl) {
-                    $queryParts[] = 'pageUrls=' . rawurlencode($pageUrl);
-                }
-                $url .= '?' . implode('&', $queryParts);
-            }
-
             $response = $this->requestFactory->request(
                 $url,
                 'GET',
@@ -424,54 +426,6 @@ class ScanApiService
                     'http_errors' => false,
                 ]
             );
-
-            $statusCode = $response->getStatusCode();
-
-            // Handle 404 specifically - scan not found, should trigger new scan
-            if ($statusCode === 404) {
-                $this->logger->info('Scan not found, will trigger new scan', [
-                    'scanId' => $scanId,
-                ]);
-                return null;
-            }
-
-            if ($statusCode !== 200) {
-                $body = '';
-                try {
-                    $body = $response->getBody()->getContents();
-                } catch (\Exception $bodyException) {
-                    $this->logger->warning('Could not read response body', [
-                        'scanId' => $scanId,
-                        'status' => $statusCode,
-                        'exception' => $bodyException->getMessage(),
-                    ]);
-                }
-
-                $problem = $this->parseProblemDetails($response);
-                $this->logger->error('Failed to get scan results', [
-                    'status' => $statusCode,
-                    'scanId' => $scanId,
-                    'body' => $body,
-                    'problemTitle' => $problem['title'],
-                    'problemDetail' => $problem['detail'],
-                ]);
-                return null;
-            }
-
-            $body = $response->getBody()->getContents();
-            $data = json_decode($body, true);
-
-            if (json_last_error() !== JSON_ERROR_NONE) {
-                $this->logger->error('Invalid JSON response from API', [
-                    'scanId' => $scanId,
-                    'json_error' => json_last_error_msg(),
-                    'body' => $body,
-                ]);
-                return null;
-            }
-
-            // Return the raw API response as-is
-            return $data;
         } catch (\Exception $e) {
             $this->logger->error('Exception while getting scan results', [
                 'exception' => $e->getMessage(),
@@ -479,5 +433,56 @@ class ScanApiService
             ]);
             return null;
         }
+
+        $statusCode = $response->getStatusCode();
+
+        // Handle 404 specifically - scan not found, should trigger new scan.
+        // Thrown (not null) so the controller can answer 404 instead of the
+        // generic 500 for failures — the client recovers by re-creating.
+        if ($statusCode === 404) {
+            $this->logger->info('Scan not found, will trigger new scan', [
+                'scanId' => $scanId,
+            ]);
+            $problem = $this->parseProblemDetails($response);
+            throw new ScanApiRequestException(404, $problem['title'], $problem['detail']);
+        }
+
+        if ($statusCode !== 200) {
+            $body = '';
+            try {
+                $body = $response->getBody()->getContents();
+            } catch (\Exception $bodyException) {
+                $this->logger->warning('Could not read response body', [
+                    'scanId' => $scanId,
+                    'status' => $statusCode,
+                    'exception' => $bodyException->getMessage(),
+                ]);
+            }
+
+            $problem = $this->parseProblemDetails($response);
+            $this->logger->error('Failed to get scan results', [
+                'status' => $statusCode,
+                'scanId' => $scanId,
+                'body' => $body,
+                'problemTitle' => $problem['title'],
+                'problemDetail' => $problem['detail'],
+            ]);
+            return null;
+        }
+
+        $body = $response->getBody()->getContents();
+        $data = json_decode($body, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            $this->logger->error('Invalid JSON response from API', [
+                'scanId' => $scanId,
+                'json_error' => json_last_error_msg(),
+                'body' => $body,
+            ]);
+            return null;
+        }
+
+        // Return the raw API response as-is
+        return $data;
     }
 }

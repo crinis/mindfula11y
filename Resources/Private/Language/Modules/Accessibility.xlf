@@ -536,8 +536,11 @@
             <trans-unit id="scan.crawl.refresh" resname="scan.crawl.refresh">
                 <source>Refresh Crawl</source>
             </trans-unit>
+            <trans-unit id="scan.progress.discovering" resname="scan.progress.discovering">
+                <source>Discovering pages…</source>
+            </trans-unit>
             <trans-unit id="scan.progress.pages" resname="scan.progress.pages">
-                <source>Scanned %d of %d pages</source>
+                <source>Scanned %d pages — %d discovered so far</source>
             </trans-unit>
             <trans-unit id="scan.progress.pagesFailed" resname="scan.progress.pagesFailed">
                 <source>%d pages failed</source>

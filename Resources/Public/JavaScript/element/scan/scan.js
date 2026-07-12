@@ -38,7 +38,6 @@ let Scan = class extends LitElement {
     this.autoCreateScan = false;
     this.aiAuditAvailable = false;
     this.aiAuditDefault = false;
-    this.aiAuditSkills = [];
     this.pageUrlFilter = [];
     this.urlList = [];
     this.reportBaseUrl = "";
@@ -257,7 +256,6 @@ let Scan = class extends LitElement {
     if (!this.aiAuditAvailable || this.tabDemand(tab) === null) {
       return nothing;
     }
-    const skillNames = (this.aiAuditSkills ?? []).map((skill) => lll(`mindfula11y.scan.aiAudit.skill.${skill}`)).join(", ");
     return html`<span class="toggle">
             <input
                 type="checkbox"
@@ -272,7 +270,7 @@ let Scan = class extends LitElement {
             />
             <label class="toggle-label" for="ai-toggle-${tab}">${lll("mindfula11y.scan.aiAudit.toggle")}</label>
             <span class="toggle-description" id="ai-toggle-description-${tab}"
-                >${lll("mindfula11y.scan.aiAudit.toggle.description", skillNames)}</span
+                >${lll("mindfula11y.scan.aiAudit.toggle.description")}</span
             >
         </span>`;
   }
@@ -342,7 +340,7 @@ let Scan = class extends LitElement {
       case ScanStatus.Running: {
         let progressText = null;
         if (isCrawl && result.progress !== null) {
-          progressText = lll(
+          progressText = result.progress.pagesDiscovered === 0 ? lll("mindfula11y.scan.progress.discovering") : lll(
             "mindfula11y.scan.progress.pages",
             result.progress.pagesScanned,
             result.progress.pagesDiscovered
@@ -461,8 +459,10 @@ let Scan = class extends LitElement {
     try {
       await this.scanService.cancelScan(scanId);
     } catch (error) {
-      this.actionError = this.toActionError(error, "mindfula11y.scan.error.cancelFailed");
-      await this.announcer.announce(this.actionError.title);
+      if (!(error instanceof RequestError && error.status === 409)) {
+        this.actionError = this.toActionError(error, "mindfula11y.scan.error.cancelFailed");
+        await this.announcer.announce(this.actionError.title);
+      }
     } finally {
       this.actionBusy = false;
       void this.loadTask.run();
@@ -509,6 +509,9 @@ let Scan = class extends LitElement {
     window.clearTimeout(this.pollTimer);
     this.pollTimer = window.setTimeout(() => {
       this.loadTask.run().catch(() => {
+        if (this.lastStatus !== "" && this.scanService.isScanInProgress(this.lastStatus)) {
+          this.schedulePoll();
+        }
       });
     }, POLL_DELAY_MS);
   }
@@ -539,9 +542,6 @@ __decorateClass([
 __decorateClass([
   property({ type: Boolean, attribute: "ai-audit-default" })
 ], Scan.prototype, "aiAuditDefault", 2);
-__decorateClass([
-  property({ type: Array, attribute: "ai-audit-skills" })
-], Scan.prototype, "aiAuditSkills", 2);
 __decorateClass([
   property({ type: Array, attribute: "page-url-filter" })
 ], Scan.prototype, "pageUrlFilter", 2);

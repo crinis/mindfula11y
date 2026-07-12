@@ -28,7 +28,7 @@ import '../notice/notice.js';
 import '../scan-results/scan-results.js';
 import { LiveAnnouncer } from '../../lib/live-announcer.js';
 import { activateTabFromKeydown } from '../../lib/tablist.js';
-import type { AiAuditSkill, CreateScanDemand, ScanResult } from '../../lib/types.js';
+import type { CreateScanDemand, ScanResult } from '../../lib/types.js';
 import { AiAuditStatus, ScanStatus } from '../../lib/types.js';
 import { RequestError } from '../../service/request-error.js';
 import { ScanService } from '../../service/scan-service.js';
@@ -72,7 +72,6 @@ export class Scan extends LitElement {
     @property({ type: Boolean, attribute: 'auto-create-scan' }) autoCreateScan: boolean = false;
     @property({ type: Boolean, attribute: 'ai-audit-available' }) aiAuditAvailable: boolean = false;
     @property({ type: Boolean, attribute: 'ai-audit-default' }) aiAuditDefault: boolean = false;
-    @property({ type: Array, attribute: 'ai-audit-skills' }) aiAuditSkills: AiAuditSkill[] = [];
     @property({ type: Array, attribute: 'page-url-filter' }) pageUrlFilter: string[] = [];
     @property({ type: Array, attribute: 'url-list' }) urlList: string[] = [];
     @property({ attribute: 'report-base-url' }) reportBaseUrl: string = '';
@@ -349,9 +348,6 @@ export class Scan extends LitElement {
         if (!this.aiAuditAvailable || this.tabDemand(tab) === null) {
             return nothing;
         }
-        const skillNames = (this.aiAuditSkills ?? [])
-            .map((skill) => lll(`mindfula11y.scan.aiAudit.skill.${skill}`))
-            .join(', ');
         return html`<span class="toggle">
             <input
                 type="checkbox"
@@ -366,7 +362,7 @@ export class Scan extends LitElement {
             />
             <label class="toggle-label" for="ai-toggle-${tab}">${lll('mindfula11y.scan.aiAudit.toggle')}</label>
             <span class="toggle-description" id="ai-toggle-description-${tab}"
-                >${lll('mindfula11y.scan.aiAudit.toggle.description', skillNames)}</span
+                >${lll('mindfula11y.scan.aiAudit.toggle.description')}</span
             >
         </span>`;
     }
@@ -448,11 +444,14 @@ export class Scan extends LitElement {
             case ScanStatus.Running: {
                 let progressText: string | null = null;
                 if (isCrawl && result.progress !== null) {
-                    progressText = lll(
-                        'mindfula11y.scan.progress.pages',
-                        result.progress.pagesScanned,
-                        result.progress.pagesDiscovered,
-                    );
+                    progressText =
+                        result.progress.pagesDiscovered === 0
+                            ? lll('mindfula11y.scan.progress.discovering')
+                            : lll(
+                                  'mindfula11y.scan.progress.pages',
+                                  result.progress.pagesScanned,
+                                  result.progress.pagesDiscovered,
+                              );
                     if (result.progress.pagesFailed > 0) {
                         progressText += ` — ${lll('mindfula11y.scan.progress.pagesFailed', result.progress.pagesFailed)}`;
                     }
@@ -580,10 +579,13 @@ export class Scan extends LitElement {
         try {
             await this.scanService.cancelScan(scanId);
         } catch (error) {
-            // A conflict just means the scan already finished — the reload
-            // below shows the final state either way.
-            this.actionError = this.toActionError(error, 'mindfula11y.scan.error.cancelFailed');
-            await this.announcer.announce(this.actionError.title);
+            // 409 = the scan already reached a terminal state; the reload
+            // below shows the final result, so it is not an error to surface
+            // (renderBody would pin an actionError over the loaded results).
+            if (!(error instanceof RequestError && error.status === 409)) {
+                this.actionError = this.toActionError(error, 'mindfula11y.scan.error.cancelFailed');
+                await this.announcer.announce(this.actionError.title);
+            }
         } finally {
             this.actionBusy = false;
             void this.loadTask.run();
@@ -633,7 +635,15 @@ export class Scan extends LitElement {
         window.clearTimeout(this.pollTimer);
         this.pollTimer = window.setTimeout(() => {
             this.loadTask.run().catch(() => {
-                // Task errors surface through the render error branch.
+                // The error surfaces through the render error branch, but a
+                // transient poll failure must not stop polling permanently:
+                // handleStatusChange (the only other place that re-arms the
+                // timer) runs on the task's success path only. lastStatus is
+                // left untouched on failure, so re-arm here while the scan is
+                // still believed to be in progress — the next poll recovers.
+                if (this.lastStatus !== '' && this.scanService.isScanInProgress(this.lastStatus)) {
+                    this.schedulePoll();
+                }
             });
         }, POLL_DELAY_MS);
     }

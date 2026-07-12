@@ -749,9 +749,13 @@
                 <source>Scan failed.</source>
                 <target>Scan fehlgeschlagen.</target>
             </trans-unit>
+            <trans-unit id="scan.progress.discovering" resname="scan.progress.discovering">
+                <source>Discovering pages…</source>
+                <target>Seiten werden ermittelt…</target>
+            </trans-unit>
             <trans-unit id="scan.progress.pages" resname="scan.progress.pages">
-                <source>Scanned %d of %d pages</source>
-                <target>%d von %d Seiten gescannt</target>
+                <source>Scanned %d pages — %d discovered so far</source>
+                <target>%d Seiten gescannt — %d bisher ermittelt</target>
             </trans-unit>
             <trans-unit id="scan.progress.pagesFailed" resname="scan.progress.pagesFailed">
                 <source>%d pages failed</source>

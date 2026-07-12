@@ -28,13 +28,14 @@ let ScanIssueCount = class extends LitElement {
     this.autoCreateScan = false;
     this.pageUrlFilter = [];
     this.createdScanId = "";
+    this.invalidScanId = "";
     this.scanService = new ScanService();
     this.announcer = new LiveAnnouncer(this);
     this.lastStatus = "";
     this.lastAnnounced = "";
     this.scanTask = new Task(this, {
       args: () => [
-        this.scanId || this.createdScanId,
+        this.effectiveScanId(),
         this.createScanDemand,
         // Lit's JSON attribute converter yields null (not the default) for
         // a missing/malformed attribute value.
@@ -51,7 +52,12 @@ let ScanIssueCount = class extends LitElement {
         }
         const result = await this.scanService.loadScan(scanId, pageUrlFilter);
         if (result === null) {
-          this.createdScanId = "";
+          if (this.createdScanId === scanId) {
+            this.createdScanId = "";
+          } else {
+            this.invalidScanId = scanId;
+          }
+          this.lastStatus = "";
           return null;
         }
         if (this.scanService.isScanInProgress(result.status)) {
@@ -116,6 +122,12 @@ let ScanIssueCount = class extends LitElement {
       error: (error) => this.renderView({ state: "danger", text: this.errorText(error) })
     })}${this.announcer.render()}`;
   }
+  effectiveScanId() {
+    if (this.createdScanId !== "") {
+      return this.createdScanId;
+    }
+    return this.scanId !== this.invalidScanId ? this.scanId : "";
+  }
   announceIfChanged(text) {
     if (text === this.lastAnnounced) {
       return;
@@ -140,6 +152,9 @@ let ScanIssueCount = class extends LitElement {
     window.clearTimeout(this.pollTimer);
     this.pollTimer = window.setTimeout(() => {
       this.scanTask.run().catch(() => {
+        if (this.lastStatus !== "" && this.scanService.isScanInProgress(this.lastStatus)) {
+          this.schedulePoll();
+        }
       });
     }, POLL_DELAY_MS);
   }
@@ -163,6 +178,9 @@ __decorateClass([
 __decorateClass([
   state()
 ], ScanIssueCount.prototype, "createdScanId", 2);
+__decorateClass([
+  state()
+], ScanIssueCount.prototype, "invalidScanId", 2);
 ScanIssueCount = __decorateClass([
   customElement("mindfula11y-scan-issue-count")
 ], ScanIssueCount);

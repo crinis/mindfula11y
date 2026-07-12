@@ -58,6 +58,7 @@ export class ScanIssueCount extends LitElement {
     @property({ type: Array, attribute: 'page-url-filter' }) pageUrlFilter: string[] = [];
 
     @state() private createdScanId: string = '';
+    @state() private invalidScanId: string = '';
 
     private readonly scanService: ScanService = new ScanService();
     private readonly announcer: LiveAnnouncer = new LiveAnnouncer(this);
@@ -67,7 +68,7 @@ export class ScanIssueCount extends LitElement {
 
     private readonly scanTask = new Task(this, {
         args: (): readonly [string, CreateScanDemand | null, string[]] => [
-            this.scanId || this.createdScanId,
+            this.effectiveScanId(),
             this.createScanDemand,
             // Lit's JSON attribute converter yields null (not the default) for
             // a missing/malformed attribute value.
@@ -89,7 +90,12 @@ export class ScanIssueCount extends LitElement {
 
             const result = await this.scanService.loadScan(scanId, pageUrlFilter);
             if (result === null) {
-                this.createdScanId = '';
+                if (this.createdScanId === scanId) {
+                    this.createdScanId = '';
+                } else {
+                    this.invalidScanId = scanId;
+                }
+                this.lastStatus = '';
                 return null;
             }
 
@@ -176,6 +182,13 @@ export class ScanIssueCount extends LitElement {
         })}${this.announcer.render()}`;
     }
 
+    private effectiveScanId(): string {
+        if (this.createdScanId !== '') {
+            return this.createdScanId;
+        }
+        return this.scanId !== this.invalidScanId ? this.scanId : '';
+    }
+
     private announceIfChanged(text: string): void {
         if (text === this.lastAnnounced) {
             return;
@@ -211,7 +224,14 @@ export class ScanIssueCount extends LitElement {
         window.clearTimeout(this.pollTimer);
         this.pollTimer = window.setTimeout(() => {
             this.scanTask.run().catch(() => {
-                // Task errors surface through scanTask.render()'s error branch.
+                // The error surfaces through scanTask.render()'s error branch,
+                // but a transient poll failure must not stop polling: the timer
+                // is only re-armed on the task's success path, so re-arm here
+                // while the scan is still believed to be in progress
+                // (lastStatus is left untouched on failure).
+                if (this.lastStatus !== '' && this.scanService.isScanInProgress(this.lastStatus)) {
+                    this.schedulePoll();
+                }
             });
         }, POLL_DELAY_MS);
     }

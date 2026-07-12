@@ -99,6 +99,17 @@ later for scanner features** — the extension now talks to the versioned
 - Scan status polling no longer floods screen readers: the interim loading
   view and unchanged statuses stay out of the live region, which now only
   announces actual status transitions.
+- Scans pruned by the scanner's retention policy no longer strand the module
+  on a loading error: the backend answers 404 for a scan the scanner no
+  longer knows, and the module forgets the stored id and creates a fresh
+  scan (when auto-create is enabled) instead of showing a permanent error.
+- Canceling a scan that finished at the same moment no longer pins a
+  "Failed to cancel scan" error over the results — the conflict answer is
+  resolved silently by loading the final scan state.
+- A single transient poll failure while a scan is running no longer stops
+  automatic updates for good: both the scan module and the compact issue-count
+  callout now retry on the next interval instead of freezing on a loading
+  error until manually refreshed.
 
 ### Removed
 

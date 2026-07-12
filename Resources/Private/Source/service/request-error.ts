@@ -20,11 +20,14 @@
 /** Error the backend reports as a structured `{ error: { title, description } }` body. */
 export class RequestError extends Error {
     readonly description: string;
+    /** HTTP status of the backend response; 0 when unknown. */
+    readonly status: number;
 
-    constructor(message: string, description: string = '') {
+    constructor(message: string, description: string = '', status: number = 0) {
         super(message);
         this.name = 'RequestError';
         this.description = description;
+        this.status = status;
     }
 }
 
@@ -40,7 +43,7 @@ export const toRequestError = async (error: unknown): Promise<unknown> => {
     try {
         const data = (await response.clone().json()) as { error?: { title?: string; description?: string } };
         if (data.error?.title !== undefined) {
-            return new RequestError(data.error.title, data.error.description ?? '');
+            return new RequestError(data.error.title, data.error.description ?? '', response.status);
         }
     } catch {
         // Non-JSON error body — fall through to the original error.

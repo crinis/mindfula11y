@@ -526,7 +526,19 @@ class ScanAjaxController extends ActionController
             }
         }
 
-        $scan = $this->scanApiService->getScan($scanId, $pageUrls);
+        try {
+            $scan = $this->scanApiService->getScan($scanId, $pageUrls);
+        } catch (ScanApiRequestException) {
+            // The scanner no longer knows the id (retention pruning). 404 is
+            // the client's signal to forget the stored id and re-create the
+            // scan — a 500 would strand it on the loading-error view.
+            return $this->jsonResponse(json_encode([
+                'error' => [
+                    'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.notFound'),
+                    'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.notFound.description'),
+                ]
+            ]))->withStatus(404);
+        }
 
         if (null === $scan) {
             return $this->jsonResponse(
