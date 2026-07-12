@@ -34,8 +34,17 @@ later for scanner features** — the extension now talks to the versioned
   Configured via `mod.mindfula11y_accessibility.scan.aiAudit.*` Page TSconfig
   (`enable`, `default`) — automatically created scans never request
   an audit, so no LLM cost is incurred by simply browsing the backend.
-- Frontend CI (lint, typecheck, build, committed-output verification); TER
-  publication is now gated on the same verification of the tagged commit.
+- **Accessible server-side form errors.** When a TYPO3 EXT:form submission
+  fails server-side validation, the final page title is prefixed with a
+  localized `Error:` (`Fehler:` in German) following the GOV.UK validation
+  pattern, so assistive technology announces the failure state as the response
+  loads. `typo3/cms-form` is an optional dependency; detection is automatic
+  with no template, marker or TypoScript integration, and native HTML5
+  validation is unaffected. Toggled globally by the
+  `enableValidationErrorTitlePrefix` extension configuration (on by default).
+- Frontend CI (lint, typecheck, unit tests, build, committed-output
+  verification); TER publication is now gated on the same verification of the
+  tagged commit.
 
 ### Changed
 
@@ -75,6 +84,8 @@ later for scanner features** — the extension now talks to the versioned
 
 ### Fixed
 
+- The **Use header as landmark name** toggle no longer reloads the content
+  element form; saving still selects the header or custom landmark name.
 - New inline image references are no longer discarded when the decorative-image
   permission guard cannot resolve submitted relation columns. The guard resolves
   the parent file field and rejects only unauthorized decorative-state changes,
