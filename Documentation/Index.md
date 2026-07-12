@@ -25,7 +25,7 @@ Mindful A11y brings accessibility checks and remediation workflows directly into
 
 Scanner features work only when both conditions are met:
 
-- Your project runs the external [MindfulAPI](https://github.com/crinis/mindfulapi) scanner service
+- Your project runs the external [MindfulAPI](https://github.com/crinis/mindfulapi) scanner service, **v0.7.0 or later** (required for the `/v1` API routes and the AI agent audit)
 - Page TSconfig enables scanner: `mod.mindfula11y_accessibility.scan.enable = 1`
 
 ## Requirements

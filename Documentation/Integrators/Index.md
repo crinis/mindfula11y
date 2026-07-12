@@ -93,7 +93,7 @@ Before enabling scanner features, you must set up an external scanner service.
 
 Scanner functionality stays disabled until you explicitly set `mod.mindfula11y_accessibility.scan.enable = 1` in Page TSconfig.
 
-**Required:** [MindfulAPI](https://github.com/crinis/mindfulapi) **version 0.7 or later** running via Docker (the extension talks to the versioned `/v1` API routes).
+**Required:** [MindfulAPI](https://github.com/crinis/mindfulapi) **version 0.7.0 or later** running via Docker. This extension talks to the versioned `/v1` API routes and consumes the AI agent audit fields (audit status, agent findings), both introduced in MindfulAPI v0.7.0 — older MindfulAPI releases are not supported.
 
 Minimal setup:
 
@@ -146,7 +146,7 @@ Both values are required; if one is missing, no credentials are sent.
 
 ### AI review (agent audit)
 
-MindfulAPI 0.7+ can optionally run an **AI audit** alongside the axe-core scan: a language model reviews content quality aspects (image alternative text, heading structure, link purpose, form labels, page title) and reports findings with severity, confidence and suggestions. AI findings are shown in a separate "AI review" section and always need human judgement.
+MindfulAPI (v0.7.0 or later, see above) can optionally run an **AI audit** alongside the axe-core scan: a language model reviews content quality aspects (image alternative text, heading structure, link purpose, form labels, page title) and reports findings with severity, confidence and suggestions. AI findings are shown in a separate "AI review" section and always need human judgement.
 
 Requirements and configuration:
 

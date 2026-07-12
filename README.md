@@ -18,7 +18,7 @@ Scanner functionality uses the external [MindfulAPI](https://github.com/crinis/m
 
 Scanner features are available only when **both** requirements are met:
 
-- MindfulAPI is installed and reachable from TYPO3
+- MindfulAPI **v0.7.0 or later** is installed and reachable from TYPO3 (v0.7.0 introduces the `/v1` API routes and the AI agent audit this extension consumes)
 - Page TSconfig sets `mod.mindfula11y_accessibility.scan.enable = 1` (default is `0`)
 
 ![Accessibility module overview in TYPO3 backend with feature selector menu and status callouts for missing alt text, structure checks, and scanner issues](Documentation/Images/readme-accessibility-module-overview.png)
@@ -29,6 +29,7 @@ Scanner features are available only when **both** requirements are met:
 
 - TYPO3 `13.4.x LTS` or `14.3.x LTS`
 - PHP `8.2` to `8.4`
+- For scanner features: [MindfulAPI](https://github.com/crinis/mindfulapi) `v0.7.0` or later
 
 ## Installation
 
