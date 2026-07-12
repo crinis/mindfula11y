@@ -2,7 +2,7 @@
 
 $EM_CONF[$_EXTKEY] = [
     'title' => 'Accessibility Toolkit',
-    'description' => 'Find and fix accessibility issues directly in the TYPO3 backend: a remediation module with missing alt-text detection and AI generation (OpenAI), accessibility fields and Fluid ViewHelpers for semantic headings and landmarks, plus optional axe-core page scanning.',
+    'description' => 'Find and fix accessibility issues in TYPO3: missing-alt detection and AI alt-text generation, decorative-image controls, heading/landmark checks, axe-core scans with optional AI audits, semantic Fluid ViewHelpers, and accessible form-validation feedback.',
     'category' => 'module',
     'author' => 'Felix Spittel',
     'author_email' => 'felix@mindfulmarkup.de',
