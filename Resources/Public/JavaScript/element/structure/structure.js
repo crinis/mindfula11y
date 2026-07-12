@@ -12,6 +12,7 @@ import { Task, TaskStatus } from "@lit/task";
 import { lll } from "@typo3/core/lit-helper.js";
 import { html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
+import { literal, html as staticHtml } from "lit/static-html.js";
 import "@typo3/backend/element/icon-element.js";
 import "@typo3/backend/element/spinner-element.js";
 import "../heading-structure/heading-structure.js";
@@ -30,6 +31,14 @@ import noticeStyles from "../../styles/notice.css.js";
 import placeholderStyles from "../../styles/placeholder.css.js";
 import tabsStyles from "../../styles/tabs.css.js";
 import componentStyles from "./structure.css.js";
+const HEADING_TAGS = {
+  1: literal`h1`,
+  2: literal`h2`,
+  3: literal`h3`,
+  4: literal`h4`,
+  5: literal`h5`,
+  6: literal`h6`
+};
 let Structure = class extends LitElement {
   constructor() {
     super();
@@ -220,20 +229,8 @@ let Structure = class extends LitElement {
         </section>`;
   }
   renderHeading(content) {
-    switch (this.headingLevel) {
-      case 1:
-        return html`<h1 class="title">${content}</h1>`;
-      case 3:
-        return html`<h3 class="title">${content}</h3>`;
-      case 4:
-        return html`<h4 class="title">${content}</h4>`;
-      case 5:
-        return html`<h5 class="title">${content}</h5>`;
-      case 6:
-        return html`<h6 class="title">${content}</h6>`;
-      default:
-        return html`<h2 class="title">${content}</h2>`;
-    }
+    const tag = HEADING_TAGS[this.headingLevel] ?? HEADING_TAGS[2];
+    return staticHtml`<${tag} class="title">${content}</${tag}>`;
   }
   tabLabel(tab) {
     return tab === "headings" ? lll("mindfula11y.structure.headings") : lll("mindfula11y.structure.landmarks");

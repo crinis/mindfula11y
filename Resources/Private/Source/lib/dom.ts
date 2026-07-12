@@ -39,6 +39,24 @@ export const extractRecord = (element: HTMLElement): RecordReference | null => {
     return { tableName, columnName, uid, editLink: element.dataset.mindfula11yRecordEditLink ?? '' };
 };
 
+/**
+ * Builds a repeat()-stable structure node id. Record-backed nodes share one
+ * scheme across analyzers, while callers may provide an analyzer-specific
+ * fallback base (for example a heading relation id).
+ */
+export const buildStructureNodeId = (
+    record: RecordReference | null,
+    index: number,
+    seen: Map<string, number>,
+    fallbackBase = '',
+): string => {
+    const base =
+        record !== null ? `${record.tableName}:${record.uid}:${record.columnName}` : fallbackBase || `pos:${index}`;
+    const occurrence = seen.get(base) ?? 0;
+    seen.set(base, occurrence + 1);
+    return occurrence === 0 ? base : `${base}#${occurrence}`;
+};
+
 /** Parses a JSON string→string map annotation; malformed data degrades to `{}` (read-only). */
 export const parseJsonMap = (raw: string | undefined): Record<string, string> => {
     if (raw === undefined || raw === '') {

@@ -79,6 +79,8 @@ later for scanner features** — the extension now talks to the versioned
   permission guard cannot resolve submitted relation columns. The guard resolves
   the parent file field and rejects only unauthorized decorative-state changes,
   preserving alt text, title, crop and link metadata.
+- Landmark analysis no longer treats unnamed forms as landmarks or reports
+  matching labels on different landmark roles as duplicates.
 - The decorative-image visibility condition now composes with existing TCA
   `displayCond` rules for file-reference alternative text and titles.
 - File-metadata alternative placeholders are shown only to backend users who

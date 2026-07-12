@@ -23,8 +23,8 @@
  * requests and returns plain serializable nodes — no element references leak out.
  */
 
-import { extractRecord, parseJsonMap } from './dom.js';
-import type { LandmarkAnalysis, LandmarkNode, RecordReference, StructureError } from './types.js';
+import { buildStructureNodeId, extractRecord, parseJsonMap } from './dom.js';
+import type { LandmarkAnalysis, LandmarkNode, StructureError } from './types.js';
 import { StructureErrorSeverity } from './types.js';
 
 const ERROR_KEYS = {
@@ -52,6 +52,7 @@ const LANDMARK_SELECTOR = [
     'footer:not(article footer, aside footer, footer footer, header footer, main footer, nav footer, section footer)',
     'section[aria-label]',
     'section[aria-labelledby]',
+    'section[title]',
 ].join(', ');
 
 const IMPLICIT_ROLES: Record<string, string> = {
@@ -63,21 +64,24 @@ const IMPLICIT_ROLES: Record<string, string> = {
     form: 'form',
 };
 
-/** Accessible name per aria-label, else the joined text of aria-labelledby targets. */
+/** Accessible name per aria-label, aria-labelledby targets, then title. */
 const resolveLabel = (element: HTMLElement, doc: Document): string => {
     const ariaLabel = element.getAttribute('aria-label')?.trim() ?? '';
     if (ariaLabel !== '') {
         return ariaLabel;
     }
     const labelledby = element.getAttribute('aria-labelledby')?.trim() ?? '';
-    if (labelledby === '') {
-        return '';
+    if (labelledby !== '') {
+        const referencedLabel = labelledby
+            .split(/\s+/)
+            .map((id) => doc.getElementById(id)?.textContent?.trim() ?? '')
+            .filter((text) => text !== '')
+            .join(' ');
+        if (referencedLabel !== '') {
+            return referencedLabel;
+        }
     }
-    return labelledby
-        .split(/\s+/)
-        .map((id) => doc.getElementById(id)?.textContent?.trim() ?? '')
-        .filter((text) => text !== '')
-        .join(' ');
+    return element.getAttribute('title')?.trim() ?? '';
 };
 
 const resolveRole = (element: HTMLElement, label: string): string => {
@@ -90,16 +94,6 @@ const resolveRole = (element: HTMLElement, label: string): string => {
         return label !== '' ? 'region' : '';
     }
     return IMPLICIT_ROLES[tagName] ?? '';
-};
-
-const buildNodeId = (record: RecordReference | null, index: number, seen: Map<string, number>): string => {
-    if (record === null) {
-        return `pos:${index}`;
-    }
-    const base = `${record.tableName}:${record.uid}:${record.columnName}`;
-    const occurrence = seen.get(base) ?? 0;
-    seen.set(base, occurrence + 1);
-    return occurrence === 0 ? base : `${base}#${occurrence}`;
 };
 
 /**
@@ -122,10 +116,19 @@ export const analyzeLandmarks = (doc: Document): LandmarkAnalysis => {
     };
 
     const elements = Array.from(doc.querySelectorAll<HTMLElement>(LANDMARK_SELECTOR)).filter((element) => {
-        if (element.tagName.toLowerCase() !== 'section') {
-            return true;
+        const label = labelOf(element);
+        const tagName = element.tagName.toLowerCase();
+
+        // A native form only gains the implicit form landmark role when it has
+        // an accessible name. Explicit ARIA roles are kept: even an invalidly
+        // unnamed role="form" / role="region" is still exposed as that role
+        // and should remain visible to the analyzer.
+        if (tagName === 'form' && !element.hasAttribute('role')) {
+            return label !== '';
         }
-        return labelOf(element) !== '';
+
+        // Native sections are regions only when they have an accessible name.
+        return tagName !== 'section' || element.hasAttribute('role') || label !== '';
     });
 
     const seenIds = new Map<string, number>();
@@ -136,7 +139,7 @@ export const analyzeLandmarks = (doc: Document): LandmarkAnalysis => {
         const label = labelOf(element);
         const record = extractRecord(element);
         const node: LandmarkNode = {
-            id: buildNodeId(record, index, seenIds),
+            id: buildStructureNodeId(record, index, seenIds),
             role: resolveRole(element, label),
             label,
             availableRoles: parseJsonMap(element.dataset.mindfula11yAvailableRoles),
@@ -184,19 +187,20 @@ export const analyzeLandmarks = (doc: Document): LandmarkAnalysis => {
             }
         }
 
-        const byLabel = new Map<string, LandmarkNode[]>();
+        const byRoleAndLabel = new Map<string, LandmarkNode[]>();
         for (const node of flat) {
             if (node.label === '') {
                 continue;
             }
-            const group = byLabel.get(node.label);
+            const key = `${node.role}\u0000${node.label}`;
+            const group = byRoleAndLabel.get(key);
             if (group === undefined) {
-                byLabel.set(node.label, [node]);
+                byRoleAndLabel.set(key, [node]);
             } else {
                 group.push(node);
             }
         }
-        for (const group of byLabel.values()) {
+        for (const group of byRoleAndLabel.values()) {
             if (group.length < 2) {
                 continue;
             }

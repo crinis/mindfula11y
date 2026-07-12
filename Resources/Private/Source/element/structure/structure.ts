@@ -22,6 +22,7 @@ import { lll } from '@typo3/core/lit-helper.js';
 import type { CSSResult, PropertyValues, TemplateResult } from 'lit';
 import { html, LitElement, nothing } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
+import { literal, type StaticValue, html as staticHtml } from 'lit/static-html.js';
 import '@typo3/backend/element/icon-element.js';
 import '@typo3/backend/element/spinner-element.js';
 import '../heading-structure/heading-structure.js';
@@ -56,6 +57,20 @@ interface Finding {
     count: number;
     domain: TabName;
 }
+
+/**
+ * Static h1–h6 tag names for the single-view title. The level is a fixed
+ * whitelist (never attacker-controlled), so it is safe to interpolate as a
+ * static tag via `lit/static-html`; unknown levels fall back to `h2`.
+ */
+const HEADING_TAGS: Record<number, StaticValue> = {
+    1: literal`h1`,
+    2: literal`h2`,
+    3: literal`h3`,
+    4: literal`h4`,
+    5: literal`h5`,
+    6: literal`h6`,
+};
 
 /**
  * Container of the structure views: fetches the annotated frontend preview,
@@ -293,20 +308,8 @@ export class Structure extends LitElement {
     }
 
     private renderHeading(content: string): TemplateResult {
-        switch (this.headingLevel) {
-            case 1:
-                return html`<h1 class="title">${content}</h1>`;
-            case 3:
-                return html`<h3 class="title">${content}</h3>`;
-            case 4:
-                return html`<h4 class="title">${content}</h4>`;
-            case 5:
-                return html`<h5 class="title">${content}</h5>`;
-            case 6:
-                return html`<h6 class="title">${content}</h6>`;
-            default:
-                return html`<h2 class="title">${content}</h2>`;
-        }
+        const tag = HEADING_TAGS[this.headingLevel] ?? HEADING_TAGS[2];
+        return staticHtml`<${tag} class="title">${content}</${tag}>`;
     }
 
     private tabLabel(tab: TabName): string {

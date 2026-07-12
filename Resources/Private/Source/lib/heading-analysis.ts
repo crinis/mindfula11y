@@ -23,8 +23,8 @@
  * requests and returns plain serializable nodes — no element references leak out.
  */
 
-import { extractRecord, parseJsonMap } from './dom.js';
-import type { HeadingAnalysis, HeadingNode, HeadingRelation, RecordReference, StructureError } from './types.js';
+import { buildStructureNodeId, extractRecord, parseJsonMap } from './dom.js';
+import type { HeadingAnalysis, HeadingNode, HeadingRelation, StructureError } from './types.js';
 import { StructureErrorSeverity } from './types.js';
 
 const ERROR_KEYS = {
@@ -44,26 +44,6 @@ const extractRelation = (element: HTMLElement): HeadingRelation | null => {
         return { kind: 'sibling', targetRelationId: siblingId };
     }
     return null;
-};
-
-/** Builds a repeat()-stable node id; an occurrence counter disambiguates repeated records. */
-const buildNodeId = (
-    record: RecordReference | null,
-    relationId: string,
-    index: number,
-    seen: Map<string, number>,
-): string => {
-    let base: string;
-    if (record !== null) {
-        base = `${record.tableName}:${record.uid}:${record.columnName}`;
-    } else if (relationId !== '') {
-        base = `rel:${relationId}`;
-    } else {
-        return `pos:${index}`;
-    }
-    const occurrence = seen.get(base) ?? 0;
-    seen.set(base, occurrence + 1);
-    return occurrence === 0 ? base : `${base}#${occurrence}`;
 };
 
 /**
@@ -92,7 +72,7 @@ export const analyzeHeadings = (doc: Document): HeadingAnalysis => {
         const level = Number.parseInt(element.tagName.charAt(1), 10);
         const record = extractRecord(element);
         const relationId = element.dataset.mindfula11yRelationId ?? '';
-        const nodeId = buildNodeId(record, relationId, index, seenIds);
+        const nodeId = buildStructureNodeId(record, index, seenIds, relationId === '' ? '' : `rel:${relationId}`);
         const label = element.textContent?.trim() ?? '';
 
         // Pop parents at the same level or deeper, then measure the gap to the

@@ -1,4 +1,4 @@
-import { extractRecord, parseJsonMap } from "./dom.js";
+import { buildStructureNodeId, extractRecord, parseJsonMap } from "./dom.js";
 import { StructureErrorSeverity } from "./types.js";
 const ERROR_KEYS = {
   missingH1: "mindfula11y.structure.headings.error.missingH1",
@@ -17,19 +17,6 @@ const extractRelation = (element) => {
   }
   return null;
 };
-const buildNodeId = (record, relationId, index, seen) => {
-  let base;
-  if (record !== null) {
-    base = `${record.tableName}:${record.uid}:${record.columnName}`;
-  } else if (relationId !== "") {
-    base = `rel:${relationId}`;
-  } else {
-    return `pos:${index}`;
-  }
-  const occurrence = seen.get(base) ?? 0;
-  seen.set(base, occurrence + 1);
-  return occurrence === 0 ? base : `${base}#${occurrence}`;
-};
 const analyzeHeadings = (doc) => {
   const headings = Array.from(doc.querySelectorAll("h1, h2, h3, h4, h5, h6"));
   const errors = [];
@@ -45,7 +32,7 @@ const analyzeHeadings = (doc) => {
     const level = Number.parseInt(element.tagName.charAt(1), 10);
     const record = extractRecord(element);
     const relationId = element.dataset.mindfula11yRelationId ?? "";
-    const nodeId = buildNodeId(record, relationId, index, seenIds);
+    const nodeId = buildStructureNodeId(record, index, seenIds, relationId === "" ? "" : `rel:${relationId}`);
     const label = element.textContent?.trim() ?? "";
     while ((parentStack.at(-1)?.level ?? 0) >= level) {
       parentStack.pop();

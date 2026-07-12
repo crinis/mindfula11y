@@ -1,4 +1,4 @@
-import { extractRecord, parseJsonMap } from "./dom.js";
+import { buildStructureNodeId, extractRecord, parseJsonMap } from "./dom.js";
 import { StructureErrorSeverity } from "./types.js";
 const ERROR_KEYS = {
   missingMain: "mindfula11y.structure.landmarks.error.missingMain",
@@ -22,7 +22,8 @@ const LANDMARK_SELECTOR = [
   "header:not(article header, aside header, footer header, header header, main header, nav header, section header)",
   "footer:not(article footer, aside footer, footer footer, header footer, main footer, nav footer, section footer)",
   "section[aria-label]",
-  "section[aria-labelledby]"
+  "section[aria-labelledby]",
+  "section[title]"
 ].join(", ");
 const IMPLICIT_ROLES = {
   main: "main",
@@ -38,10 +39,13 @@ const resolveLabel = (element, doc) => {
     return ariaLabel;
   }
   const labelledby = element.getAttribute("aria-labelledby")?.trim() ?? "";
-  if (labelledby === "") {
-    return "";
+  if (labelledby !== "") {
+    const referencedLabel = labelledby.split(/\s+/).map((id) => doc.getElementById(id)?.textContent?.trim() ?? "").filter((text) => text !== "").join(" ");
+    if (referencedLabel !== "") {
+      return referencedLabel;
+    }
   }
-  return labelledby.split(/\s+/).map((id) => doc.getElementById(id)?.textContent?.trim() ?? "").filter((text) => text !== "").join(" ");
+  return element.getAttribute("title")?.trim() ?? "";
 };
 const resolveRole = (element, label) => {
   const explicitRole = element.getAttribute("role");
@@ -54,15 +58,6 @@ const resolveRole = (element, label) => {
   }
   return IMPLICIT_ROLES[tagName] ?? "";
 };
-const buildNodeId = (record, index, seen) => {
-  if (record === null) {
-    return `pos:${index}`;
-  }
-  const base = `${record.tableName}:${record.uid}:${record.columnName}`;
-  const occurrence = seen.get(base) ?? 0;
-  seen.set(base, occurrence + 1);
-  return occurrence === 0 ? base : `${base}#${occurrence}`;
-};
 const analyzeLandmarks = (doc) => {
   const labels = /* @__PURE__ */ new Map();
   const labelOf = (element) => {
@@ -74,10 +69,12 @@ const analyzeLandmarks = (doc) => {
     return label;
   };
   const elements = Array.from(doc.querySelectorAll(LANDMARK_SELECTOR)).filter((element) => {
-    if (element.tagName.toLowerCase() !== "section") {
-      return true;
+    const label = labelOf(element);
+    const tagName = element.tagName.toLowerCase();
+    if (tagName === "form" && !element.hasAttribute("role")) {
+      return label !== "";
     }
-    return labelOf(element) !== "";
+    return tagName !== "section" || element.hasAttribute("role") || label !== "";
   });
   const seenIds = /* @__PURE__ */ new Map();
   const nodesByElement = /* @__PURE__ */ new Map();
@@ -86,7 +83,7 @@ const analyzeLandmarks = (doc) => {
     const label = labelOf(element);
     const record = extractRecord(element);
     const node = {
-      id: buildNodeId(record, index, seenIds),
+      id: buildStructureNodeId(record, index, seenIds),
       role: resolveRole(element, label),
       label,
       availableRoles: parseJsonMap(element.dataset.mindfula11yAvailableRoles),
@@ -129,19 +126,20 @@ const analyzeLandmarks = (doc) => {
         addNodeError(node, ERROR_KEYS.duplicateMain, StructureErrorSeverity.Error);
       }
     }
-    const byLabel = /* @__PURE__ */ new Map();
+    const byRoleAndLabel = /* @__PURE__ */ new Map();
     for (const node of flat) {
       if (node.label === "") {
         continue;
       }
-      const group = byLabel.get(node.label);
+      const key = `${node.role}\0${node.label}`;
+      const group = byRoleAndLabel.get(key);
       if (group === void 0) {
-        byLabel.set(node.label, [node]);
+        byRoleAndLabel.set(key, [node]);
       } else {
         group.push(node);
       }
     }
-    for (const group of byLabel.values()) {
+    for (const group of byRoleAndLabel.values()) {
       if (group.length < 2) {
         continue;
       }
