@@ -13,7 +13,7 @@ class ScanApi {
    */
   async createScan(createScanDemand, aiAudit = false, signal) {
     const data = await postJson(
-      "mindfula11y_createscan",
+      "mindfula11y_scan_create",
       { ...createScanDemand, aiAudit },
       { signal }
     );
@@ -30,7 +30,7 @@ class ScanApi {
     let data;
     try {
       const params = pageUrls.length > 0 ? { scanId, pageUrls } : { scanId };
-      data = await getJson("mindfula11y_getscan", params, { signal });
+      data = await getJson("mindfula11y_scan_get", params, { signal });
     } catch (error) {
       if (error instanceof RequestError && error.status === 404) {
         return null;
@@ -54,7 +54,7 @@ class ScanApi {
   }
   /** Requests cancellation of a running scan; resolves to the resulting status. */
   async cancelScan(scanId, signal) {
-    const data = await postJson("mindfula11y_cancelscan", { scanId }, { signal });
+    const data = await postJson("mindfula11y_scan_cancel", { scanId }, { signal });
     if (!isScanStatus(data.status)) {
       throw new Error(`The cancel-scan endpoint returned an unrecognized scan status: ${String(data.status)}.`);
     }

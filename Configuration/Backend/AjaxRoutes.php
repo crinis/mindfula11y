@@ -26,25 +26,25 @@ use MindfulMarkup\MindfulA11y\Controller\StructureAnalysisEnrichmentAjaxControll
 use MindfulMarkup\MindfulA11y\Controller\StructureAnalysisTicketAjaxController;
 
 return [
-    'mindfula11y_generatealttext' => [
+    'mindfula11y_alttext_generate' => [
         'path' => '/mindfula11y/alt-text/generate',
         'target' => AltTextAjaxController::class . '::generateAction',
         'methods' => ['POST'],
         'inheritAccessFromModule' => 'mindfula11y_accessibility',
     ],
-    'mindfula11y_createscan' => [
+    'mindfula11y_scan_create' => [
         'path' => '/mindfula11y/scan/create',
         'target' => ScanAjaxController::class . '::createAction',
         'methods' => ['POST'],
         'inheritAccessFromModule' => 'mindfula11y_accessibility',
     ],
-    'mindfula11y_getscan' => [
+    'mindfula11y_scan_get' => [
         'path' => '/mindfula11y/scan/get',
         'target' => ScanAjaxController::class . '::getAction',
         'methods' => ['GET'],
         'inheritAccessFromModule' => 'mindfula11y_accessibility',
     ],
-    'mindfula11y_cancelscan' => [
+    'mindfula11y_scan_cancel' => [
         'path' => '/mindfula11y/scan/cancel',
         'target' => ScanAjaxController::class . '::cancelAction',
         'methods' => ['POST'],

@@ -32,7 +32,7 @@ export class AltTextService {
      * when the endpoint answers with its structured error body.
      */
     async generateAltText(demand: GenerateAltTextDemand, signal?: AbortSignal): Promise<string> {
-        const data = await postJson<GenerateAltTextResponse>('mindfula11y_generatealttext', demand, { signal });
+        const data = await postJson<GenerateAltTextResponse>('mindfula11y_alttext_generate', demand, { signal });
         if (typeof data.altText !== 'string' || data.altText === '') {
             throw new Error('The alt-text endpoint returned no text.');
         }
