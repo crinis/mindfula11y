@@ -39,6 +39,7 @@ final readonly class StructureAnalysisResponseMiddleware implements MiddlewareIn
     public function __construct(
         private ResponseFactoryInterface $responseFactory,
         private StreamFactoryInterface $streamFactory,
+        private StructureAnalysisResponseHardener $hardener,
     ) {}
 
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
@@ -56,6 +57,14 @@ final readonly class StructureAnalysisResponseMiddleware implements MiddlewareIn
             $response = $this->createMinimalHtmlResponse(403);
         } else {
             $response = $handler->handle($request);
+        }
+
+        $redirectStatus = $response->getStatusCode();
+        if ($redirectStatus >= 300 && $redirectStatus < 400) {
+            // Never let the sandboxed frame follow a redirect off the signed
+            // target: replace it with an analyzable error document (this also
+            // drops the Location header).
+            $response = $this->createMinimalHtmlResponse($redirectStatus);
         }
 
         if (!$this->isHtmlResponse($response)) {
@@ -90,7 +99,7 @@ final readonly class StructureAnalysisResponseMiddleware implements MiddlewareIn
             // The bundled runner is missing (broken build/deploy). Without it
             // the framed document cannot report results. Discard the privileged
             // frontend body and return a non-scripted, non-cacheable error.
-            return $this->createNonScriptedErrorResponse($ticket->backendOrigin);
+            return $this->hardener->createNonScriptedErrorResponse($ticket->backendOrigin);
         }
         // The framed document runs in an opaque origin (the iframe sandbox has
         // no `allow-same-origin`), so an external `type="module"` `src` is
@@ -138,7 +147,7 @@ final readonly class StructureAnalysisResponseMiddleware implements MiddlewareIn
         }
 
         $contentSecurityPolicy = "script-src 'nonce-{$nonce}' 'strict-dynamic'; object-src 'none'; frame-src 'none'; form-action 'none'; base-uri 'self'; frame-ancestors " . $ticket->backendOrigin;
-        return $this->hardenResponse($response, $contentSecurityPolicy)
+        return $this->hardener->harden($response, $contentSecurityPolicy)
             ->withBody($this->streamFactory->createStream($rewrittenContent));
     }
 
@@ -148,26 +157,6 @@ final readonly class StructureAnalysisResponseMiddleware implements MiddlewareIn
             ->createResponse($status)
             ->withHeader('Content-Type', 'text/html; charset=utf-8')
             ->withBody($this->streamFactory->createStream('<!doctype html><html><body></body></html>'));
-    }
-
-    private function createNonScriptedErrorResponse(string $backendOrigin): ResponseInterface
-    {
-        $contentSecurityPolicy = "default-src 'none'; script-src 'none'; object-src 'none'; frame-src 'none'; form-action 'none'; base-uri 'none'; frame-ancestors " . $backendOrigin;
-        return $this->hardenResponse($this->createMinimalHtmlResponse(500), $contentSecurityPolicy);
-    }
-
-    /** Applies the invariants shared by every privileged analysis response. */
-    private function hardenResponse(ResponseInterface $response, string $contentSecurityPolicy): ResponseInterface
-    {
-        return $response
-            ->withoutHeader('Content-Length')
-            ->withoutHeader('Content-Security-Policy')
-            ->withoutHeader('Content-Security-Policy-Report-Only')
-            ->withoutHeader('X-Frame-Options')
-            ->withHeader('Content-Security-Policy', $contentSecurityPolicy)
-            ->withHeader('Cache-Control', 'private, no-store')
-            ->withHeader('Referrer-Policy', 'no-referrer')
-            ->withHeader('X-Content-Type-Options', 'nosniff');
     }
 
     private function isHtmlResponse(ResponseInterface $response): bool

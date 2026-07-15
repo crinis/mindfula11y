@@ -36,6 +36,7 @@ final readonly class StructureAnalysisAuthenticationMiddleware implements Middle
     public function __construct(
         private StructureAnalysisTicketService $ticketService,
         private Context $context,
+        private StructureAnalysisResponseHardener $hardener,
     ) {}
 
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
@@ -73,7 +74,19 @@ final readonly class StructureAnalysisAuthenticationMiddleware implements Middle
         $this->applyPreviewSimulation($request);
         $this->context->setAspect('frontend.preview', new PreviewAspect(true));
 
-        return $handler->handle($request->withAttribute(StructureAnalysisTicket::REQUEST_ATTRIBUTE, $ticket));
+        $response = $handler->handle($request->withAttribute(StructureAnalysisTicket::REQUEST_ATTRIBUTE, $ticket));
+
+        // Fail closed when an inner middleware short-circuited past
+        // StructureAnalysisResponseMiddleware (e.g. a page-resolver redirect,
+        // which runs outside it): no response produced under the ticket's
+        // preview privileges may leave without the hardened CSP/no-store
+        // headers, and the sandboxed frame must never follow redirects off the
+        // signed target.
+        if (!$this->hardener->isHardened($response, $ticket->backendOrigin)) {
+            return $this->hardener->createNonScriptedErrorResponse($ticket->backendOrigin);
+        }
+
+        return $response;
     }
 
     /**

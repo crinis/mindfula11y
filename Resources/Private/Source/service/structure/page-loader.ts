@@ -93,8 +93,12 @@ export class RenderedPageLoader {
             'position:fixed;inset-block-start:0;inset-inline-start:0;z-index:-1;pointer-events:none;border:0;opacity:0;';
         // No `allow-same-origin`: the framed document runs in an opaque origin,
         // so even if a redirect or expired ticket makes the real (unhardened)
-        // frontend page load, its scripts cannot reach this backend window. The
-        // handshake below authenticates the runner by frame identity, not origin.
+        // frontend page load, its scripts get no DOM, cookie, or storage access
+        // toward this backend window. They CAN still postMessage: the handshake
+        // below identifies the runner by frame identity (not origin), so a
+        // hostile framed page could at most submit forged, schema-validated
+        // results about itself — editing metadata is authorized independently
+        // by the backend enrichment endpoint.
         frame.setAttribute('sandbox', 'allow-scripts');
         frame.setAttribute('title', `Structure analysis: ${viewport}`);
         frame.referrerPolicy = 'no-referrer';
