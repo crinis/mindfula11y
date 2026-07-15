@@ -29,6 +29,7 @@ use TYPO3\CMS\Backend\Form\FormDataCompiler;
 use TYPO3\CMS\Backend\Form\FormDataGroup\TcaDatabaseRecord;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
+use TYPO3\CMS\Backend\View\BackendLayoutView;
 use TYPO3\CMS\Core\Http\JsonResponse;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
@@ -44,6 +45,7 @@ final readonly class StructureAnalysisEnrichmentAjaxController
         private PermissionService $permissionService,
         private FormDataCompiler $formDataCompiler,
         private UriBuilder $backendUriBuilder,
+        private BackendLayoutView $backendLayoutView,
     ) {}
 
     public function enrichAction(ServerRequestInterface $request): ResponseInterface
@@ -66,7 +68,7 @@ final readonly class StructureAnalysisEnrichmentAjaxController
             [$tableName, $uid] = explode(':', $recordKey, 2);
             $uid = (int)$uid;
             $record = BackendUtility::getRecord($tableName, $uid);
-            if (!is_array($record)) {
+            if (!is_array($record) || $this->isEditRestrictedByBackendLayout($tableName, $record)) {
                 continue;
             }
             // Kept per column: checkRecordEditAccess() ANDs the non-exclude
@@ -119,6 +121,40 @@ final readonly class StructureAnalysisEnrichmentAjaxController
         }
 
         return new JsonResponse(['records' => $metadata]);
+    }
+
+    /**
+     * Whether TYPO3 v14's backend-layout content restrictions forbid any write
+     * to this record, mirroring core's DataHandlerContentElementRestrictionHook:
+     * when a tt_content record's current CType is not allowed in its colPos,
+     * the hook drops the whole datamap entry, so offering editing metadata
+     * would expose selectors whose saves DataHandler silently discards.
+     *
+     * TYPO3 v13 has neither the restrictions nor the hook — the guard on the
+     * v14-only BackendLayoutView API disables the check there.
+     *
+     * @param array<string, mixed> $record
+     */
+    private function isEditRestrictedByBackendLayout(string $tableName, array $record): bool
+    {
+        if ($tableName !== 'tt_content'
+            || !method_exists($this->backendLayoutView, 'getColPosConfigurationForPage')
+        ) {
+            return false;
+        }
+        $contentType = (string)($record['CType'] ?? '');
+        if ($contentType === '' || !isset($record['colPos'])) {
+            return false;
+        }
+
+        $pageId = (int)($record['pid'] ?? 0);
+        $backendLayout = $this->backendLayoutView->getBackendLayoutForPage($pageId);
+        $columnConfiguration = $this->backendLayoutView->getColPosConfigurationForPage($backendLayout, (int)$record['colPos'], $pageId);
+        $allowedContentTypes = GeneralUtility::trimExplode(',', $columnConfiguration['allowedContentTypes'] ?? '', true);
+        $disallowedContentTypes = GeneralUtility::trimExplode(',', $columnConfiguration['disallowedContentTypes'] ?? '', true);
+
+        return ($allowedContentTypes !== [] && !in_array($contentType, $allowedContentTypes, true))
+            || ($disallowedContentTypes !== [] && in_array($contentType, $disallowedContentTypes, true));
     }
 
     /**
