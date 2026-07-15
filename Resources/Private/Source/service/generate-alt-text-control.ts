@@ -24,7 +24,7 @@ import { lll } from '@typo3/core/lit-helper.js';
 import '@typo3/backend/element/spinner-element.js';
 import type { GenerateAltTextDemand } from '../lib/types.js';
 import { AltTextService } from './alt-text-service.js';
-import { RequestError } from './request-error.js';
+import { errorView } from './request-error.js';
 
 /*
  * Light DOM by design: this is not a component — it augments the core-rendered
@@ -83,14 +83,8 @@ export class GenerateAltTextControl {
                 lll('mindfula11y.altText.generate.success.description'),
             );
         } catch (error) {
-            if (error instanceof RequestError) {
-                Notification.error(error.message, error.description);
-            } else {
-                Notification.error(
-                    lll('mindfula11y.altText.generate.error.unknown'),
-                    lll('mindfula11y.altText.generate.error.unknown.description'),
-                );
-            }
+            const view = errorView(error, 'mindfula11y.altText.generate.error.unknown');
+            Notification.error(view.title, view.description);
         } finally {
             if (icon !== null) {
                 control.replaceChildren(icon);

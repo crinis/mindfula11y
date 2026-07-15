@@ -17,6 +17,8 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+import { lll } from '@typo3/core/lit-helper.js';
+
 /** Error the backend reports as a structured `{ error: { title, description } }` body. */
 export class RequestError extends Error {
     readonly description: string;
@@ -49,4 +51,19 @@ export const toRequestError = async (error: unknown): Promise<unknown> => {
         // Non-JSON error body — fall through to the original error.
     }
     return error;
+};
+
+/**
+ * Renders any caught error as a `{ title, description }` pair for display:
+ * a RequestError's own localized title/description (the title doubles as the
+ * description when the backend sent none — some endpoints report a title
+ * only), or the given fallback label (`${fallbackKey}.description` for the
+ * description) for anything else — an unexpected exception must never leak
+ * its raw message to editors.
+ */
+export const errorView = (error: unknown, fallbackKey: string): { title: string; description: string } => {
+    if (error instanceof RequestError) {
+        return { title: error.message, description: error.description !== '' ? error.description : error.message };
+    }
+    return { title: lll(fallbackKey), description: lll(`${fallbackKey}.description`) };
 };

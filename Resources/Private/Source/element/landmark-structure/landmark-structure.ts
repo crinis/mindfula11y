@@ -18,17 +18,14 @@
  */
 
 import { lll } from '@typo3/core/lit-helper.js';
-import type { CSSResult, TemplateResult } from 'lit';
+import type { CSSResultGroup, TemplateResult } from 'lit';
 import { html, nothing } from 'lit';
 import { customElement } from 'lit/decorators.js';
 import { repeat } from 'lit/directives/repeat.js';
 import '@typo3/backend/element/icon-element.js';
-import '@typo3/backend/element/spinner-element.js';
-import { StructureView } from '../../lib/structure-view.js';
+import { renderViewportBadges } from '../../lib/status-render.js';
+import { StructureView } from '../../lib/structure/view.js';
 import type { LandmarkNode } from '../../lib/types.js';
-import { baseStyles } from '../../styles/base-styles.js';
-import noticeStyles from '../../styles/notice.css.js';
-import structureViewStyles from '../../styles/structure-view.css.js';
 import componentStyles from './landmark-structure.css.js';
 
 /**
@@ -44,10 +41,11 @@ import componentStyles from './landmark-structure.css.js';
  */
 @customElement('mindfula11y-landmark-structure')
 export class LandmarkStructure extends StructureView<LandmarkNode> {
-    static override styles: CSSResult[] = [...baseStyles, noticeStyles, structureViewStyles, componentStyles];
+    static override styles: CSSResultGroup[] = [...StructureView.viewStyles, componentStyles];
 
     protected override readonly controlSelector: string = '[data-control="role"]';
     protected override readonly emptyLabelKey: string = 'mindfula11y.structure.landmarks.noLandmarks';
+    protected override readonly labelPrefix: string = 'mindfula11y.structure.landmarks';
 
     protected override renderNodes(nodes: LandmarkNode[]): TemplateResult {
         return this.renderMap(nodes, true);
@@ -71,19 +69,9 @@ export class LandmarkStructure extends StructureView<LandmarkNode> {
             <div class="head" data-node-id=${node.id}>
                 ${this.renderRoleControl(node, label, editable)}
                 <span class="name" ?data-unlabelled=${node.label === ''}>${label}</span>
-                ${
-                    editable && node.record !== null
-                        ? html`<a class="edit" data-control="edit" href=${node.record.editLink}>
-                              <typo3-backend-icon identifier="actions-open" size="small"></typo3-backend-icon>
-                              <span class="sr-only">${lll('mindfula11y.structure.landmarks.edit')}: ${label}</span>
-                          </a>`
-                        : nothing
-                }
-                ${
-                    this.busyNodeId === node.id
-                        ? html`<typo3-backend-spinner size="small"></typo3-backend-spinner>`
-                        : nothing
-                }
+                ${renderViewportBadges(node.viewports)}
+                ${editable && this.hasRecord(node) ? this.renderEditLink(node, label) : nothing}
+                ${this.renderBusySpinner(node)}
             </div>
             ${node.errors.length > 0 ? this.renderNodeIssues(node) : nothing}
             ${node.children.length > 0 ? this.renderMap(node.children, false) : nothing}
@@ -91,33 +79,20 @@ export class LandmarkStructure extends StructureView<LandmarkNode> {
     }
 
     private renderRoleControl(node: LandmarkNode, label: string, editable: boolean): TemplateResult {
-        const describedby = node.errors.length > 0 ? `issue-${node.id}` : nothing;
-
         if (editable && node.record !== null) {
-            return html`<select
-                id="role-${node.id}"
-                class="role"
-                data-control="role"
-                aria-label="${lll('mindfula11y.structure.landmarks.role')}: ${label}"
-                aria-describedby=${describedby}
-                ?disabled=${this.busyNodeId === node.id}
-                @change=${(event: Event): void => {
-                    void this.saveNodeValue(node, event, node.role, 'mindfula11y.structure.landmarks.error.store');
-                }}
-            >
-                ${Object.keys(node.availableRoles).map(
-                    (role) =>
-                        html`<option value=${role} ?selected=${role === node.role}>
-                            ${this.roleDisplayName(role)}
-                        </option>`,
-                )}
-            </select>`;
+            return this.renderValueSelect(node, {
+                id: `role-${node.id}`,
+                className: 'role',
+                ariaLabel: `${lll('mindfula11y.structure.landmarks.role')}: ${label}`,
+                currentValue: node.role,
+                options: Object.fromEntries(
+                    Object.keys(node.availableRoles).map((role) => [role, this.roleDisplayName(role)]),
+                ),
+            });
         }
 
-        return html`<span class="role" data-locked aria-describedby=${describedby}>
-            ${this.roleDisplayName(node.role)}
-            <typo3-backend-icon identifier="actions-lock" size="small"></typo3-backend-icon>
-            <span class="sr-only">${lll('mindfula11y.structure.landmarks.edit.locked')}</span>
+        return html`<span class="role" data-locked aria-describedby=${this.describedby(node)}>
+            ${this.renderLockedChip(this.roleDisplayName(node.role))}
         </span>`;
     }
 

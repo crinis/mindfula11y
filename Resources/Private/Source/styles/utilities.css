@@ -30,4 +30,9 @@
         border: 0;
         clip-path: inset(50%);
     }
+
+    /* Keep an empty live region mounted without making it a flex/grid item. */
+    .status-region:empty {
+        position: absolute;
+    }
 }

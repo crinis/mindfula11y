@@ -19,17 +19,14 @@
 
 import Notification from '@typo3/backend/notification.js';
 import { lll } from '@typo3/core/lit-helper.js';
-import type { CSSResult, TemplateResult } from 'lit';
+import type { CSSResultGroup, TemplateResult } from 'lit';
 import { html, nothing } from 'lit';
 import { customElement } from 'lit/decorators.js';
 import { repeat } from 'lit/directives/repeat.js';
 import '@typo3/backend/element/icon-element.js';
-import '@typo3/backend/element/spinner-element.js';
-import { StructureView } from '../../lib/structure-view.js';
+import { renderViewportBadges } from '../../lib/status-render.js';
+import { StructureView } from '../../lib/structure/view.js';
 import type { HeadingNode } from '../../lib/types.js';
-import { baseStyles } from '../../styles/base-styles.js';
-import noticeStyles from '../../styles/notice.css.js';
-import structureViewStyles from '../../styles/structure-view.css.js';
 import componentStyles from './heading-structure.css.js';
 
 /**
@@ -44,10 +41,11 @@ import componentStyles from './heading-structure.css.js';
  */
 @customElement('mindfula11y-heading-structure')
 export class HeadingStructure extends StructureView<HeadingNode> {
-    static override styles: CSSResult[] = [...baseStyles, noticeStyles, structureViewStyles, componentStyles];
+    static override styles: CSSResultGroup[] = [...StructureView.viewStyles, componentStyles];
 
     protected override readonly controlSelector: string = '[data-control="level"]';
     protected override readonly emptyLabelKey: string = 'mindfula11y.structure.headings.noHeadings';
+    protected override readonly labelPrefix: string = 'mindfula11y.structure.headings';
 
     protected override renderNodes(nodes: HeadingNode[]): TemplateResult {
         return this.renderTree(nodes);
@@ -70,6 +68,8 @@ export class HeadingStructure extends StructureView<HeadingNode> {
         </li>`;
 
         // One dashed placeholder row per skipped level, the real subtree nested inside.
+        // Built innermost-out: skip=0 wraps deepest, directly above the real heading;
+        // missingLevel counts down from node.level−1.
         for (let skip = 0; skip < node.skippedLevels; skip++) {
             const missingLevel = node.level - skip - 1;
             content = html`<li class="node" data-placeholder>
@@ -92,25 +92,13 @@ export class HeadingStructure extends StructureView<HeadingNode> {
         return html`<div class="row" data-node-id=${node.id} data-relation-id=${node.relationId}>
             ${this.renderLevelControl(node, label, editable)}
             <span class="text" ?data-empty=${node.label === ''}>${label}</span>
-            ${
-                editable && node.record !== null
-                    ? html`<a class="edit" data-control="edit" href=${node.record.editLink}>
-                          <typo3-backend-icon identifier="actions-open" size="small"></typo3-backend-icon>
-                          <span class="sr-only">${lll('mindfula11y.structure.headings.edit')}: ${label}</span>
-                      </a>`
-                    : nothing
-            }
-            ${
-                this.busyNodeId === node.id
-                    ? html`<typo3-backend-spinner size="small"></typo3-backend-spinner>`
-                    : nothing
-            }
+            ${renderViewportBadges(node.viewports)}
+            ${editable && this.hasRecord(node) ? this.renderEditLink(node, label) : nothing}
+            ${this.renderBusySpinner(node)}
         </div>`;
     }
 
     private renderLevelControl(node: HeadingNode, label: string, editable: boolean): TemplateResult {
-        const describedby = node.errors.length > 0 ? `issue-${node.id}` : nothing;
-
         if (node.relation !== null) {
             const relationLabel =
                 node.relation.kind === 'ancestor'
@@ -122,7 +110,7 @@ export class HeadingStructure extends StructureView<HeadingNode> {
                 data-relation
                 data-control="level"
                 aria-label="H${node.level} — ${relationLabel}. ${lll('mindfula11y.structure.headings.relation.jump')}"
-                aria-describedby=${describedby}
+                aria-describedby=${this.describedby(node)}
                 @click=${(): void => this.handleRelationJump(node)}
             >
                 H${node.level}
@@ -131,35 +119,18 @@ export class HeadingStructure extends StructureView<HeadingNode> {
         }
 
         if (editable && node.record !== null) {
-            return html`<select
-                id="level-${node.id}"
-                class="level"
-                data-control="level"
-                aria-label="${lll('mindfula11y.structure.headings.type')}: ${label}"
-                aria-describedby=${describedby}
-                ?disabled=${this.busyNodeId === node.id}
-                @change=${(event: Event): void => {
-                    void this.saveNodeValue(
-                        node,
-                        event,
-                        `h${node.level}`,
-                        'mindfula11y.structure.headings.error.store',
-                    );
-                }}
-            >
-                ${Object.keys(node.availableTypes).map(
-                    (type) =>
-                        html`<option value=${type} ?selected=${type === `h${node.level}`}>
-                            ${type.toUpperCase()}
-                        </option>`,
-                )}
-            </select>`;
+            const currentValue = `h${node.level}`;
+            return this.renderValueSelect(node, {
+                id: `level-${node.id}`,
+                className: 'level',
+                ariaLabel: `${lll('mindfula11y.structure.headings.type')}: ${label}`,
+                currentValue,
+                options: Object.fromEntries(Object.keys(node.availableTypes).map((type) => [type, type.toUpperCase()])),
+            });
         }
 
-        return html`<span class="level" data-locked aria-describedby=${describedby}>
-            H${node.level}
-            <typo3-backend-icon identifier="actions-lock" size="small"></typo3-backend-icon>
-            <span class="sr-only">${lll('mindfula11y.structure.headings.edit.locked')}</span>
+        return html`<span class="level" data-locked aria-describedby=${this.describedby(node)}>
+            ${this.renderLockedChip(`H${node.level}`)}
         </span>`;
     }
 

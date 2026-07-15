@@ -22,20 +22,52 @@ declare(strict_types=1);
 
 use MindfulMarkup\MindfulA11y\Middleware\DisableAdminPanelMiddleware;
 use MindfulMarkup\MindfulA11y\Middleware\DisableCacheMiddleware;
+use MindfulMarkup\MindfulA11y\Middleware\AuthenticateStructureAnalysisRequestMiddleware;
+use MindfulMarkup\MindfulA11y\Middleware\StructureAnalysisResponseMiddleware;
 use MindfulMarkup\MindfulA11y\Middleware\ValidationErrorTitleMiddleware;
 
 return [
     'frontend' => [
+        'mindfulmarkup/mindfula11y/authenticate-structure-analysis' => [
+            'target' => AuthenticateStructureAnalysisRequestMiddleware::class,
+            'after' => [
+                'typo3/cms-frontend/site',
+                // Core resets the workspace aspect while rejecting stale or
+                // invalid backend cookies. Apply the signed scope afterwards.
+                'typo3/cms-frontend/backend-user-authentication',
+                // The signed ADMCMD_simUser simulation mutates the frontend
+                // user object this middleware creates.
+                'typo3/cms-frontend/authentication',
+            ],
+            'before' => [
+                // The signed workspace aspect must be in place before the
+                // simulator decides whether an offline workspace is previewed.
+                'typo3/cms-frontend/preview-simulator',
+                'typo3/cms-frontend/page-resolver',
+            ],
+        ],
         'mindfulmarkup/mindfula11y/disable-cache' => [
             'target' => DisableCacheMiddleware::class,
             'before' => [
                 'typo3/cms-frontend/prepare-tsfe-rendering',
+            ],
+            'after' => [
+                'mindfulmarkup/mindfula11y/authenticate-structure-analysis',
             ],
         ],
         'mindfulmarkup/mindfula11y/validation-error-title' => [
             'target' => ValidationErrorTitleMiddleware::class,
             'after' => [
                 'typo3/cms-frontend/content-length-headers',
+            ],
+        ],
+        'mindfulmarkup/mindfula11y/structure-analysis-response' => [
+            'target' => StructureAnalysisResponseMiddleware::class,
+            'after' => [
+                'typo3/cms-frontend/page-resolver',
+            ],
+            'before' => [
+                'typo3/cms-frontend/page-argument-validator',
             ],
         ],
         'mindfulmarkup/mindfula11y/disable-admin-panel' => [

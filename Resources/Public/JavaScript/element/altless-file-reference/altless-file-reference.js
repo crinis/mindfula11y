@@ -18,7 +18,7 @@ import "../notice/notice.js";
 import { LiveAnnouncer } from "../../lib/live-announcer.js";
 import { AltTextService } from "../../service/alt-text-service.js";
 import { RecordService } from "../../service/record-service.js";
-import { RequestError } from "../../service/request-error.js";
+import { errorView } from "../../service/request-error.js";
 import { baseStyles } from "../../styles/base-styles.js";
 import buttonStyles from "../../styles/button.css.js";
 import noticeStyles from "../../styles/notice.css.js";
@@ -128,15 +128,16 @@ let AltlessFileReference = class extends LitElement {
                 </button>
             </div>
             ${this.announcer.render()}
-            ${this.actionError !== null ? html`<mindfula11y-notice class="status" state="danger">
-                          <span>
-                              <span class="notice-title">${this.actionError.title}</span>
-                              ${this.actionError.description}
-                          </span>
-                      </mindfula11y-notice>` : nothing}
-            ${this.saved ? html`<mindfula11y-notice class="status" state="success">
-                          <span>${lll("mindfula11y.altText.save.success")}</span>
-                      </mindfula11y-notice>` : nothing}
+            <div class="status-region" role="status">
+                ${this.actionError !== null ? html`<mindfula11y-notice class="status" state="danger">
+                              <span>
+                                  <span class="notice-title">${this.actionError.title}</span>
+                                  ${this.actionError.description}
+                              </span>
+                          </mindfula11y-notice>` : this.saved ? html`<mindfula11y-notice class="status" state="success">
+                                <span>${lll("mindfula11y.altText.save.success")}</span>
+                            </mindfula11y-notice>` : nothing}
+            </div>
         </div>`;
   }
   renderFallback() {
@@ -174,11 +175,7 @@ let AltlessFileReference = class extends LitElement {
       this.value = await this.altTextService.generateAltText(this.generateAltTextDemand);
       await this.announcer.announce(lll("mindfula11y.altText.generate.success"));
     } catch (error) {
-      this.actionError = error instanceof RequestError ? { title: error.message, description: error.description } : {
-        title: lll("mindfula11y.altText.generate.error.unknown"),
-        description: lll("mindfula11y.altText.generate.error.unknown.description")
-      };
-      await this.announcer.announce(this.actionError.title);
+      this.actionError = errorView(error, "mindfula11y.altText.generate.error.unknown");
     } finally {
       this.busy = "idle";
     }
@@ -203,13 +200,11 @@ let AltlessFileReference = class extends LitElement {
       this.lastSavedValue = this.value;
       this.lastSavedDecorative = this.decorative;
       this.saved = true;
-      await this.announcer.announce(lll("mindfula11y.altText.save.success"));
     } catch {
       this.actionError = {
         title: lll("mindfula11y.altText.save.error"),
         description: lll("mindfula11y.altText.save.error.description")
       };
-      await this.announcer.announce(this.actionError.title);
     } finally {
       this.busy = "idle";
     }

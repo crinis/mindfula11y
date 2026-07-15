@@ -118,18 +118,13 @@ class AltTextAjaxController extends ActionController
      */
     public function generateAction(ServerRequestInterface $request): ResponseInterface
     {
-        $requestBody = json_decode((string)$request->getBody(), true) ?? [];
-        $demand = new GenerateAltTextDemand(
-            isset($requestBody['userId']) ? (int)$requestBody['userId'] : 0,
-            isset($requestBody['pageUid']) ? (int)$requestBody['pageUid'] : 0,
-            isset($requestBody['languageUid']) ? (int)$requestBody['languageUid'] : 0,
-            isset($requestBody['workspaceId']) ? (int)$requestBody['workspaceId'] : 0,
-            $requestBody['recordTable'] ?? '',
-            isset($requestBody['recordUid']) ? (int)$requestBody['recordUid'] : 0,
-            isset($requestBody['fileUid']) ? (int)$requestBody['fileUid'] : 0,
-            $requestBody['recordColumns'] ?? [],
-            $requestBody['signature'] ?? '',
-        );
+        $requestBody = json_decode((string)$request->getBody(), true);
+        $requestBody = is_array($requestBody) ? $requestBody : [];
+        $demand = GenerateAltTextDemand::fromRequestData($requestBody);
+
+        if ($demand === null) {
+            throw new InvalidArgumentException('Missing or invalid parameters for generating alternative text');
+        }
 
         if (!$demand->validateSignature()) {
             return $this->jsonResponse(

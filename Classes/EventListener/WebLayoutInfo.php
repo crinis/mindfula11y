@@ -137,6 +137,7 @@ class WebLayoutInfo
 
         // Let PreviewUriBuilder decide if a preview can be built. It returns null when a preview is not available.
         $previewUri = PreviewUriBuilder::create($finalPageInfo)->buildUri();
+        $this->generalModuleService->allowStructureAnalysisFraming($previewUri, $pageTsConfig);
 
         // Prepare scan-related variables
         $scanUri = null;
@@ -157,11 +158,11 @@ class WebLayoutInfo
             // Create scan demand for the component
             if (null !== $previewUri) {
                 $createScanDemand = new CreateScanDemand(
-                    $backendUser->user['uid'],
-                    $finalPageInfo['uid'],
-                    (string) $previewUri,
-                    $languageId,
-                    $backendUser->workspace
+                    userId: (int)$backendUser->user['uid'],
+                    pageId: (int)$finalPageInfo['uid'],
+                    previewUrl: (string)$previewUri,
+                    languageId: $languageId,
+                    workspaceId: $backendUser->workspace,
                 );
             }
 
@@ -188,6 +189,11 @@ class WebLayoutInfo
         );
         $view = $this->viewFactory->create($viewFactoryData);
         $view->assignMultiple([
+            'pageId' => $pageId,
+            // See AccessibilityModuleController: the preview falls back to the
+            // default-language record when no translation exists, so target
+            // language 0 to keep the structure analysis URL/language in sync.
+            'languageId' => null === $localizedPageInfo ? 0 : $languageId,
             'fileReferenceCount' => $fileReferenceCount,
             'previewUrl' => (null !== $previewUri ? (string) $previewUri : null),
             'missingAltTextUri' => $missingAltTextUri,

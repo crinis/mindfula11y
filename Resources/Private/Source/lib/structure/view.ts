@@ -19,19 +19,26 @@
 
 import Notification from '@typo3/backend/notification.js';
 import { lll } from '@typo3/core/lit-helper.js';
-import type { PropertyValues, TemplateResult } from 'lit';
-import { html, LitElement } from 'lit';
+import type { CSSResultGroup, PropertyValues, TemplateResult } from 'lit';
+import { html, LitElement, nothing } from 'lit';
 import { property, state } from 'lit/decorators.js';
+import { live } from 'lit/directives/live.js';
 import '@typo3/backend/element/icon-element.js';
-import { RecordService } from '../service/record-service.js';
-import { scrollIntoViewCentered } from './dom.js';
-import type { RecordReference, StructureError } from './types.js';
-import { noticeState, StructureErrorSeverity, severityLabelKey } from './types.js';
+import '@typo3/backend/element/spinner-element.js';
+import { RecordService } from '../../service/record-service.js';
+import { baseStyles } from '../../styles/base-styles.js';
+import noticeStyles from '../../styles/notice.css.js';
+import structureViewStyles from '../../styles/structure-view.css.js';
+import viewportStyles from '../../styles/viewport.css.js';
+import { scrollIntoViewCentered } from '../dom.js';
+import { noticeState, renderSeverityChip, renderViewportBadges } from '../status-render.js';
+import type { RecordReference, StructureError, StructureViewport } from '../types.js';
 
 /** Node shape the analyzers share, generic over the concrete node type. */
 export interface StructureViewNode<T> {
     id: string;
     record: RecordReference | null;
+    viewports: StructureViewport[];
     errors: StructureError[];
     children: T[];
 }
@@ -45,6 +52,18 @@ export interface StructureViewNode<T> {
  * `styles/structure-view.css` owns the matching shared chrome.
  */
 export abstract class StructureView<T extends StructureViewNode<T>> extends LitElement {
+    /**
+     * Shared foundation + the chrome/viewport/notice modules both structure
+     * views adopt; each subclass appends its own component stylesheet:
+     * `[...StructureView.viewStyles, componentStyles]`.
+     */
+    protected static readonly viewStyles: CSSResultGroup[] = [
+        ...baseStyles,
+        noticeStyles,
+        structureViewStyles,
+        viewportStyles,
+    ];
+
     @property({ attribute: false }) nodes: T[] = [];
     @property({ attribute: false }) pageErrors: StructureError[] = [];
 
@@ -57,6 +76,14 @@ export abstract class StructureView<T extends StructureViewNode<T>> extends LitE
     protected abstract readonly controlSelector: string;
     /** Label key of the empty state's title; `<key>.description` carries the body. */
     protected abstract readonly emptyLabelKey: string;
+    /**
+     * Common root of this view's XLF keys (`mindfula11y.structure.headings` |
+     * `mindfula11y.structure.landmarks`); `.edit`, `.edit.locked` and
+     * `.error.store` are derived from it. Keys that don't share a suffix
+     * across both views (e.g. the empty-state title) stay explicit via
+     * `emptyLabelKey`.
+     */
+    protected abstract readonly labelPrefix: string;
     /** Renders the nested node markup (heading tree / landmark map). */
     protected abstract renderNodes(nodes: T[]): TemplateResult;
 
@@ -88,7 +115,6 @@ export abstract class StructureView<T extends StructureViewNode<T>> extends LitE
         if (this.pageErrors.some((error) => error.key === errorKey)) {
             const issue = this.renderRoot.querySelector<HTMLElement>('[data-scope="page"]');
             if (issue !== null) {
-                issue.setAttribute('tabindex', '-1');
                 issue.focus();
                 scrollIntoViewCentered(issue);
             }
@@ -125,12 +151,9 @@ export abstract class StructureView<T extends StructureViewNode<T>> extends LitE
             data-state=${noticeState(error.severity)}
             data-variant="inline"
             data-scope=${pageScope ? 'page' : 'node'}
+            tabindex=${pageScope ? '-1' : nothing}
         >
-            <typo3-backend-icon
-                identifier=${error.severity === StructureErrorSeverity.Error ? 'status-dialog-error' : 'status-dialog-warning'}
-                size="small"
-            ></typo3-backend-icon>
-            <span><span class="sr-only">${lll(severityLabelKey(error.severity))}: </span>${lll(error.key)}</span>
+            ${renderSeverityChip(error.severity, error.key)} ${renderViewportBadges(error.viewports)}
         </p>`;
     }
 
@@ -142,14 +165,88 @@ export abstract class StructureView<T extends StructureViewNode<T>> extends LitE
         </p>`;
     }
 
+    /** `issue-${node.id}` when the node has errors, else `nothing` — shared `aria-describedby` derivation. */
+    protected describedby(node: T): string | typeof nothing {
+        return node.errors.length > 0 ? `issue-${node.id}` : nothing;
+    }
+
+    /** Type guard narrowing `node.record` to non-null, for {@link renderEditLink} call sites. */
+    protected hasRecord(node: T): node is T & { record: RecordReference } {
+        return node.record !== null;
+    }
+
+    /** Edit link to the record's FormEngine field. Callers narrow via {@link hasRecord} before calling. */
+    protected renderEditLink(node: T & { record: RecordReference }, label: string): TemplateResult {
+        return html`<a class="edit" data-control="edit" href=${node.record.editLink}>
+            <typo3-backend-icon identifier="actions-open" size="small"></typo3-backend-icon>
+            <span class="sr-only">${lll(`${this.labelPrefix}.edit`)}: ${label}</span>
+        </a>`;
+    }
+
+    /** Busy spinner shown next to a row's controls while its save is in flight. */
+    protected renderBusySpinner(node: T): TemplateResult | typeof nothing {
+        return this.busyNodeId === node.id
+            ? html`<typo3-backend-spinner size="small"></typo3-backend-spinner>`
+            : nothing;
+    }
+
+    /**
+     * Icon + sr-only "not editable" text (key `<labelPrefix>.edit.locked`) for
+     * a locked control chip; `content` is the visible value rendered before
+     * the icon (e.g. `H2` or a role display name). The caller keeps the
+     * wrapping element (class + `aria-describedby` differ per view).
+     */
+    protected renderLockedChip(content: unknown): TemplateResult {
+        return html`${content}
+            <typo3-backend-icon identifier="actions-lock" size="small"></typo3-backend-icon>
+            <span class="sr-only">${lll(`${this.labelPrefix}.edit.locked`)}</span>`;
+    }
+
+    /**
+     * Editable value `<select>` shared by both views: binds `.value=${live(…)}`
+     * so a failed save reverts visually through the next re-render (triggered
+     * by `busyNodeId` resetting in `saveNodeValue`'s `finally`) rather than a
+     * manual DOM mutation, which can disagree with the template after
+     * unrelated re-renders.
+     */
+    protected renderValueSelect(
+        node: T,
+        opts: {
+            id: string;
+            className: string;
+            ariaLabel: string;
+            currentValue: string;
+            options: Record<string, string>;
+        },
+    ): TemplateResult {
+        return html`<select
+            id=${opts.id}
+            class=${opts.className}
+            data-control=${opts.className}
+            aria-label=${opts.ariaLabel}
+            aria-describedby=${this.describedby(node)}
+            ?disabled=${this.busyNodeId === node.id}
+            .value=${live(opts.currentValue)}
+            @change=${(event: Event): void => {
+                void this.saveNodeValue(node, event.currentTarget as HTMLSelectElement, opts.currentValue);
+            }}
+        >
+            ${Object.entries(opts.options).map(
+                ([value, label]) =>
+                    html`<option value=${value} ?selected=${value === opts.currentValue}>${label}</option>`,
+            )}
+        </select>`;
+    }
+
     /**
      * Persists a control's value via DataHandler and reports the change so the
      * container re-analyzes (focus returns to the node once new nodes arrive).
-     * On failure the select reverts and a toast names the error
-     * (`<errorKey>` + `.description`).
+     * On failure a toast names the error (`<labelPrefix>.error.store` +
+     * `.description`); resetting `busyNodeId` below re-renders the row, and
+     * `renderValueSelect`'s `live()` binding reverts the select to
+     * `currentValue` without a manual `select.value =` mutation.
      */
-    protected async saveNodeValue(node: T, event: Event, currentValue: string, errorKey: string): Promise<void> {
-        const select = event.currentTarget as HTMLSelectElement;
+    protected async saveNodeValue(node: T, select: HTMLSelectElement, currentValue: string): Promise<void> {
         const value = select.value;
         if (node.record === null || value === currentValue) {
             return;
@@ -172,7 +269,7 @@ export abstract class StructureView<T extends StructureViewNode<T>> extends LitE
                 }),
             );
         } catch {
-            select.value = currentValue;
+            const errorKey = `${this.labelPrefix}.error.store`;
             Notification.error(lll(errorKey), lll(`${errorKey}.description`));
         } finally {
             this.busyNodeId = '';

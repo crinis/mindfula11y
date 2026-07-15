@@ -37,6 +37,13 @@ use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
 use TYPO3\CMS\Core\Database\Query\Restriction\WorkspaceRestriction;
 use TYPO3\CMS\Core\Utility\RootlineUtility;
 use TYPO3\CMS\Backend\Routing\PreviewUriBuilder;
+use Psr\Http\Message\UriInterface;
+use TYPO3\CMS\Core\Security\ContentSecurityPolicy\Directive;
+use TYPO3\CMS\Core\Security\ContentSecurityPolicy\Mutation;
+use TYPO3\CMS\Core\Security\ContentSecurityPolicy\MutationCollection;
+use TYPO3\CMS\Core\Security\ContentSecurityPolicy\MutationMode;
+use TYPO3\CMS\Core\Security\ContentSecurityPolicy\PolicyRegistry;
+use TYPO3\CMS\Core\Security\ContentSecurityPolicy\UriValue;
 
 /**
  * Service for general accessibility module functionality
@@ -46,7 +53,8 @@ class GeneralModuleService
     public function __construct(
         protected readonly PermissionService $permissionService,
         protected readonly TypoScriptService $typoScriptService,
-        protected readonly ConnectionPool $connectionPool
+        protected readonly ConnectionPool $connectionPool,
+        protected readonly PolicyRegistry $policyRegistry,
     ) {}
 
     public function getLanguageService(): LanguageService
@@ -69,6 +77,10 @@ class GeneralModuleService
             'mindfula11y.structure.analyzed' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:structure.analyzed'),
             'mindfula11y.structure.updated' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:structure.updated'),
             'mindfula11y.structure.retry' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:structure.retry'),
+            'mindfula11y.structure.error.rendering' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:structure.error.rendering'),
+            'mindfula11y.structure.error.rendering.description' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:structure.error.rendering.description'),
+            'mindfula11y.structure.viewport.mobile' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:structure.viewport.mobile'),
+            'mindfula11y.structure.viewport.desktop' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:structure.viewport.desktop'),
             'mindfula11y.structure.headings' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:structure.headings'),
             'mindfula11y.structure.headings.relation.jump' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:structure.headings.relation.jump'),
             'mindfula11y.structure.headings.error.missingH1' => $this->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:structure.headings.error.missingH1'),
@@ -252,10 +264,10 @@ class GeneralModuleService
     /**
      * Check if the user has access to the missing alt text feature.
      *
-     * @param array &$pageTsConfig The page TSconfig array (passed by reference)
+     * @param array $pageTsConfig The page TSconfig array
      * @return bool
      */
-    public function hasMissingAltTextAccess(array &$pageTsConfig): bool
+    public function hasMissingAltTextAccess(array $pageTsConfig): bool
     {
         return $this->permissionService->checkTableReadAccess('sys_file_reference')
             && $this->permissionService->checkNonExcludeFields('sys_file_reference', ['alternative'])
@@ -270,10 +282,10 @@ class GeneralModuleService
      * mod.mindfula11y_accessibility.missingAltText.ignoreFileMetadata = 1 opts into
      * requiring alternative text directly on every file reference.
      *
-     * @param array &$pageTsConfig The page TSconfig array (passed by reference)
+     * @param array $pageTsConfig The page TSconfig array
      * @return bool
      */
-    public function isFileMetadataIgnored(array &$pageTsConfig): bool
+    public function isFileMetadataIgnored(array $pageTsConfig): bool
     {
         return !!($pageTsConfig['mod']['mindfula11y_accessibility']['missingAltText']['ignoreFileMetadata'] ?? false);
     }
@@ -290,10 +302,10 @@ class GeneralModuleService
     /**
      * Check if the user has access to the heading structure feature.
      *
-     * @param array &$pageTsConfig The page TSconfig array (passed by reference)
+     * @param array $pageTsConfig The page TSconfig array
      * @return bool
      */
-    public function hasHeadingStructureAccess(array &$pageTsConfig): bool
+    public function hasHeadingStructureAccess(array $pageTsConfig): bool
     {
         return !!($pageTsConfig['mod']['mindfula11y_accessibility']['headingStructure']['enable'] ?? false);
     }
@@ -301,21 +313,49 @@ class GeneralModuleService
     /**
      * Check if the user has access to the landmark structure feature.
      *
-     * @param array &$pageTsConfig The page TSconfig array (passed by reference)
+     * @param array $pageTsConfig The page TSconfig array
      * @return bool
      */
-    public function hasLandmarkStructureAccess(array &$pageTsConfig): bool
+    public function hasLandmarkStructureAccess(array $pageTsConfig): bool
     {
         return !!($pageTsConfig['mod']['mindfula11y_accessibility']['landmarkStructure']['enable'] ?? false);
     }
 
     /**
+     * Permit the structure views to frame the frontend preview.
+     *
+     * The structure analysis renders the preview in iframes, which a backend
+     * Content Security Policy blocks by default. Tying the permission to the
+     * feature gates keeps it an invariant of rendering the widget rather than a
+     * step each module has to remember.
+     *
+     * @param array<string, mixed> $pageTsConfig The page TSconfig array
+     */
+    public function allowStructureAnalysisFraming(?UriInterface $previewUri, array $pageTsConfig): void
+    {
+        if (null === $previewUri
+            || (!$this->hasHeadingStructureAccess($pageTsConfig) && !$this->hasLandmarkStructureAccess($pageTsConfig))
+        ) {
+            return;
+        }
+
+        // Strip the query before building the CSP source: PreviewUriBuilder adds
+        // query parameters for access-restricted pages (ADMCMD_simUser/simTime),
+        // but a CSP host-source must not contain a query component — browsers
+        // ignore the whole source and block the iframe. Matching ignores the
+        // query anyway, so scheme/host/port/path keep the source precise.
+        $this->policyRegistry->appendMutationCollection(new MutationCollection(
+            new Mutation(MutationMode::Extend, Directive::FrameSrc, UriValue::fromUri($previewUri->withQuery('')))
+        ));
+    }
+
+    /**
      * Check if the user has access to the accessibility scanner feature.
      *
-     * @param array &$pageTsConfig The page TSconfig array (passed by reference)
+     * @param array $pageTsConfig The page TSconfig array
      * @return bool
      */
-    public function hasScanAccess(array &$pageTsConfig): bool
+    public function hasScanAccess(array $pageTsConfig): bool
     {
         return $this->permissionService->checkTableReadAccess('pages')
             && !!($pageTsConfig['mod']['mindfula11y_accessibility']['scan']['enable'] ?? false);
@@ -329,7 +369,7 @@ class GeneralModuleService
      *   Pass this when $pageInfo is a translation overlay, as overlays may not have SYS_LASTCHANGED updated.
      * @return bool True if the scan should be invalidated (new scan needed), false otherwise.
      */
-    public function shouldInvalidateScan(array &$pageInfo, int $fallbackSysLastChanged = 0): bool
+    public function shouldInvalidateScan(array $pageInfo, int $fallbackSysLastChanged = 0): bool
     {
         $sysLastChanged = max((int)($pageInfo['SYS_LASTCHANGED'] ?? 0), $fallbackSysLastChanged);
         $scanUpdated = $pageInfo['tx_mindfula11y_scanupdated'] ?? null;
@@ -346,10 +386,10 @@ class GeneralModuleService
     /**
      * Check if auto-create scan is enabled in TSconfig.
      *
-     * @param array &$pageTsConfig The page TSconfig array (passed by reference)
+     * @param array $pageTsConfig The page TSconfig array
      * @return bool
      */
-    public function isAutoCreateScanEnabled(array &$pageTsConfig): bool
+    public function isAutoCreateScanEnabled(array $pageTsConfig): bool
     {
         return !!($pageTsConfig['mod']['mindfula11y_accessibility']['scan']['autoCreate'] ?? true);
     }
@@ -361,10 +401,10 @@ class GeneralModuleService
      * configured, or null when either value is absent. Credentials are read exclusively
      * on the server side and are never forwarded to the frontend.
      *
-     * @param array &$pageTsConfig The page TSconfig array (passed by reference)
+     * @param array $pageTsConfig The page TSconfig array
      * @return array{username: string, password: string}|null
      */
-    public function getScanBasicAuth(array &$pageTsConfig): ?array
+    public function getScanBasicAuth(array $pageTsConfig): ?array
     {
         $username = trim((string)($pageTsConfig['mod']['mindfula11y_accessibility']['scan']['basicAuthUsername'] ?? ''));
         $password = trim((string)($pageTsConfig['mod']['mindfula11y_accessibility']['scan']['basicAuthPassword'] ?? ''));
@@ -382,10 +422,10 @@ class GeneralModuleService
      * The scanner API's agent feature is optional and disabled by default,
      * so the audit toggle is opt-in via Page TSconfig.
      *
-     * @param array &$pageTsConfig The page TSconfig array (passed by reference)
+     * @param array $pageTsConfig The page TSconfig array
      * @return bool
      */
-    public function hasAiAuditAccess(array &$pageTsConfig): bool
+    public function hasAiAuditAccess(array $pageTsConfig): bool
     {
         return !!($pageTsConfig['mod']['mindfula11y_accessibility']['scan']['aiAudit']['enable'] ?? false);
     }
@@ -393,10 +433,10 @@ class GeneralModuleService
     /**
      * Check if the AI audit toggle should be pre-selected in the scan module.
      *
-     * @param array &$pageTsConfig The page TSconfig array (passed by reference)
+     * @param array $pageTsConfig The page TSconfig array
      * @return bool
      */
-    public function isAiAuditDefaultEnabled(array &$pageTsConfig): bool
+    public function isAiAuditDefaultEnabled(array $pageTsConfig): bool
     {
         return !!($pageTsConfig['mod']['mindfula11y_accessibility']['scan']['aiAudit']['default'] ?? false);
     }
@@ -406,10 +446,10 @@ class GeneralModuleService
      * null so the API runs every server-enabled skill; an explicitly empty
      * setting returns [] so the API runs no AI skills.
      *
-     * @param array &$pageTsConfig The page TSconfig array (passed by reference)
+     * @param array $pageTsConfig The page TSconfig array
      * @return string[]|null
      */
-    public function getAiAuditSkills(array &$pageTsConfig): ?array
+    public function getAiAuditSkills(array $pageTsConfig): ?array
     {
         $aiAuditConfiguration = $pageTsConfig['mod']['mindfula11y_accessibility']['scan']['aiAudit'] ?? [];
         if (!is_array($aiAuditConfiguration) || !array_key_exists('skills', $aiAuditConfiguration)) {
@@ -427,10 +467,10 @@ class GeneralModuleService
      * Check if preview is enabled for a given doktype.
      *
      * @param int $doktype
-     * @param array &$pageTsConfig The page TSconfig array (passed by reference)
+     * @param array $pageTsConfig The page TSconfig array
      * @return bool
      */
-    public function isPreviewEnabledForDoktype(int $doktype, array &$pageTsConfig): bool
+    public function isPreviewEnabledForDoktype(int $doktype, array $pageTsConfig): bool
     {
         if (isset($pageTsConfig['TCEMAIN']['preview']['disableButtonForDokType'])) {
             return !in_array($doktype, GeneralUtility::intExplode(',', (string)$pageTsConfig['TCEMAIN']['preview']['disableButtonForDokType'], true));

@@ -22,11 +22,11 @@ declare(strict_types=1);
 
 namespace MindfulMarkup\MindfulA11y\Middleware;
 
+use MindfulMarkup\MindfulA11y\Domain\Model\StructureAnalysisTicket;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
-use TYPO3\CMS\Core\Context\Context;
 use TYPO3\CMS\Frontend\Cache\CacheInstruction;
 
 /**
@@ -34,36 +34,22 @@ use TYPO3\CMS\Frontend\Cache\CacheInstruction;
  */
 class DisableCacheMiddleware implements MiddlewareInterface
 {
-    private const STRUCTURE_ANALYSIS_HEADER = 'Mindfula11y-Structure-Analysis';
-
-    public function __construct(
-        protected readonly Context $context,
-    ) {}
-
     /**
-     * Process the request and disable frontend cache if the Mindfula11y-Structure-Analysis header is set.
+     * Process the request and disable frontend cache for an authenticated structure analysis.
+     *
+     * The signed ticket is the authorization; it is validated before this
+     * middleware runs and deliberately recreates no backend user session, so
+     * the request carries no `backend.user` aspect to test here.
      */
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
-        if (!$this->isStructureAnalysisRequest($request)) {
+        if (StructureAnalysisTicket::fromRequest($request) === null) {
             return $handler->handle($request);
         }
 
-        if ($this->context->getPropertyFromAspect('backend.user', 'isLoggedIn', false)) {
-            $cacheInstruction = $request->getAttribute(
-                'frontend.cache.instruction',
-                new CacheInstruction()
-            );
+        $cacheInstruction = $request->getAttribute('frontend.cache.instruction', new CacheInstruction());
+        $cacheInstruction->disableCache('EXT:mindfula11y: structure analysis request.');
 
-            $cacheInstruction->disableCache('EXT:mindfula11y: Mindfula11y-Structure-Analysis header set.');
-            $request = $request->withAttribute('frontend.cache.instruction', $cacheInstruction);
-        }
-
-        return $handler->handle($request);
-    }
-
-    private function isStructureAnalysisRequest(ServerRequestInterface $request): bool
-    {
-        return $request->hasHeader(self::STRUCTURE_ANALYSIS_HEADER);
+        return $handler->handle($request->withAttribute('frontend.cache.instruction', $cacheInstruction));
     }
 }

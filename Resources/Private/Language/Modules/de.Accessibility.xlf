@@ -80,6 +80,50 @@
                 <source>Retry</source>
                 <target>Erneut versuchen</target>
             </trans-unit>
+            <trans-unit id="structure.error.rendering" resname="structure.error.rendering">
+                <source>Page structure could not be rendered</source>
+                <target>Seitenstruktur konnte nicht gerendert werden</target>
+            </trans-unit>
+            <trans-unit id="structure.error.rendering.description" resname="structure.error.rendering.description">
+                <source>Mindful A11y could not securely render this frontend preview. Verify that the frontend URL is reachable and allows framing by the TYPO3 backend.</source>
+                <target>Mindful A11y konnte diese Frontend-Vorschau nicht sicher rendern. Prüfen Sie, ob die Frontend-URL erreichbar ist und die Einbettung durch das TYPO3-Backend erlaubt.</target>
+            </trans-unit>
+            <trans-unit id="structure.error.rendering.ticket" resname="structure.error.rendering.ticket">
+                <source>The analysis session could not be created. Please try again.</source>
+                <target>Die Analysesitzung konnte nicht erstellt werden. Bitte versuchen Sie es erneut.</target>
+            </trans-unit>
+            <trans-unit id="structure.error.rendering.timeout" resname="structure.error.rendering.timeout">
+                <source>The page preview took too long to load.</source>
+                <target>Das Laden der Seitenvorschau hat zu lange gedauert.</target>
+            </trans-unit>
+            <trans-unit id="structure.error.rendering.framing" resname="structure.error.rendering.framing">
+                <source>The frontend page refused to be embedded, or the analysis session expired.</source>
+                <target>Die Frontend-Seite lässt sich nicht einbetten, oder die Analysesitzung ist abgelaufen.</target>
+            </trans-unit>
+            <trans-unit id="structure.error.rendering.http" resname="structure.error.rendering.http">
+                <source>The page could not be rendered.</source>
+                <target>Die Seite konnte nicht gerendert werden.</target>
+            </trans-unit>
+            <trans-unit id="structure.error.rendering.analysis" resname="structure.error.rendering.analysis">
+                <source>The structure analysis failed while examining the page.</source>
+                <target>Die Strukturanalyse ist bei der Untersuchung der Seite fehlgeschlagen.</target>
+            </trans-unit>
+            <trans-unit id="structure.error.rendering.payload" resname="structure.error.rendering.payload">
+                <source>The analysis result was too large or could not be read.</source>
+                <target>Das Analyseergebnis war zu groß oder konnte nicht gelesen werden.</target>
+            </trans-unit>
+            <trans-unit id="structure.error.rendering.enrich" resname="structure.error.rendering.enrich">
+                <source>Editing information for the found elements could not be loaded.</source>
+                <target>Bearbeitungsinformationen für die gefundenen Elemente konnten nicht geladen werden.</target>
+            </trans-unit>
+            <trans-unit id="structure.viewport.mobile" resname="structure.viewport.mobile">
+                <source>Mobile</source>
+                <target>Mobil</target>
+            </trans-unit>
+            <trans-unit id="structure.viewport.desktop" resname="structure.viewport.desktop">
+                <source>Desktop</source>
+                <target>Desktop</target>
+            </trans-unit>
 
             <trans-unit id="general.viewDetails" resname="general.viewDetails">
                 <source>View Details</source>
@@ -511,8 +555,8 @@
                 <target>Landmarks mit identischen Bezeichnungen.</target>
             </trans-unit>
             <trans-unit id="structure.landmarks.error.duplicateSameLabel.description" resname="structure.landmarks.error.duplicateSameLabel.description">
-                <source>Multiple landmarks share an identical label. Provide unique labels so users can differentiate them.</source>
-                <target>Mehrere Landmarks haben identische Bezeichnungen. Vergeben Sie eindeutige Bezeichnungen, damit Nutzer sie unterscheiden können.</target>
+                <source>Multiple landmarks of the same role share a label but represent different content. Provide unique labels so users can differentiate them.</source>
+                <target>Mehrere Landmarks derselben Rolle haben dieselbe Bezeichnung, enthalten aber unterschiedliche Inhalte. Vergeben Sie eindeutige Bezeichnungen, damit Nutzer sie unterscheiden können.</target>
             </trans-unit>
             <trans-unit id="structure.landmarks.error.multipleUnlabeledLandmarks" resname="structure.landmarks.error.multipleUnlabeledLandmarks">
                 <source>Multiple unlabeled landmarks of the same role.</source>

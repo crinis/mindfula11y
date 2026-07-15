@@ -1,0 +1,131 @@
+<?php
+declare(strict_types=1);
+
+/*
+ * Mindful A11y extension for TYPO3 integrating accessibility tools into the backend.
+ * Copyright (C) 2026  Mindful Markup, Felix Spittel
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ */
+
+namespace MindfulMarkup\MindfulA11y\Domain\Model;
+
+use JsonSerializable;
+use Psr\Http\Message\ServerRequestInterface;
+
+/**
+ * Immutable authorization and response scope carried by a signed structure-analysis ticket.
+ *
+ * Unlike the session-bound demands ({@see CreateScanDemand},
+ * {@see GenerateAltTextDemand}), a ticket is a session-less capability: it is
+ * redeemed by an iframe GET on the frontend origin that carries no backend
+ * cookie, so the signed claims are the only identity and the holder's
+ * authorization is re-derived from them on every redemption — hence the very
+ * short lifetime, the version pin, and the strict claims validation. Signing
+ * and validation live in StructureAnalysisTicketService.
+ */
+final readonly class StructureAnalysisTicket implements JsonSerializable
+{
+    /** Request attribute carrying the validated ticket on a frontend analysis request. */
+    public const REQUEST_ATTRIBUTE = 'mindfula11y.structure-analysis';
+
+    public const VERSION = 2;
+
+    public function __construct(
+        public string $requestId,
+        public int $pageId,
+        public int $languageId,
+        public int $workspaceId,
+        public int $backendUserId,
+        public string $backendOrigin,
+        public string $frontendOrigin,
+        public string $target,
+        public int $expiresAt,
+    ) {}
+
+    /** The ticket the authentication middleware validated and attached, if any. */
+    public static function fromRequest(ServerRequestInterface $request): ?self
+    {
+        $ticket = $request->getAttribute(self::REQUEST_ATTRIBUTE);
+        return $ticket instanceof self ? $ticket : null;
+    }
+
+    /**
+     * Defense in depth: each trust boundary re-validates scope independently; do not deduplicate.
+     *
+     * @param array<string, mixed> $claims
+     */
+    public static function fromClaims(array $claims, int $now, int $maximumLifetime): ?self
+    {
+        if (($claims['version'] ?? null) !== self::VERSION
+            || !is_string($claims['requestId'] ?? null)
+            || !preg_match('/^[a-f0-9]{32}$/', $claims['requestId'])
+            || !is_int($claims['pageId'] ?? null)
+            || $claims['pageId'] <= 0
+            || !is_int($claims['languageId'] ?? null)
+            || $claims['languageId'] < 0
+            || !is_int($claims['workspaceId'] ?? null)
+            || $claims['workspaceId'] < 0
+            || !is_int($claims['backendUserId'] ?? null)
+            || $claims['backendUserId'] <= 0
+            || !is_string($claims['backendOrigin'] ?? null)
+            || !is_string($claims['frontendOrigin'] ?? null)
+            || !is_string($claims['target'] ?? null)
+            || !is_int($claims['expiresAt'] ?? null)
+            || $claims['expiresAt'] <= $now
+            || $claims['expiresAt'] > $now + $maximumLifetime
+        ) {
+            return null;
+        }
+
+        return new self(
+            requestId: $claims['requestId'],
+            pageId: $claims['pageId'],
+            languageId: $claims['languageId'],
+            workspaceId: $claims['workspaceId'],
+            backendUserId: $claims['backendUserId'],
+            backendOrigin: $claims['backendOrigin'],
+            frontendOrigin: $claims['frontendOrigin'],
+            target: $claims['target'],
+            expiresAt: $claims['expiresAt'],
+        );
+    }
+
+    public function isExpired(int $now): bool
+    {
+        return $this->expiresAt <= $now;
+    }
+
+    /**
+     * @return array{
+     *   version: int,
+     *   requestId: string,
+     *   pageId: int,
+     *   languageId: int,
+     *   workspaceId: int,
+     *   backendUserId: int,
+     *   backendOrigin: string,
+     *   frontendOrigin: string,
+     *   target: string,
+     *   expiresAt: int
+     * }
+     */
+    public function jsonSerialize(): array
+    {
+        return [
+            'version' => self::VERSION,
+            'requestId' => $this->requestId,
+            'pageId' => $this->pageId,
+            'languageId' => $this->languageId,
+            'workspaceId' => $this->workspaceId,
+            'backendUserId' => $this->backendUserId,
+            'backendOrigin' => $this->backendOrigin,
+            'frontendOrigin' => $this->frontendOrigin,
+            'target' => $this->target,
+            'expiresAt' => $this->expiresAt,
+        ];
+    }
+}

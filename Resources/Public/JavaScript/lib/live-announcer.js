@@ -4,12 +4,16 @@ class LiveAnnouncer {
     this.message = "";
     this.host = host;
   }
-  async announce(message) {
+  async announce(message, signal) {
+    signal?.throwIfAborted();
     this.message = "";
     this.host.requestUpdate();
     await this.host.updateComplete;
+    signal?.throwIfAborted();
     this.message = message;
     this.host.requestUpdate();
+    await this.host.updateComplete;
+    signal?.throwIfAborted();
   }
   /** The visually hidden live region carrying the current announcement. */
   render() {

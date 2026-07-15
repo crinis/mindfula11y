@@ -32,7 +32,8 @@
                     </mindfula11y-scan-issue-count>
                 </f:if>
                 <f:if condition="{previewUrl} && ({hasHeadingStructureAccess} || {hasLandmarkStructureAccess})">
-                    <mindfula11y-structure heading-level="{headingLevel + 1}" preview-url="{previewUrl}"
+                    <mindfula11y-structure heading-level="{headingLevel + 1}"
+                        page-id="{pageId}" language-id="{languageId}"
                         {f:if(condition: hasHeadingStructureAccess, then: 'has-heading-structure-access')}
                         {f:if(condition: hasLandmarkStructureAccess, then: 'has-landmark-structure-access')}>
                     </mindfula11y-structure>

@@ -25,21 +25,38 @@ namespace MindfulMarkup\MindfulA11y\Domain\Model;
 use JsonSerializable;
 use TYPO3\CMS\Core\Crypto\HashService;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
-use TYPO3\CMS\Extbase\DomainObject\AbstractValueObject;
 
 /**
- * Class CreateScanDemand.
+ * Immutable, signed authorization scope for creating an accessibility scan.
  *
- * This class is used to encapsulate the demand for creating an accessibility scan.
- * It contains properties such as page UID, language UID, workspace ID, and a signature
- * for request validation.
+ * A demand is session-bound, not a credential: it is rendered into
+ * authenticated backend markup and redeemed against a session-authenticated
+ * AJAX endpoint. The session authenticates; the HMAC guarantees the
+ * server-derived scope — above all the previewUrl the external scanner will
+ * fetch — was not altered by scripts between render and redemption; the
+ * redeeming controller additionally pins the demand to the same user and
+ * workspace. Contrast {@see StructureAnalysisTicket}, which must work without
+ * any session.
+ *
+ * @phpstan-type SerializedCreateScanDemand array{
+ *   userId: int,
+ *   pageId: int,
+ *   previewUrl: string,
+ *   languageId: int,
+ *   workspaceId: int,
+ *   pageLevels: int,
+ *   crawl: bool,
+ *   expiresAt: int,
+ *   signature: string
+ * }
  */
-class CreateScanDemand extends AbstractValueObject implements JsonSerializable
+final readonly class CreateScanDemand implements JsonSerializable
 {
-    /**
-     * Signature of the properties generated using hmac.
-     */
-    protected string $signature = '';
+    /** Scan demands are rendered into the module and may be used after user interaction. */
+    public const LIFETIME = 3600;
+
+    private int $expiresAt;
+    private string $signature;
 
     /**
      * @param int $userId Current user ID.
@@ -49,19 +66,54 @@ class CreateScanDemand extends AbstractValueObject implements JsonSerializable
      * @param int $workspaceId Current workspace ID.
      * @param int $pageLevels Page levels for tree scanning (0 = current page only).
      * @param bool $crawl Whether this demand creates a crawl scan (only valid for site root pages).
+     * @param int $expiresAt Unix timestamp after which this demand must not be redeemed.
      * @param string $signature Optional pre-computed HMAC signature; generated from the other properties when empty.
      */
     public function __construct(
-        protected int $userId,
-        protected int $pageId,
-        protected string $previewUrl,
-        protected int $languageId,
-        protected int $workspaceId,
-        protected int $pageLevels = 0,
-        protected bool $crawl = false,
+        private int $userId,
+        private int $pageId,
+        private string $previewUrl,
+        private int $languageId,
+        private int $workspaceId,
+        private int $pageLevels = 0,
+        private bool $crawl = false,
+        int $expiresAt = 0,
         string $signature = '',
     ) {
-        $this->signature = '' !== $signature ? $signature : $this->createSignature();
+        $this->expiresAt = $expiresAt > 0 ? $expiresAt : time() + self::LIFETIME;
+        $this->signature = $signature !== '' ? $signature : $this->createSignature();
+    }
+
+    /** @param array<string, mixed> $data */
+    public static function fromRequestData(array $data): ?self
+    {
+        $previewUrl = $data['previewUrl'] ?? null;
+        $signature = $data['signature'] ?? null;
+        $userId = (int)($data['userId'] ?? 0);
+        $pageId = (int)($data['pageId'] ?? 0);
+        $expiresAt = (int)($data['expiresAt'] ?? 0);
+        if ($userId <= 0
+            || $pageId <= 0
+            || $expiresAt <= 0
+            || !is_string($previewUrl)
+            || $previewUrl === ''
+            || !is_string($signature)
+            || $signature === ''
+        ) {
+            return null;
+        }
+
+        return new self(
+            userId: $userId,
+            pageId: $pageId,
+            previewUrl: $previewUrl,
+            languageId: (int)($data['languageId'] ?? 0),
+            workspaceId: (int)($data['workspaceId'] ?? 0),
+            pageLevels: (int)($data['pageLevels'] ?? 0),
+            crawl: (bool)($data['crawl'] ?? false),
+            expiresAt: $expiresAt,
+            signature: $signature,
+        );
     }
 
     /**
@@ -125,15 +177,10 @@ class CreateScanDemand extends AbstractValueObject implements JsonSerializable
      */
     public function getSignature(): string
     {
-       return $this->signature;
+        return $this->signature;
     }
 
-    /**
-     * Create signature for this object.
-     *
-     * @return string
-     */
-    protected function createSignature(): string
+    private function createSignature(): string
     {
         $hashService = GeneralUtility::makeInstance(HashService::class);
         return $hashService->hmac(
@@ -145,30 +192,22 @@ class CreateScanDemand extends AbstractValueObject implements JsonSerializable
                 (string)$this->workspaceId,
                 (string)$this->pageLevels,
                 (string)(int)$this->crawl,
+                (string)$this->expiresAt,
             ]),
             self::class
         );
     }
 
-    /**
-     * Test if the signature is valid.
-     *
-     * Compare the signature of this object with the one generated from the properties. Used
-     * for request validation and to ensure that the request is not tampered with.
-     *
-     * @return bool
-     */
     public function validateSignature(): bool
     {
         $expectedHash = $this->createSignature();
-        return hash_equals($expectedHash, $this->signature);
+        $now = time();
+        return $this->expiresAt > $now
+            && $this->expiresAt <= $now + self::LIFETIME
+            && hash_equals($expectedHash, $this->signature);
     }
 
-    /**
-     * Convert object to array.
-     *
-     * @return array
-     */
+    /** @return SerializedCreateScanDemand */
     public function toArray(): array
     {
         return [
@@ -179,13 +218,12 @@ class CreateScanDemand extends AbstractValueObject implements JsonSerializable
             'workspaceId' => $this->workspaceId,
             'pageLevels' => $this->pageLevels,
             'crawl' => $this->crawl,
+            'expiresAt' => $this->expiresAt,
             'signature' => $this->signature,
         ];
     }
 
-    /**
-     * Return as JSON.
-     */
+    /** @return SerializedCreateScanDemand */
     public function jsonSerialize(): array
     {
         return $this->toArray();

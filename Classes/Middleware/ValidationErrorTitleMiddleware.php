@@ -22,7 +22,7 @@ declare(strict_types=1);
 
 namespace MindfulMarkup\MindfulA11y\Middleware;
 
-use MindfulMarkup\MindfulA11y\Configuration\ValidationErrorTitleConfiguration;
+use MindfulMarkup\MindfulA11y\Service\ValidationErrorTitleConfiguration;
 use MindfulMarkup\MindfulA11y\Service\ValidationErrorState;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;

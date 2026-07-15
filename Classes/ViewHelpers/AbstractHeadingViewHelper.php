@@ -23,13 +23,9 @@ declare(strict_types=1);
 
 namespace MindfulMarkup\MindfulA11y\ViewHelpers;
 
+use MindfulMarkup\MindfulA11y\Service\HeadingRecordResolver;
+use MindfulMarkup\MindfulA11y\Service\HeadingRelationRegistry;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractTagBasedViewHelper;
-use TYPO3\CMS\Core\Cache\Frontend\FrontendInterface;
-use TYPO3\CMS\Core\Context\Context;
-use Psr\Http\Message\ServerRequestInterface;
-use TYPO3\CMS\Core\Cache\CacheManager;
-use TYPO3\CMS\Core\Database\Connection;
-use TYPO3\CMS\Core\Database\ConnectionPool;
 use MindfulMarkup\MindfulA11y\Enum\HeadingType;
 
 /**
@@ -37,100 +33,63 @@ use MindfulMarkup\MindfulA11y\Enum\HeadingType;
  *
  * Provides shared logic for runtime cache, context, request handling, and database access.
  * All heading ViewHelpers should extend this class to ensure consistent behavior and dependency injection.
+ *
+ * Template method: render() resolves the final HeadingType via resolveHeadingType()
+ * (cascade: explicit `type` argument -> a related heading's type, via
+ * resolveRelatedHeadingType()/HeadingRelationRegistry -> a database record's stored type
+ * -> the default tag name set by the constructor/initialize()), applies
+ * transformResolvedType() to registry/record-resolved types only (an explicit `type`
+ * argument is always used verbatim - see DescendantViewHelper), sets the tag name, adds
+ * structure-analysis data attributes via addAnalysisDataAttributes(), then renders.
+ * Subclasses customize resolveRelatedHeadingType(), transformResolvedType() and
+ * addAnalysisDataAttributes(); HeadingViewHelper additionally overrides
+ * registerHeadingRelation() to publish its resolved type to the HeadingRelationRegistry.
+ * See HeadingRelationRegistry's class docblock for the "ancestor must render before
+ * descendant/sibling" ordering constraint this cascade depends on.
  */
 abstract class AbstractHeadingViewHelper extends AbstractTagBasedViewHelper
 {
+    use StructureAnalysisAwareTrait;
+
     protected $tagName = HeadingType::H2->value;
 
     /**
-     * ConnectionPool instance for database access.
+     * Resolves record heading types, honouring the current workspace/language
+     * Context (see HeadingRecordResolver).
      *
-     * @var ConnectionPool
+     * @var HeadingRecordResolver
      */
-    protected ConnectionPool $connectionPool;
+    protected HeadingRecordResolver $headingRecordResolver;
 
     /**
-     * Injects the ConnectionPool for database access.
+     * Injects the HeadingRecordResolver.
      *
-     * @param ConnectionPool $connectionPool
+     * @param HeadingRecordResolver $headingRecordResolver
      * @return void
      */
-    public function injectConnectionPool(ConnectionPool $connectionPool): void
+    public function injectHeadingRecordResolver(HeadingRecordResolver $headingRecordResolver): void
     {
-        $this->connectionPool = $connectionPool;
+        $this->headingRecordResolver = $headingRecordResolver;
     }
 
     /**
-     * Cache Manager instance for accessing TYPO3 caches.
+     * HeadingRelationRegistry instance coordinating heading types between this
+     * ViewHelper and related sibling/descendant ViewHelpers (see the registry's
+     * class docblock for the ordering constraint).
      *
-     * @var CacheManager
+     * @var HeadingRelationRegistry
      */
-    protected CacheManager $cacheManager;
-
+    protected HeadingRelationRegistry $headingRelationRegistry;
 
     /**
-     * Runtime cache instance for fast, request-lifetime caching.
+     * Injects the HeadingRelationRegistry.
      *
-     * @var FrontendInterface
-     */
-    protected FrontendInterface $runtimeCache;
-
-
-    /**
-     * Context object with information about the current request and user.
-     *
-     * @var Context
-     */
-    protected Context $context;
-
-
-    /**
-     * Injects the CacheManager and initializes the runtime cache.
-     *
-     * @param CacheManager $cacheManager
+     * @param HeadingRelationRegistry $headingRelationRegistry
      * @return void
      */
-    public function injectCacheManager(CacheManager $cacheManager): void
+    public function injectHeadingRelationRegistry(HeadingRelationRegistry $headingRelationRegistry): void
     {
-        $this->cacheManager = $cacheManager;
-        $this->runtimeCache = $this->cacheManager->getCache('runtime');
-    }
-
-
-    /**
-     * Injects the Context object for request/user information.
-     *
-     * @param Context $context
-     * @return void
-     */
-    public function injectContext(Context $context): void
-    {
-        $this->context = $context;
-    }
-
-    /**
-     * Returns the current PSR-7 request from the rendering context, if available.
-     *
-     * @return ServerRequestInterface|null The current request or null if not available.
-     */
-    protected function getRequest(): ?ServerRequestInterface
-    {
-        if ($this->renderingContext->hasAttribute(ServerRequestInterface::class)) {
-            return $this->renderingContext->getAttribute(ServerRequestInterface::class);
-        }
-        return null;
-    }
-
-    /**
-     * Checks if this is a structure analysis request and the backend user is logged in.
-     *
-     * @return bool True if the Mindfula11y-Structure-Analysis header is set and the user is logged in, false otherwise.
-     */
-    protected function isStructureAnalysisRequest(): bool
-    {
-        $request = $this->getRequest();
-        return $request !== null && $request->hasHeader('Mindfula11y-Structure-Analysis')
-            && $this->context->getPropertyFromAspect('backend.user', 'isLoggedIn', false);
+        $this->headingRelationRegistry = $headingRelationRegistry;
     }
 
     /**
@@ -142,13 +101,12 @@ abstract class AbstractHeadingViewHelper extends AbstractTagBasedViewHelper
      *
      * @return HeadingType|null The resolved heading type or null if not found.
      */
-    protected function resolveHeadingType(
+    protected function resolveRecordHeadingType(
         int $recordUid,
         string $recordTableName,
         string $recordColumnName,
     ): ?HeadingType {
-        $columns = [$recordColumnName];
-        $record = $this->getCachedRecord($recordTableName, $recordUid, $columns);
+        $record = $this->headingRecordResolver->resolve($recordTableName, $recordUid, $recordColumnName);
 
         if (null !== $record && !empty($record[$recordColumnName])) {
             // tryFrom() already returns ?HeadingType (null for an unknown value),
@@ -156,41 +114,6 @@ abstract class AbstractHeadingViewHelper extends AbstractTagBasedViewHelper
             return HeadingType::tryFrom($record[$recordColumnName]);
         }
 
-        return null;
-    }
-
-    /**
-     * Fetches a record's columns from cache or database, and caches the result for the request lifetime.
-     *
-     * @param string $tableName The database table name.
-     * @param int    $uid       The UID of the record to fetch.
-     * @param array  $columns   The columns to select from the record.
-     * 
-     * @return array|null       The associative array of the record, or null if not found.
-     */
-    protected function getCachedRecord(string $tableName, int $uid, array $columns): ?array
-    {
-        $runtimeCache = $this->cacheManager->getCache('runtime');
-        $cacheIdentifier = 'mindfula11y_record_' . $tableName . '_' . $uid . '_' . implode('_', $columns);
-        if ($runtimeCache->has($cacheIdentifier)) {
-            $cached = $runtimeCache->get($cacheIdentifier);
-            if (!empty($cached)) {
-                return $cached;
-            }
-        }
-        $queryBuilder = $this->connectionPool->getQueryBuilderForTable($tableName);
-        $queryBuilder
-            ->select(...$columns)
-            ->from($tableName)
-            ->where(
-                $queryBuilder->expr()->eq('uid', $queryBuilder->createNamedParameter($uid, Connection::PARAM_INT))
-            )
-            ->setMaxResults(1);
-        $record = $queryBuilder->executeQuery()->fetchAssociative();
-        if ($record && !empty($record[$columns[0]])) {
-            $runtimeCache->set($cacheIdentifier, $record);
-            return $record;
-        }
         return null;
     }
 
@@ -208,14 +131,114 @@ abstract class AbstractHeadingViewHelper extends AbstractTagBasedViewHelper
     }
 
     /**
-     * Check if data to fetch the record information is available.
-     * 
-     * @return bool True if record information is available, false otherwise.
+     * Resolves the HeadingType to render, following the shared cascade:
+     * 1. An explicit `type` argument - validated via HeadingType::tryFrom() and used
+     *    verbatim (transformResolvedType() is NOT applied - see DescendantViewHelper).
+     * 2. A related heading's type via resolveRelatedHeadingType() (registry lookup;
+     *    always null for HeadingViewHelper, which has no incoming relation to resolve).
+     * 3. The record's stored type, if record information is available.
+     * 4. Neither: returns null, and render() leaves the tag's default name untouched.
+     *
+     * Steps 2 and 3 are passed through transformResolvedType().
+     *
+     * @return HeadingType|null The resolved heading type, or null to keep the default tag.
      */
-    protected function hasRecordInformation(): bool
+    protected function resolveHeadingType(): ?HeadingType
     {
-        return !empty($this->arguments['recordUid'])
-            && !empty($this->arguments['recordTableName'])
-            && !empty($this->arguments['recordColumnName']);
+        if (!empty($this->arguments['type'])) {
+            return HeadingType::tryFrom($this->arguments['type']);
+        }
+
+        $relatedType = $this->resolveRelatedHeadingType();
+        if (null !== $relatedType) {
+            return $this->transformResolvedType($relatedType);
+        }
+
+        if ($this->hasRecordInformation()) {
+            $recordType = $this->resolveRecordHeadingType(
+                $this->arguments['recordUid'],
+                $this->arguments['recordTableName'],
+                $this->arguments['recordColumnName'],
+            );
+            if (null !== $recordType) {
+                return $this->transformResolvedType($recordType);
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Resolves the heading type from a related heading (sibling/ancestor), if this
+     * ViewHelper has such a relation. Overridden by SiblingViewHelper and
+     * DescendantViewHelper to query the HeadingRelationRegistry; HeadingViewHelper has
+     * no incoming relation and keeps this default.
+     *
+     * @return HeadingType|null
+     */
+    protected function resolveRelatedHeadingType(): ?HeadingType
+    {
+        return null;
+    }
+
+    /**
+     * Transforms a registry- or record-resolved heading type before it is applied to the
+     * tag. The identity transform by default; DescendantViewHelper overrides this to
+     * increment the level. Not applied to an explicit `type` argument (see
+     * resolveHeadingType()).
+     *
+     * @param HeadingType $type
+     * @return HeadingType
+     */
+    protected function transformResolvedType(HeadingType $type): HeadingType
+    {
+        return $type;
+    }
+
+    /**
+     * Publishes this ViewHelper's resolved heading type to the HeadingRelationRegistry
+     * for later sibling/descendant ViewHelpers to consume. A no-op by default; overridden
+     * by HeadingViewHelper only (Sibling/Descendant consume relations, they don't publish
+     * one).
+     *
+     * @return void
+     */
+    protected function registerHeadingRelation(): void
+    {
+    }
+
+    /**
+     * Adds this ViewHelper's structure-analysis data attributes to the tag. Called only
+     * for a validated structure-analysis request. Each heading ViewHelper exposes
+     * different relation/record coordinates, so there is no shared implementation.
+     *
+     * @return void
+     */
+    abstract protected function addAnalysisDataAttributes(): void;
+
+    /**
+     * Renders the heading tag.
+     *
+     * A validated structure-analysis request receives only stable relation and record
+     * coordinates. Edit links and TCA options are added later by the authenticated
+     * backend enrichment endpoint.
+     *
+     * @return string Rendered HTML of the heading tag
+     */
+    public function render(): string
+    {
+        $headingType = $this->resolveHeadingType();
+        if (null !== $headingType) {
+            $this->tag->setTagName($headingType->value);
+        }
+
+        $this->registerHeadingRelation();
+
+        if ($this->isStructureAnalysisRequest()) {
+            $this->addAnalysisDataAttributes();
+        }
+
+        $this->tag->setContent($this->renderChildren());
+        return $this->tag->render();
     }
 }

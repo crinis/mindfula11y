@@ -22,22 +22,40 @@ declare(strict_types=1);
 
 use MindfulMarkup\MindfulA11y\Controller\AltTextAjaxController;
 use MindfulMarkup\MindfulA11y\Controller\ScanAjaxController;
+use MindfulMarkup\MindfulA11y\Controller\StructureAnalysisEnrichmentAjaxController;
+use MindfulMarkup\MindfulA11y\Controller\StructureAnalysisTicketAjaxController;
 
 return [
     'mindfula11y_generatealttext' => [
         'path' => '/mindfula11y/alt-text/generate',
         'target' => AltTextAjaxController::class . '::generateAction',
+        'inheritAccessFromModule' => 'mindfula11y_accessibility',
     ],
     'mindfula11y_createscan' => [
         'path' => '/mindfula11y/scan/create',
         'target' => ScanAjaxController::class . '::createAction',
+        'inheritAccessFromModule' => 'mindfula11y_accessibility',
     ],
     'mindfula11y_getscan' => [
         'path' => '/mindfula11y/scan/get',
         'target' => ScanAjaxController::class . '::getAction',
+        'inheritAccessFromModule' => 'mindfula11y_accessibility',
     ],
     'mindfula11y_cancelscan' => [
         'path' => '/mindfula11y/scan/cancel',
         'target' => ScanAjaxController::class . '::cancelAction',
+        'inheritAccessFromModule' => 'mindfula11y_accessibility',
+    ],
+    'mindfula11y_structure_ticket' => [
+        'path' => '/mindfula11y/structure/ticket',
+        'target' => StructureAnalysisTicketAjaxController::class . '::ticketAction',
+        'methods' => ['POST'],
+        'inheritAccessFromModule' => 'mindfula11y_accessibility',
+    ],
+    'mindfula11y_structure_enrich' => [
+        'path' => '/mindfula11y/structure/enrich',
+        'target' => StructureAnalysisEnrichmentAjaxController::class . '::enrichAction',
+        'methods' => ['POST'],
+        'inheritAccessFromModule' => 'mindfula11y_accessibility',
     ],
 ];

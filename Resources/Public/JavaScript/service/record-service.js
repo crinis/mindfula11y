@@ -27,9 +27,7 @@ class RecordService {
     }
   }
 }
-var record_service_default = RecordService;
 export {
   RecordService,
-  RecordUpdateError,
-  record_service_default as default
+  RecordUpdateError
 };

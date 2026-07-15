@@ -8,6 +8,13 @@ services:
     resource: "../Classes/*"
     exclude: "../Classes/Domain/Model/*"
 
+  # The runtime cache handle is not autowirable by type (FrontendInterface is
+  # ambiguous); bind the shared 'runtime' cache explicitly. The remaining
+  # constructor arguments (PageRepository, Context) autowire.
+  MindfulMarkup\MindfulA11y\Service\HeadingRecordResolver:
+    arguments:
+      $runtimeCache: '@cache.runtime'
+
   MindfulMarkup\MindfulA11y\Form\ValidationErrorDetector:
     public: true
     tags:
@@ -15,6 +22,18 @@ services:
         identifier: 'mindfula11y-form-validation-error'
         event: 'TYPO3\CMS\Form\Event\BeforeRenderableIsRenderedEvent'
         method: '__invoke'
+
+  MindfulMarkup\MindfulA11y\Controller\StructureAnalysisEnrichmentAjaxController:
+    public: true
+
+  MindfulMarkup\MindfulA11y\Controller\StructureAnalysisTicketAjaxController:
+    public: true
+
+  # Resolved via makeInstance() from the frontend middleware, which must not
+  # construct this service (and its backend module/icon registry graph) for
+  # requests that carry no structure-analysis ticket.
+  MindfulMarkup\MindfulA11y\Service\StructureAnalysisAuthorizationService:
+    public: true
 
   # Event listeners
   MindfulMarkup\MindfulA11y\EventListener\WebLayoutInfo:

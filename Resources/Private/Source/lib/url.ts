@@ -42,3 +42,17 @@ export function safeHttpUrl(url: unknown): string {
         return '#';
     }
 }
+
+/**
+ * Returns `base` with `params` set as query arguments, preserving any query
+ * params already present on `base` (a matching key is overwritten). `base`
+ * may be relative — it resolves against the current origin, matching
+ * `safeHttpUrl` above.
+ */
+export function withQueryParams(base: string, params: Record<string, string>): string {
+    const url = new URL(base, window.location.origin);
+    for (const [key, value] of Object.entries(params)) {
+        url.searchParams.set(key, value);
+    }
+    return url.href;
+}

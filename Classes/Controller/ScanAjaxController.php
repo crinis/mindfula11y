@@ -185,25 +185,16 @@ class ScanAjaxController extends ActionController
             return $error;
         }
 
-        $requestBody = json_decode((string)$request->getBody(), true) ?? [];
-        // Basic input validation to avoid TypeError in CreateScanDemand constructor
-        $userId = isset($requestBody['userId']) ? (int)$requestBody['userId'] : 0;
-        $pageId = isset($requestBody['pageId']) ? (int)$requestBody['pageId'] : 0;
-        $previewUrl = $requestBody['previewUrl'] ?? '';
-        $languageId = isset($requestBody['languageId']) ? (int)$requestBody['languageId'] : 0;
-        $workspaceId = isset($requestBody['workspaceId']) ? (int)$requestBody['workspaceId'] : 0;
-        $pageLevels = isset($requestBody['pageLevels']) ? (int)$requestBody['pageLevels'] : 0;
-        $crawl = (bool)($requestBody['crawl'] ?? false);
-        $signature = $requestBody['signature'] ?? '';
+        $requestBody = json_decode((string)$request->getBody(), true);
+        $requestBody = is_array($requestBody) ? $requestBody : [];
+        $demand = CreateScanDemand::fromRequestData($requestBody);
         // Editor choice riding alongside the signed demand fields: authorization
         // happens via Page TSconfig below, so it needs no HMAC coverage.
         $aiAuditRequested = (bool)($requestBody['aiAudit'] ?? false);
 
-        if ($userId <= 0 || $pageId <= 0 || !is_string($signature) || $signature === '' || !is_string($previewUrl) || $previewUrl === '') {
+        if ($demand === null) {
             throw new InvalidArgumentException('Missing or invalid parameters for creating a scan');
         }
-
-        $demand = new CreateScanDemand($userId, $pageId, $previewUrl, $languageId, $workspaceId, $pageLevels, $crawl, $signature);
 
         if (!$demand->validateSignature()) {
             return $this->jsonResponse(
@@ -216,7 +207,6 @@ class ScanAjaxController extends ActionController
             )->withStatus(400);
         }
 
-        $backendUser = $this->getBackendUserAuthentication();
         $userId = $demand->getUserId();
         $pageId = $demand->getPageId();
         $languageId = $demand->getLanguageId();
@@ -497,8 +487,7 @@ class ScanAjaxController extends ActionController
         // Sanitize: only allow valid URL strings
         $pageUrls = array_values(array_filter($pageUrls, fn(string $url): bool => filter_var($url, FILTER_VALIDATE_URL) !== false));
 
-        // Finding 3 fix: restrict pageUrls to the site's own base URLs to prevent
-        // unintended filter parameters being forwarded to the external scanner API
+        // Only forward filters within this site's configured language bases.
         if (!empty($pageUrls)) {
             try {
                 $site = $this->siteFinder->getSiteByPageId((int)$pageRecord['uid']);
@@ -730,7 +719,7 @@ class ScanAjaxController extends ActionController
      * ResponseInterface error response on failure.
      *
      * @param string $scanId
-     * @return array|ResponseInterface Page record array on success, error response on failure.
+     * @return array<string, mixed>|ResponseInterface Page record array on success, error response on failure.
      */
     private function requireScanPageAccess(string $scanId): array|ResponseInterface
     {

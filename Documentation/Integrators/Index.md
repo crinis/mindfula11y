@@ -105,6 +105,10 @@ TCEFORM.tt_content.tx_mindfula11y_landmark {
 | `mod.mindfula11y_accessibility.scan.basicAuthPassword` | Password used only when target frontend is protected by HTTP Basic Auth. |
 | `mod.web_layout.mindfula11y.hideInfo` | Hides Mindful A11y info box in page module header area. |
 
+Heading and landmark checks render the real frontend preview in isolated iframes at 375 × 812 and 1280 × 900 CSS pixels. Site roots on another domain are supported without MindfulAPI: the authenticated backend issues a signed, stateless ticket that is valid for 15 seconds and bound to the exact page, language, workspace, frontend URL, backend origin, and backend user. Current module, account, DB-mount, page, workspace, and language permissions are checked again whenever the ticket is redeemed. The ticket is intentionally reusable during its short validity window; it is not stored in a cache or database. HTTPS should be used, and reverse proxies or application monitoring should avoid recording sensitive query strings.
+
+The frontend returns the result through a `MessageChannel`. The extension adds the required per-request CSP permissions and runs only its analysis module; ordinary page scripts and JavaScript-generated structure are not included. Responses use `no-store` and `no-referrer`, and the iframe has an opaque sandbox origin. Web-server or reverse-proxy `X-Frame-Options`/CSP headers added after TYPO3 can still prevent framing and must allow the TYPO3 backend origin.
+
 ## Scanner integration
 
 Before enabling scanner features, you must set up an external scanner service.

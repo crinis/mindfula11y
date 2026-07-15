@@ -9,6 +9,14 @@ function safeHttpUrl(url) {
     return "#";
   }
 }
+function withQueryParams(base, params) {
+  const url = new URL(base, window.location.origin);
+  for (const [key, value] of Object.entries(params)) {
+    url.searchParams.set(key, value);
+  }
+  return url.href;
+}
 export {
-  safeHttpUrl
+  safeHttpUrl,
+  withQueryParams
 };

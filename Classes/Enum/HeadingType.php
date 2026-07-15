@@ -37,37 +37,11 @@ enum HeadingType: string
     case DIV = 'div';
 
     /**
-     * Get all heading types as an array of values
-     *
-     * @return array<string>
-     */
-    public static function getValues(): array
-    {
-        return array_map(fn(self $case) => $case->value, self::cases());
-    }
-
-    /**
-     * Check if a value is a valid heading type
-     */
-    public static function isValid(string $value): bool
-    {
-        return in_array($value, self::getValues(), true);
-    }
-
-    /**
      * Get the label key for this heading type
      */
     public function getLabelKey(): string
     {
         return 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.headingType.items.' . $this->value;
-    }
-
-    /**
-     * Check if this is an actual heading element (h1-h6)
-     */
-    public function isHeading(): bool
-    {
-        return in_array($this, [self::H1, self::H2, self::H3, self::H4, self::H5, self::H6], true);
     }
 
     /**
@@ -87,9 +61,12 @@ enum HeadingType: string
     }
 
     /**
-     * Create HeadingType from numeric level (for migration purposes)
+     * Create HeadingType from numeric level (for migration purposes).
+     *
+     * Levels outside 1-6 fall back to HeadingType::P, so this never returns null; the
+     * only caller (increment(), below) relies on that to avoid its own null handling.
      */
-    public static function fromNumericLevel(int $level): ?self
+    public static function fromNumericLevel(int $level): self
     {
         return match ($level) {
             1 => self::H1,
@@ -121,8 +98,7 @@ enum HeadingType: string
 
         $newLevel = $level + $levels;
         if ($newLevel >= 1 && $newLevel <= 6) {
-            $new = self::fromNumericLevel($newLevel);
-            return $new ?? self::P;
+            return self::fromNumericLevel($newLevel);
         }
 
         // Above h6 -> use paragraph

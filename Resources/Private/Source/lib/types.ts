@@ -23,6 +23,8 @@
  * `bubbles: true, composed: true`).
  */
 
+import type { ElementExposurePredicate } from './structure/element-exposure.js';
+
 /** Server-side scan lifecycle status; `analyzing` covers the AI-audit phase. */
 export enum ScanStatus {
     Pending = 'pending',
@@ -33,8 +35,18 @@ export enum ScanStatus {
     Canceled = 'canceled',
 }
 
-/** Opaque scan-creation payload serialized into the element by Fluid. */
-export type CreateScanDemand = Record<string, unknown>;
+/** Immutable scan-creation scope signed and serialized by PHP. */
+export interface CreateScanDemand {
+    readonly userId: number;
+    readonly pageId: number;
+    readonly previewUrl: string;
+    readonly languageId: number;
+    readonly workspaceId: number;
+    readonly pageLevels: number;
+    readonly crawl: boolean;
+    readonly expiresAt: number;
+    readonly signature: string;
+}
 
 /** Opaque, HMAC-signed alt-text generation payload serialized into elements by PHP. */
 export type GenerateAltTextDemand = Record<string, unknown>;
@@ -130,22 +142,20 @@ export enum StructureErrorSeverity {
     Warning = 'warning',
 }
 
-/** Visual state of the shared `.notice` pattern (styles/notice.css). */
-export type NoticeState = 'info' | 'success' | 'warning' | 'serious' | 'danger';
+/** Responsive frontend render used by the structure analyzers. */
+export type StructureViewport = 'mobile' | 'desktop';
 
-/** Maps a structure finding's severity to the notice state presenting it. */
-export function noticeState(severity: StructureErrorSeverity): NoticeState {
-    return severity === StructureErrorSeverity.Error ? 'danger' : 'warning';
+/** Canonical viewport order; drives render sequence, merge output and badge order alike. */
+export const STRUCTURE_VIEWPORT_ORDER: readonly StructureViewport[] = ['mobile', 'desktop'];
+
+/** Shared options of both structure analyzers. */
+export interface StructureAnalysisOptions {
+    viewport?: StructureViewport;
+    isExposed?: ElementExposurePredicate;
 }
 
-/**
- * Inline-label key naming a severity for assistive technology — the state
- * icons are aria-hidden (core hardcodes that in Icon::render()), so text
- * must carry the error/warning distinction.
- */
-export function severityLabelKey(severity: StructureErrorSeverity): string {
-    return severity === StructureErrorSeverity.Error ? 'mindfula11y.severity.error' : 'mindfula11y.severity.warning';
-}
+/** The two structure domains the container tabs between. */
+export type StructureDomain = 'headings' | 'landmarks';
 
 /**
  * One occurrence of a structure problem, identified by its XLF label key
@@ -156,6 +166,7 @@ export interface StructureError {
     key: string;
     severity: StructureErrorSeverity;
     nodeId: string | null;
+    viewports: StructureViewport[];
 }
 
 /** Database coordinates of the record behind a heading/landmark. */
@@ -175,13 +186,17 @@ export interface HeadingRelation {
 /** One heading in the analyzed document, nested by level. */
 export interface HeadingNode {
     id: string;
+    /** Position in the document, stable across viewports; orders the merged tree. */
+    documentOrder: number;
     level: number;
     label: string;
+    /** Always `{}` from the analyzer; populated in place by `applyRecordMetadata` after backend enrichment. */
     availableTypes: Record<string, string>;
     record: RecordReference | null;
     relationId: string;
     relation: HeadingRelation | null;
     skippedLevels: number;
+    viewports: StructureViewport[];
     errors: StructureError[];
     children: HeadingNode[];
 }
@@ -189,10 +204,14 @@ export interface HeadingNode {
 /** One landmark in the analyzed document, nested by containment. */
 export interface LandmarkNode {
     id: string;
+    /** Position in the document, stable across viewports; orders the merged tree. */
+    documentOrder: number;
     role: string;
     label: string;
+    /** Always `{}` from the analyzer; populated in place by `applyRecordMetadata` after backend enrichment. */
     availableRoles: Record<string, string>;
     record: RecordReference | null;
+    viewports: StructureViewport[];
     errors: StructureError[];
     children: LandmarkNode[];
 }

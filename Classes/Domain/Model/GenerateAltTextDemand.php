@@ -25,21 +25,38 @@ namespace MindfulMarkup\MindfulA11y\Domain\Model;
 use JsonSerializable;
 use TYPO3\CMS\Core\Crypto\HashService;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
-use TYPO3\CMS\Extbase\DomainObject\AbstractValueObject;
 
 /**
- * Class GenerateAltTextDemand.
+ * Immutable, signed authorization scope for AI alternative-text generation.
  *
- * This class is used to encapsulate the demand for alternative text generation.
- * It contains properties such as user ID, page UID, language UID, workspace ID, and a signature
- * for request validation.
+ * Like {@see CreateScanDemand}, this is a session-bound demand, not a
+ * credential: it is rendered into authenticated backend markup and redeemed
+ * against a session-authenticated AJAX endpoint. The session authenticates;
+ * the HMAC guarantees the server-derived scope (record, file, columns —
+ * ultimately what the paid generation runs against) was not altered by
+ * scripts between render and redemption; the redeeming controller
+ * additionally pins the demand to the same user and workspace.
+ *
+ * @phpstan-type SerializedGenerateAltTextDemand array{
+ *   userId: int,
+ *   pageUid: int,
+ *   languageUid: int,
+ *   workspaceId: int,
+ *   recordTable: string,
+ *   recordUid: int,
+ *   fileUid: int,
+ *   recordColumns: array<string>,
+ *   expiresAt: int,
+ *   signature: string
+ * }
  */
-class GenerateAltTextDemand extends AbstractValueObject implements JsonSerializable
+final readonly class GenerateAltTextDemand implements JsonSerializable
 {
-    /**
-     * Signature of all properties generated using hmac.
-     */
-    protected string $signature = '';
+    /** Demands are rendered into FormEngine/module markup that may stay open a while before use. */
+    public const LIFETIME = 3600;
+
+    private int $expiresAt;
+    private string $signature;
 
     /**
      * @param int $userId Current user ID.
@@ -50,20 +67,55 @@ class GenerateAltTextDemand extends AbstractValueObject implements JsonSerializa
      * @param int $recordUid Record UID.
      * @param int $fileUid File UID to generate alt text for.
      * @param array<string> $recordColumns Affected record columns.
+     * @param int $expiresAt Unix timestamp after which this demand must not be redeemed.
      * @param string $signature Optional pre-computed HMAC signature; generated from the other properties when empty.
      */
     public function __construct(
-        protected int $userId,
-        protected int $pageUid,
-        protected int $languageUid,
-        protected int $workspaceId,
-        protected string $recordTable,
-        protected int $recordUid,
-        protected int $fileUid,
-        protected array $recordColumns,
+        private int $userId,
+        private int $pageUid,
+        private int $languageUid,
+        private int $workspaceId,
+        private string $recordTable,
+        private int $recordUid,
+        private int $fileUid,
+        private array $recordColumns,
+        int $expiresAt = 0,
         string $signature = '',
     ) {
-        $this->signature = '' !== $signature ? $signature : $this->createSignature();
+        $this->expiresAt = $expiresAt > 0 ? $expiresAt : time() + self::LIFETIME;
+        $this->signature = $signature !== '' ? $signature : $this->createSignature();
+    }
+
+    /** @param array<string, mixed> $data */
+    public static function fromRequestData(array $data): ?self
+    {
+        $recordTable = $data['recordTable'] ?? null;
+        $recordColumns = $data['recordColumns'] ?? null;
+        $signature = $data['signature'] ?? null;
+        $userId = (int)($data['userId'] ?? 0);
+        $expiresAt = (int)($data['expiresAt'] ?? 0);
+        if ($userId <= 0
+            || $expiresAt <= 0
+            || !is_string($recordTable)
+            || !is_array($recordColumns)
+            || !is_string($signature)
+            || $signature === ''
+        ) {
+            return null;
+        }
+
+        return new self(
+            userId: $userId,
+            pageUid: (int)($data['pageUid'] ?? 0),
+            languageUid: (int)($data['languageUid'] ?? 0),
+            workspaceId: (int)($data['workspaceId'] ?? 0),
+            recordTable: $recordTable,
+            recordUid: (int)($data['recordUid'] ?? 0),
+            fileUid: (int)($data['fileUid'] ?? 0),
+            recordColumns: $recordColumns,
+            expiresAt: $expiresAt,
+            signature: $signature,
+        );
     }
 
     /**
@@ -124,6 +176,8 @@ class GenerateAltTextDemand extends AbstractValueObject implements JsonSerializa
 
     /**
      * Get the affected record columns.
+     *
+     * @return array<string>
      */
     public function getRecordColumns(): array
     {
@@ -135,70 +189,55 @@ class GenerateAltTextDemand extends AbstractValueObject implements JsonSerializa
      */
     public function getSignature(): string
     {
-       return $this->signature;
+        return $this->signature;
     }
 
-    /**
-     * Create signature for this object.
-     * 
-     * @return string
-     */
-    protected function createSignature(): string
+    private function createSignature(): string
     {
         $hashService = GeneralUtility::makeInstance(HashService::class);
         return $hashService->hmac(
-            implode(
-                '|',
-                [
-                    (int)$this->userId,
-                    (int)$this->pageUid,
-                    (int)$this->languageUid,
-                    (int)$this->workspaceId,
-                    $this->recordTable,
-                    (int)$this->recordUid,
-                    (int)$this->fileUid,
-                    implode(',', $this->recordColumns),
-                ]
-            ),
+            implode('|', [
+                (string)$this->userId,
+                (string)$this->pageUid,
+                (string)$this->languageUid,
+                (string)$this->workspaceId,
+                $this->recordTable,
+                (string)$this->recordUid,
+                (string)$this->fileUid,
+                implode(',', $this->recordColumns),
+                (string)$this->expiresAt,
+            ]),
             self::class
         );
     }
 
-    /**
-     * Test if the signature is valid.
-     * 
-     * Compare the signature of this object with the one generated from the properties. Used
-     * for request validation and to ensure that the request is not tampered with.
-     * 
-     * @return bool
-     */
     public function validateSignature(): bool
     {
         $expectedHash = $this->createSignature();
-        return hash_equals($expectedHash, $this->signature);
+        $now = time();
+        return $this->expiresAt > $now
+            && $this->expiresAt <= $now + self::LIFETIME
+            && hash_equals($expectedHash, $this->signature);
     }
 
-    /**
-     * Return as array.
-     */
+    /** @return SerializedGenerateAltTextDemand */
     public function toArray(): array
     {
         return [
-            'userId' => $this->getUserId(),
-            'pageUid' => $this->getPageUid(),
-            'languageUid' => $this->getLanguageUid(),
-            'workspaceId' => $this->getWorkspaceId(),
-            'recordTable' => $this->getRecordTable(),
-            'recordUid' => $this->getRecordUid(),
-            'fileUid' => $this->getFileUid(),
-            'recordColumns' => $this->getRecordColumns(),
-            'signature' => $this->getSignature(),
+            'userId' => $this->userId,
+            'pageUid' => $this->pageUid,
+            'languageUid' => $this->languageUid,
+            'workspaceId' => $this->workspaceId,
+            'recordTable' => $this->recordTable,
+            'recordUid' => $this->recordUid,
+            'fileUid' => $this->fileUid,
+            'recordColumns' => $this->recordColumns,
+            'expiresAt' => $this->expiresAt,
+            'signature' => $this->signature,
         ];
     }
 
-    /**
-     * Return as JSON.
-     */
+    /** @return SerializedGenerateAltTextDemand */
     public function jsonSerialize(): array
     {
         return $this->toArray();

@@ -1,9 +1,15 @@
 page = PAGE
 
+# Reproducible responsive structure-analysis fixture. Only one copy is exposed
+# at either analysis viewport; both copies carry identical navigation content.
+page.headerData.1745149906 = TEXT
+page.headerData.1745149906.value = <style>.desktop-only{display:none}@media (min-width:48rem){.mobile-only{display:none}.desktop-only{display:block}}</style>
+
 # Add navigation with placeholder links
 page.5 = COA
-page.5 {
-  wrap = <header><nav aria-label="Main navigation">|</nav></header>
+page.5.10 = COA
+page.5.10 {
+  wrap = <header class="mobile-only"><nav aria-label="Main navigation">|</nav></header>
 
   10 = COA
   10 {
@@ -31,9 +37,15 @@ page.5 {
   }
 }
 
+page.5.20 < page.5.10
+page.5.20.wrap = <header class="desktop-only"><nav aria-label="Main navigation">|</nav></header>
+
 # Main content with landmark wrapper
 page.10 = COA
 page.10 {
+  5 = TEXT
+  5.value = <h1>Responsive structure fixture</h1><h2 class="mobile-only">Mobile section</h2><h2 class="desktop-only">Desktop section</h2>
+
   10 = CONTENT
   10 {
     table = tt_content

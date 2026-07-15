@@ -22,6 +22,7 @@ declare(strict_types=1);
 
 namespace MindfulMarkup\MindfulA11y\Middleware;
 
+use MindfulMarkup\MindfulA11y\Domain\Model\StructureAnalysisTicket;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
@@ -33,11 +34,9 @@ use TYPO3\CMS\Core\TypoScript\FrontendTypoScript;
  */
 class DisableAdminPanelMiddleware implements MiddlewareInterface
 {
-    private const STRUCTURE_ANALYSIS_HEADER = 'Mindfula11y-Structure-Analysis';
-
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
-        if ($request->hasHeader(self::STRUCTURE_ANALYSIS_HEADER)) {
+        if (StructureAnalysisTicket::fromRequest($request) !== null) {
             $frontendTypoScript = $request->getAttribute('frontend.typoscript');
             if ($frontendTypoScript instanceof FrontendTypoScript) {
                 $config = $frontendTypoScript->getConfigArray();

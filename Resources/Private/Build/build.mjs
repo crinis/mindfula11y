@@ -20,10 +20,10 @@
 /**
  * Frontend build: Resources/Private/Source → Resources/Public/JavaScript.
  *
- * - `.ts` files are transpiled 1:1 by esbuild (`bundle: false`), so every bare
- *   import (`lit`, `lit/decorators.js`, `@lit/task`, `@typo3/…`) passes through
- *   untouched and resolves via the TYPO3 core importmap at runtime. Nothing is
- *   ever bundled.
+ * - Backend `.ts` files are transpiled 1:1 by esbuild (`bundle: false`), so
+ *   bare imports (`lit`, `@lit/task`, `@typo3/…`) pass through to TYPO3's
+ *   importmap. Exceptional self-contained bundles are declared in
+ *   `bundledEntryPoints` below, each with its reason.
  * - `.css` files are transformed/minified by Lightning CSS and emitted as
  *   `<name>.css.js` ES modules exporting a Lit `CSSResult` (via `unsafeCSS`),
  *   importable from components as `import styles from './<name>.css.js'`.
@@ -43,6 +43,22 @@ const buildDir = path.dirname(fileURLToPath(import.meta.url));
 const sourceDir = path.resolve(buildDir, '..', 'Source');
 const packageRoot = path.resolve(buildDir, '..', '..', '..');
 const outDir = path.join(packageRoot, 'Resources', 'Public', 'JavaScript');
+
+/**
+ * Entry points shipped as self-contained, minified bundles instead of 1:1
+ * modules. Every entry needs a reason recorded here — bundling is the
+ * exception, and an output path listed here is a contract: PHP loads these
+ * files by path (not via the importmap), so renaming one means updating its
+ * PHP reader in the same change.
+ *
+ * - service/structure/runner.ts: injected inline into iframe analysis
+ *   responses by StructureAnalysisResponseMiddleware (which reads the built
+ *   file from Resources/Public/JavaScript). The response cache-busts this one
+ *   URL, so its local analyzer graph must ride along — a browser must never
+ *   combine a fresh runner with year-cached dependencies from an older
+ *   extension build.
+ */
+const bundledEntryPoints = [path.join(sourceDir, 'service', 'structure', 'runner.ts')];
 
 /** Browser floor of the TYPO3 14 backend (Lightning CSS version encoding: major << 16 | minor << 8). */
 const cssTargets = {
@@ -127,8 +143,9 @@ const validateCssImports = async (tsFiles, cssFiles) => {
 };
 
 const buildTs = async (files) => {
+    const unbundledFiles = files.filter((file) => !bundledEntryPoints.includes(file));
     await esbuild.build({
-        entryPoints: files,
+        entryPoints: unbundledFiles,
         outdir: outDir,
         outbase: sourceDir,
         bundle: false,
@@ -137,6 +154,19 @@ const buildTs = async (files) => {
         sourcemap: false,
         tsconfig: path.join(packageRoot, 'tsconfig.json'),
     });
+
+    for (const entryPoint of bundledEntryPoints.filter((file) => files.includes(file))) {
+        await esbuild.build({
+            entryPoints: [entryPoint],
+            outfile: path.join(outDir, path.relative(sourceDir, entryPoint).replace(/\.ts$/, '.js')),
+            bundle: true,
+            format: 'esm',
+            target: 'es2022',
+            minify: true,
+            sourcemap: false,
+            tsconfig: path.join(packageRoot, 'tsconfig.json'),
+        });
+    }
 };
 
 const pruneOrphans = async (ts, css) => {

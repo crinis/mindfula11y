@@ -23,14 +23,8 @@ import { html, LitElement, nothing } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import '@typo3/backend/element/icon-element.js';
 import { scrollIntoViewCentered } from '../../lib/dom.js';
-import type {
-    AgentFindingDto,
-    AiAuditSkill,
-    ImpactSeverity,
-    NoticeState,
-    ScanResult,
-    ViolationDto,
-} from '../../lib/types.js';
+import type { NoticeState } from '../../lib/status-render.js';
+import type { AgentFindingDto, AiAuditSkill, ImpactSeverity, ScanResult, ViolationDto } from '../../lib/types.js';
 import { AiAuditStatus } from '../../lib/types.js';
 import { safeHttpUrl } from '../../lib/url.js';
 import '../notice/notice.js';

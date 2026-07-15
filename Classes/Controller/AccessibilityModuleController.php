@@ -57,6 +57,7 @@ use TYPO3\CMS\Core\Pagination\SimplePagination;
 use TYPO3\CMS\Core\Type\Bitmask\Permission;
 use TYPO3\CMS\Core\Type\ContextualFeedbackSeverity;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Extbase\Mvc\Exception\MethodNotAllowedException;
 
 /**
  * Class AccessibilityModuleController.
@@ -247,6 +248,7 @@ class AccessibilityModuleController
         $hasHeadingStructureAccess = $this->generalModuleService->hasHeadingStructureAccess($this->pageTsConfig);
         $hasLandmarkStructureAccess = $this->generalModuleService->hasLandmarkStructureAccess($this->pageTsConfig);
         $hasScanAccess = $this->generalModuleService->hasScanAccess($this->pageTsConfig);
+        $this->generalModuleService->allowStructureAnalysisFraming($previewUri, $this->pageTsConfig);
 
         // Disable scan access if page is hidden/not visible
         $isPageVisible = $this->generalModuleService->isPageVisible($finalPageInfo);
@@ -298,11 +300,11 @@ class AccessibilityModuleController
             if (null !== $previewUri) {
                 $backendUser = $this->generalModuleService->getBackendUserAuthentication();
                 $createScanDemand = new CreateScanDemand(
-                    $backendUser->user['uid'],
-                    $this->pageId,
-                    (string) $previewUri,
-                    $this->languageId,
-                    $backendUser->workspace
+                    userId: (int)$backendUser->user['uid'],
+                    pageId: $this->pageId,
+                    previewUrl: (string)$previewUri,
+                    languageId: $this->languageId,
+                    workspaceId: $backendUser->workspace,
                 );
             }
 
@@ -318,6 +320,12 @@ class AccessibilityModuleController
         }
 
         $this->moduleTemplate->assignMultiple([
+            'pageId' => $this->pageId,
+            // The preview is built from $finalPageInfo; when the page has no
+            // translation in the selected language it falls back to the
+            // default-language record, so the structure analysis must target
+            // language 0 to match that preview URL.
+            'languageId' => null === $this->localizedPageInfo ? 0 : $this->languageId,
             'fileReferenceCount' => $fileReferenceCount,
             'previewUrl' => (null !== $previewUri ? (string) $previewUri : null),
             'missingAltTextUri' => $missingAltTextUri,
@@ -567,23 +575,22 @@ class AccessibilityModuleController
 
             $backendUser = $this->generalModuleService->getBackendUserAuthentication();
             $createScanDemand = new CreateScanDemand(
-                $backendUser->user['uid'],
-                $this->pageId,
-                (string) $previewUri,
-                $this->languageId,
-                $backendUser->workspace,
-                $pageLevels
+                userId: (int)$backendUser->user['uid'],
+                pageId: $this->pageId,
+                previewUrl: (string)$previewUri,
+                languageId: $this->languageId,
+                workspaceId: $backendUser->workspace,
+                pageLevels: $pageLevels,
             );
             // Crawl mode is only available for site root pages (check default-language record)
             if ((bool)($this->pageInfo['is_siteroot'] ?? false)) {
                 $crawlScanDemand = new CreateScanDemand(
-                    $backendUser->user['uid'],
-                    $this->pageId,
-                    (string) $previewUri,
-                    $this->languageId,
-                    $backendUser->workspace,
-                    0,
-                    true
+                    userId: (int)$backendUser->user['uid'],
+                    pageId: $this->pageId,
+                    previewUrl: (string)$previewUri,
+                    languageId: $this->languageId,
+                    workspaceId: $backendUser->workspace,
+                    crawl: true,
                 );
             }
         }

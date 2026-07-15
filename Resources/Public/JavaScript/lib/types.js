@@ -19,16 +19,10 @@ var StructureErrorSeverity = /* @__PURE__ */ ((StructureErrorSeverity2) => {
   StructureErrorSeverity2["Warning"] = "warning";
   return StructureErrorSeverity2;
 })(StructureErrorSeverity || {});
-function noticeState(severity) {
-  return severity === "error" /* Error */ ? "danger" : "warning";
-}
-function severityLabelKey(severity) {
-  return severity === "error" /* Error */ ? "mindfula11y.severity.error" : "mindfula11y.severity.warning";
-}
+const STRUCTURE_VIEWPORT_ORDER = ["mobile", "desktop"];
 export {
   AiAuditStatus,
+  STRUCTURE_VIEWPORT_ORDER,
   ScanStatus,
-  StructureErrorSeverity,
-  noticeState,
-  severityLabelKey
+  StructureErrorSeverity
 };

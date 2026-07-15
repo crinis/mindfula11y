@@ -67,7 +67,10 @@ When your project templates use Mindful A11y heading/landmark output, the module
 
 - analyze heading hierarchy (for example skipped levels)
 - analyze landmark structure
+- distinguish findings that occur in the mobile or desktop layout
 - show issues directly in the backend context
+
+The checks use the page's rendered CSS at representative mobile and desktop sizes, including when a TYPO3 installation serves different site roots on different domains. Elements hidden from assistive technology in a layout do not affect that layout's results. JavaScript-generated headings and landmarks are not included.
 
 ![Structure checks highlighting a skipped heading level and landmark naming issue for the current page](../Images/editors-heading-landmark-checks.png)
 

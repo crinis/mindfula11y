@@ -22,7 +22,7 @@ declare(strict_types=1);
 
 namespace MindfulMarkup\MindfulA11y\Form;
 
-use MindfulMarkup\MindfulA11y\Configuration\ValidationErrorTitleConfiguration;
+use MindfulMarkup\MindfulA11y\Service\ValidationErrorTitleConfiguration;
 use MindfulMarkup\MindfulA11y\Service\ValidationErrorState;
 use TYPO3\CMS\Extbase\Mvc\ExtbaseRequestParameters;
 

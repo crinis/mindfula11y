@@ -1,0 +1,2 @@
+import { unsafeCSS } from 'lit';
+export default unsafeCSS("@layer component{.viewports{gap:var(--mindfula11y-space-3xs);flex-wrap:wrap;align-items:center;display:inline-flex}.viewport{padding-block:var(--mindfula11y-space-3xs);padding-inline:var(--mindfula11y-space-2xs);font-size:var(--mindfula11y-font-size-xs);color:var(--mindfula11y-text-subtle);background-color:var(--mindfula11y-surface-high);border:1px solid var(--mindfula11y-border);border-radius:999em;align-items:center;font-weight:600;display:inline-flex}}");

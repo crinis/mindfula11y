@@ -18,18 +18,20 @@ import "@typo3/backend/element/spinner-element.js";
 import "../heading-structure/heading-structure.js";
 import "../landmark-structure/landmark-structure.js";
 import "../notice/notice.js";
-import { analyzeHeadings } from "../../lib/heading-analysis.js";
-import { analyzeLandmarks } from "../../lib/landmark-analysis.js";
 import { LiveAnnouncer } from "../../lib/live-announcer.js";
-import { activateTabFromKeydown } from "../../lib/tablist.js";
-import { noticeState, StructureErrorSeverity, severityLabelKey } from "../../lib/types.js";
-import { ContentLoader } from "../../service/content-loader.js";
+import { noticeState, renderSeverityChip, renderViewportBadges } from "../../lib/status-render.js";
+import { mergeViewports } from "../../lib/structure/analysis.js";
+import { StructureAnalysisError } from "../../lib/structure/error.js";
+import { activateTabFromKeydown, renderTablist, renderTabPanel } from "../../lib/tabs.js";
+import { StructureErrorSeverity } from "../../lib/types.js";
+import { StructureAnalysisCoordinator } from "../../service/structure/coordinator.js";
 import { baseStyles } from "../../styles/base-styles.js";
 import buttonStyles from "../../styles/button.css.js";
 import findingsStyles from "../../styles/findings.css.js";
 import noticeStyles from "../../styles/notice.css.js";
 import placeholderStyles from "../../styles/placeholder.css.js";
 import tabsStyles from "../../styles/tabs.css.js";
+import viewportStyles from "../../styles/viewport.css.js";
 import componentStyles from "./structure.css.js";
 const HEADING_TAGS = {
   1: literal`h1`,
@@ -39,35 +41,61 @@ const HEADING_TAGS = {
   5: literal`h5`,
   6: literal`h6`
 };
+const DOMAINS = {
+  headings: {
+    labelKey: "mindfula11y.structure.headings",
+    tag: "mindfula11y-heading-structure",
+    hasAccess: (self) => self.hasHeadingStructureAccess,
+    analysisOf: (analysis) => analysis.headings,
+    renderView: (analysis, pageErrors) => html`<mindfula11y-heading-structure
+                .nodes=${analysis?.nodes ?? []}
+                .pageErrors=${pageErrors}
+            ></mindfula11y-heading-structure>`
+  },
+  landmarks: {
+    labelKey: "mindfula11y.structure.landmarks",
+    tag: "mindfula11y-landmark-structure",
+    hasAccess: (self) => self.hasLandmarkStructureAccess,
+    analysisOf: (analysis) => analysis.landmarks,
+    renderView: (analysis, pageErrors) => html`<mindfula11y-landmark-structure
+                .nodes=${analysis?.nodes ?? []}
+                .pageErrors=${pageErrors}
+            ></mindfula11y-landmark-structure>`
+  }
+};
+const DEFAULT_DOMAIN = "headings";
 let Structure = class extends LitElement {
   constructor() {
     super();
-    this.previewUrl = "";
+    this.pageId = 0;
+    this.languageId = 0;
     this.headingLevel = 2;
     this.hasHeadingStructureAccess = false;
     this.hasLandmarkStructureAccess = false;
     this.analysis = null;
-    this.activeTab = "headings";
-    this.contentLoader = new ContentLoader();
+    this.activeTab = DEFAULT_DOMAIN;
     this.announcer = new LiveAnnouncer(this);
-    this.isRefresh = false;
+    this.coordinator = StructureAnalysisCoordinator.createDefault();
     this.analyzeTask = new Task(this, {
       args: () => [
-        this.previewUrl,
+        this.pageId,
+        this.languageId,
         this.hasHeadingStructureAccess,
         this.hasLandmarkStructureAccess
       ],
-      task: async ([previewUrl, hasHeadings, hasLandmarks]) => {
-        if (previewUrl === "") {
+      task: async ([pageId, languageId, hasHeadings, hasLandmarks], { signal }) => {
+        if (pageId <= 0) {
           return;
         }
-        const htmlText = await this.contentLoader.load(previewUrl);
-        const doc = new DOMParser().parseFromString(htmlText, "text/html");
-        this.analysis = {
-          headings: hasHeadings ? analyzeHeadings(doc) : null,
-          landmarks: hasLandmarks ? analyzeLandmarks(doc) : null
-        };
-        await this.announceResult();
+        const analysis = await this.coordinator.analyze(
+          { pageId, languageId, headings: hasHeadings, landmarks: hasLandmarks },
+          this.renderRoot,
+          signal
+        );
+        const isRefresh = this.analysis !== null;
+        this.analysis = analysis;
+        await this.announceResult(signal, isRefresh);
+        signal.throwIfAborted();
       }
     });
     this.handleTabKeydown = (event) => {
@@ -76,32 +104,28 @@ let Structure = class extends LitElement {
       });
     };
     this.addEventListener("mindfula11y:structure:changed", () => {
-      this.contentLoader.invalidate(this.previewUrl);
-      this.isRefresh = true;
       void this.analyzeTask.run();
     });
   }
+  disconnectedCallback() {
+    this.analyzeTask.abort();
+    super.disconnectedCallback();
+  }
   willUpdate(changed) {
     if ((changed.has("hasHeadingStructureAccess") || changed.has("hasLandmarkStructureAccess")) && !this.enabledTabs().includes(this.activeTab)) {
-      this.activeTab = this.enabledTabs()[0] ?? "headings";
+      this.activeTab = this.enabledTabs()[0] ?? DEFAULT_DOMAIN;
     }
   }
   render() {
     return html`<div class="structure">
             ${this.renderHeader()}
             ${this.announcer.render()}
+            <div class="status-region" role="status">${this.renderError()}</div>
             ${this.renderBody()}
         </div>`;
   }
   enabledTabs() {
-    const tabs = [];
-    if (this.hasHeadingStructureAccess) {
-      tabs.push("headings");
-    }
-    if (this.hasLandmarkStructureAccess) {
-      tabs.push("landmarks");
-    }
-    return tabs;
+    return Object.keys(DOMAINS).filter((domain) => DOMAINS[domain].hasAccess(this));
   }
   renderHeader() {
     const tabs = this.enabledTabs();
@@ -109,29 +133,23 @@ let Structure = class extends LitElement {
       const single = tabs[0];
       return single === void 0 ? nothing : this.renderHeading(this.tabLabel(single));
     }
-    return html`<div class="tabs" role="tablist" aria-label=${lll("mindfula11y.structure")}>
-            ${tabs.map((tab) => this.renderTab(tab))}
-        </div>`;
+    return renderTablist({
+      ariaLabel: lll("mindfula11y.structure"),
+      tabs: tabs.map((tab) => this.tabDescriptor(tab)),
+      activeTab: this.activeTab,
+      onSelect: (id) => {
+        this.activeTab = id;
+      },
+      onKeydown: this.handleTabKeydown
+    });
   }
-  renderTab(tab) {
-    const selected = this.activeTab === tab;
-    const counts = this.severityCounts(tab);
-    return html`<button
-            type="button"
-            role="tab"
-            id="tab-${tab}"
-            data-tab=${tab}
-            aria-selected=${selected ? "true" : "false"}
-            aria-controls="panel-${tab}"
-            tabindex=${selected ? "0" : "-1"}
-            ?disabled=${this.analysis === null && this.analyzeTask.status === TaskStatus.PENDING}
-            @click=${() => {
-      this.activeTab = tab;
-    }}
-            @keydown=${this.handleTabKeydown}
-        >
-            ${this.tabLabel(tab)} ${this.renderTabBadge(counts)}
-        </button>`;
+  tabDescriptor(tab) {
+    return {
+      id: tab,
+      label: this.tabLabel(tab),
+      badge: this.renderTabBadge(this.severityCounts(tab)),
+      disabled: this.analysis === null && this.analyzeTask.status === TaskStatus.PENDING
+    };
   }
   renderTabBadge(counts) {
     if (counts.errors > 0) {
@@ -146,23 +164,31 @@ let Structure = class extends LitElement {
     }
     return nothing;
   }
+  renderError() {
+    if (this.analyzeTask.status !== TaskStatus.ERROR) {
+      return nothing;
+    }
+    const error = this.analyzeTask.error;
+    const description = error instanceof StructureAnalysisError ? lll(`mindfula11y.structure.error.rendering.${error.code}`) : lll("mindfula11y.structure.error.rendering.description");
+    return html`<mindfula11y-notice state="danger">
+            <span>
+                <span class="notice-title">${lll("mindfula11y.structure.error.rendering")}</span>
+                ${description}
+            </span>
+            <button
+                type="button"
+                class="button retry"
+                @click=${() => {
+      void this.analyzeTask.run();
+    }}
+            >
+                ${lll("mindfula11y.structure.retry")}
+            </button>
+        </mindfula11y-notice>`;
+  }
   renderBody() {
     if (this.analyzeTask.status === TaskStatus.ERROR) {
-      return html`<mindfula11y-notice state="danger">
-                <span>
-                    <span class="notice-title">${lll("mindfula11y.general.error.loading")}</span>
-                    ${lll("mindfula11y.general.error.loading.description")}
-                </span>
-                <button
-                    type="button"
-                    class="button retry"
-                    @click=${() => {
-        void this.analyzeTask.run();
-      }}
-                >
-                    ${lll("mindfula11y.structure.retry")}
-                </button>
-            </mindfula11y-notice>`;
+      return nothing;
     }
     if (this.analysis === null) {
       return html`<div class="placeholder">
@@ -176,27 +202,16 @@ let Structure = class extends LitElement {
   }
   renderPanel(tab, withTabs) {
     const busy = this.analyzeTask.status === TaskStatus.PENDING;
-    const view = tab === "headings" ? html`<mindfula11y-heading-structure
-                      .nodes=${this.analysis?.headings?.nodes ?? []}
-                      .pageErrors=${this.pageErrors("headings")}
-                  ></mindfula11y-heading-structure>` : html`<mindfula11y-landmark-structure
-                      .nodes=${this.analysis?.landmarks?.nodes ?? []}
-                      .pageErrors=${this.pageErrors("landmarks")}
-                  ></mindfula11y-landmark-structure>`;
-    if (!withTabs) {
-      return html`<div class="panel" aria-busy=${busy ? "true" : "false"}>${view}</div>`;
-    }
-    return html`<div
-            class="panel"
-            role="tabpanel"
-            id="panel-${tab}"
-            aria-labelledby="tab-${tab}"
-            tabindex="0"
-            aria-busy=${busy ? "true" : "false"}
-            ?hidden=${this.activeTab !== tab}
-        >
-            ${view}
-        </div>`;
+    const domain = DOMAINS[tab];
+    const analysis = this.analysis === null ? null : domain.analysisOf(this.analysis);
+    const view = domain.renderView(analysis, this.pageErrors(tab));
+    return renderTabPanel({
+      tab,
+      active: this.activeTab === tab,
+      withTablist: withTabs,
+      busy,
+      content: view
+    });
   }
   renderSummary() {
     const findings = this.aggregateFindings();
@@ -216,12 +231,9 @@ let Structure = class extends LitElement {
         void this.handleFindingClick(finding);
       }}
                         >
-                            <typo3-backend-icon
-                                identifier=${finding.severity === StructureErrorSeverity.Error ? "status-dialog-error" : "status-dialog-warning"}
-                                size="small"
-                            ></typo3-backend-icon>
-                            <span><span class="sr-only">${lll(severityLabelKey(finding.severity))}: </span>${lll(finding.key)}</span>
+                            ${renderSeverityChip(finding.severity, finding.key)}
                             <span class="finding-count">${finding.count}</span>
+                            ${renderViewportBadges(finding.viewports)}
                         </button>
                     </li>`
     )}
@@ -233,31 +245,45 @@ let Structure = class extends LitElement {
     return staticHtml`<${tag} class="title">${content}</${tag}>`;
   }
   tabLabel(tab) {
-    return tab === "headings" ? lll("mindfula11y.structure.headings") : lll("mindfula11y.structure.landmarks");
+    return lll(DOMAINS[tab].labelKey);
   }
   domainErrors(domain) {
-    const analysis = domain === "headings" ? this.analysis?.headings : this.analysis?.landmarks;
-    return analysis?.errors ?? [];
+    if (this.analysis === null) {
+      return [];
+    }
+    return DOMAINS[domain].analysisOf(this.analysis)?.errors ?? [];
   }
   pageErrors(domain) {
     return this.domainErrors(domain).filter((error) => error.nodeId === null);
   }
   severityCounts(domain) {
-    const errors = this.domainErrors(domain);
-    return {
-      errors: errors.filter((error) => error.severity === StructureErrorSeverity.Error).length,
-      warnings: errors.filter((error) => error.severity === StructureErrorSeverity.Warning).length
-    };
+    const counts = { errors: 0, warnings: 0 };
+    for (const error of this.domainErrors(domain)) {
+      if (error.severity === StructureErrorSeverity.Error) {
+        counts.errors += 1;
+      } else {
+        counts.warnings += 1;
+      }
+    }
+    return counts;
   }
   aggregateFindings() {
     const findings = /* @__PURE__ */ new Map();
     for (const domain of this.enabledTabs()) {
       for (const error of this.domainErrors(domain)) {
-        const existing = findings.get(error.key);
+        const findingKey = `${domain} ${error.key}`;
+        const existing = findings.get(findingKey);
         if (existing === void 0) {
-          findings.set(error.key, { key: error.key, severity: error.severity, count: 1, domain });
+          findings.set(findingKey, {
+            key: error.key,
+            severity: error.severity,
+            count: 1,
+            domain,
+            viewports: [...error.viewports]
+          });
         } else {
           existing.count += 1;
+          existing.viewports = mergeViewports(existing.viewports, error.viewports);
         }
       }
     }
@@ -271,13 +297,11 @@ let Structure = class extends LitElement {
   async handleFindingClick(finding) {
     this.activeTab = finding.domain;
     await this.updateComplete;
-    const view = this.renderRoot.querySelector(
-      finding.domain === "headings" ? "mindfula11y-heading-structure" : "mindfula11y-landmark-structure"
-    );
+    const view = this.renderRoot.querySelector(DOMAINS[finding.domain].tag);
     view?.focusFirstIssue(finding.key);
   }
   /** Announces the analysis outcome with total error/warning counts. */
-  async announceResult() {
+  async announceResult(signal, isRefresh) {
     let errors = 0;
     let warnings = 0;
     for (const domain of this.enabledTabs()) {
@@ -285,9 +309,8 @@ let Structure = class extends LitElement {
       errors += counts.errors;
       warnings += counts.warnings;
     }
-    const key = this.isRefresh ? "mindfula11y.structure.updated" : "mindfula11y.structure.analyzed";
-    this.isRefresh = false;
-    await this.announcer.announce(lll(key, errors, warnings));
+    const key = isRefresh ? "mindfula11y.structure.updated" : "mindfula11y.structure.analyzed";
+    await this.announcer.announce(lll(key, errors, warnings), signal);
   }
 };
 Structure.styles = [
@@ -297,11 +320,15 @@ Structure.styles = [
   findingsStyles,
   buttonStyles,
   placeholderStyles,
+  viewportStyles,
   componentStyles
 ];
 __decorateClass([
-  property({ attribute: "preview-url" })
-], Structure.prototype, "previewUrl", 2);
+  property({ type: Number, attribute: "page-id" })
+], Structure.prototype, "pageId", 2);
+__decorateClass([
+  property({ type: Number, attribute: "language-id" })
+], Structure.prototype, "languageId", 2);
 __decorateClass([
   property({ type: Number, attribute: "heading-level" })
 ], Structure.prototype, "headingLevel", 2);

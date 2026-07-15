@@ -20,7 +20,7 @@ declare(strict_types=1);
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-namespace MindfulMarkup\MindfulA11y\Configuration;
+namespace MindfulMarkup\MindfulA11y\Service;
 
 use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
 

@@ -23,12 +23,18 @@ use MindfulMarkup\MindfulA11y\Form\ValidationErrorDetector;
 use MindfulMarkup\MindfulA11y\Form\FormDataProvider\MetadataAlternativePlaceholderAccessGuard;
 use MindfulMarkup\MindfulA11y\Hooks\DecorativeFileReferenceGuard;
 use MindfulMarkup\MindfulA11y\Hooks\ScanStateDataHandlerGuard;
+use MindfulMarkup\MindfulA11y\Service\StructureAnalysisTicketService;
 use TYPO3\CMS\Backend\Form\FormDataProvider\TcaColumnsRemoveUnused;
 use TYPO3\CMS\Backend\Form\FormDataProvider\TcaInputPlaceholders;
 
 defined('TYPO3') or die();
 
 (static function (): void {
+    $cacheHashExclusions = &$GLOBALS['TYPO3_CONF_VARS']['FE']['cacheHash']['excludedParameters'];
+    if (!in_array(StructureAnalysisTicketService::TICKET_QUERY_PARAMETER, $cacheHashExclusions, true)) {
+        $cacheHashExclusions[] = StructureAnalysisTicketService::TICKET_QUERY_PARAMETER;
+    }
+
     $GLOBALS['TYPO3_CONF_VARS']['SYS']['formEngine']['nodeRegistry'][1744207980] = [
         'nodeName' => 'mindfula11yGenerateAltText',
         'priority' => 40,

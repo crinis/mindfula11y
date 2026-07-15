@@ -66,6 +66,39 @@
             <trans-unit id="structure.retry" resname="structure.retry">
                 <source>Retry</source>
             </trans-unit>
+            <trans-unit id="structure.error.rendering" resname="structure.error.rendering">
+                <source>Page structure could not be rendered</source>
+            </trans-unit>
+            <trans-unit id="structure.error.rendering.description" resname="structure.error.rendering.description">
+                <source>Mindful A11y could not securely render this frontend preview. Verify that the frontend URL is reachable and allows framing by the TYPO3 backend.</source>
+            </trans-unit>
+            <trans-unit id="structure.error.rendering.ticket" resname="structure.error.rendering.ticket">
+                <source>The analysis session could not be created. Please try again.</source>
+            </trans-unit>
+            <trans-unit id="structure.error.rendering.timeout" resname="structure.error.rendering.timeout">
+                <source>The page preview took too long to load.</source>
+            </trans-unit>
+            <trans-unit id="structure.error.rendering.framing" resname="structure.error.rendering.framing">
+                <source>The frontend page refused to be embedded, or the analysis session expired.</source>
+            </trans-unit>
+            <trans-unit id="structure.error.rendering.http" resname="structure.error.rendering.http">
+                <source>The page could not be rendered.</source>
+            </trans-unit>
+            <trans-unit id="structure.error.rendering.analysis" resname="structure.error.rendering.analysis">
+                <source>The structure analysis failed while examining the page.</source>
+            </trans-unit>
+            <trans-unit id="structure.error.rendering.payload" resname="structure.error.rendering.payload">
+                <source>The analysis result was too large or could not be read.</source>
+            </trans-unit>
+            <trans-unit id="structure.error.rendering.enrich" resname="structure.error.rendering.enrich">
+                <source>Editing information for the found elements could not be loaded.</source>
+            </trans-unit>
+            <trans-unit id="structure.viewport.mobile" resname="structure.viewport.mobile">
+                <source>Mobile</source>
+            </trans-unit>
+            <trans-unit id="structure.viewport.desktop" resname="structure.viewport.desktop">
+                <source>Desktop</source>
+            </trans-unit>
 
             <trans-unit id="general.viewDetails" resname="general.viewDetails">
                 <source>View Details</source>
@@ -428,7 +461,7 @@
                 <source>Landmarks with identical labels.</source>
             </trans-unit>
             <trans-unit id="structure.landmarks.error.duplicateSameLabel.description" resname="structure.landmarks.error.duplicateSameLabel.description">
-                <source>Multiple landmarks share an identical label. Provide unique labels so users can differentiate them.</source>
+                <source>Multiple landmarks of the same role share a label but represent different content. Provide unique labels so users can differentiate them.</source>
             </trans-unit>
             <trans-unit id="structure.landmarks.error.multipleUnlabeledLandmarks" resname="structure.landmarks.error.multipleUnlabeledLandmarks">
                 <source>Multiple unlabeled landmarks of the same role.</source>

@@ -52,5 +52,3 @@ export class RecordService {
         }
     }
 }
-
-export default RecordService;

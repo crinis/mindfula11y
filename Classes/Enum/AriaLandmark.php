@@ -41,24 +41,6 @@ enum AriaLandmark: string
     case FORM = 'form';
 
     /**
-     * Get all landmark types as an array of values
-     *
-     * @return array<string>
-     */
-    public static function getValues(): array
-    {
-        return array_map(fn(self $case) => $case->value, self::cases());
-    }
-
-    /**
-     * Check if a value is a valid landmark type
-     */
-    public static function isValid(string $value): bool
-    {
-        return in_array($value, self::getValues(), true);
-    }
-
-    /**
      * Get the label key for this landmark type
      */
     public function getLabelKey(): string
@@ -67,10 +49,28 @@ enum AriaLandmark: string
     }
 
     /**
-     * Check if this is an actual landmark (not NONE)
+     * The preferred native HTML element for this landmark role. Always prefers native
+     * HTML elements over the generic "div + role" fallback.
+     *
+     * Keep in sync with the IMPLICIT_ROLES map in
+     * Resources/Private/Source/lib/structure/landmark-analysis.ts (that map is the inverse:
+     * element -> role, this is role -> element).
+     *
+     * @return string The native HTML element name, or 'div' when no landmark-specific
+     *                 element applies (NONE, or any value without a mapped case).
      */
-    public function isLandmark(): bool
+    public function element(): string
     {
-        return $this !== self::NONE;
+        return match ($this) {
+            self::NAVIGATION => 'nav',
+            self::MAIN => 'main',
+            self::BANNER => 'header',
+            self::CONTENTINFO => 'footer',
+            self::COMPLEMENTARY => 'aside',
+            self::SEARCH => 'search',
+            self::FORM => 'form',
+            self::REGION => 'section',
+            default => 'div',
+        };
     }
 }

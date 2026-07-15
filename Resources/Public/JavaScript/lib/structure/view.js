@@ -10,12 +10,18 @@ var __decorateClass = (decorators, target, key, kind) => {
 };
 import Notification from "@typo3/backend/notification.js";
 import { lll } from "@typo3/core/lit-helper.js";
-import { html, LitElement } from "lit";
+import { html, LitElement, nothing } from "lit";
 import { property, state } from "lit/decorators.js";
+import { live } from "lit/directives/live.js";
 import "@typo3/backend/element/icon-element.js";
-import { RecordService } from "../service/record-service.js";
-import { scrollIntoViewCentered } from "./dom.js";
-import { noticeState, StructureErrorSeverity, severityLabelKey } from "./types.js";
+import "@typo3/backend/element/spinner-element.js";
+import { RecordService } from "../../service/record-service.js";
+import { baseStyles } from "../../styles/base-styles.js";
+import noticeStyles from "../../styles/notice.css.js";
+import structureViewStyles from "../../styles/structure-view.css.js";
+import viewportStyles from "../../styles/viewport.css.js";
+import { scrollIntoViewCentered } from "../dom.js";
+import { noticeState, renderSeverityChip, renderViewportBadges } from "../status-render.js";
 class StructureView extends LitElement {
   constructor() {
     super(...arguments);
@@ -24,6 +30,19 @@ class StructureView extends LitElement {
     this.busyNodeId = "";
     this.recordService = new RecordService();
     this.pendingFocusId = "";
+  }
+  static {
+    /**
+     * Shared foundation + the chrome/viewport/notice modules both structure
+     * views adopt; each subclass appends its own component stylesheet:
+     * `[...StructureView.viewStyles, componentStyles]`.
+     */
+    this.viewStyles = [
+      ...baseStyles,
+      noticeStyles,
+      structureViewStyles,
+      viewportStyles
+    ];
   }
   render() {
     return html`<div class="view">
@@ -50,7 +69,6 @@ class StructureView extends LitElement {
     if (this.pageErrors.some((error) => error.key === errorKey)) {
       const issue = this.renderRoot.querySelector('[data-scope="page"]');
       if (issue !== null) {
-        issue.setAttribute("tabindex", "-1");
         issue.focus();
         scrollIntoViewCentered(issue);
       }
@@ -84,12 +102,9 @@ class StructureView extends LitElement {
             data-state=${noticeState(error.severity)}
             data-variant="inline"
             data-scope=${pageScope ? "page" : "node"}
+            tabindex=${pageScope ? "-1" : nothing}
         >
-            <typo3-backend-icon
-                identifier=${error.severity === StructureErrorSeverity.Error ? "status-dialog-error" : "status-dialog-warning"}
-                size="small"
-            ></typo3-backend-icon>
-            <span><span class="sr-only">${lll(severityLabelKey(error.severity))}: </span>${lll(error.key)}</span>
+            ${renderSeverityChip(error.severity, error.key)} ${renderViewportBadges(error.viewports)}
         </p>`;
   }
   renderEmpty() {
@@ -99,14 +114,70 @@ class StructureView extends LitElement {
             <span>${lll(`${this.emptyLabelKey}.description`)}</span>
         </p>`;
   }
+  /** `issue-${node.id}` when the node has errors, else `nothing` — shared `aria-describedby` derivation. */
+  describedby(node) {
+    return node.errors.length > 0 ? `issue-${node.id}` : nothing;
+  }
+  /** Type guard narrowing `node.record` to non-null, for {@link renderEditLink} call sites. */
+  hasRecord(node) {
+    return node.record !== null;
+  }
+  /** Edit link to the record's FormEngine field. Callers narrow via {@link hasRecord} before calling. */
+  renderEditLink(node, label) {
+    return html`<a class="edit" data-control="edit" href=${node.record.editLink}>
+            <typo3-backend-icon identifier="actions-open" size="small"></typo3-backend-icon>
+            <span class="sr-only">${lll(`${this.labelPrefix}.edit`)}: ${label}</span>
+        </a>`;
+  }
+  /** Busy spinner shown next to a row's controls while its save is in flight. */
+  renderBusySpinner(node) {
+    return this.busyNodeId === node.id ? html`<typo3-backend-spinner size="small"></typo3-backend-spinner>` : nothing;
+  }
+  /**
+   * Icon + sr-only "not editable" text (key `<labelPrefix>.edit.locked`) for
+   * a locked control chip; `content` is the visible value rendered before
+   * the icon (e.g. `H2` or a role display name). The caller keeps the
+   * wrapping element (class + `aria-describedby` differ per view).
+   */
+  renderLockedChip(content) {
+    return html`${content}
+            <typo3-backend-icon identifier="actions-lock" size="small"></typo3-backend-icon>
+            <span class="sr-only">${lll(`${this.labelPrefix}.edit.locked`)}</span>`;
+  }
+  /**
+   * Editable value `<select>` shared by both views: binds `.value=${live(…)}`
+   * so a failed save reverts visually through the next re-render (triggered
+   * by `busyNodeId` resetting in `saveNodeValue`'s `finally`) rather than a
+   * manual DOM mutation, which can disagree with the template after
+   * unrelated re-renders.
+   */
+  renderValueSelect(node, opts) {
+    return html`<select
+            id=${opts.id}
+            class=${opts.className}
+            data-control=${opts.className}
+            aria-label=${opts.ariaLabel}
+            aria-describedby=${this.describedby(node)}
+            ?disabled=${this.busyNodeId === node.id}
+            .value=${live(opts.currentValue)}
+            @change=${(event) => {
+      void this.saveNodeValue(node, event.currentTarget, opts.currentValue);
+    }}
+        >
+            ${Object.entries(opts.options).map(
+      ([value, label]) => html`<option value=${value} ?selected=${value === opts.currentValue}>${label}</option>`
+    )}
+        </select>`;
+  }
   /**
    * Persists a control's value via DataHandler and reports the change so the
    * container re-analyzes (focus returns to the node once new nodes arrive).
-   * On failure the select reverts and a toast names the error
-   * (`<errorKey>` + `.description`).
+   * On failure a toast names the error (`<labelPrefix>.error.store` +
+   * `.description`); resetting `busyNodeId` below re-renders the row, and
+   * `renderValueSelect`'s `live()` binding reverts the select to
+   * `currentValue` without a manual `select.value =` mutation.
    */
-  async saveNodeValue(node, event, currentValue, errorKey) {
-    const select = event.currentTarget;
+  async saveNodeValue(node, select, currentValue) {
     const value = select.value;
     if (node.record === null || value === currentValue) {
       return;
@@ -129,7 +200,7 @@ class StructureView extends LitElement {
         })
       );
     } catch {
-      select.value = currentValue;
+      const errorKey = `${this.labelPrefix}.error.store`;
       Notification.error(lll(errorKey), lll(`${errorKey}.description`));
     } finally {
       this.busyNodeId = "";

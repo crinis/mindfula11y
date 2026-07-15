@@ -8,17 +8,17 @@ var __decorateClass = (decorators, target, key, kind) => {
   if (kind && result) __defProp(target, key, result);
   return result;
 };
-import { Task, TaskStatus } from "@lit/task";
 import { lll } from "@typo3/core/lit-helper.js";
 import { html, LitElement, nothing } from "lit";
-import { customElement, property, state } from "lit/decorators.js";
+import { customElement, property } from "lit/decorators.js";
 import "@typo3/backend/element/spinner-element.js";
 import { LiveAnnouncer } from "../../lib/live-announcer.js";
 import { ScanStatus } from "../../lib/types.js";
+import { errorView } from "../../service/request-error.js";
 import { ScanService } from "../../service/scan-service.js";
+import { ScanSessionController } from "../../service/scan-session-controller.js";
 import { baseStyles } from "../../styles/base-styles.js";
 import "../notice/notice.js";
-const POLL_DELAY_MS = 5e3;
 let ScanIssueCount = class extends LitElement {
   constructor() {
     super(...arguments);
@@ -27,106 +27,80 @@ let ScanIssueCount = class extends LitElement {
     this.createScanDemand = null;
     this.autoCreateScan = false;
     this.pageUrlFilter = [];
-    this.createdScanId = "";
-    this.invalidScanId = "";
     this.scanService = new ScanService();
     this.announcer = new LiveAnnouncer(this);
-    this.lastStatus = "";
     this.lastAnnounced = "";
-    this.scanTask = new Task(this, {
-      args: () => [
-        this.effectiveScanId(),
-        this.createScanDemand,
-        // Lit's JSON attribute converter yields null (not the default) for
-        // a missing/malformed attribute value.
-        this.pageUrlFilter ?? []
-      ],
-      task: async ([scanId, demand, pageUrlFilter]) => {
-        if (scanId === "") {
-          if (demand === null || !this.autoCreateScan) {
-            return null;
-          }
-          const created = await this.scanService.createScan(demand);
-          this.createdScanId = created.scanId;
-          return { state: "info", text: lll("mindfula11y.scan.status.pending"), showSpinner: true };
-        }
-        const result = await this.scanService.loadScan(scanId, pageUrlFilter);
-        if (result === null) {
-          if (this.createdScanId === scanId) {
-            this.createdScanId = "";
-          } else {
-            this.invalidScanId = scanId;
-          }
-          this.lastStatus = "";
-          return null;
-        }
-        if (this.scanService.isScanInProgress(result.status)) {
-          this.schedulePoll();
-          let label = lll("mindfula11y.scan.status.pending");
-          if (result.status === ScanStatus.Running) {
-            label = lll("mindfula11y.scan.status.running");
-          } else if (result.status === ScanStatus.Analyzing) {
-            label = lll("mindfula11y.scan.status.analyzing");
-          }
-          this.lastStatus = result.status;
-          return { state: "info", text: label, showSpinner: true };
-        }
-        if (result.status === ScanStatus.Failed) {
-          this.lastStatus = result.status;
-          return { state: "danger", text: lll("mindfula11y.scan.error.loading") };
-        }
-        if (result.status === ScanStatus.Canceled) {
-          this.lastStatus = result.status;
-          return { state: "info", text: lll("mindfula11y.scan.status.canceled") };
-        }
-        if (this.lastStatus !== ScanStatus.Completed && this.lastStatus !== "") {
-          this.dispatchEvent(
-            new CustomEvent("mindfula11y:scan:completed", {
-              bubbles: true,
-              composed: true,
-              detail: { scanId, totalIssueCount: result.totalIssueCount }
-            })
-          );
-        }
-        this.lastStatus = result.status;
-        if (result.totalIssueCount > 0) {
-          return { state: "warning", text: lll("mindfula11y.scan.issuesFound", result.totalIssueCount) };
-        }
-        return { state: "success", text: lll("mindfula11y.scan.noIssues") };
-      }
+    this.controller = new ScanSessionController(this, {
+      service: this.scanService,
+      scanId: () => this.scanId,
+      // A demand only auto-creates when the editor opted in; there is no
+      // manual trigger in this compact callout.
+      demand: () => this.autoCreateScan ? this.createScanDemand : null,
+      // Lit's JSON attribute converter yields null (not the default) for a
+      // missing/malformed attribute value.
+      pageUrlFilter: () => this.pageUrlFilter ?? [],
+      onTransition: (previous, result) => this.handleTransition(previous, result)
     });
   }
-  connectedCallback() {
-    super.connectedCallback();
-    if (this.lastStatus !== "" && this.scanService.isScanInProgress(this.lastStatus)) {
-      this.schedulePoll();
-    }
-  }
-  disconnectedCallback() {
-    super.disconnectedCallback();
-    window.clearTimeout(this.pollTimer);
-  }
   updated() {
-    this.toggleAttribute("hidden", this.scanTask.status === TaskStatus.COMPLETE && this.scanTask.value === null);
-    const view = this.scanTask.value;
-    if (this.scanTask.status === TaskStatus.COMPLETE && view !== null && view !== void 0) {
+    const view = this.statusView();
+    this.toggleAttribute("hidden", view === null);
+    if (view === null) {
+      return;
+    }
+    if (!(this.controller.result === null && this.controller.state === "loading")) {
       this.announceIfChanged(view.text);
-    } else if (this.scanTask.status === TaskStatus.ERROR) {
-      this.announceIfChanged(this.errorText(this.scanTask.error));
     }
   }
   render() {
-    return html`${this.scanTask.render({
-      pending: () => this.renderView({ state: "info", text: lll("mindfula11y.scan.loading"), showSpinner: true }),
-      complete: (view) => view === null ? nothing : this.renderView(view),
-      error: (error) => this.renderView({ state: "danger", text: this.errorText(error) })
-    })}${this.announcer.render()}`;
+    const view = this.statusView();
+    return html`${view === null ? nothing : this.renderView(view)}${this.announcer.render()}`;
   }
-  effectiveScanId() {
-    if (this.createdScanId !== "") {
-      return this.createdScanId;
+  /** Maps the controller's state to the callout, or null when there is nothing to show. */
+  statusView() {
+    const result = this.controller.result;
+    if (result !== null) {
+      return this.viewFromResult(result);
     }
-    return this.scanId !== this.invalidScanId ? this.scanId : "";
+    if (this.controller.state === "error") {
+      return { state: "danger", text: errorView(this.controller.error, "mindfula11y.scan.error.loading").title };
+    }
+    if (this.controller.state === "loading") {
+      return { state: "info", text: lll("mindfula11y.scan.loading"), showSpinner: true };
+    }
+    return null;
+  }
+  viewFromResult(result) {
+    if (this.scanService.isScanInProgress(result.status)) {
+      let label = lll("mindfula11y.scan.status.pending");
+      if (result.status === ScanStatus.Running) {
+        label = lll("mindfula11y.scan.status.running");
+      } else if (result.status === ScanStatus.Analyzing) {
+        label = lll("mindfula11y.scan.status.analyzing");
+      }
+      return { state: "info", text: label, showSpinner: true };
+    }
+    if (result.status === ScanStatus.Failed) {
+      return { state: "danger", text: lll("mindfula11y.scan.error.loading") };
+    }
+    if (result.status === ScanStatus.Canceled) {
+      return { state: "info", text: lll("mindfula11y.scan.status.canceled") };
+    }
+    if (result.totalIssueCount > 0) {
+      return { state: "warning", text: lll("mindfula11y.scan.issuesFound", result.totalIssueCount) };
+    }
+    return { state: "success", text: lll("mindfula11y.scan.noIssues") };
+  }
+  handleTransition(previous, result) {
+    if (previous !== null && previous !== ScanStatus.Completed && result.status === ScanStatus.Completed) {
+      this.dispatchEvent(
+        new CustomEvent("mindfula11y:scan:completed", {
+          bubbles: true,
+          composed: true,
+          detail: { scanId: this.controller.effectiveScanId(), totalIssueCount: result.totalIssueCount }
+        })
+      );
+    }
   }
   announceIfChanged(text) {
     if (text === this.lastAnnounced) {
@@ -141,22 +115,6 @@ let ScanIssueCount = class extends LitElement {
             <span>${view.text}</span>
             ${this.scanUri !== "" && view.showSpinner !== true ? html`<a href=${this.scanUri}>${lll("mindfula11y.general.viewDetails")}</a>` : nothing}
         </mindfula11y-notice>`;
-  }
-  errorText(error) {
-    if (error instanceof Error && error.message !== "") {
-      return error.message;
-    }
-    return lll("mindfula11y.scan.error.loading");
-  }
-  schedulePoll() {
-    window.clearTimeout(this.pollTimer);
-    this.pollTimer = window.setTimeout(() => {
-      this.scanTask.run().catch(() => {
-        if (this.lastStatus !== "" && this.scanService.isScanInProgress(this.lastStatus)) {
-          this.schedulePoll();
-        }
-      });
-    }, POLL_DELAY_MS);
   }
 };
 ScanIssueCount.styles = [...baseStyles];
@@ -175,12 +133,6 @@ __decorateClass([
 __decorateClass([
   property({ type: Array, attribute: "page-url-filter" })
 ], ScanIssueCount.prototype, "pageUrlFilter", 2);
-__decorateClass([
-  state()
-], ScanIssueCount.prototype, "createdScanId", 2);
-__decorateClass([
-  state()
-], ScanIssueCount.prototype, "invalidScanId", 2);
 ScanIssueCount = __decorateClass([
   customElement("mindfula11y-scan-issue-count")
 ], ScanIssueCount);

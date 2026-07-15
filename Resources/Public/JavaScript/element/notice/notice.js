@@ -11,16 +11,10 @@ var __decorateClass = (decorators, target, key, kind) => {
 import { html, LitElement } from "lit";
 import { property } from "lit/decorators.js";
 import "@typo3/backend/element/icon-element.js";
+import { noticeStateIcon } from "../../lib/status-render.js";
 import { baseStyles } from "../../styles/base-styles.js";
 import noticeStyles from "../../styles/notice.css.js";
 import componentStyles from "./notice.css.js";
-const stateIcons = {
-  info: "status-dialog-information",
-  success: "status-dialog-ok",
-  warning: "status-dialog-warning",
-  serious: "status-dialog-warning",
-  danger: "status-dialog-error"
-};
 class Notice extends LitElement {
   constructor() {
     super(...arguments);
@@ -32,7 +26,7 @@ class Notice extends LitElement {
   render() {
     return html`<div class="notice" data-state=${this.state}>
             <slot name="icon">
-                <typo3-backend-icon identifier=${stateIcons[this.state]} size="small"></typo3-backend-icon>
+                <typo3-backend-icon identifier=${noticeStateIcon(this.state)} size="small"></typo3-backend-icon>
             </slot>
             <slot></slot>
         </div>`;

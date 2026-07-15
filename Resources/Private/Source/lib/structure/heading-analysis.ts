@@ -18,14 +18,16 @@
  */
 
 /**
- * Pure analysis of a parsed frontend document's heading structure. Consumes
+ * Pure analysis of a rendered frontend document's exposed heading structure. Consumes
  * the `data-mindfula11y-*` annotations the ViewHelpers add to structure-analysis
  * requests and returns plain serializable nodes — no element references leak out.
  */
 
-import { buildStructureNodeId, extractRecord, parseJsonMap } from './dom.js';
-import type { HeadingAnalysis, HeadingNode, HeadingRelation, StructureError } from './types.js';
-import { StructureErrorSeverity } from './types.js';
+import { extractRecord, indexStructureNodes } from '../dom.js';
+import type { HeadingAnalysis, HeadingNode, HeadingRelation, StructureAnalysisOptions } from '../types.js';
+import { StructureErrorSeverity } from '../types.js';
+import { createErrorCollector } from './analysis.js';
+import { resolveExposure } from './element-exposure.js';
 
 const ERROR_KEYS = {
     missingH1: 'mindfula11y.structure.headings.error.missingH1',
@@ -47,32 +49,37 @@ const extractRelation = (element: HTMLElement): HeadingRelation | null => {
 };
 
 /**
- * Analyzes h1–h6 elements: builds the level-nested tree and detects missing H1
+ * Analyzes exposed h1–h6 elements: builds the level-nested tree and detects missing H1
  * (page-level error), multiple H1 (warning per instance), empty headings (error)
  * and skipped levels (error per offending heading, `skippedLevels` counts the
- * gap for placeholder rendering — repeated parent/child combinations included).
+ * gap for placeholder rendering).
  * A skip is an increase of more than one against the nearest shallower
  * predecessor; root headings — including those before the first H1 — never
  * skip (axe-core heading-order semantics).
  */
-export const analyzeHeadings = (doc: Document): HeadingAnalysis => {
-    const headings = Array.from(doc.querySelectorAll<HTMLElement>('h1, h2, h3, h4, h5, h6'));
-    const errors: StructureError[] = [];
+export const analyzeHeadings = (doc: Document, options: StructureAnalysisOptions = {}): HeadingAnalysis => {
+    const viewport = options.viewport ?? 'desktop';
+    const isExposed = resolveExposure(options.isExposed);
+    const candidates = Array.from(doc.querySelectorAll<HTMLElement>('h1, h2, h3, h4, h5, h6'));
+    const index = indexStructureNodes(candidates, (element) => {
+        const relationId = element.dataset.mindfula11yRelationId ?? '';
+        return relationId === '' ? '' : `rel:${relationId}`;
+    });
+    const headings = candidates.filter(isExposed);
+    const collector = createErrorCollector(viewport);
     const rootNodes: HeadingNode[] = [];
     const parentStack: HeadingNode[] = [];
-    const skippedCombinations = new Map<number, Set<number>>();
-    const seenIds = new Map<string, number>();
     const h1Count = headings.filter((heading) => heading.tagName === 'H1').length;
 
     if (headings.length > 0 && h1Count === 0) {
-        errors.push({ key: ERROR_KEYS.missingH1, severity: StructureErrorSeverity.Error, nodeId: null });
+        collector.pageError(ERROR_KEYS.missingH1, StructureErrorSeverity.Error);
     }
 
-    headings.forEach((element, index) => {
+    headings.forEach((element) => {
         const level = Number.parseInt(element.tagName.charAt(1), 10);
         const record = extractRecord(element);
         const relationId = element.dataset.mindfula11yRelationId ?? '';
-        const nodeId = buildStructureNodeId(record, index, seenIds, relationId === '' ? '' : `rel:${relationId}`);
+        const nodeId = index.get(element)?.id ?? '';
         const label = element.textContent?.trim() ?? '';
 
         // Pop parents at the same level or deeper, then measure the gap to the
@@ -86,44 +93,32 @@ export const analyzeHeadings = (doc: Document): HeadingAnalysis => {
             parentStack.pop();
         }
         const parent = parentStack.at(-1) ?? null;
-        const directSkips = parent === null ? 0 : Math.max(0, level - parent.level - 1);
-        const parentLevel = parent === null ? 0 : parent.level;
-
-        // A parent/child level combination that skipped once is flagged on every
-        // repetition so identical siblings render consistently (legacy behavior).
-        let skippedLevels = directSkips;
-        if (directSkips > 0) {
-            const children = skippedCombinations.get(parentLevel) ?? new Set<number>();
-            children.add(level);
-            skippedCombinations.set(parentLevel, children);
-        } else if (skippedCombinations.get(parentLevel)?.has(level) === true) {
-            skippedLevels = Math.max(0, level - parentLevel - 1);
-        }
-
-        const nodeErrors: StructureError[] = [];
-        if (h1Count > 1 && level === 1) {
-            nodeErrors.push({ key: ERROR_KEYS.multipleH1, severity: StructureErrorSeverity.Warning, nodeId });
-        }
-        if (label === '') {
-            nodeErrors.push({ key: ERROR_KEYS.emptyHeading, severity: StructureErrorSeverity.Error, nodeId });
-        }
-        if (skippedLevels > 0) {
-            nodeErrors.push({ key: ERROR_KEYS.skippedLevel, severity: StructureErrorSeverity.Error, nodeId });
-        }
-        errors.push(...nodeErrors);
+        const skippedLevels = parent === null ? 0 : Math.max(0, level - parent.level - 1);
 
         const node: HeadingNode = {
             id: nodeId,
+            documentOrder: index.get(element)?.documentOrder ?? 0,
             level,
             label,
-            availableTypes: parseJsonMap(element.dataset.mindfula11yAvailableTypes),
+            availableTypes: {},
             record,
             relationId,
             relation: extractRelation(element),
             skippedLevels,
-            errors: nodeErrors,
+            viewports: [viewport],
+            errors: [],
             children: [],
         };
+
+        if (h1Count > 1 && level === 1) {
+            collector.nodeError(node, ERROR_KEYS.multipleH1, StructureErrorSeverity.Warning);
+        }
+        if (label === '') {
+            collector.nodeError(node, ERROR_KEYS.emptyHeading, StructureErrorSeverity.Error);
+        }
+        if (skippedLevels > 0) {
+            collector.nodeError(node, ERROR_KEYS.skippedLevel, StructureErrorSeverity.Error);
+        }
 
         if (parent === null) {
             rootNodes.push(node);
@@ -133,5 +128,5 @@ export const analyzeHeadings = (doc: Document): HeadingAnalysis => {
         parentStack.push(node);
     });
 
-    return { nodes: rootNodes, errors };
+    return { nodes: rootNodes, errors: collector.errors };
 };

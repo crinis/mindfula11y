@@ -25,9 +25,9 @@
 import type { RecordReference } from './types.js';
 
 /**
- * Reads the editable record an annotated element points at, or `null` when the
- * dataset is incomplete (a non-editable node). Consumed by both structure
- * analyzers, which share the same `data-mindfula11y-record-*` contract.
+ * Reads the record coordinates an annotated element points at, or `null` when
+ * the dataset is incomplete. Editing metadata is deliberately resolved later
+ * by the authenticated backend endpoint.
  */
 export const extractRecord = (element: HTMLElement): RecordReference | null => {
     const tableName = element.dataset.mindfula11yRecordTableName ?? '';
@@ -36,7 +36,7 @@ export const extractRecord = (element: HTMLElement): RecordReference | null => {
     if (tableName === '' || columnName === '' || Number.isNaN(uid)) {
         return null;
     }
-    return { tableName, columnName, uid, editLink: element.dataset.mindfula11yRecordEditLink ?? '' };
+    return { tableName, columnName, uid, editLink: '' };
 };
 
 /**
@@ -44,7 +44,7 @@ export const extractRecord = (element: HTMLElement): RecordReference | null => {
  * scheme across analyzers, while callers may provide an analyzer-specific
  * fallback base (for example a heading relation id).
  */
-export const buildStructureNodeId = (
+const buildStructureNodeId = (
     record: RecordReference | null,
     index: number,
     seen: Map<string, number>,
@@ -57,16 +57,30 @@ export const buildStructureNodeId = (
     return occurrence === 0 ? base : `${base}#${occurrence}`;
 };
 
-/** Parses a JSON string→string map annotation; malformed data degrades to `{}` (read-only). */
-export const parseJsonMap = (raw: string | undefined): Record<string, string> => {
-    if (raw === undefined || raw === '') {
-        return {};
-    }
-    try {
-        return JSON.parse(raw) as Record<string, string>;
-    } catch {
-        return {};
-    }
+export interface StructureNodeIndexEntry {
+    id: string;
+    documentOrder: number;
+}
+
+/**
+ * Assigns a stable node ID and a document-order position to each candidate.
+ *
+ * Candidate order is the document order and is identical across viewports (same
+ * URL, same markup), so `documentOrder` can drive the cross-viewport merge.
+ */
+export const indexStructureNodes = (
+    elements: readonly HTMLElement[],
+    fallbackBase: (element: HTMLElement) => string = () => '',
+): Map<HTMLElement, StructureNodeIndexEntry> => {
+    const index = new Map<HTMLElement, StructureNodeIndexEntry>();
+    const seen = new Map<string, number>();
+    elements.forEach((element, documentOrder) => {
+        index.set(element, {
+            id: buildStructureNodeId(extractRecord(element), documentOrder, seen, fallbackBase(element)),
+            documentOrder,
+        });
+    });
+    return index;
 };
 
 /** Scrolls an element to center, honoring `prefers-reduced-motion`. */

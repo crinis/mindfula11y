@@ -21,7 +21,7 @@ import type { ReactiveControllerHost, TemplateResult } from 'lit';
 import { html } from 'lit';
 
 /**
- * Screen-reader announcements through a pre-rendered live region. The host
+ * Non-visible screen-reader announcements through a pre-rendered live region. The host
  * mounts `render()` in its first render and keeps it mounted (announcements
  * are unreliable when the region itself is inserted); `announce()` clears the
  * region first — with a completed render in between — so an unchanged message
@@ -35,12 +35,16 @@ export class LiveAnnouncer {
         this.host = host;
     }
 
-    async announce(message: string): Promise<void> {
+    async announce(message: string, signal?: AbortSignal): Promise<void> {
+        signal?.throwIfAborted();
         this.message = '';
         this.host.requestUpdate();
         await this.host.updateComplete;
+        signal?.throwIfAborted();
         this.message = message;
         this.host.requestUpdate();
+        await this.host.updateComplete;
+        signal?.throwIfAborted();
     }
 
     /** The visually hidden live region carrying the current announcement. */
