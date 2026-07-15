@@ -113,9 +113,11 @@ final readonly class OverviewFeatureRenderer implements FeatureRendererInterface
                 $scanId = $existingScanId;
             }
 
-            // Create scan demand for the component
-            if (null !== $previewUri) {
-                $backendUser = $this->getBackendUserAuthentication();
+            // Create scan demand for the component. Only in the live workspace:
+            // the external scanner cannot fetch workspace previews, and storing
+            // the scan id must not create a workspace version of the page.
+            $backendUser = $this->getBackendUserAuthentication();
+            if (null !== $previewUri && $backendUser->workspace === 0) {
                 $createScanDemand = new CreateScanDemand(
                     userId: (int)$backendUser->user['uid'],
                     pageId: $context->pageId,

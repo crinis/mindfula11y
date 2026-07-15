@@ -98,8 +98,11 @@ final readonly class ScanFeatureRenderer implements FeatureRendererInterface
 
         $this->menuBuilder->addDropDown($context->moduleTemplate, $this->buildPageLevelsMenu($context, $pageLevels), 3);
 
-        // Check if user has edit access to the page record (needed to trigger new scans)
-        $canTriggerScan = $this->permissionService->checkRecordEditAccess('pages', $finalPageInfo);
+        // Triggering scans requires edit access to the page record and the live
+        // workspace: the external scanner cannot fetch workspace previews, and
+        // storing the scan id must not create a workspace version of the page.
+        $canTriggerScan = $this->getBackendUserAuthentication()->workspace === 0
+            && $this->permissionService->checkRecordEditAccess('pages', $finalPageInfo);
 
         // Check if content has changed since last scan
         $contentChanged = $this->scanStateService->shouldInvalidateScan($finalPageInfo, (int)($context->pageInfo['SYS_LASTCHANGED'] ?? 0));

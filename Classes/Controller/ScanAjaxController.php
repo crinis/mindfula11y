@@ -153,8 +153,10 @@ final readonly class ScanAjaxController
             return $this->errorResponse('error.invalidUser', 403);
         }
 
-        // Verify the current workspace matches the demand
-        if ($backendUser->workspace !== $workspaceId) {
+        // Verify the current workspace matches the demand. Scans are also a
+        // live-workspace feature: the external scanner cannot fetch workspace
+        // previews, and storing the scan id must not version the page record.
+        if ($backendUser->workspace !== $workspaceId || $workspaceId !== 0) {
             return $this->errorResponse('error.invalidWorkspace', 403);
         }
 

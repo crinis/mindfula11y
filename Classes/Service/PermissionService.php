@@ -235,10 +235,16 @@ class PermissionService
             return false;
         }
 
-        if (
-            !$backendUser->check('tables_modify', $tableName)
-            || ($this->isTableWorkspaceAware($tableName) && !$backendUser->workspaceAllowsLiveEditingInTable($tableName))
-        ) {
+        if (!$backendUser->check('tables_modify', $tableName)) {
+            return false;
+        }
+
+        // workspaceAllowsLiveEditingInTable() === false in an offline workspace
+        // means "writes must create a workspace version", which DataHandler does
+        // transparently for workspace-aware tables. Only tables WITHOUT
+        // workspace support are unwritable there (unless the workspace permits
+        // live editing).
+        if (!$this->isTableWorkspaceAware($tableName) && !$backendUser->workspaceAllowsLiveEditingInTable($tableName)) {
             return false;
         }
 
