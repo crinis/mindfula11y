@@ -86,11 +86,11 @@ final readonly class ScanStateService
             return null;
         }
 
-        // Resolve the Live UID:
-        // If we found a workspace version (pid = -1), the valid record to load is its Live parent (t3ver_oid).
-        // If we found a live record, we use its own uid.
-        $liveUid = ((int)($result['pid'] ?? 0) === -1)
-            ? (int)($result['t3ver_oid'] ?? 0)
+        // Resolve the Live UID: since TYPO3 v11 workspace version rows keep the
+        // page's pid and reference their live counterpart in t3ver_oid (the old
+        // pid = -1 convention is gone), so t3ver_oid > 0 identifies a version.
+        $liveUid = (int)($result['t3ver_oid'] ?? 0) > 0
+            ? (int)$result['t3ver_oid']
             : (int)($result['uid'] ?? 0);
 
         if ($liveUid <= 0) {
