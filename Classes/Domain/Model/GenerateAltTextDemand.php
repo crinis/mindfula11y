@@ -23,8 +23,6 @@ declare(strict_types=1);
 namespace MindfulMarkup\MindfulA11y\Domain\Model;
 
 use JsonSerializable;
-use TYPO3\CMS\Core\Crypto\HashService;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
  * Immutable, signed authorization scope for AI alternative-text generation.
@@ -52,11 +50,10 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
  */
 final readonly class GenerateAltTextDemand implements JsonSerializable
 {
+    use SignedDemandTrait;
+
     /** Demands are rendered into FormEngine/module markup that may stay open a while before use. */
     public const LIFETIME = 3600;
-
-    private int $expiresAt;
-    private string $signature;
 
     /**
      * @param int $userId Current user ID.
@@ -82,30 +79,24 @@ final readonly class GenerateAltTextDemand implements JsonSerializable
         int $expiresAt = 0,
         string $signature = '',
     ) {
-        $this->expiresAt = $expiresAt > 0 ? $expiresAt : time() + self::LIFETIME;
-        $this->signature = $signature !== '' ? $signature : $this->createSignature();
+        $this->initializeSignedDemand($expiresAt, $signature);
     }
 
     /** @param array<string, mixed> $data */
     public static function fromRequestData(array $data): ?self
     {
+        $required = self::extractRequiredRequestFields($data);
         $recordTable = $data['recordTable'] ?? null;
         $recordColumns = $data['recordColumns'] ?? null;
-        $signature = $data['signature'] ?? null;
-        $userId = (int)($data['userId'] ?? 0);
-        $expiresAt = (int)($data['expiresAt'] ?? 0);
-        if ($userId <= 0
-            || $expiresAt <= 0
+        if ($required === null
             || !is_string($recordTable)
             || !is_array($recordColumns)
-            || !is_string($signature)
-            || $signature === ''
         ) {
             return null;
         }
 
         return new self(
-            userId: $userId,
+            userId: $required['userId'],
             pageUid: (int)($data['pageUid'] ?? 0),
             languageUid: (int)($data['languageUid'] ?? 0),
             workspaceId: (int)($data['workspaceId'] ?? 0),
@@ -113,8 +104,8 @@ final readonly class GenerateAltTextDemand implements JsonSerializable
             recordUid: (int)($data['recordUid'] ?? 0),
             fileUid: (int)($data['fileUid'] ?? 0),
             recordColumns: $recordColumns,
-            expiresAt: $expiresAt,
-            signature: $signature,
+            expiresAt: $required['expiresAt'],
+            signature: $required['signature'],
         );
     }
 
@@ -184,40 +175,20 @@ final readonly class GenerateAltTextDemand implements JsonSerializable
         return $this->recordColumns;
     }
 
-    /**
-     * Get the signature of the properties of this object for request validation.
-     */
-    public function getSignature(): string
+    /** @return list<string> */
+    private function signedProperties(): array
     {
-        return $this->signature;
-    }
-
-    private function createSignature(): string
-    {
-        $hashService = GeneralUtility::makeInstance(HashService::class);
-        return $hashService->hmac(
-            implode('|', [
-                (string)$this->userId,
-                (string)$this->pageUid,
-                (string)$this->languageUid,
-                (string)$this->workspaceId,
-                $this->recordTable,
-                (string)$this->recordUid,
-                (string)$this->fileUid,
-                implode(',', $this->recordColumns),
-                (string)$this->expiresAt,
-            ]),
-            self::class
-        );
-    }
-
-    public function validateSignature(): bool
-    {
-        $expectedHash = $this->createSignature();
-        $now = time();
-        return $this->expiresAt > $now
-            && $this->expiresAt <= $now + self::LIFETIME
-            && hash_equals($expectedHash, $this->signature);
+        return [
+            (string)$this->userId,
+            (string)$this->pageUid,
+            (string)$this->languageUid,
+            (string)$this->workspaceId,
+            $this->recordTable,
+            (string)$this->recordUid,
+            (string)$this->fileUid,
+            implode(',', $this->recordColumns),
+            (string)$this->expiresAt,
+        ];
     }
 
     /** @return SerializedGenerateAltTextDemand */

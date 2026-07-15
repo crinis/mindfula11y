@@ -23,8 +23,6 @@ declare(strict_types=1);
 namespace MindfulMarkup\MindfulA11y\Domain\Model;
 
 use JsonSerializable;
-use TYPO3\CMS\Core\Crypto\HashService;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
  * Immutable, signed authorization scope for creating an accessibility scan.
@@ -52,11 +50,10 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
  */
 final readonly class CreateScanDemand implements JsonSerializable
 {
+    use SignedDemandTrait;
+
     /** Scan demands are rendered into the module and may be used after user interaction. */
     public const LIFETIME = 3600;
-
-    private int $expiresAt;
-    private string $signature;
 
     /**
      * @param int $userId Current user ID.
@@ -80,39 +77,33 @@ final readonly class CreateScanDemand implements JsonSerializable
         int $expiresAt = 0,
         string $signature = '',
     ) {
-        $this->expiresAt = $expiresAt > 0 ? $expiresAt : time() + self::LIFETIME;
-        $this->signature = $signature !== '' ? $signature : $this->createSignature();
+        $this->initializeSignedDemand($expiresAt, $signature);
     }
 
     /** @param array<string, mixed> $data */
     public static function fromRequestData(array $data): ?self
     {
+        $required = self::extractRequiredRequestFields($data);
         $previewUrl = $data['previewUrl'] ?? null;
-        $signature = $data['signature'] ?? null;
-        $userId = (int)($data['userId'] ?? 0);
         $pageId = (int)($data['pageId'] ?? 0);
-        $expiresAt = (int)($data['expiresAt'] ?? 0);
-        if ($userId <= 0
+        if ($required === null
             || $pageId <= 0
-            || $expiresAt <= 0
             || !is_string($previewUrl)
             || $previewUrl === ''
-            || !is_string($signature)
-            || $signature === ''
         ) {
             return null;
         }
 
         return new self(
-            userId: $userId,
+            userId: $required['userId'],
             pageId: $pageId,
             previewUrl: $previewUrl,
             languageId: (int)($data['languageId'] ?? 0),
             workspaceId: (int)($data['workspaceId'] ?? 0),
             pageLevels: (int)($data['pageLevels'] ?? 0),
             crawl: (bool)($data['crawl'] ?? false),
-            expiresAt: $expiresAt,
-            signature: $signature,
+            expiresAt: $required['expiresAt'],
+            signature: $required['signature'],
         );
     }
 
@@ -172,39 +163,19 @@ final readonly class CreateScanDemand implements JsonSerializable
         return $this->crawl;
     }
 
-    /**
-     * Get the signature of the properties of this object for request validation.
-     */
-    public function getSignature(): string
+    /** @return list<string> */
+    private function signedProperties(): array
     {
-        return $this->signature;
-    }
-
-    private function createSignature(): string
-    {
-        $hashService = GeneralUtility::makeInstance(HashService::class);
-        return $hashService->hmac(
-            implode('|', [
-                (string)$this->userId,
-                (string)$this->pageId,
-                $this->previewUrl,
-                (string)$this->languageId,
-                (string)$this->workspaceId,
-                (string)$this->pageLevels,
-                (string)(int)$this->crawl,
-                (string)$this->expiresAt,
-            ]),
-            self::class
-        );
-    }
-
-    public function validateSignature(): bool
-    {
-        $expectedHash = $this->createSignature();
-        $now = time();
-        return $this->expiresAt > $now
-            && $this->expiresAt <= $now + self::LIFETIME
-            && hash_equals($expectedHash, $this->signature);
+        return [
+            (string)$this->userId,
+            (string)$this->pageId,
+            $this->previewUrl,
+            (string)$this->languageId,
+            (string)$this->workspaceId,
+            (string)$this->pageLevels,
+            (string)(int)$this->crawl,
+            (string)$this->expiresAt,
+        ];
     }
 
     /** @return SerializedCreateScanDemand */
