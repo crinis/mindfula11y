@@ -48,21 +48,22 @@ class PermissionService
 
     public function __construct(
         protected readonly TcaSchemaFactory $tcaSchemaFactory,
+        // Constructor-injected on purpose: ModuleProvider is not makeInstance-
+        // resolvable on TYPO3 v14 (its ServiceProvider registration was removed
+        // and its constructor grew a second dependency), so lazy resolution
+        // fatals. This service is always container-wired, never new'ed.
+        protected readonly ModuleProvider $moduleProvider,
     ) {}
 
     /**
      * Whether the current backend user may access the accessibility module.
      *
      * The single defense-in-depth check behind every AJAX endpoint (their
-     * routes already inherit access from the module). The ModuleProvider is
-     * resolved lazily: it drags in the full backend module registry, which
-     * must not be constructed for the DataHandler-hook and frontend paths
-     * that inject this service but never check module access.
+     * routes already inherit access from the module).
      */
     public function checkModuleAccess(): bool
     {
-        return GeneralUtility::makeInstance(ModuleProvider::class)
-            ->accessGranted(self::MODULE_NAME, $this->getBackendUserAuthentication());
+        return $this->moduleProvider->accessGranted(self::MODULE_NAME, $this->getBackendUserAuthentication());
     }
 
     /**
