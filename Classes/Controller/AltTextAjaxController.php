@@ -145,13 +145,18 @@ final readonly class AltTextAjaxController
         $recordColumns = $demand->getRecordColumns();
         $recordData = BackendUtility::getRecordWSOL($recordTable, $recordUid);
 
+        // Fail closed: a missing (e.g. meanwhile deleted) record must reject the
+        // request outright — skipping the record-level checks would fail open.
+        if (!is_array($recordData)) {
+            return $this->errorResponse('error.invalidRecordAccess', 403);
+        }
+
         // Check if user has edit access to the record.
         // For sys_file_metadata the TYPO3 core permission model (FileMetadataPermissionsAspect)
         // is file-mount based (editMeta), not page-based. checkRecordEditAccess relies on a
         // parent page row which does not exist for root-level records (pid=0), so skip it when
         // the record is at root on a table that explicitly allows it, and enforce editMeta below.
         if (!(0 === $pageUid && $this->tableIgnoresRootLevelRestriction($recordTable))
-            && is_array($recordData)
             && !$this->permissionService->checkRecordEditAccess($recordTable, $recordData, $recordColumns)
         ) {
             return $this->errorResponse('error.invalidRecordAccess', 403);

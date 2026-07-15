@@ -27,6 +27,7 @@ use MindfulMarkup\MindfulA11y\Enum\Feature;
 use MindfulMarkup\MindfulA11y\Service\AltTextFinderService;
 use MindfulMarkup\MindfulA11y\Service\ModuleSettingsService;
 use MindfulMarkup\MindfulA11y\Service\PagePreviewService;
+use MindfulMarkup\MindfulA11y\Service\PermissionService;
 use MindfulMarkup\MindfulA11y\Service\ScanApiService;
 use MindfulMarkup\MindfulA11y\Service\ScanStateService;
 use Psr\Http\Message\ResponseInterface;
@@ -45,6 +46,7 @@ final readonly class OverviewFeatureRenderer implements FeatureRendererInterface
         private ModuleSettingsService $moduleSettingsService,
         private PagePreviewService $pagePreviewService,
         private ScanStateService $scanStateService,
+        private PermissionService $permissionService,
         private AltTextFinderService $altTextFinderService,
         private ScanApiService $scanApiService,
         private UriBuilder $backendUriBuilder,
@@ -113,11 +115,16 @@ final readonly class OverviewFeatureRenderer implements FeatureRendererInterface
                 $scanId = $existingScanId;
             }
 
-            // Create scan demand for the component. Only in the live workspace:
-            // the external scanner cannot fetch workspace previews, and storing
-            // the scan id must not create a workspace version of the page.
+            // Create scan demand for the component only when redeeming it could
+            // succeed ("signed => authorized at issuance"): in the live workspace
+            // (the external scanner cannot fetch workspace previews, and storing
+            // the scan id must not version the page) and with edit access to the
+            // page record the scan id is stored on.
             $backendUser = $this->getBackendUserAuthentication();
-            if (null !== $previewUri && $backendUser->workspace === 0) {
+            if (null !== $previewUri
+                && $backendUser->workspace === 0
+                && $this->permissionService->checkRecordEditAccess('pages', $finalPageInfo)
+            ) {
                 $createScanDemand = new CreateScanDemand(
                     userId: (int)$backendUser->user['uid'],
                     pageId: $context->pageId,

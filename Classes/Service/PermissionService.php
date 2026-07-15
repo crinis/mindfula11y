@@ -165,6 +165,13 @@ class PermissionService
         if (!$backendUser->isAdmin() && $pageId === 0) {
             $mountPoints = $backendUser->getWebmounts();
         } else {
+            // Self-contained mount containment: the perms clause below is pure
+            // permission-bit arithmetic, so without this check the method's
+            // safety would rest entirely on every caller pre-validating
+            // $pageId (currently they do, via readPageAccess()).
+            if (!$backendUser->isAdmin() && $backendUser->isInWebMount($pageId) === null) {
+                return [];
+            }
             $mountPoints = [$pageId];
         }
 

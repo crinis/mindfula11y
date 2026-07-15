@@ -162,10 +162,15 @@ class AddOverviewToPageModule
                 $scanId = $existingScanId;
             }
 
-            // Create scan demand for the component. Only in the live workspace:
-            // the external scanner cannot fetch workspace previews, and storing
-            // the scan id must not create a workspace version of the page.
-            if (null !== $previewUri && $backendUser->workspace === 0) {
+            // Create scan demand for the component only when redeeming it could
+            // succeed ("signed => authorized at issuance"): in the live workspace
+            // (the external scanner cannot fetch workspace previews, and storing
+            // the scan id must not version the page) and with edit access to the
+            // page record the scan id is stored on.
+            if (null !== $previewUri
+                && $backendUser->workspace === 0
+                && $this->permissionService->checkRecordEditAccess('pages', $finalPageInfo)
+            ) {
                 $createScanDemand = new CreateScanDemand(
                     userId: (int)$backendUser->user['uid'],
                     pageId: (int)$finalPageInfo['uid'],
