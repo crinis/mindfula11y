@@ -16,6 +16,7 @@ the `Publish to TER` workflow uses the release body as the TER upload comment.
 - `<mindfula11y:heading.descendant>` no longer increments an explicitly passed `type` argument by `levels`. An explicit `type` is now used verbatim as the tag name, matching `<mindfula11y:heading>`, `<mindfula11y:heading.sibling>`, and the argument's documented "rendered directly" semantics; `levels` still applies to heading types resolved from an ancestor relation or a database record.
 - The structure-analysis error notice now shows a failure-specific description (ticket issuance, preview timeout, frame handshake, HTTP error, runner analysis, response payload, or record-metadata enrichment) instead of one generic message, so editors can tell what actually failed before retrying.
 
+- The module's "General" feature is renamed to **Overview** (menu label, and the `feature` URL/module-data value changes from `general` to `overview`). Stored module states and bookmarked URLs using the old value fall back to the Overview view automatically; only direct links that named `feature=general` explicitly will land on the (identical) default view.
 - All accessibility AJAX endpoints now report failures in the same localized, structured form (an error title with a description), so the module surfaces translated messages for every endpoint. Structure-analysis endpoint errors were previously untranslated technical strings. Allowed HTTP methods are now enforced for the scan and alt-text endpoints as well (they were previously declared but not enforced).
 
 ### Fixed

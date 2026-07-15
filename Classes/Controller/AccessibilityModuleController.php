@@ -24,177 +24,105 @@ declare(strict_types=1);
 namespace MindfulMarkup\MindfulA11y\Controller;
 
 use InvalidArgumentException;
-use MindfulMarkup\MindfulA11y\Domain\Model\CreateScanDemand;
+use MindfulMarkup\MindfulA11y\Backend\DocHeaderMenuBuilder;
+use MindfulMarkup\MindfulA11y\Backend\MissingAltTextFeatureRenderer;
+use MindfulMarkup\MindfulA11y\Backend\ModuleContext;
+use MindfulMarkup\MindfulA11y\Backend\ModuleNoticeTrait;
+use MindfulMarkup\MindfulA11y\Backend\OverviewFeatureRenderer;
+use MindfulMarkup\MindfulA11y\Backend\ScanFeatureRenderer;
 use MindfulMarkup\MindfulA11y\Enum\Feature;
-use MindfulMarkup\MindfulA11y\Service\AltTextFinderService;
 use MindfulMarkup\MindfulA11y\Service\GeneralModuleService;
 use MindfulMarkup\MindfulA11y\Service\PermissionService;
-use MindfulMarkup\MindfulA11y\Service\ScanApiService;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Backend\Attribute\AsController;
 use TYPO3\CMS\Backend\Domain\Repository\Localization\LocalizationRepository;
-use TYPO3\CMS\Backend\Module\ModuleData;
-use TYPO3\CMS\Backend\Module\ModuleProvider;
-use TYPO3\CMS\Backend\Routing\PreviewUriBuilder;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
-use TYPO3\CMS\Backend\Template\Components\ButtonBar;
-use TYPO3\CMS\Backend\Template\Components\Buttons\DropDown\DropDownRadio;
-use TYPO3\CMS\Backend\Template\Components\Buttons\DropDown\DropDownToggle;
 use TYPO3\CMS\Backend\Template\Components\Buttons\DropDownButton;
-use TYPO3\CMS\Backend\Template\ModuleTemplate;
 use TYPO3\CMS\Backend\Template\ModuleTemplateFactory;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
-use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Http\AllowedMethodsTrait;
+use TYPO3\CMS\Core\Http\Error\MethodNotAllowedException;
 use TYPO3\CMS\Core\Http\RedirectResponse;
 use TYPO3\CMS\Core\Information\Typo3Version;
-use TYPO3\CMS\Core\Messaging\FlashMessage;
 use TYPO3\CMS\Core\Messaging\FlashMessageService;
 use TYPO3\CMS\Core\Page\PageRenderer;
-use TYPO3\CMS\Core\Pagination\ArrayPaginator;
-use TYPO3\CMS\Core\Pagination\SimplePagination;
+use TYPO3\CMS\Core\Site\Entity\SiteLanguage;
 use TYPO3\CMS\Core\Type\Bitmask\Permission;
 use TYPO3\CMS\Core\Type\ContextualFeedbackSeverity;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
-use TYPO3\CMS\Extbase\Mvc\Exception\MethodNotAllowedException;
 
 /**
- * Class AccessibilityModuleController.
+ * Entry point of the accessibility backend module.
  *
- * This controller handles the backend module with various accessibility functions.
+ * Resolves and access-checks the requested page, language, and feature into a
+ * ModuleContext, adds the feature and language selector menus, and dispatches
+ * to the feature's renderer (Classes/Backend/*FeatureRenderer).
  */
 #[AsController]
-class AccessibilityModuleController
+final readonly class AccessibilityModuleController
 {
     use AllowedMethodsTrait;
+    use ModuleNoticeTrait;
 
-    /**
-     * The current page ID.
-     */
-    protected int $pageId = 0;
-
-    /**
-     * The selected language UID.
-     */
-    protected int $languageId = 0;
-
-    /**
-     * The page information for the current page.
-     */
-    protected array|bool $pageInfo = false;
-
-    /**
-     * The localized page information for the current page and language.
-     */
-    protected ?array $localizedPageInfo = null;
-
-    /**
-     * The active module feature.
-     */
-    protected Feature $feature = Feature::GENERAL;
-
-    /**
-     * The module template.
-     */
-    protected ?ModuleTemplate $moduleTemplate = null;
-
-    /**
-     * The module data.
-     */
-    protected ?ModuleData $moduleData = null;
-
-    /**
-     * The current request.
-     */
-    protected ?ServerRequestInterface $request = null;
-
-    /**
-     * Page TSConfig.
-     * 
-     * @var array<string, mixed>
-     */
-    protected array $pageTsConfig = [];
-
-    /**
-     * Constructor.
-     */
     public function __construct(
-        protected readonly ModuleTemplateFactory $moduleTemplateFactory,
-        protected readonly UriBuilder $backendUriBuilder,
-        protected readonly PageRenderer $pageRenderer,
-        protected readonly ModuleProvider $moduleProvider,
-        protected readonly FlashMessageService $flashMessageService,
-        protected readonly PermissionService $permissionService,
-        protected readonly AltTextFinderService $altTextFinderService,
-        protected readonly ConnectionPool $connectionPool,
-        protected readonly GeneralModuleService $generalModuleService,
-        protected readonly ScanApiService $scanApiService,
+        private ModuleTemplateFactory $moduleTemplateFactory,
+        private UriBuilder $backendUriBuilder,
+        private PageRenderer $pageRenderer,
+        private FlashMessageService $flashMessageService,
+        private PermissionService $permissionService,
+        private GeneralModuleService $generalModuleService,
+        private DocHeaderMenuBuilder $menuBuilder,
+        private OverviewFeatureRenderer $overviewFeatureRenderer,
+        private MissingAltTextFeatureRenderer $missingAltTextFeatureRenderer,
+        private ScanFeatureRenderer $scanFeatureRenderer,
     ) {}
 
     /**
      * Renders the accessibility backend module.
-     * 
-     * Renders the accessibility backend module with various feature to check and improve
-     * accessibility of the selected page.
-     * 
-     * @param ServerRequestInterface $request
-     * 
-     * @return ResponseInterface
-     * 
+     *
      * @throws MethodNotAllowedException If wrong HTTP method is used.
      * @throws InvalidArgumentException If module data is not set.
-     * @throws InvalidArgumentException If an invalid feature is selected.
      */
     public function mainAction(ServerRequestInterface $request): ResponseInterface
     {
-        $this->request = $request;
-        $this->assertAllowedHttpMethod($this->request, 'GET');
-        $this->moduleTemplate = $this->moduleTemplateFactory->create($this->request);
-        $this->moduleTemplate->setTitle($this->generalModuleService->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:mlang_tabs_tab'));
+        $this->assertAllowedHttpMethod($request, 'GET');
+        $languageService = $this->generalModuleService->getLanguageService();
+        $moduleTemplate = $this->moduleTemplateFactory->create($request);
+        $moduleTemplate->setTitle($languageService->sL(self::MODULE_LANGUAGE_FILE . 'mlang_tabs_tab'));
 
         $backendUser = $this->generalModuleService->getBackendUserAuthentication();
-        $this->pageId = (int)($this->request->getParsedBody()['id'] ?? $this->request->getQueryParams()['id'] ?? 0);
+        $pageId = (int)($request->getParsedBody()['id'] ?? $request->getQueryParams()['id'] ?? 0);
 
-        if (0 === $this->pageId) {
-            $this->addFlashMessage(
-                $this->generalModuleService->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:module.noPageSelected'),
-                $this->generalModuleService->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:module.noPageSelected.description'),
-                ContextualFeedbackSeverity::INFO
-            );
-            return $this->moduleTemplate->renderResponse('Backend/Info')->withStatus(200);
+        if (0 === $pageId) {
+            return $this->noticeResponse($moduleTemplate, 'module.noPageSelected', ContextualFeedbackSeverity::INFO);
         }
 
-        $this->pageInfo = BackendUtility::readPageAccess($this->pageId, $backendUser->getPagePermsClause(Permission::PAGE_SHOW));
-        if (false === $this->pageInfo) {
-            $this->addFlashMessage(
-                $this->generalModuleService->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.noPageAccess'),
-                $this->generalModuleService->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.noPageAccess.description'),
-                ContextualFeedbackSeverity::ERROR
-            );
-            return $this->moduleTemplate->renderResponse('Backend/Info')->withStatus(403);
+        $pageInfo = BackendUtility::readPageAccess($pageId, $backendUser->getPagePermsClause(Permission::PAGE_SHOW));
+        if (false === $pageInfo) {
+            return $this->noticeResponse($moduleTemplate, 'error.noPageAccess', ContextualFeedbackSeverity::ERROR, 403);
         }
 
-        $this->moduleData = $this->request->getAttribute('moduleData', null);
-        if (null === $this->moduleData) {
+        $moduleData = $request->getAttribute('moduleData', null);
+        if (null === $moduleData) {
             throw new InvalidArgumentException('Module data is not set.', 1745686754);
         }
 
-        $this->languageId = (int)$this->moduleData->get('languageId', 0);
-        $this->localizedPageInfo = $this->generalModuleService->getLocalizedPageRecord($this->pageId, $this->languageId);
+        $languageId = (int)$moduleData->get('languageId', 0);
+        $localizedPageInfo = $this->generalModuleService->getLocalizedPageRecord($pageId, $languageId);
 
-        $languageToCheck = $this->localizedPageInfo === null ? 0 : $this->languageId;
+        $languageToCheck = $localizedPageInfo === null ? 0 : $languageId;
         if (!$this->permissionService->checkLanguageAccess($languageToCheck)) {
             // Try to find the first available language that the user has access to
-            $availableLanguageId = $this->getFirstAvailableLanguageId();
+            $availableLanguageId = $this->getFirstAvailableLanguageId($request, $pageId);
             if (null !== $availableLanguageId) {
                 // Redirect to the first available language
                 $uri = $this->backendUriBuilder->buildUriFromRoute(
                     'mindfula11y_accessibility',
                     [
-                        'id' => $this->pageId,
+                        'id' => $pageId,
                         'languageId' => $availableLanguageId,
-                        'feature' => $this->moduleData->get('feature', Feature::GENERAL->value),
+                        'feature' => $moduleData->get('feature', Feature::OVERVIEW->value),
                     ]
                 );
 
@@ -202,707 +130,73 @@ class AccessibilityModuleController
             }
 
             // No languages available, show error
-            $this->addFlashMessage(
-                $this->generalModuleService->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:module.noLanguageAccess'),
-                $this->generalModuleService->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:module.noLanguageAccess.description'),
-                ContextualFeedbackSeverity::ERROR
-            );
-            return $this->moduleTemplate->renderResponse('Backend/Info')->withStatus(403);
+            return $this->noticeResponse($moduleTemplate, 'module.noLanguageAccess', ContextualFeedbackSeverity::ERROR, 403);
         }
 
-        $this->feature = Feature::tryFrom($this->moduleData->get('feature', Feature::GENERAL->value)) ?? Feature::GENERAL;
-        $this->pageTsConfig = $this->generalModuleService->getConvertedPageTsConfig($this->pageId);
-        $this->addDocHeaderDropDown($this->buildFeatureMenu(), 1);
-        $this->addLanguageSelector($this->buildLanguageMenu());
+        $context = new ModuleContext(
+            request: $request,
+            moduleTemplate: $moduleTemplate,
+            moduleData: $moduleData,
+            // Unknown persisted values (e.g. the pre-rename 'general') fall back to the overview.
+            feature: Feature::tryFrom($moduleData->get('feature', Feature::OVERVIEW->value)) ?? Feature::OVERVIEW,
+            pageId: $pageId,
+            languageId: $languageId,
+            pageInfo: $pageInfo,
+            localizedPageInfo: $localizedPageInfo,
+            pageTsConfig: $this->generalModuleService->getConvertedPageTsConfig($pageId),
+        );
+
+        $this->menuBuilder->addDropDown($moduleTemplate, $this->buildFeatureMenu($context), 1);
+        $this->menuBuilder->addLanguageSelector($moduleTemplate, $this->buildLanguageMenu($context));
         $this->pageRenderer->addInlineLanguageLabelArray($this->generalModuleService->getInlineLanguageLabels());
 
-
-        switch ($this->feature) {
-            case Feature::GENERAL:
-                return $this->handleGeneralFeature();
-            case Feature::MISSING_ALT_TEXT:
-                return $this->handleMissingAltTextFeature();
-            case Feature::SCAN:
-                return $this->handleAccessibilityScannerFeature();
-                break;
-        }
-        throw new InvalidArgumentException('Invalid feature: ' . ($this->feature->value ?? ''), 1748518675);
+        return match ($context->feature) {
+            Feature::OVERVIEW => $this->overviewFeatureRenderer->render($context),
+            Feature::MISSING_ALT_TEXT => $this->missingAltTextFeatureRenderer->render($context),
+            Feature::SCAN => $this->scanFeatureRenderer->render($context),
+        };
     }
 
-    /**
-     * Handle general module features.
-     */
-    protected function handleGeneralFeature(): ResponseInterface
-    {
-        // Get localized page info for preview URL generation
-        $finalPageInfo = $this->localizedPageInfo ?: $this->pageInfo;
-
-        // Let PreviewUriBuilder decide if a preview can be built. It returns null when a preview is not available.
-        $previewUri = PreviewUriBuilder::create($finalPageInfo)
-            ->buildUri();
-
-        $missingAltTextUri = null;
-        $fileReferenceCount = null;
-
-        $hasMissingAltTextAccess = $this->generalModuleService->hasMissingAltTextAccess($this->pageTsConfig);
-        $hasHeadingStructureAccess = $this->generalModuleService->hasHeadingStructureAccess($this->pageTsConfig);
-        $hasLandmarkStructureAccess = $this->generalModuleService->hasLandmarkStructureAccess($this->pageTsConfig);
-        $hasScanAccess = $this->generalModuleService->hasScanAccess($this->pageTsConfig);
-        $this->generalModuleService->allowStructureAnalysisFraming($previewUri, $this->pageTsConfig);
-
-        // Disable scan access if page is hidden/not visible
-        $isPageVisible = $this->generalModuleService->isPageVisible($finalPageInfo);
-        if ($hasScanAccess && !$isPageVisible) {
-            $hasScanAccess = false;
-        }
-
-        if (
-            $hasMissingAltTextAccess
-        ) {
-            $filterFileMetaData = !$this->generalModuleService->isFileMetadataIgnored($this->pageTsConfig)
-                && $this->generalModuleService->canReadFileMetadataAlternative();
-            $fileReferenceCount = $this->altTextFinderService->countAltlessFileReferences(
-                $this->pageId,
-                0,
-                $this->languageId,
-                $this->pageTsConfig,
-                $filterFileMetaData
-            );
-
-            $missingAltTextUri = $this->backendUriBuilder->buildUriFromRoute(
-                'mindfula11y_accessibility',
-                [
-                    'id' => $this->pageId,
-                    'feature' => Feature::MISSING_ALT_TEXT->value,
-                    'languageId' => $this->languageId,
-                ]
-            );
-        }
-
-        // Prepare scan-related variables
-        $scanUri = null;
-        $scanId = null;
-        $createScanDemand = null;
-
-        if ($hasScanAccess && $this->scanApiService->isConfigured()) {
-            // Get existing scan ID — stored per language on whichever record ($finalPageInfo) was scanned
-            $existingScanId = $finalPageInfo['tx_mindfula11y_scanid'] ?? null;
-
-            // Check if content has changed since last scan
-            $contentChanged = $this->generalModuleService->shouldInvalidateScan($finalPageInfo, (int)($this->pageInfo['SYS_LASTCHANGED'] ?? 0));
-
-            // Only use existing scan ID if content hasn't changed
-            if ($existingScanId && !$contentChanged) {
-                $scanId = $existingScanId;
-            }
-
-            // Create scan demand for the component
-            if (null !== $previewUri) {
-                $backendUser = $this->generalModuleService->getBackendUserAuthentication();
-                $createScanDemand = new CreateScanDemand(
-                    userId: (int)$backendUser->user['uid'],
-                    pageId: $this->pageId,
-                    previewUrl: (string)$previewUri,
-                    languageId: $this->languageId,
-                    workspaceId: $backendUser->workspace,
-                );
-            }
-
-            // Create URI to the scan feature
-            $scanUri = $this->backendUriBuilder->buildUriFromRoute(
-                'mindfula11y_accessibility',
-                [
-                    'id' => $this->pageId,
-                    'feature' => Feature::SCAN->value,
-                    'languageId' => $this->languageId,
-                ]
-            );
-        }
-
-        $this->moduleTemplate->assignMultiple([
-            'pageId' => $this->pageId,
-            // The preview is built from $finalPageInfo; when the page has no
-            // translation in the selected language it falls back to the
-            // default-language record, so the structure analysis must target
-            // language 0 to match that preview URL.
-            'languageId' => null === $this->localizedPageInfo ? 0 : $this->languageId,
-            'fileReferenceCount' => $fileReferenceCount,
-            'previewUrl' => (null !== $previewUri ? (string) $previewUri : null),
-            'missingAltTextUri' => $missingAltTextUri,
-            'hasMissingAltTextAccess' => $hasMissingAltTextAccess,
-            'hasHeadingStructureAccess' => $hasHeadingStructureAccess,
-            'hasLandmarkStructureAccess' => $hasLandmarkStructureAccess,
-            'hasScanAccess' => $hasScanAccess,
-            'scanId' => $scanId,
-            'scanUri' => $scanUri,
-            'createScanDemand' => $createScanDemand,
-            'autoCreateScan' => $this->generalModuleService->isAutoCreateScanEnabled($this->pageTsConfig),
-            'pageUrlFilter' => $previewUri !== null ? [(string)$previewUri] : [],
-        ]);
-
-        $this->pageRenderer->loadJavaScriptModule('@mindfulmarkup/mindfula11y/element/structure/structure.js');
-        $this->pageRenderer->loadJavaScriptModule('@mindfulmarkup/mindfula11y/element/scan-issue-count/scan-issue-count.js');
-        $this->pageRenderer->loadJavaScriptModule('@mindfulmarkup/mindfula11y/element/notice/notice.js');
-
-        return $this->moduleTemplate->renderResponse('Backend/General');
-    }
-
-    /**
-     * Handle the missing alt text feature.
-     */
-    protected function handleMissingAltTextFeature(): ResponseInterface
-    {
-        if (!$this->generalModuleService->hasMissingAltTextAccess($this->pageTsConfig)) {
-            $this->addFlashMessage(
-                $this->generalModuleService->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:altText.noAccess'),
-                $this->generalModuleService->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:altText.noAccess.description'),
-                ContextualFeedbackSeverity::ERROR
-            );
-            return $this->moduleTemplate->renderResponse('Backend/Info')->withStatus(403);
-        }
-
-        $currentPage = (int)$this->moduleData->get('currentPage', 1);
-        $pageLevels = (int)$this->moduleData->get('pageLevels', 1);
-        $tableName = (string)$this->moduleData->get('tableName', '');
-
-        // Ensure tableName is valid. If the table doesn't exist in TCA (e.g. '0' or invalid param),
-        // fallback to empty string (All Record Types)
-        if ($tableName !== '' && !isset($GLOBALS['TCA'][$tableName])) {
-            $tableName = '';
-        }
-
-        // Metadata fallback alt text is only considered when the TSconfig option allows
-        // it AND the user may read it; the editor toggle then decides per module view.
-        $canConsiderFileMetaData = !$this->generalModuleService->isFileMetadataIgnored($this->pageTsConfig)
-            && $this->generalModuleService->canReadFileMetadataAlternative();
-        $filterFileMetaData = $canConsiderFileMetaData && (bool)$this->moduleData->get('filterFileMetaData', true);
-
-        $this->addDocHeaderDropDown($this->buildPageLevelsMenu($tableName, $pageLevels, $filterFileMetaData), 3);
-        $this->addDocHeaderDropDown($this->buildTableMenu(
-            $tableName,
-            $pageLevels,
-            $filterFileMetaData
-        ), 4);
-
-        if ($canConsiderFileMetaData) {
-            $this->moduleTemplate->getDocHeaderComponent()->getButtonBar()->addButton(
-                $this->buildFilterDropdown(
-                    $tableName,
-                    $pageLevels,
-                    $filterFileMetaData
-                ),
-                ButtonBar::BUTTON_POSITION_RIGHT
-            );
-        }
-
-        /**
-         * Protect table records from being shown if the user does not have
-         * read access to the table. Subsequent methods won't do this.
-         * We intentionally ignore "hideTable" as inline records should
-         * be shown even if the table is hidden.
-         */
-        if (!empty($tableName) && !$this->permissionService->checkTableReadAccess($tableName)) {
-            $this->addFlashMessage(
-                $this->generalModuleService->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:altText.noTableAccess'),
-                $this->generalModuleService->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:altText.noTableAccess.description'),
-                ContextualFeedbackSeverity::ERROR
-            );
-            return $this->moduleTemplate->renderResponse('Backend/Info')->withStatus(403);
-        }
-
-        $itemsPerPage = 100;
-        $offset = ($currentPage - 1) * $itemsPerPage;
-
-        if (!empty($tableName)) {
-            $fileReferenceCount = $this->altTextFinderService->countAltlessFileReferencesForTable(
-                $tableName,
-                $this->pageId,
-                $pageLevels,
-                $this->languageId,
-                $this->pageTsConfig,
-                $filterFileMetaData
-            );
-            $fileReferences = $this->altTextFinderService->getAltlessFileReferencesForTable(
-                $tableName,
-                $this->pageId,
-                $pageLevels,
-                $this->languageId,
-                $this->pageTsConfig,
-                $offset,
-                $itemsPerPage,
-                $filterFileMetaData
-            );
-        } else {
-            $fileReferenceCount = $this->altTextFinderService->countAltlessFileReferences(
-                $this->pageId,
-                $pageLevels,
-                $this->languageId,
-                $this->pageTsConfig,
-                $filterFileMetaData
-            );
-            $fileReferences = $this->altTextFinderService->getAltlessFileReferences(
-                $this->pageId,
-                $pageLevels,
-                $this->languageId,
-                $this->pageTsConfig,
-                $offset,
-                $itemsPerPage,
-                $filterFileMetaData
-            );
-        }
-
-        // Not using extbase queries: fill with null, then insert fileReferences at the correct offset
-        $paginatorItems = array_fill(0, $fileReferenceCount, null);
-        foreach ($fileReferences as $idx => $fileReference) {
-            $paginatorItems[$offset + $idx] = $fileReference;
-        }
-
-        $paginator = new ArrayPaginator($paginatorItems, $currentPage, $itemsPerPage);
-        $pagination = new SimplePagination($paginator);
-
-        $this->moduleTemplate->assignMultiple([
-            'moduleData' => array_merge($this->moduleData->toArray(), [
-                'id' => $this->pageId,
-            ]),
-            'pagination' => $pagination,
-            'paginator' => $paginator
-        ]);
-
-        $this->pageRenderer->loadJavaScriptModule('@mindfulmarkup/mindfula11y/element/altless-file-reference/altless-file-reference.js');
-        $this->pageRenderer->loadJavaScriptModule('@mindfulmarkup/mindfula11y/element/notice/notice.js');
-
-        return $this->moduleTemplate->renderResponse('Backend/MissingAltText');
-    }
-
-    /**
-     * Handle the accessibility scanner feature.
-     */
-    protected function handleAccessibilityScannerFeature(): ResponseInterface
-    {
-        if (!$this->generalModuleService->hasScanAccess($this->pageTsConfig)) {
-            $this->addFlashMessage(
-                $this->generalModuleService->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.noAccess'),
-                $this->generalModuleService->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.noAccess.description'),
-                ContextualFeedbackSeverity::ERROR
-            );
-            return $this->moduleTemplate->renderResponse('Backend/Info')->withStatus(403);
-        }
-
-        if (!$this->scanApiService->isConfigured()) {
-            $this->addFlashMessage(
-                $this->generalModuleService->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.notConfigured'),
-                $this->generalModuleService->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.notConfigured.description'),
-                ContextualFeedbackSeverity::INFO
-            );
-            return $this->moduleTemplate->renderResponse('Backend/Info');
-        }
-
-        if (!$this->scanApiService->checkStatus()) {
-            $this->addFlashMessage(
-                $this->generalModuleService->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.apiNotReachable'),
-                $this->generalModuleService->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.apiNotReachable.description'),
-                ContextualFeedbackSeverity::WARNING
-            );
-            return $this->moduleTemplate->renderResponse('Backend/Info');
-        } else {
-            $this->addFlashMessage(
-                $this->generalModuleService->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.status.apiReachable'),
-                $this->generalModuleService->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.status.apiReachable.description'),
-                ContextualFeedbackSeverity::OK
-            );
-        }
-
-        // Get localized page info for preview URL generation
-        $finalPageInfo = $this->localizedPageInfo ?: $this->pageInfo;
-
-        if (!$this->generalModuleService->isPageVisible($finalPageInfo)) {
-            $this->addFlashMessage(
-                $this->generalModuleService->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.pageVisible'),
-                $this->generalModuleService->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.pageVisible.description'),
-                ContextualFeedbackSeverity::INFO
-            );
-            return $this->moduleTemplate->renderResponse('Backend/Info');
-        }
-
-        // Let PreviewUriBuilder decide if a preview can be built. It returns null when a preview is not available.
-        $previewUri = PreviewUriBuilder::create($finalPageInfo)
-            ->buildUri();
-
-        if (null === $previewUri) {
-            $this->addFlashMessage(
-                $this->generalModuleService->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.previewNotEnabled'),
-                $this->generalModuleService->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.previewNotEnabled.description'),
-                ContextualFeedbackSeverity::INFO
-            );
-            return $this->moduleTemplate->renderResponse('Backend/Info');
-        }
-
-        $pageLevels = (int)$this->moduleData->get('scanPageLevels', 0);
-        // Guard against arbitrary values set via URL manipulation; only accept the menu's values
-        if (!in_array($pageLevels, [0, 1, 5, 10, 99], true)) {
-            $pageLevels = 0;
-        }
-
-        $this->addDocHeaderDropDown($this->buildScanPageLevelsMenu($pageLevels), 3);
-
-        // Check if user has edit access to the page record (needed to trigger new scans)
-        $canTriggerScan = $this->permissionService->checkRecordEditAccess('pages', $finalPageInfo);
-
-        // Check if content has changed since last scan
-        $contentChanged = $this->generalModuleService->shouldInvalidateScan($finalPageInfo, (int)($this->pageInfo['SYS_LASTCHANGED'] ?? 0));
-
-        // Only use existing scan ID if content hasn't changed — stored per language on $finalPageInfo
-        $scanId = null;
-        if (($finalPageInfo['tx_mindfula11y_scanid'] ?? false) && !$contentChanged) {
-            $scanId = $finalPageInfo['tx_mindfula11y_scanid'] ?? null;
-        }
-
-        // Filter by the current page URL only when scanning a single page (pageLevels = 0).
-        // When pageLevels > 0 the scan covers multiple pages and all results should be shown.
-        $pageUrlFilter = $pageLevels === 0 ? [(string)$previewUri] : [];
-
-        // Create scan demand only if user can trigger scans
-        $createScanDemand = null;
-        $crawlScanDemand = null;
-        $urlList = [];
-        if ($canTriggerScan) {
-            // Compute the expected URL list for the current pageLevels setting.
-            // Used by the frontend to detect when an existing scan was created with a different
-            // set of URLs and needs to be restarted (autoCreate + url_list mode mismatch).
-            $urlList = $pageLevels > 0
-                ? $this->generalModuleService->generatePageUrls($this->pageId, $this->languageId, $pageLevels, (string)$previewUri)
-                : [(string)$previewUri];
-
-            $backendUser = $this->generalModuleService->getBackendUserAuthentication();
-            $createScanDemand = new CreateScanDemand(
-                userId: (int)$backendUser->user['uid'],
-                pageId: $this->pageId,
-                previewUrl: (string)$previewUri,
-                languageId: $this->languageId,
-                workspaceId: $backendUser->workspace,
-                pageLevels: $pageLevels,
-            );
-            // Crawl mode is only available for site root pages (check default-language record)
-            if ((bool)($this->pageInfo['is_siteroot'] ?? false)) {
-                $crawlScanDemand = new CreateScanDemand(
-                    userId: (int)$backendUser->user['uid'],
-                    pageId: $this->pageId,
-                    previewUrl: (string)$previewUri,
-                    languageId: $this->languageId,
-                    workspaceId: $backendUser->workspace,
-                    crawl: true,
-                );
-            }
-        }
-
-        // Build a signed base URL for the report download (backend route, browser-navigable).
-        // JS appends scanId and format before use.
-        $reportBaseUrl = (string)$this->backendUriBuilder->buildUriFromRoute('mindfula11y_scanreport');
-
-        // The AI audit toggle is only offered when TSConfig enables it and the
-        // user can trigger scans at all; the skill list is shown for transparency.
-        $aiAuditAvailable = $canTriggerScan && $this->generalModuleService->hasAiAuditAccess($this->pageTsConfig);
-        $this->moduleTemplate->assignMultiple([
-            'scanId' => $scanId,
-            'createScanDemand' => $createScanDemand,
-            'crawlScanDemand' => $crawlScanDemand,
-            'autoCreateScan' => $pageLevels === 0 && $this->generalModuleService->isAutoCreateScanEnabled($this->pageTsConfig),
-            'pageUrlFilter' => $pageUrlFilter,
-            'urlList' => $urlList,
-            'reportBaseUrl' => $reportBaseUrl,
-            'aiAuditAvailable' => $aiAuditAvailable,
-            'aiAuditDefault' => $aiAuditAvailable && $this->generalModuleService->isAiAuditDefaultEnabled($this->pageTsConfig),
-        ]);
-
-        $this->pageRenderer->loadJavaScriptModule('@mindfulmarkup/mindfula11y/element/scan/scan.js');
-
-        return $this->moduleTemplate->renderResponse('Backend/Scan');
-    }
-
-    /**
-     * Get the URI for a menu item as a string.
-     * 
-     * @param array $additionalParams The additional parameters.
-     */
-    protected function getMenuItemUri(array $additionalParams): string
-    {
-        $params = array_replace([
-            'id' => $this->pageId,
-            'languageId' => $this->languageId,
-            'feature' => $this->feature->value,
-        ], $additionalParams);
-
-        return (string)$this->backendUriBuilder->buildUriFromRoute(
-            'mindfula11y_accessibility',
-            $params
-        );
-    }
-
-    /**
-     * Build a doc header dropdown button from a list of single-select items.
-     *
-     * The selector menus (feature, language, page levels, table) are rendered as
-     * button bar DropDownButtons rather than registered MenuRegistry menus: TYPO3
-     * v14's DocHeaderComponent only renders the *first* registered MenuRegistry
-     * menu (it calls reset($menus)), so registering several would silently drop
-     * all but one. DropDownButtons in the button bar render on both v13 and v14.
-     *
-     * TYPO3 v14 renders the active item via setShowActiveLabelText(), which keeps
-     * the category label visually hidden and announced to screen readers. TYPO3 v13
-     * gets the previous dual-compatible label fallback, "<category>: <active item>".
-     * Returns null when there are fewer than two items, matching the old behaviour
-     * of hiding menus that offer no real choice.
-     *
-     * @param string $categoryLabel Already-localised category label (e.g. "Language").
-     * @param array<int,array{title: string, href: string, active: bool}> $items
-     */
-    protected function buildDocHeaderDropDown(string $categoryLabel, array $items): ?DropDownButton
-    {
-        if (count($items) < 2) {
-            return null;
-        }
-
-        $button = $this->createDropDownButton()
-            ->setLabel($categoryLabel)
-            ->setShowLabelText(true);
-        if ($this->isTypo3VersionAtLeast('14.0')) {
-            $button->setShowActiveLabelText(true);
-        }
-
-        $activeTitle = null;
-        foreach ($items as $item) {
-            /** @var DropDownRadio $radio */
-            $radio = GeneralUtility::makeInstance(DropDownRadio::class)
-                ->setLabel($item['title'])
-                ->setHref($item['href'])
-                ->setActive($item['active']);
-            $button->addItem($radio);
-            if ($item['active']) {
-                $activeTitle = $item['title'];
-            }
-        }
-
-        if (!$this->isTypo3VersionAtLeast('14.0')) {
-            $button->setLabel($activeTitle !== null ? $categoryLabel . ': ' . $activeTitle : $categoryLabel);
-        }
-
-        return $button;
-    }
-
-    /**
-     * Add a selector dropdown to the module doc header button bar (left position).
-     *
-     * Null buttons (fewer than two items) are skipped so the button bar never
-     * receives an invalid button.
-     */
-    protected function addDocHeaderDropDown(?DropDownButton $button, int $group): void
-    {
-        if ($button === null) {
-            return;
-        }
-        $this->moduleTemplate->getDocHeaderComponent()->getButtonBar()->addButton(
-            $button,
-            ButtonBar::BUTTON_POSITION_LEFT,
-            $group
-        );
-    }
-
-    /**
-     * Add the language selector using TYPO3 v14's dedicated DocHeader slot.
-     *
-     * TYPO3 v13 does not have that slot, so it keeps the previous button-bar
-     * placement.
-     */
-    protected function addLanguageSelector(?DropDownButton $button): void
-    {
-        if ($button === null) {
-            return;
-        }
-        if ($this->isTypo3VersionAtLeast('14.0')) {
-            $this->moduleTemplate->getDocHeaderComponent()->setLanguageSelector($button);
-            return;
-        }
-        $this->addDocHeaderDropDown($button, 2);
-    }
-
-    /**
-     * Create a backend dropdown button.
-     *
-     * Uses GeneralUtility::makeInstance() directly instead of
-     * ButtonBar::makeDropDownButton(), deprecated on TYPO3 v14 (#107823);
-     * equivalent and dual-compat (v13 + v14).
-     */
-    protected function createDropDownButton(): DropDownButton
-    {
-        return GeneralUtility::makeInstance(DropDownButton::class);
-    }
-
-    protected function isTypo3VersionAtLeast(string $version): bool
-    {
-        return version_compare((new Typo3Version())->getVersion(), $version, '>=');
-    }
-
-    protected function buildFeatureMenu(): ?DropDownButton
+    private function buildFeatureMenu(ModuleContext $context): ?DropDownButton
     {
         $languageService = $this->generalModuleService->getLanguageService();
         $items = [];
-        foreach ([Feature::GENERAL, Feature::MISSING_ALT_TEXT, Feature::SCAN] as $feature) {
+        foreach (Feature::cases() as $feature) {
             $enabled = match ($feature) {
-                Feature::GENERAL => true,
-                Feature::MISSING_ALT_TEXT => $this->generalModuleService->hasMissingAltTextAccess($this->pageTsConfig),
-                Feature::SCAN => $this->generalModuleService->hasScanAccess($this->pageTsConfig),
+                Feature::OVERVIEW => true,
+                Feature::MISSING_ALT_TEXT => $this->generalModuleService->hasMissingAltTextAccess($context->pageTsConfig),
+                Feature::SCAN => $this->generalModuleService->hasScanAccess($context->pageTsConfig),
             };
             if ($enabled) {
                 $items[] = [
-                    'title' => $languageService->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:module.menu.features.' . $feature->value),
-                    'href' => $this->getMenuItemUri(['feature' => $feature->value]),
-                    'active' => $this->feature === $feature,
+                    'title' => $languageService->sL(self::MODULE_LANGUAGE_FILE . 'module.menu.features.' . $feature->value),
+                    'href' => $this->menuBuilder->buildMenuItemUri($context, ['feature' => $feature->value]),
+                    'active' => $context->feature === $feature,
                 ];
             }
         }
 
-        return $this->buildDocHeaderDropDown(
-            $languageService->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:module.menu.features'),
+        return $this->menuBuilder->buildDropDown(
+            $languageService->sL(self::MODULE_LANGUAGE_FILE . 'module.menu.features'),
             $items
         );
-    }
-
-    /**
-     * Build table menu for the module.
-     *
-     * @param string $currentTableName The current table name.
-     * @param int $currentPageLevels The current page levels.
-     * @param bool $filterFileMetaData Whether to filter file metadata.
-     */
-    protected function buildTableMenu(string $currentTableName, int $currentPageLevels, bool $filterFileMetaData): ?DropDownButton
-    {
-        $tables = $this->altTextFinderService->getTablesWithFiles($this->pageTsConfig);
-        // Add an empty string as the first menu item (for "all tables" option)
-        array_unshift($tables, '');
-        $items = [];
-        foreach ($tables as $tableName) {
-            $items[] = [
-                'title' => $this->getTableTitle($tableName),
-                'href' => $this->getMenuItemUri(
-                    [
-                        'tableName' => $tableName,
-                        'pageLevels' => $currentPageLevels,
-                        'filterFileMetaData' => $filterFileMetaData,
-                    ]
-                ),
-                'active' => $tableName === $currentTableName,
-            ];
-        }
-
-        return $this->buildDocHeaderDropDown(
-            $this->generalModuleService->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:module.menu.tables'),
-            $items
-        );
-    }
-
-    /**
-     * Build page level menu for the module.
-     * 
-     * @param string $currentTableName The current table name.
-     * @param int $currentPageLevels The current page levels.
-     * @param bool $filterFileMetaData Whether to filter file metadata.
-     */
-    protected function buildPageLevelsMenu(string $currentTableName, int $currentPageLevels, bool $filterFileMetaData): ?DropDownButton
-    {
-        $languageService = $this->generalModuleService->getLanguageService();
-        $items = [];
-        foreach ([1, 5, 10, 99] as $pageLevels) {
-            $items[] = [
-                'title' => $languageService->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:module.menu.pageLevels.' . $pageLevels),
-                'href' => $this->getMenuItemUri(
-                    [
-                        'tableName' => $currentTableName,
-                        'pageLevels' => $pageLevels,
-                        'filterFileMetaData' => $filterFileMetaData,
-                    ]
-                ),
-                'active' => $pageLevels === $currentPageLevels,
-            ];
-        }
-
-        return $this->buildDocHeaderDropDown(
-            $languageService->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:module.menu.pageLevels'),
-            $items
-        );
-    }
-
-    /**
-     * Build page level menu for the scan feature.
-     *
-     * @param int $currentPageLevels The current page levels.
-     */
-    protected function buildScanPageLevelsMenu(int $currentPageLevels): ?DropDownButton
-    {
-        $languageService = $this->generalModuleService->getLanguageService();
-        $items = [];
-        foreach ([0, 1, 5, 10, 99] as $pageLevels) {
-            $items[] = [
-                'title' => $languageService->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:module.menu.pageLevels.' . $pageLevels),
-                'href' => $this->getMenuItemUri(
-                    [
-                        'scanPageLevels' => $pageLevels,
-                    ]
-                ),
-                'active' => $pageLevels === $currentPageLevels,
-            ];
-        }
-
-        return $this->buildDocHeaderDropDown(
-            $languageService->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:module.menu.pageLevels'),
-            $items
-        );
-    }
-
-    /**
-     * Build filter dropdown for the module.
-     * 
-     * @param string $currentTableName The current table name.
-     * @param int $currentPageLevels The current page levels.
-     * @param bool $filterFileMetaData Whether to filter file metadata.
-     */
-    protected function buildFilterDropdown(string $currentTableName, int $currentPageLevels, bool $filterFileMetaData): DropDownButton
-    {
-        $button = $this->createDropDownButton()
-            ->setLabel($this->generalModuleService->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:module.menu.filter'))
-            ->setShowLabelText(true);
-
-        /** @var DropDownToggle $filterFileMetaDataToggle */
-        $filterFileMetaDataToggle = GeneralUtility::makeInstance(DropDownToggle::class)
-            ->setActive($filterFileMetaData)
-            ->setHref($this->getMenuItemUri([
-                'tableName' => $currentTableName,
-                'pageLevels' => $currentPageLevels,
-                'filterFileMetaData' => !$filterFileMetaData,
-            ]))->setLabel($this->generalModuleService->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:module.menu.filter.fileMetaData'))
-            ->setIcon(null);
-
-        $button->addItem($filterFileMetaDataToggle);
-
-        return $button;
     }
 
     /**
      * Build a language menu for the module.
-     * 
+     *
      * Add menu listing all available languages for the user based on the active site
      * configuration for the current page, but only for languages where the page is translated.
-     *
-     * @return DropDownButton|null The language dropdown or null if fewer than two languages are available.
      */
-    protected function buildLanguageMenu(): ?DropDownButton
+    private function buildLanguageMenu(ModuleContext $context): ?DropDownButton
     {
-        $allowedLanguages = $this->getAllowedSiteLanguages();
+        $allowedLanguages = $this->getAllowedSiteLanguages($context->request, $context->pageId);
 
-        if (empty($allowedLanguages) || 0 === $this->pageId) {
+        if (empty($allowedLanguages) || 0 === $context->pageId) {
             return null;
         }
 
-        $availableLanguageIds = $this->getAvailableLanguageIds();
+        $availableLanguageIds = $this->getAvailableLanguageIds($context->pageId);
 
         $items = [];
         foreach ($allowedLanguages as $language) {
@@ -913,79 +207,40 @@ class AccessibilityModuleController
 
             $items[] = [
                 'title' => $language->getTitle(),
-                'href' => $this->getMenuItemUri(
-                    [
-                        'languageId' => $language->getLanguageId(),
-                    ]
-                ),
-                'active' => $language->getLanguageId() === $this->languageId,
+                'href' => $this->menuBuilder->buildMenuItemUri($context, [
+                    'languageId' => $language->getLanguageId(),
+                ]),
+                'active' => $language->getLanguageId() === $context->languageId,
             ];
         }
 
-        return $this->buildDocHeaderDropDown(
-            $this->generalModuleService->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:module.menu.language'),
+        return $this->menuBuilder->buildDropDown(
+            $this->generalModuleService->getLanguageService()->sL(self::MODULE_LANGUAGE_FILE . 'module.menu.language'),
             $items
         );
     }
 
     /**
-     * Get title of a table from TCA.
-     * 
-     * @param string $tableName The name of the table.
-     * 
-     * @return string
-     */
-    protected function getTableTitle(string $tableName): string
-    {
-        if (empty($tableName)) {
-            return $this->generalModuleService->getLanguageService()->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:module.menu.tables.all');
-        }
-        if (isset($GLOBALS['TCA'][$tableName]['ctrl']['title'])) {
-            return $this->generalModuleService->getLanguageService()->sL($GLOBALS['TCA'][$tableName]['ctrl']['title']);
-        }
-        return $tableName;
-    }
-
-    /**
-     * Add a flash message.
-     *
-     * @param string $title The title of the message.
-     * @param string $message The message content.
-     * @param ContextualFeedbackSeverity $severity The severity of the message.
-     */
-    protected function addFlashMessage(string $title, string $message, ContextualFeedbackSeverity $severity): void
-    {
-        $flashMessage = GeneralUtility::makeInstance(
-            FlashMessage::class,
-            $message,
-            $title,
-            $severity
-        );
-
-        $this->flashMessageService->getMessageQueueByIdentifier()->addMessage($flashMessage);
-    }
-
-    /**
      * Get allowed site languages for the backend user.
-     * 
-     * @return array
+     *
+     * @return list<SiteLanguage>
      */
-    protected function getAllowedSiteLanguages(): array
+    private function getAllowedSiteLanguages(ServerRequestInterface $request, int $pageId): array
     {
-        $site = $this->request->getAttribute('site', null);
+        $site = $request->getAttribute('site', null);
         if (null === $site) {
             return [];
         }
 
-        return $site->getAvailableLanguages($this->generalModuleService->getBackendUserAuthentication(), false, $this->pageId);
+        return $site->getAvailableLanguages($this->generalModuleService->getBackendUserAuthentication(), false, $pageId);
     }
 
     /**
      * Get available language IDs for the current page (including default language).
-     * 
+     *
      * @return array<int>
      */
-    protected function getAvailableLanguageIds(): array
+    private function getAvailableLanguageIds(int $pageId): array
     {
         $availableLanguageIds = [0]; // Default language is always available
 
@@ -993,18 +248,18 @@ class AccessibilityModuleController
         // the legacy BackendUtility::getExistingPageTranslations() both landed
         // in TYPO3 v14.2 (#108799 / #108810); on v13 and v14.0/v14.1 the legacy
         // method is the only one that exists.
-        if ($this->isTypo3VersionAtLeast('14.2')) {
+        if (version_compare((new Typo3Version())->getVersion(), '14.2', '>=')) {
             // Pass the backend user's workspace so the result matches the
             // workspace-aware legacy path. getPageTranslations() returns
             // RawRecord[] keyed by language id, so the ids are the array keys.
             $workspaceId = $this->generalModuleService->getBackendUserAuthentication()->workspace;
             $repository = GeneralUtility::makeInstance(LocalizationRepository::class);
-            foreach (array_keys($repository->getPageTranslations($this->pageId, [], $workspaceId)) as $languageId) {
+            foreach (array_keys($repository->getPageTranslations($pageId, [], $workspaceId)) as $languageId) {
                 $availableLanguageIds[] = (int)$languageId;
             }
         } else {
             // TYPO3 v13 / v14.0 / v14.1: the legacy API returns page rows.
-            $pageTranslations = BackendUtility::getExistingPageTranslations($this->pageId);
+            $pageTranslations = BackendUtility::getExistingPageTranslations($pageId);
             foreach ($pageTranslations as $pageTranslation) {
                 $languageId = $pageTranslation[$GLOBALS['TCA']['pages']['ctrl']['languageField']] ?? null;
                 if (null !== $languageId) {
@@ -1018,18 +273,16 @@ class AccessibilityModuleController
 
     /**
      * Get the first available language ID that the user has access to and the page is translated to.
-     *      * 
-     * @return int|null The language ID or null if no language is available.
      */
-    protected function getFirstAvailableLanguageId(): ?int
+    private function getFirstAvailableLanguageId(ServerRequestInterface $request, int $pageId): ?int
     {
-        $allowedLanguages = $this->getAllowedSiteLanguages();
+        $allowedLanguages = $this->getAllowedSiteLanguages($request, $pageId);
 
         if (empty($allowedLanguages)) {
             return null;
         }
 
-        $availableLanguageIds = $this->getAvailableLanguageIds();
+        $availableLanguageIds = $this->getAvailableLanguageIds($pageId);
 
         foreach ($allowedLanguages as $language) {
             $languageId = $language->getLanguageId();

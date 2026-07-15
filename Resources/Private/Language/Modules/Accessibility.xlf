@@ -160,8 +160,8 @@
             <trans-unit id="module.menu.features" resname="module.menu.features">
                 <source>Feature</source>
             </trans-unit>
-            <trans-unit id="module.menu.features.general" resname="module.menu.features.general">
-                <source>General</source>
+            <trans-unit id="module.menu.features.overview" resname="module.menu.features.overview">
+                <source>Overview</source>
             </trans-unit>
             <trans-unit id="module.menu.features.missingAltText" resname="module.menu.features.missingAltText">
                 <source>Missing alternative text</source>

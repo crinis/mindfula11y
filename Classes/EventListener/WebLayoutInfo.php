@@ -208,7 +208,7 @@ class WebLayoutInfo
             'pageUrlFilter' => null !== $previewUri ? [(string) $previewUri] : [],
         ]);
 
-        $renderedContent = $view->render('Backend/WebLayout/GeneralAccessibility');
+        $renderedContent = $view->render('Backend/WebLayout/Overview');
 
         $currentHeaderContent = $event->getHeaderContent();
         $event->setHeaderContent($renderedContent . $currentHeaderContent);

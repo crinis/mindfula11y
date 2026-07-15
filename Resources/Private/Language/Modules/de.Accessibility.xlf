@@ -199,9 +199,9 @@
                 <source>Feature</source>
                 <target>Funktion</target>
             </trans-unit>
-            <trans-unit id="module.menu.features.general" resname="module.menu.features.general">
-                <source>General</source>
-                <target>Allgemein</target>
+            <trans-unit id="module.menu.features.overview" resname="module.menu.features.overview">
+                <source>Overview</source>
+                <target>Übersicht</target>
             </trans-unit>
             <trans-unit id="module.menu.features.missingAltText" resname="module.menu.features.missingAltText">
                 <source>Missing alternative text</source>

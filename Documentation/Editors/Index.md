@@ -24,9 +24,9 @@ Feature visibility depends on project configuration:
 - Scanner can be disabled per page tree.
 - Heading and landmark structure checks can be disabled per page tree.
 
-## General view: quick status
+## Overview: quick status
 
-The **General** feature provides a quick accessibility overview for the current page:
+The **Overview** feature provides a quick accessibility overview for the current page:
 
 - heading structure status
 - landmark structure status
@@ -35,7 +35,7 @@ The **General** feature provides a quick accessibility overview for the current 
 
 From there, you can open detailed views.
 
-![General feature showing heading and landmark checks with issue callouts and detail actions for the currently selected page](../Images/editors-general-status-cards.png)
+![Overview feature showing heading and landmark checks with issue callouts and detail actions for the currently selected page](../Images/editors-general-status-cards.png)
 
 ## Missing alternative text: find and fix
 
@@ -61,7 +61,7 @@ option off before entering alternative text or a title again.
 
 ## Heading and landmark checks
 
-Heading and landmark checks are shown in the **General** feature.
+Heading and landmark checks are shown in the **Overview** feature.
 
 When your project templates use Mindful A11y heading/landmark output, the module can:
 

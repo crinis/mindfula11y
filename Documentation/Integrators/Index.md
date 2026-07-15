@@ -189,7 +189,7 @@ mod.mindfula11y_accessibility.scan.aiAudit {
 
 Notes:
 
-- The AI audit runs **only** when an editor starts a scan with the toggle checked. Automatically created scans (page module info panel, General tab) never request it, so no LLM cost is incurred by simply browsing the backend.
+- The AI audit runs **only** when an editor starts a scan with the toggle checked. Automatically created scans (page module info panel, Overview tab) never request it, so no LLM cost is incurred by simply browsing the backend.
 - Each audit consumes LLM tokens on the MindfulAPI side; use `default = 1` deliberately.
 - Without `skills`, TYPO3 requests every skill enabled by MindfulAPI's `AGENT_SKILLS` setting. Set `skills` only to request a smaller subset; MindfulAPI validates the values and its whitelist remains authoritative.
 - If the server has the feature disabled, scan creation fails with the API's explanation shown to the editor.
