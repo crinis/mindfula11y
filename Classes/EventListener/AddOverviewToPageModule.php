@@ -45,7 +45,7 @@ use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 /**
  * Event listener to add heading structure analysis to the page module
  */
-class WebLayoutInfo
+class AddOverviewToPageModule
 {
     public function __construct(
         protected readonly PermissionService $permissionService,

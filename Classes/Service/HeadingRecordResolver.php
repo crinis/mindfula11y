@@ -32,7 +32,7 @@ use TYPO3\CMS\Core\Domain\Repository\PageRepository;
  * workspace of the current frontend Context.
  *
  * The primary consumer is a structure-analysis request: the auth middleware
- * (AuthenticateStructureAnalysisRequestMiddleware) sets a WorkspaceAspect(N) on the
+ * (StructureAnalysisAuthenticationMiddleware) sets a WorkspaceAspect(N) on the
  * shared Context before page rendering, so a backend editor previewing workspace N
  * must see their workspace heading types, not the live ones. The previous plain
  * QueryBuilder fetch in AbstractHeadingViewHelper::getCachedRecord() read the LIVE

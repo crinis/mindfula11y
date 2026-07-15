@@ -31,7 +31,7 @@ use TYPO3\CMS\Frontend\Aspect\PreviewAspect;
 use TYPO3\CMS\Frontend\Authentication\FrontendUserAuthentication;
 
 /** Validates a signed analysis capability before frontend page resolution. */
-final readonly class AuthenticateStructureAnalysisRequestMiddleware implements MiddlewareInterface
+final readonly class StructureAnalysisAuthenticationMiddleware implements MiddlewareInterface
 {
     public function __construct(
         private StructureAnalysisTicketService $ticketService,

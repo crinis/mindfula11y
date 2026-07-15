@@ -22,7 +22,7 @@ use TYPO3\CMS\Core\SysLog\Error as SystemLogErrorClassification;
 use TYPO3\CMS\Core\Utility\MathUtility;
 
 #[Autoconfigure(public: true)]
-final class DecorativeFileReferenceGuard
+final class DecorativeFileReferenceDataHandlerGuard
 {
     private const FIELD_NAME = 'tx_mindfula11y_decorative';
 

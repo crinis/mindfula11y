@@ -44,9 +44,9 @@ services:
     public: true
 
   # Event listeners
-  MindfulMarkup\MindfulA11y\EventListener\WebLayoutInfo:
+  MindfulMarkup\MindfulA11y\EventListener\AddOverviewToPageModule:
     tags:
       - name: event.listener
-        identifier: 'mindfula11y-web-layout-info'
+        identifier: 'mindfula11y-add-overview-to-page-module'
         event: TYPO3\CMS\Backend\Controller\Event\ModifyPageLayoutContentEvent
         method: __invoke

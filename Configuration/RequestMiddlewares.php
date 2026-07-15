@@ -20,16 +20,16 @@ declare(strict_types=1);
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-use MindfulMarkup\MindfulA11y\Middleware\DisableAdminPanelMiddleware;
-use MindfulMarkup\MindfulA11y\Middleware\DisableCacheMiddleware;
-use MindfulMarkup\MindfulA11y\Middleware\AuthenticateStructureAnalysisRequestMiddleware;
+use MindfulMarkup\MindfulA11y\Middleware\StructureAnalysisDisableAdminPanelMiddleware;
+use MindfulMarkup\MindfulA11y\Middleware\StructureAnalysisDisableCacheMiddleware;
+use MindfulMarkup\MindfulA11y\Middleware\StructureAnalysisAuthenticationMiddleware;
 use MindfulMarkup\MindfulA11y\Middleware\StructureAnalysisResponseMiddleware;
 use MindfulMarkup\MindfulA11y\Middleware\ValidationErrorTitleMiddleware;
 
 return [
     'frontend' => [
-        'mindfulmarkup/mindfula11y/authenticate-structure-analysis' => [
-            'target' => AuthenticateStructureAnalysisRequestMiddleware::class,
+        'mindfulmarkup/mindfula11y/structure-analysis-authentication' => [
+            'target' => StructureAnalysisAuthenticationMiddleware::class,
             'after' => [
                 'typo3/cms-frontend/site',
                 // Core resets the workspace aspect while rejecting stale or
@@ -46,13 +46,13 @@ return [
                 'typo3/cms-frontend/page-resolver',
             ],
         ],
-        'mindfulmarkup/mindfula11y/disable-cache' => [
-            'target' => DisableCacheMiddleware::class,
+        'mindfulmarkup/mindfula11y/structure-analysis-disable-cache' => [
+            'target' => StructureAnalysisDisableCacheMiddleware::class,
             'before' => [
                 'typo3/cms-frontend/prepare-tsfe-rendering',
             ],
             'after' => [
-                'mindfulmarkup/mindfula11y/authenticate-structure-analysis',
+                'mindfulmarkup/mindfula11y/structure-analysis-authentication',
             ],
         ],
         'mindfulmarkup/mindfula11y/validation-error-title' => [
@@ -70,8 +70,8 @@ return [
                 'typo3/cms-frontend/page-argument-validator',
             ],
         ],
-        'mindfulmarkup/mindfula11y/disable-admin-panel' => [
-            'target' => DisableAdminPanelMiddleware::class,
+        'mindfulmarkup/mindfula11y/structure-analysis-disable-admin-panel' => [
+            'target' => StructureAnalysisDisableAdminPanelMiddleware::class,
             'after' => [
                 'typo3/cms-frontend/content-length-headers',
             ],

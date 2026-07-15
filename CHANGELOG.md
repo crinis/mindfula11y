@@ -17,6 +17,7 @@ the `Publish to TER` workflow uses the release body as the TER upload comment.
 - The structure-analysis error notice now shows a failure-specific description (ticket issuance, preview timeout, frame handshake, HTTP error, runner analysis, response payload, or record-metadata enrichment) instead of one generic message, so editors can tell what actually failed before retrying.
 
 - The module's "General" feature is renamed to **Overview** (menu label, and the `feature` URL/module-data value changes from `general` to `overview`). Stored module states and bookmarked URLs using the old value fall back to the Overview view automatically; only direct links that named `feature=general` explicitly will land on the (identical) default view.
+- The extension's frontend middleware identifiers are renamed to carry the structure-analysis feature name (`mindfulmarkup/mindfula11y/structure-analysis-authentication`, `…-disable-cache`, `…-disable-admin-panel`). Sites whose own RequestMiddlewares.php ordered against the old identifiers must update them.
 - All accessibility AJAX endpoints now report failures in the same localized, structured form (an error title with a description), so the module surfaces translated messages for every endpoint. Structure-analysis endpoint errors were previously untranslated technical strings. Allowed HTTP methods are now enforced for the scan and alt-text endpoints as well (they were previously declared but not enforced).
 
 ### Fixed

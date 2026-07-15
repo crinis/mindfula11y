@@ -27,29 +27,25 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
-use TYPO3\CMS\Frontend\Cache\CacheInstruction;
+use TYPO3\CMS\Core\TypoScript\FrontendTypoScript;
 
 /**
- * Disable frontend cache for structure analysis requests.
+ * Disable admin panel rendering for structure analysis requests.
  */
-class DisableCacheMiddleware implements MiddlewareInterface
+class StructureAnalysisDisableAdminPanelMiddleware implements MiddlewareInterface
 {
-    /**
-     * Process the request and disable frontend cache for an authenticated structure analysis.
-     *
-     * The signed ticket is the authorization; it is validated before this
-     * middleware runs and deliberately recreates no backend user session, so
-     * the request carries no `backend.user` aspect to test here.
-     */
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
-        if (StructureAnalysisTicket::fromRequest($request) === null) {
-            return $handler->handle($request);
+        if (StructureAnalysisTicket::fromRequest($request) !== null) {
+            $frontendTypoScript = $request->getAttribute('frontend.typoscript');
+            if ($frontendTypoScript instanceof FrontendTypoScript) {
+                $config = $frontendTypoScript->getConfigArray();
+                $config['admPanel'] = 0;
+                $frontendTypoScript->setConfigArray($config);
+                $request = $request->withAttribute('frontend.typoscript', $frontendTypoScript);
+            }
         }
 
-        $cacheInstruction = $request->getAttribute('frontend.cache.instruction', new CacheInstruction());
-        $cacheInstruction->disableCache('EXT:mindfula11y: structure analysis request.');
-
-        return $handler->handle($request->withAttribute('frontend.cache.instruction', $cacheInstruction));
+        return $handler->handle($request);
     }
 }
