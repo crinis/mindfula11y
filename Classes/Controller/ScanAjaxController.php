@@ -26,19 +26,17 @@ namespace MindfulMarkup\MindfulA11y\Controller;
 use InvalidArgumentException;
 use MindfulMarkup\MindfulA11y\Domain\Model\CreateScanDemand;
 use MindfulMarkup\MindfulA11y\Exception\ScanApiRequestException;
-use MindfulMarkup\MindfulA11y\Hooks\ScanStateDataHandlerGuard;
+use MindfulMarkup\MindfulA11y\Exception\ScanCreationException;
 use MindfulMarkup\MindfulA11y\Service\ScanApiService;
 use MindfulMarkup\MindfulA11y\Service\GeneralModuleService;
 use MindfulMarkup\MindfulA11y\Service\PermissionService;
-use MindfulMarkup\MindfulA11y\Service\SiteLanguageService;
+use MindfulMarkup\MindfulA11y\Service\ScanCreationService;
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
-use TYPO3\CMS\Core\DataHandling\DataHandler;
 use TYPO3\CMS\Core\Http\JsonResponse;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Versioning\VersionState;
 use TYPO3\CMS\Core\Site\SiteFinder;
 
@@ -57,7 +55,7 @@ final readonly class ScanAjaxController
         private GeneralModuleService $generalModuleService,
         private PermissionService $permissionService,
         private SiteFinder $siteFinder,
-        private SiteLanguageService $siteLanguageService,
+        private ScanCreationService $scanCreationService,
         private ResponseFactoryInterface $responseFactory,
     ) {}
 
@@ -145,7 +143,6 @@ final readonly class ScanAjaxController
         $pageId = $demand->getPageId();
         $languageId = $demand->getLanguageId();
         $workspaceId = $demand->getWorkspaceId();
-        $previewUrl = $demand->getPreviewUrl();
 
         // Verify the current backend user matches the demand
         if ($backendUser->user['uid'] !== $userId) {
@@ -178,11 +175,6 @@ final readonly class ScanAjaxController
             $aiAuditSkills = $this->generalModuleService->getAiAuditSkills($pageTsConfig);
         }
 
-        // Check if scanner is configured
-        if (!$this->scanApiService->isConfigured()) {
-            return $this->errorResponse('scan.error.notConfigured', 500);
-        }
-
         $page = BackendUtility::getRecordWSOL('pages', $pageId);
 
         if (null === $page || VersionState::tryFrom((int)$page['t3ver_state']) === VersionState::DELETE_PLACEHOLDER) {
@@ -208,77 +200,13 @@ final readonly class ScanAjaxController
             return $this->errorResponse('scan.error.pageVisible', 403);
         }
 
-        // Generate scan URLs
-        $pageLevels = $demand->getPageLevels();
-        $crawl = $demand->getCrawl();
-        $scanUrls = [];
-
-        if ($crawl) {
-            // For crawl mode the API discovers pages from the start URL - only valid on site root pages
-            if (!(bool)($page['is_siteroot'] ?? false)) {
-                return $this->errorResponse('scan.error.crawlNotRootPage', 403);
-            }
-            $scanUrls = [$previewUrl];
-        } else {
-            if ($pageLevels > 0) {
-                $scanUrls = $this->generalModuleService->generatePageUrls($pageId, $languageId, $pageLevels);
-            }
-            // Always include the current page's preview URL
-            if (empty($scanUrls)) {
-                $scanUrls = [$previewUrl];
-            }
-        }
-
-        // Create scan
-        $crawlOptions = [];
-        if ($crawl) {
-            // Restrict the crawl to the selected language's URL space via a glob pattern.
-            // The base URL is derived from the TYPO3 site configuration — not user-supplied input.
-            $base = $this->siteLanguageService->getAbsoluteLanguageBase($pageId, $languageId);
-            if ($base !== null) {
-                $crawlOptions['globs'] = [$base . '/**'];
-            }
-        }
-
-        // Read basic auth credentials from PageTS (server-side only, never from client input).
-        $scanOptions = [];
-        $basicAuth = $this->generalModuleService->getScanBasicAuth($pageTsConfig);
-        if ($basicAuth !== null) {
-            $scanOptions['basicAuth'] = $basicAuth;
-        }
-
         try {
-            $scanData = $this->scanApiService->createScan(
-                $scanUrls,
-                $crawl,
-                $crawlOptions,
-                $scanOptions,
-                $aiAuditRequested,
-                $aiAuditSkills,
-            );
-        } catch (ScanApiRequestException $exception) {
-            // Surface the API's own explanation (e.g. "AI audit is not enabled
-            // on this server.") so editors see an actionable message.
-            $status = $exception->getStatusCode() >= 400 && $exception->getStatusCode() < 500 ? 400 : 500;
-            $description = $exception->getProblemDetail() !== '' ? $exception->getProblemDetail() : null;
-            return $this->errorResponse('scan.error.createFailed', $status, $description);
+            $result = $this->scanCreationService->create($demand, $page, $pageTsConfig, $aiAuditRequested, $aiAuditSkills);
+        } catch (ScanCreationException $exception) {
+            return $this->errorResponse($exception->labelKey, $exception->statusCode, $exception->description);
         }
 
-        if (null === $scanData || !isset($scanData['id'])) {
-            return $this->errorResponse('scan.error.createFailed', 500);
-        }
-
-        $newScanId = (string)$scanData['id'];
-
-        // Store scan ID in database
-        if (!$this->storeScanId($page['uid'], $newScanId)) {
-            return $this->errorResponse('scan.error.storeFailed', 500);
-        }
-
-        return new JsonResponse([
-            'scanId' => $newScanId,
-            'status' => $scanData['status'] ?? 'pending',
-        ], 201);
+        return new JsonResponse($result, 201);
     }
 
     /**
@@ -486,30 +414,4 @@ final readonly class ScanAjaxController
         return $pageRecord;
     }
 
-    /**
-     * Store scan ID in database using DataHandler.
-     */
-    private function storeScanId(int $pageUid, string $scanId): bool
-    {
-        $dataHandler = GeneralUtility::makeInstance(DataHandler::class);
-        ScanStateDataHandlerGuard::withInternalWriteScope(static function () use ($dataHandler, $pageUid, $scanId): void {
-            $dataHandler->start([
-                'pages' => [
-                    $pageUid => [
-                        'tx_mindfula11y_scanid' => $scanId,
-                        'tx_mindfula11y_scanupdated' => time(),
-                    ]
-                ]
-            ], []);
-
-            $dataHandler->process_datamap();
-        });
-
-        // Check if there were any errors
-        if (!empty($dataHandler->errorLog)) {
-            return false;
-        }
-
-        return true;
-    }
 }
