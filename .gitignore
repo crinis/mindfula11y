@@ -24,3 +24,5 @@ lerna-debug.log*
 *.njsproj
 *.sln
 *.sw?
+/composer.lock
+/.phpunit.cache

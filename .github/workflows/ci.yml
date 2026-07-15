@@ -38,3 +38,35 @@ jobs:
         run: |
           git add --intent-to-add Resources/Public/JavaScript
           git diff --exit-code -- Resources/Public/JavaScript
+
+  php:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php: '8.2'
+            typo3: '^13.4'
+          - php: '8.4'
+            typo3: '^14.3'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: intl
+          coverage: none
+
+      - name: Validate composer.json
+        run: composer validate --strict
+
+      - name: Install dependencies (TYPO3 ${{ matrix.typo3 }})
+        # Narrow the cms-core constraint so the matrix entry deterministically
+        # resolves its TYPO3 major; the sibling cms-* packages co-resolve.
+        run: |
+          composer require --no-update "typo3/cms-core:${{ matrix.typo3 }}"
+          composer update --no-interaction --no-progress
+
+      - name: Unit tests
+        run: vendor/bin/phpunit

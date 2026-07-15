@@ -2,7 +2,9 @@
     "name": "mindfulmarkup/mindfula11y",
     "description": "Find and fix accessibility issues in TYPO3: missing-alt detection and AI alt-text generation, decorative-image controls, heading/landmark checks, axe-core scans with optional AI audits, semantic Fluid ViewHelpers, and accessible form-validation feedback.",
     "type": "typo3-cms-extension",
-    "license": ["GPL-2.0-or-later"],
+    "license": [
+        "GPL-2.0-or-later"
+    ],
     "authors": [
         {
             "name": "Felix Spittel",
@@ -15,13 +17,16 @@
         "source": "https://github.com/crinis/mindfula11y"
     },
     "require": {
-        "php": ">=8.2 <=8.4",
+        "php": ">=8.2 <8.5",
         "typo3/cms-core": "^13.4 || ^14.3",
         "typo3/cms-backend": "^13.4 || ^14.3",
         "typo3/cms-fluid": "^13.4 || ^14.3",
         "typo3/cms-frontend": "^13.4 || ^14.3",
         "typo3/cms-extbase": "^13.4 || ^14.3",
         "typo3/cms-install": "^13.4 || ^14.3"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^11.5"
     },
     "suggest": {
         "typo3/cms-form": "Adds the localized page-title error prefix after failed server-side EXT:form validation."
@@ -30,6 +35,14 @@
         "psr-4": {
             "MindfulMarkup\\MindfulA11y\\": "Classes/"
         }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "MindfulMarkup\\MindfulA11y\\Tests\\": "Tests/"
+        }
+    },
+    "scripts": {
+        "test": "phpunit"
     },
     "extra": {
         "typo3/cms": {
