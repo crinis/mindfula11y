@@ -18,8 +18,8 @@
  */
 
 import type { ReactiveController, ReactiveControllerHost } from 'lit';
-import type { CreateScanDemand, ScanResult, ScanStatus } from '../lib/types.js';
-import type { ScanService } from './scan-service.js';
+import type { ScanApi } from './api.js';
+import type { CreateScanDemand, ScanResult, ScanStatus } from './types.js';
 
 const POLL_DELAY_MS = 5000;
 
@@ -28,7 +28,7 @@ export type ScanSessionState = 'initial' | 'loading' | 'ready' | 'error';
 
 /** Wiring the host supplies so the controller can read attributes and react to transitions. */
 export interface ScanSessionOptions {
-    service: ScanService;
+    service: ScanApi;
     /** Attribute-provided scan id (`''` = none). */
     scanId: () => string;
     /** Auto-create demand; `null` disables auto-create (a manual trigger still calls `createScan`). */

@@ -1,7 +1,7 @@
 import { extractRecord, indexStructureNodes } from "../dom.js";
-import { StructureErrorSeverity } from "../types.js";
 import { createErrorCollector } from "./analysis.js";
 import { resolveExposure } from "./element-exposure.js";
+import { StructureErrorSeverity } from "./types.js";
 const ERROR_KEYS = {
   missingH1: "mindfula11y.structure.headings.error.missingH1",
   multipleH1: "mindfula11y.structure.headings.error.multipleH1",

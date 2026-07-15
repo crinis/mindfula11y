@@ -9,7 +9,7 @@
  */
 
 import { isBoundedString, isObject, isStringMap } from '../guards.js';
-import type { HeadingAnalysis, HeadingNode, LandmarkAnalysis, LandmarkNode, StructureViewport } from '../types.js';
+import type { HeadingAnalysis, HeadingNode, LandmarkAnalysis, LandmarkNode, StructureViewport } from './types.js';
 
 export const STRUCTURE_ANALYSIS_PROTOCOL = 'mindfula11y.structure.v1' as const;
 const MAX_ANALYSIS_ITEMS = 2_000;

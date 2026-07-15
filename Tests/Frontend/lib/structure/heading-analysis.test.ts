@@ -12,7 +12,7 @@
 
 import { beforeEach, describe, expect, it } from 'vitest';
 import { analyzeHeadings } from '../../../../Resources/Private/Source/lib/structure/heading-analysis.js';
-import type { HeadingNode } from '../../../../Resources/Private/Source/lib/types.js';
+import type { HeadingNode } from '../../../../Resources/Private/Source/lib/structure/types.js';
 
 const flatten = (nodes: HeadingNode[]): HeadingNode[] => nodes.flatMap((node) => [node, ...flatten(node.children)]);
 

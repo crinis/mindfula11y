@@ -1,6 +1,6 @@
 import { lll } from "@typo3/core/lit-helper.js";
 import { html } from "lit";
-import { StructureErrorSeverity } from "./types.js";
+import { StructureErrorSeverity } from "./structure/types.js";
 function noticeState(severity) {
   return severity === StructureErrorSeverity.Error ? "danger" : "warning";
 }

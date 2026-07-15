@@ -1,11 +1,11 @@
-import { ScanStatus } from "../lib/types.js";
-import { getJson, postJson } from "./backend-api.js";
-import { RequestError } from "./request-error.js";
+import { getJson, postJson } from "../backend-api.js";
+import { RequestError } from "../request-error.js";
+import { ScanStatus } from "./types.js";
 const SCAN_STATUSES = new Set(Object.values(ScanStatus));
 function isScanStatus(value) {
   return typeof value === "string" && SCAN_STATUSES.has(value);
 }
-class ScanService {
+class ScanApi {
   /**
    * Creates a scan from a signed demand. `aiAudit` rides alongside the
    * signed fields — it is an editor choice the backend authorizes via page
@@ -65,5 +65,5 @@ class ScanService {
   }
 }
 export {
-  ScanService
+  ScanApi
 };

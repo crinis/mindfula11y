@@ -15,7 +15,7 @@ import {
     analyzeLandmarks,
     LANDMARK_SELECTOR,
 } from '../../../../Resources/Private/Source/lib/structure/landmark-analysis.js';
-import type { LandmarkNode } from '../../../../Resources/Private/Source/lib/types.js';
+import type { LandmarkNode } from '../../../../Resources/Private/Source/lib/structure/types.js';
 
 const flatten = (nodes: LandmarkNode[]): LandmarkNode[] => nodes.flatMap((node) => [node, ...flatten(node.children)]);
 

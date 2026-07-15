@@ -23,8 +23,12 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { createErrorCollector, mergeAnalyses } from '../../../../Resources/Private/Source/lib/structure/analysis.js';
 import { analyzeHeadings } from '../../../../Resources/Private/Source/lib/structure/heading-analysis.js';
 import { analyzeLandmarks } from '../../../../Resources/Private/Source/lib/structure/landmark-analysis.js';
-import type { HeadingNode, LandmarkNode, StructureError } from '../../../../Resources/Private/Source/lib/types.js';
-import { StructureErrorSeverity } from '../../../../Resources/Private/Source/lib/types.js';
+import type {
+    HeadingNode,
+    LandmarkNode,
+    StructureError,
+} from '../../../../Resources/Private/Source/lib/structure/types.js';
+import { StructureErrorSeverity } from '../../../../Resources/Private/Source/lib/structure/types.js';
 
 const flattenHeadings = (nodes: HeadingNode[]): HeadingNode[] =>
     nodes.flatMap((node) => [node, ...flattenHeadings(node.children)]);

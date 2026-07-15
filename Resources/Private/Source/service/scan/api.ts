@@ -17,17 +17,10 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-import type {
-    AgentFindingDto,
-    AiAuditDto,
-    CreateScanDemand,
-    ScanProgress,
-    ScanResult,
-    ViolationDto,
-} from '../lib/types.js';
-import { ScanStatus } from '../lib/types.js';
-import { getJson, postJson } from './backend-api.js';
-import { RequestError } from './request-error.js';
+import { getJson, postJson } from '../backend-api.js';
+import { RequestError } from '../request-error.js';
+import type { AgentFindingDto, AiAuditDto, CreateScanDemand, ScanProgress, ScanResult, ViolationDto } from './types.js';
+import { ScanStatus } from './types.js';
 
 const SCAN_STATUSES: ReadonlySet<string> = new Set(Object.values(ScanStatus));
 
@@ -58,7 +51,7 @@ interface CancelScanResponse {
 }
 
 /** AJAX operations of the accessibility-scan endpoints. */
-export class ScanService {
+export class ScanApi {
     /**
      * Creates a scan from a signed demand. `aiAudit` rides alongside the
      * signed fields — it is an editor choice the backend authorizes via page

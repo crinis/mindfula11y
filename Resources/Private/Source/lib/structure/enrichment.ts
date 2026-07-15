@@ -8,7 +8,8 @@
  * (at your option) any later version.
  */
 
-import type { HeadingAnalysis, LandmarkAnalysis, RecordReference } from '../types.js';
+import type { RecordReference } from '../types.js';
+import type { HeadingAnalysis, LandmarkAnalysis } from './types.js';
 
 /** Merged (mobile+desktop) result of both structure analyzers, before backend enrichment. */
 export interface StructureAnalysis {

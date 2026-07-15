@@ -23,11 +23,11 @@ import { html, LitElement, nothing } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { LiveAnnouncer } from '../../lib/live-announcer.js';
 import { activateTabFromKeydown, renderTablist, renderTabPanel, type TabDescriptor } from '../../lib/tabs.js';
-import type { CreateScanDemand, ScanResult } from '../../lib/types.js';
-import { ScanStatus } from '../../lib/types.js';
 import { errorView, RequestError } from '../../service/request-error.js';
-import { ScanService } from '../../service/scan-service.js';
-import { ScanSessionController } from '../../service/scan-session-controller.js';
+import { ScanApi } from '../../service/scan/api.js';
+import { ScanSessionController } from '../../service/scan/session-controller.js';
+import type { CreateScanDemand, ScanResult } from '../../service/scan/types.js';
+import { ScanStatus } from '../../service/scan/types.js';
 import { baseStyles } from '../../styles/base-styles.js';
 import buttonStyles from '../../styles/button.css.js';
 import noticeStyles from '../../styles/notice.css.js';
@@ -75,11 +75,11 @@ export class Scan extends LitElement {
     /** Editor's toggle choice; null = follow the TSConfig-provided default. */
     @state() private aiAuditChecked: boolean | null = null;
 
-    private readonly scanService: ScanService = new ScanService();
+    private readonly scanApi: ScanApi = new ScanApi();
     private readonly announcer: LiveAnnouncer = new LiveAnnouncer(this);
 
     private readonly controller: ScanSessionController = new ScanSessionController(this, {
-        service: this.scanService,
+        service: this.scanApi,
         scanId: (): string => this.scanId,
         // A demand only auto-creates when the editor opted in; the manual
         // trigger buttons call controller.createScan directly with their demand.
@@ -131,7 +131,7 @@ export class Scan extends LitElement {
     }
 
     private isScanRunning(): boolean {
-        return this.controller.result !== null && this.scanService.isScanInProgress(this.controller.result.status);
+        return this.controller.result !== null && this.scanApi.isScanInProgress(this.controller.result.status);
     }
 
     private isAiAuditChecked(): boolean {

@@ -14,7 +14,8 @@ import {
     collectRecordRequests,
     type StructureRecordMetadata,
 } from '../../../../Resources/Private/Source/lib/structure/enrichment.js';
-import type { HeadingNode, LandmarkNode, RecordReference } from '../../../../Resources/Private/Source/lib/types.js';
+import type { HeadingNode, LandmarkNode } from '../../../../Resources/Private/Source/lib/structure/types.js';
+import type { RecordReference } from '../../../../Resources/Private/Source/lib/types.js';
 import type { StructureAnalysis } from '../../../../Resources/Private/Source/service/structure/coordinator.js';
 
 const record = (uid: number, columnName = 'header_layout'): RecordReference => ({

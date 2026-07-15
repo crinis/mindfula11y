@@ -1,4 +1,4 @@
-import { STRUCTURE_VIEWPORT_ORDER } from "../types.js";
+import { STRUCTURE_VIEWPORT_ORDER } from "./types.js";
 const mergeViewports = (a, b) => STRUCTURE_VIEWPORT_ORDER.filter((viewport) => a.includes(viewport) || b.includes(viewport));
 const createErrorCollector = (viewport) => {
   const errors = [];

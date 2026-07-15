@@ -15,7 +15,7 @@ import {
     parsePortMessage,
     STRUCTURE_ANALYSIS_PROTOCOL,
 } from '../../lib/structure/protocol.js';
-import type { HeadingAnalysis, LandmarkAnalysis, StructureViewport } from '../../lib/types.js';
+import type { HeadingAnalysis, LandmarkAnalysis, StructureViewport } from '../../lib/structure/types.js';
 import type { StructureAnalysisApi, StructureAnalysisTicket } from './api.js';
 
 const LOAD_TIMEOUT = 15_000;

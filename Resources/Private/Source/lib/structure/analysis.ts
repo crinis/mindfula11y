@@ -17,8 +17,8 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-import type { StructureError, StructureErrorSeverity, StructureViewport } from '../types.js';
-import { STRUCTURE_VIEWPORT_ORDER } from '../types.js';
+import type { StructureError, StructureErrorSeverity, StructureViewport } from './types.js';
+import { STRUCTURE_VIEWPORT_ORDER } from './types.js';
 
 /** Union of two viewport sets in canonical order — the merge contract's single rule. */
 export const mergeViewports = (a: readonly StructureViewport[], b: readonly StructureViewport[]): StructureViewport[] =>

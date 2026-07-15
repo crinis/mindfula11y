@@ -24,10 +24,10 @@
  */
 
 import { extractRecord, indexStructureNodes } from '../dom.js';
-import type { HeadingAnalysis, HeadingNode, HeadingRelation, StructureAnalysisOptions } from '../types.js';
-import { StructureErrorSeverity } from '../types.js';
 import { createErrorCollector } from './analysis.js';
 import { resolveExposure } from './element-exposure.js';
+import type { HeadingAnalysis, HeadingNode, HeadingRelation, StructureAnalysisOptions } from './types.js';
+import { StructureErrorSeverity } from './types.js';
 
 const ERROR_KEYS = {
     missingH1: 'mindfula11y.structure.headings.error.missingH1',

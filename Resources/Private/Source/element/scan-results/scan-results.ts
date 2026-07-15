@@ -24,9 +24,15 @@ import { customElement, property } from 'lit/decorators.js';
 import '@typo3/backend/element/icon-element.js';
 import { scrollIntoViewCentered } from '../../lib/dom.js';
 import type { NoticeState } from '../../lib/status-render.js';
-import type { AgentFindingDto, AiAuditSkill, ImpactSeverity, ScanResult, ViolationDto } from '../../lib/types.js';
-import { AiAuditStatus } from '../../lib/types.js';
 import { safeHttpUrl } from '../../lib/url.js';
+import type {
+    AgentFindingDto,
+    AiAuditSkill,
+    ImpactSeverity,
+    ScanResult,
+    ViolationDto,
+} from '../../service/scan/types.js';
+import { AiAuditStatus } from '../../service/scan/types.js';
 import '../notice/notice.js';
 import { baseStyles } from '../../styles/base-styles.js';
 import findingsStyles from '../../styles/findings.css.js';

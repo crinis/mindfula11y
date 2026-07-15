@@ -2,8 +2,8 @@ import { lll } from "@typo3/core/lit-helper.js";
 import { html, nothing } from "lit";
 import "@typo3/backend/element/icon-element.js";
 import "@typo3/backend/element/spinner-element.js";
-import { AiAuditStatus, ScanStatus } from "../../lib/types.js";
 import { withQueryParams } from "../../lib/url.js";
+import { AiAuditStatus, ScanStatus } from "../../service/scan/types.js";
 import "../notice/notice.js";
 import "../scan-results/scan-results.js";
 function urlListCovered(urlList, targets) {

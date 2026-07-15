@@ -22,10 +22,10 @@ import type { TemplateResult } from 'lit';
 import { html, nothing } from 'lit';
 import '@typo3/backend/element/icon-element.js';
 import '@typo3/backend/element/spinner-element.js';
-import type { CreateScanDemand, ScanResult } from '../../lib/types.js';
-import { AiAuditStatus, ScanStatus } from '../../lib/types.js';
 import { withQueryParams } from '../../lib/url.js';
-import type { ScanSessionState } from '../../service/scan-session-controller.js';
+import type { ScanSessionState } from '../../service/scan/session-controller.js';
+import type { CreateScanDemand, ScanResult } from '../../service/scan/types.js';
+import { AiAuditStatus, ScanStatus } from '../../service/scan/types.js';
 import '../notice/notice.js';
 import '../scan-results/scan-results.js';
 

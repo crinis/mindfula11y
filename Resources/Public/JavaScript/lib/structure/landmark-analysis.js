@@ -1,7 +1,7 @@
 import { extractRecord, indexStructureNodes } from "../dom.js";
-import { StructureErrorSeverity } from "../types.js";
 import { createErrorCollector, groupBy } from "./analysis.js";
 import { resolveExposure } from "./element-exposure.js";
+import { StructureErrorSeverity } from "./types.js";
 const ERROR_KEYS = {
   missingMain: "mindfula11y.structure.landmarks.error.missingMain",
   duplicateMain: "mindfula11y.structure.landmarks.error.duplicateMain",

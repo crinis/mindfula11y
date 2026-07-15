@@ -15,7 +15,7 @@ import type {
     HeadingAnalysis,
     HeadingNode,
     StructureViewport,
-} from '../../../../Resources/Private/Source/lib/types.js';
+} from '../../../../Resources/Private/Source/lib/structure/types.js';
 import { StructureAnalysisCoordinator } from '../../../../Resources/Private/Source/service/structure/coordinator.js';
 
 vi.mock('../../../../Resources/Private/Source/service/structure/api.js', () => {

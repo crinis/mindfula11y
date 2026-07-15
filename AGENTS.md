@@ -44,9 +44,10 @@ with every source change (CI fails on stale output).
 | ------------------------------------------- | ------------------------------------------------------------ |
 | `Resources/Private/Source/element/<name>/`   | One folder per Lit component: `<name>.ts` + co-located `<name>.css` (+ future tests) |
 | `Resources/Private/Source/service/`          | Non-component classes: AJAX services, registries, FormEngine wiring |
+| `Resources/Private/Source/service/scan/`     | Accessibility-scan feature: typed api over the scan endpoints, wire types, Lit reactive session controller |
 | `Resources/Private/Source/service/structure/` | Structure-analysis pipeline: backend api, coordinator, iframe page loader, isolated runner (the build's sole bundled entry) |
-| `Resources/Private/Source/lib/`              | Cross-feature modules: `types.ts` (domain types + event map), pure utilities, shared render helpers |
-| `Resources/Private/Source/lib/structure/`    | Structure-analysis domain core: heading/landmark analysis, iframe protocol, enrichment, shared view base |
+| `Resources/Private/Source/lib/`              | Cross-feature modules: `types.ts` (shared types + event map), pure utilities, shared render helpers |
+| `Resources/Private/Source/lib/structure/`    | Structure-analysis domain core: domain types, heading/landmark analysis, iframe protocol, enrichment, shared view base |
 | `Resources/Private/Source/styles/`           | `tokens.css` (token bridge), `reset.css`, `base.css`, `utilities.css`, `base-styles.ts` |
 | `Resources/Private/Build/`                   | `build.mjs` (the build script)                                 |
 | `Resources/Private/Build/types/`             | Ambient decls: `typo3.d.ts` (@typo3/* modules), `css-modules.d.ts` |

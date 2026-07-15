@@ -13,10 +13,10 @@ import { html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { LiveAnnouncer } from "../../lib/live-announcer.js";
 import { activateTabFromKeydown, renderTablist, renderTabPanel } from "../../lib/tabs.js";
-import { ScanStatus } from "../../lib/types.js";
 import { errorView, RequestError } from "../../service/request-error.js";
-import { ScanService } from "../../service/scan-service.js";
-import { ScanSessionController } from "../../service/scan-session-controller.js";
+import { ScanApi } from "../../service/scan/api.js";
+import { ScanSessionController } from "../../service/scan/session-controller.js";
+import { ScanStatus } from "../../service/scan/types.js";
 import { baseStyles } from "../../styles/base-styles.js";
 import buttonStyles from "../../styles/button.css.js";
 import noticeStyles from "../../styles/notice.css.js";
@@ -41,10 +41,10 @@ let Scan = class extends LitElement {
     this.actionBusy = false;
     this.actionError = null;
     this.aiAuditChecked = null;
-    this.scanService = new ScanService();
+    this.scanApi = new ScanApi();
     this.announcer = new LiveAnnouncer(this);
     this.controller = new ScanSessionController(this, {
-      service: this.scanService,
+      service: this.scanApi,
       scanId: () => this.scanId,
       // A demand only auto-creates when the editor opted in; the manual
       // trigger buttons call controller.createScan directly with their demand.
@@ -106,7 +106,7 @@ let Scan = class extends LitElement {
     return tab === "scan" ? this.createScanDemand : this.crawlScanDemand;
   }
   isScanRunning() {
-    return this.controller.result !== null && this.scanService.isScanInProgress(this.controller.result.status);
+    return this.controller.result !== null && this.scanApi.isScanInProgress(this.controller.result.status);
   }
   isAiAuditChecked() {
     return this.aiAuditChecked ?? this.aiAuditDefault;

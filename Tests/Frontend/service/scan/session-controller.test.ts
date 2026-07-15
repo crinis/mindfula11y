@@ -12,13 +12,13 @@
 
 import type { ReactiveControllerHost } from 'lit';
 import { afterEach, describe, expect, it, type Mock, vi } from 'vitest';
-import type { CreateScanDemand, ScanResult } from '../../../Resources/Private/Source/lib/types.js';
-import { ScanStatus } from '../../../Resources/Private/Source/lib/types.js';
-import type { ScanService } from '../../../Resources/Private/Source/service/scan-service.js';
+import type { ScanApi } from '../../../../Resources/Private/Source/service/scan/api.js';
 import {
     ScanSessionController,
     type ScanSessionOptions,
-} from '../../../Resources/Private/Source/service/scan-session-controller.js';
+} from '../../../../Resources/Private/Source/service/scan/session-controller.js';
+import type { CreateScanDemand, ScanResult } from '../../../../Resources/Private/Source/service/scan/types.js';
+import { ScanStatus } from '../../../../Resources/Private/Source/service/scan/types.js';
 
 const IN_PROGRESS = new Set<ScanStatus>([ScanStatus.Pending, ScanStatus.Running, ScanStatus.Analyzing]);
 
@@ -81,7 +81,7 @@ const build = (
     const host = new FakeHost();
     const onTransition = vi.fn();
     const controller = new ScanSessionController(host, {
-        service: service as unknown as ScanService,
+        service: service as unknown as ScanApi,
         scanId: options.scanId ?? ((): string => ''),
         demand: options.demand ?? ((): CreateScanDemand | null => null),
         pageUrlFilter: options.pageUrlFilter ?? ((): string[] => []),

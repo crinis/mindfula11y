@@ -32,15 +32,15 @@ import { LiveAnnouncer } from '../../lib/live-announcer.js';
 import { noticeState, renderSeverityChip, renderViewportBadges } from '../../lib/status-render.js';
 import { mergeViewports } from '../../lib/structure/analysis.js';
 import { StructureAnalysisError } from '../../lib/structure/error.js';
-import { activateTabFromKeydown, renderTablist, renderTabPanel, type TabDescriptor } from '../../lib/tabs.js';
 import type {
     HeadingAnalysis,
     LandmarkAnalysis,
     StructureDomain,
     StructureError,
     StructureViewport,
-} from '../../lib/types.js';
-import { StructureErrorSeverity } from '../../lib/types.js';
+} from '../../lib/structure/types.js';
+import { StructureErrorSeverity } from '../../lib/structure/types.js';
+import { activateTabFromKeydown, renderTablist, renderTabPanel, type TabDescriptor } from '../../lib/tabs.js';
 import { type StructureAnalysis, StructureAnalysisCoordinator } from '../../service/structure/coordinator.js';
 import { baseStyles } from '../../styles/base-styles.js';
 import buttonStyles from '../../styles/button.css.js';

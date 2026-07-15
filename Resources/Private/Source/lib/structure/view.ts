@@ -32,7 +32,8 @@ import structureViewStyles from '../../styles/structure-view.css.js';
 import viewportStyles from '../../styles/viewport.css.js';
 import { scrollIntoViewCentered } from '../dom.js';
 import { noticeState, renderSeverityChip, renderViewportBadges } from '../status-render.js';
-import type { RecordReference, StructureError, StructureViewport } from '../types.js';
+import type { RecordReference } from '../types.js';
+import type { StructureError, StructureViewport } from './types.js';
 
 /** Node shape the analyzers share, generic over the concrete node type. */
 export interface StructureViewNode<T> {

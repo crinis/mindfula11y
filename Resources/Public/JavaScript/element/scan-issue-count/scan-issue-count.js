@@ -13,10 +13,10 @@ import { html, LitElement, nothing } from "lit";
 import { customElement, property } from "lit/decorators.js";
 import "@typo3/backend/element/spinner-element.js";
 import { LiveAnnouncer } from "../../lib/live-announcer.js";
-import { ScanStatus } from "../../lib/types.js";
 import { errorView } from "../../service/request-error.js";
-import { ScanService } from "../../service/scan-service.js";
-import { ScanSessionController } from "../../service/scan-session-controller.js";
+import { ScanApi } from "../../service/scan/api.js";
+import { ScanSessionController } from "../../service/scan/session-controller.js";
+import { ScanStatus } from "../../service/scan/types.js";
 import { baseStyles } from "../../styles/base-styles.js";
 import "../notice/notice.js";
 let ScanIssueCount = class extends LitElement {
@@ -27,11 +27,11 @@ let ScanIssueCount = class extends LitElement {
     this.createScanDemand = null;
     this.autoCreateScan = false;
     this.pageUrlFilter = [];
-    this.scanService = new ScanService();
+    this.scanApi = new ScanApi();
     this.announcer = new LiveAnnouncer(this);
     this.lastAnnounced = "";
     this.controller = new ScanSessionController(this, {
-      service: this.scanService,
+      service: this.scanApi,
       scanId: () => this.scanId,
       // A demand only auto-creates when the editor opted in; there is no
       // manual trigger in this compact callout.
@@ -71,7 +71,7 @@ let ScanIssueCount = class extends LitElement {
     return null;
   }
   viewFromResult(result) {
-    if (this.scanService.isScanInProgress(result.status)) {
+    if (this.scanApi.isScanInProgress(result.status)) {
       let label = lll("mindfula11y.scan.status.pending");
       if (result.status === ScanStatus.Running) {
         label = lll("mindfula11y.scan.status.running");

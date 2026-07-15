@@ -24,11 +24,11 @@ import { customElement, property } from 'lit/decorators.js';
 import '@typo3/backend/element/spinner-element.js';
 import { LiveAnnouncer } from '../../lib/live-announcer.js';
 import type { NoticeState } from '../../lib/status-render.js';
-import type { CreateScanDemand, ScanResult } from '../../lib/types.js';
-import { ScanStatus } from '../../lib/types.js';
 import { errorView } from '../../service/request-error.js';
-import { ScanService } from '../../service/scan-service.js';
-import { ScanSessionController } from '../../service/scan-session-controller.js';
+import { ScanApi } from '../../service/scan/api.js';
+import { ScanSessionController } from '../../service/scan/session-controller.js';
+import type { CreateScanDemand, ScanResult } from '../../service/scan/types.js';
+import { ScanStatus } from '../../service/scan/types.js';
 import { baseStyles } from '../../styles/base-styles.js';
 import '../notice/notice.js';
 
@@ -60,12 +60,12 @@ export class ScanIssueCount extends LitElement {
     @property({ type: Boolean, attribute: 'auto-create-scan' }) autoCreateScan: boolean = false;
     @property({ type: Array, attribute: 'page-url-filter' }) pageUrlFilter: string[] = [];
 
-    private readonly scanService: ScanService = new ScanService();
+    private readonly scanApi: ScanApi = new ScanApi();
     private readonly announcer: LiveAnnouncer = new LiveAnnouncer(this);
     private lastAnnounced: string = '';
 
     private readonly controller: ScanSessionController = new ScanSessionController(this, {
-        service: this.scanService,
+        service: this.scanApi,
         scanId: (): string => this.scanId,
         // A demand only auto-creates when the editor opted in; there is no
         // manual trigger in this compact callout.
@@ -117,7 +117,7 @@ export class ScanIssueCount extends LitElement {
     }
 
     private viewFromResult(result: ScanResult): StatusView {
-        if (this.scanService.isScanInProgress(result.status)) {
+        if (this.scanApi.isScanInProgress(result.status)) {
             let label = lll('mindfula11y.scan.status.pending');
             if (result.status === ScanStatus.Running) {
                 label = lll('mindfula11y.scan.status.running');

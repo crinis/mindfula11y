@@ -24,11 +24,11 @@
  */
 
 import { extractRecord, indexStructureNodes } from '../dom.js';
-import type { LandmarkAnalysis, LandmarkNode, StructureAnalysisOptions } from '../types.js';
-import { StructureErrorSeverity } from '../types.js';
 import { createErrorCollector, groupBy } from './analysis.js';
 import type { ElementExposurePredicate } from './element-exposure.js';
 import { resolveExposure } from './element-exposure.js';
+import type { LandmarkAnalysis, LandmarkNode, StructureAnalysisOptions } from './types.js';
+import { StructureErrorSeverity } from './types.js';
 
 const ERROR_KEYS = {
     missingMain: 'mindfula11y.structure.landmarks.error.missingMain',
