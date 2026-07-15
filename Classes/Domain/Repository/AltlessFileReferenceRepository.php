@@ -34,31 +34,23 @@ use MindfulMarkup\MindfulA11y\Domain\Model\AltlessFileReference;
 use MindfulMarkup\MindfulA11y\Domain\Model\AltlessFileReferenceTable;
 use TYPO3\CMS\Core\Database\Query\QueryBuilder;
 use TYPO3\CMS\Extbase\Persistence\Generic\Mapper\DataMapper;
-use TYPO3\CMS\Extbase\Persistence\Repository;
 
 /**
  * Class AltlessFileReferenceRepository.
- * 
- * This class is responsible for retrieving file references from the database that have no alternative text. It is not using Extbase
- * as we want plain arrays and are using the QueryBuilder.
+ *
+ * Retrieves file references from the database that have no alternative text.
+ * Queries are built with the core QueryBuilder; Extbase is involved only via
+ * the injected DataMapper, which maps result rows to AltlessFileReference
+ * models (the extension's single Extbase-mapped entity).
  */
-class AltlessFileReferenceRepository extends Repository
+class AltlessFileReferenceRepository
 {
     private const COUNT_FILTER_CHUNK_SIZE = 500;
 
-    protected ConnectionPool $connectionPool;
-
-    protected DataMapper $dataMapper;
-
-    public function injectConnectionPool(ConnectionPool $connectionPool): void
-    {
-        $this->connectionPool = $connectionPool;
-    }
-
-    public function injectDataMapper(DataMapper $dataMapper): void
-    {
-        $this->dataMapper = $dataMapper;
-    }
+    public function __construct(
+        protected readonly ConnectionPool $connectionPool,
+        protected readonly DataMapper $dataMapper,
+    ) {}
 
     /**
      * Find file references without alternative text.
