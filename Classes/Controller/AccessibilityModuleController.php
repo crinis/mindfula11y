@@ -113,11 +113,18 @@ final readonly class AccessibilityModuleController
             throw new InvalidArgumentException('Module data is not set.', 1745686754);
         }
 
-        $languageId = (int)$moduleData->get('languageId', 0);
+        // Clamped: negative values reach this unvalidated from the URL, and
+        // checkLanguageAccess() waves -1 ("all languages") through even for
+        // language-restricted users.
+        $languageId = max(0, (int)$moduleData->get('languageId', 0));
         $localizedPageInfo = $this->pagePreviewService->getLocalizedPageRecord($pageId, $languageId);
 
-        $languageToCheck = $localizedPageInfo === null ? 0 : $languageId;
-        if (!$this->permissionService->checkLanguageAccess($languageToCheck)) {
+        // Access is checked against the requested language itself — even when
+        // the page has no translation in it, because the record queries still
+        // filter by the raw value (free-mode records of translated descendants
+        // would otherwise be listed for editors without access to that
+        // language). Only the preview record falls back to the default language.
+        if (!$this->permissionService->checkLanguageAccess($languageId)) {
             // Try to find the first available language that the user has access to
             $availableLanguageId = $this->getFirstAvailableLanguageId($request, $pageId);
             if (null !== $availableLanguageId) {
