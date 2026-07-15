@@ -60,15 +60,23 @@ final readonly class StructureAnalysisAuthorizationService
             return false;
         }
 
-        return $this->isAuthorized($backendUser, $ticket->pageId, $ticket->languageId, $ticket->workspaceId);
+        return $this->authorizePage($backendUser, $ticket->pageId, $ticket->languageId, $ticket->workspaceId) !== null;
     }
 
-    public function isAuthorized(
+    /**
+     * Runs every authorization check for issuing or redeeming a structure
+     * analysis on the given page and returns the workspace-overlaid page
+     * record when all of them pass — callers reuse it instead of loading the
+     * page a second time.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function authorizePage(
         BackendUserAuthentication $backendUser,
         int $pageId,
         int $languageId,
         int $workspaceId,
-    ): bool {
+    ): ?array {
         if ((int)($backendUser->user['uid'] ?? 0) <= 0
             || $pageId <= 0
             || $languageId < 0
@@ -82,12 +90,12 @@ final readonly class StructureAnalysisAuthorizationService
             || !$this->moduleProvider->accessGranted(self::MODULE_IDENTIFIER, $backendUser)
             || !$backendUser->checkLanguageAccess($languageId)
         ) {
-            return false;
+            return null;
         }
 
         $page = BackendUtility::getRecord('pages', $pageId);
         if (!is_array($page)) {
-            return false;
+            return null;
         }
         BackendUtility::workspaceOL('pages', $page, $workspaceId);
         if (!is_array($page)
@@ -98,10 +106,14 @@ final readonly class StructureAnalysisAuthorizationService
             || !$backendUser->isInWebMount($page)
             || !$backendUser->doesUserHaveAccess($page, Permission::PAGE_SHOW)
         ) {
-            return false;
+            return null;
         }
 
-        return $languageId === 0 || $this->hasPageTranslation($pageId, $languageId, $workspaceId);
+        if ($languageId !== 0 && !$this->hasPageTranslation($pageId, $languageId, $workspaceId)) {
+            return null;
+        }
+
+        return $page;
     }
 
     private function hasPageTranslation(int $pageId, int $languageId, int $workspaceId): bool

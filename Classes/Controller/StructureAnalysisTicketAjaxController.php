@@ -29,7 +29,6 @@ use MindfulMarkup\MindfulA11y\Service\StructureAnalysisTicketService;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Backend\Routing\PreviewUriBuilder;
-use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Http\JsonResponse;
 use TYPO3\CMS\Core\Http\NormalizedParams;
@@ -57,12 +56,11 @@ final readonly class StructureAnalysisTicketAjaxController
         if ($backendUser === null) {
             return $this->unavailableResponse();
         }
-        $page = $pageId > 0 ? BackendUtility::getRecord('pages', $pageId) : null;
         $workspaceId = $backendUser->workspace;
-        if (!is_array($page)
-            || !$this->authorizationService->isAuthorized($backendUser, $pageId, $languageId, $workspaceId)
-            || !$this->isStructureAnalysisEnabled($pageId)
-        ) {
+        // The service returns the workspace-overlaid page record it already
+        // authorized, so previews of workspace versions build from the draft.
+        $page = $this->authorizationService->authorizePage($backendUser, $pageId, $languageId, $workspaceId);
+        if ($page === null || !$this->isStructureAnalysisEnabled($pageId)) {
             return $this->unavailableResponse();
         }
         $previewUrl = $this->buildPreviewUrl($page, $pageId, $languageId);
