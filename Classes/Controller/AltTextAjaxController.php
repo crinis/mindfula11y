@@ -23,7 +23,6 @@ declare(strict_types=1);
 
 namespace MindfulMarkup\MindfulA11y\Controller;
 
-use Exception;
 use InvalidArgumentException;
 use MindfulMarkup\MindfulA11y\Domain\Model\GenerateAltTextDemand;
 use MindfulMarkup\MindfulA11y\Service\AltTextGeneratorService;
@@ -32,12 +31,7 @@ use MindfulMarkup\MindfulA11y\Service\SiteLanguageService;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
-use TYPO3\CMS\Core\Crypto\HashService;
-use TYPO3\CMS\Core\Database\ConnectionPool;
-use TYPO3\CMS\Core\Http\AllowedMethodsTrait;
-use TYPO3\CMS\Extbase\Mvc\Controller\ActionController;
-use TYPO3\CMS\Core\Http\Error\MethodNotAllowedException;
-use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
+use TYPO3\CMS\Core\Http\JsonResponse;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Type\Bitmask\Permission;
 use TYPO3\CMS\Core\Resource\Exception\FileDoesNotExistException;
@@ -46,33 +40,22 @@ use TYPO3\CMS\Core\Schema\Capability\TcaSchemaCapability;
 use TYPO3\CMS\Core\Schema\TcaSchemaFactory;
 
 /**
- * Class AltTextAjaxController.
- * 
- * This controller handles AJAX requests for generating and storing alternative text for images.
- * It uses the OpenAI API to generate the alternative text based on the image content.
+ * Handles the AJAX endpoint generating alternative text for images.
+ *
+ * Uses the OpenAI API to generate the alternative text based on the image
+ * content. The allowed HTTP method is enforced on the route definition
+ * (Configuration/Backend/AjaxRoutes.php).
  */
-class AltTextAjaxController extends ActionController
+final readonly class AltTextAjaxController
 {
-    use AllowedMethodsTrait;
+    use JsonErrorResponseTrait;
 
-    /**
-     * Constructor.
-     * 
-     * @param AltTextGeneratorService $altTextGeneratorService
-     * @param HashService $hashService
-     * @param SiteLanguageService $siteLanguageService
-     * @param ResourceFactory $resourceFactory
-     * @param ConnectionPool $connectionPool
-     * @param PermissionService $permissionService
-     */
     public function __construct(
-        protected readonly AltTextGeneratorService $altTextGeneratorService,
-        protected HashService $hashService,
-        protected readonly SiteLanguageService $siteLanguageService,
-        protected readonly ResourceFactory $resourceFactory,
-        protected readonly ConnectionPool $connectionPool,
-        protected readonly PermissionService $permissionService,
-        protected readonly TcaSchemaFactory $tcaSchemaFactory,
+        private AltTextGeneratorService $altTextGeneratorService,
+        private SiteLanguageService $siteLanguageService,
+        private ResourceFactory $resourceFactory,
+        private PermissionService $permissionService,
+        private TcaSchemaFactory $tcaSchemaFactory,
     ) {}
 
     /**
@@ -83,7 +66,7 @@ class AltTextAjaxController extends ActionController
      * TYPO3 v13.2+ and v14, so no version branch is required. Returns false for
      * tables not present in TCA, matching the behaviour of the previous method.
      */
-    protected function tableIgnoresRootLevelRestriction(string $table): bool
+    private function tableIgnoresRootLevelRestriction(string $table): bool
     {
         return $this->tcaSchemaFactory->has($table)
             && $this->tcaSchemaFactory->get($table)
@@ -92,29 +75,12 @@ class AltTextAjaxController extends ActionController
     }
 
     /**
-     * Assert allowed HTTP method for the generate action.
-     * 
-     * @throws MethodNotAllowedException If the request method is not allowed.
-     */
-    protected function initializeGenerateAction(): void
-    {
-        $this->assertAllowedHttpMethod($this->request, 'POST');
-    }
-
-    /**
      * Generate alternative text for an image.
-     * 
+     *
      * This action handles the AJAX request to generate alternative text for a given image and
      * returns the generated text as a JSON response.
-     * 
-     * @param ServerRequestInterface $request
-     * 
-     * @return ResponseInterface
-     * 
+     *
      * @throws InvalidArgumentException If the request parameters are invalid.
-     * @throws InvalidArgumentException If the file table is invalid.
-     * @throws MethodNotAllowedException If the request method is not allowed.
-     * @throws FileDoesNotExistException If the file does not exist.
      */
     public function generateAction(ServerRequestInterface $request): ResponseInterface
     {
@@ -127,28 +93,14 @@ class AltTextAjaxController extends ActionController
         }
 
         if (!$demand->validateSignature()) {
-            return $this->jsonResponse(
-                json_encode([
-                    'error' => [
-                        'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:module.error.invalidSignature'),
-                        'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:module.error.invalidSignature.description'),
-                    ]
-                ])
-            )->withStatus(400);
+            return $this->errorResponse('module.error.invalidSignature', 400);
         }
 
         $backendUser = $this->getBackendUserAuthentication();
 
         // Check if user has access to the mindfula11y_accessibility module
-        if (!$backendUser->check('modules', 'mindfula11y_accessibility')) {
-            return $this->jsonResponse(
-                json_encode([
-                    'error' => [
-                        'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.forbidden'),
-                        'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.forbidden.description'),
-                    ]
-                ])
-            )->withStatus(403);
+        if (!$this->permissionService->checkModuleAccess()) {
+            return $this->errorResponse('error.forbidden', 403);
         }
 
         $userId = $demand->getUserId();
@@ -159,38 +111,17 @@ class AltTextAjaxController extends ActionController
 
         // Verify the current backend user matches the demand
         if ($backendUser->user['uid'] !== $userId) {
-            return $this->jsonResponse(
-                json_encode([
-                    'error' => [
-                        'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.invalidUser'),
-                        'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.invalidUser.description'),
-                    ]
-                ])
-            )->withStatus(403);
+            return $this->errorResponse('error.invalidUser', 403);
         }
 
         // Verify the current workspace matches the demand
         if ($backendUser->workspace !== $workspaceId) {
-            return $this->jsonResponse(
-                json_encode([
-                    'error' => [
-                        'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.invalidWorkspace'),
-                        'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.invalidWorkspace.description'),
-                    ]
-                ])
-            )->withStatus(403);
+            return $this->errorResponse('error.invalidWorkspace', 403);
         }
 
         // Check language access
         if (!$this->permissionService->checkLanguageAccess($languageUid)) {
-            return $this->jsonResponse(
-                json_encode([
-                    'error' => [
-                        'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.invalidLanguage'),
-                        'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.invalidLanguage.description'),
-                    ]
-                ])
-            )->withStatus(403);
+            return $this->errorResponse('error.invalidLanguage', 403);
         }
 
         // Check if user has access to the page.
@@ -200,27 +131,13 @@ class AltTextAjaxController extends ActionController
         if (!(0 === $pageUid && $this->tableIgnoresRootLevelRestriction($recordTable))) {
             $pageInfo = BackendUtility::readPageAccess($pageUid, $backendUser->getPagePermsClause(Permission::PAGE_SHOW));
             if (false === $pageInfo) {
-                return $this->jsonResponse(
-                    json_encode([
-                        'error' => [
-                            'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.noPageAccess'),
-                            'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.noPageAccess.description'),
-                        ]
-                    ])
-                )->withStatus(403);
+                return $this->errorResponse('error.noPageAccess', 403);
             }
         }
 
         // Check if user has read access to sys_file
         if (!$this->permissionService->checkTableReadAccess('sys_file')) {
-            return $this->jsonResponse(
-                json_encode([
-                    'error' => [
-                        'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.noFileAccess'),
-                        'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.noFileAccess.description'),
-                    ]
-                ])
-            )->withStatus(403);
+            return $this->errorResponse('error.noFileAccess', 403);
         }
 
         // Check if user has edit access to the record
@@ -237,14 +154,7 @@ class AltTextAjaxController extends ActionController
             && is_array($recordData)
             && !$this->permissionService->checkRecordEditAccess($recordTable, $recordData, $recordColumns)
         ) {
-            return $this->jsonResponse(
-                json_encode([
-                    'error' => [
-                        'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.invalidRecordAccess'),
-                        'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.invalidRecordAccess.description'),
-                    ]
-                ])
-            )->withStatus(403);
+            return $this->errorResponse('error.invalidRecordAccess', 403);
         }
 
         // For root-level records (e.g. sys_file_metadata) checkRecordEditAccess is skipped above
@@ -255,14 +165,7 @@ class AltTextAjaxController extends ActionController
             if (!$this->permissionService->checkTableWriteAccess($recordTable)
                 || !$this->permissionService->checkNonExcludeFields($recordTable, $recordColumns)
             ) {
-                return $this->jsonResponse(
-                    json_encode([
-                        'error' => [
-                            'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.invalidRecordAccess'),
-                            'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.invalidRecordAccess.description'),
-                        ]
-                    ])
-                )->withStatus(403);
+                return $this->errorResponse('error.invalidRecordAccess', 403);
             }
         }
 
@@ -275,14 +178,7 @@ class AltTextAjaxController extends ActionController
         try {
             $file = $this->resourceFactory->getFileObject($demand->getFileUid());
         } catch (FileDoesNotExistException) {
-            return $this->jsonResponse(
-                json_encode([
-                    'error' => [
-                        'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.fileNotFound'),
-                        'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.fileNotFound.description'),
-                    ]
-                ])
-            )->withStatus(404);
+            return $this->errorResponse('error.fileNotFound', 404);
         }
 
         // For sys_file_metadata the TYPO3 core uses editMeta (writable file mount) as the
@@ -293,38 +189,19 @@ class AltTextAjaxController extends ActionController
             : $this->permissionService->checkFileReadAccess($file);
 
         if (!$hasFileAccess) {
-            return $this->jsonResponse(
-                json_encode([
-                    'error' => [
-                        'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.noFileMountAccess'),
-                        'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.noFileMountAccess.description'),
-                    ]
-                ])
-            )->withStatus(403);
+            return $this->errorResponse('error.noFileMountAccess', 403);
         }
 
         $altText = $this->altTextGeneratorService->generate($file, $languageCode);
 
         if (null === $altText) {
-            return $this->jsonResponse(
-                json_encode([
-                    'error' => [
-                        'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:altText.generate.error.openAIConnection'),
-                        'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:altText.generate.error.openAIConnection.description'),
-                    ]
-                ])
-            )->withStatus(500);
+            return $this->errorResponse('altText.generate.error.openAIConnection', 500);
         }
 
-        return $this->jsonResponse(json_encode(['altText' => $altText]))->withStatus(201);
+        return new JsonResponse(['altText' => $altText], 201);
     }
 
-    /**
-     * Get backend user authentication.
-     * 
-     * @return BackendUserAuthentication
-     */
-    protected function getBackendUserAuthentication(): BackendUserAuthentication
+    private function getBackendUserAuthentication(): BackendUserAuthentication
     {
         return $GLOBALS['BE_USER'];
     }

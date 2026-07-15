@@ -29,21 +29,25 @@ return [
     'mindfula11y_generatealttext' => [
         'path' => '/mindfula11y/alt-text/generate',
         'target' => AltTextAjaxController::class . '::generateAction',
+        'methods' => ['POST'],
         'inheritAccessFromModule' => 'mindfula11y_accessibility',
     ],
     'mindfula11y_createscan' => [
         'path' => '/mindfula11y/scan/create',
         'target' => ScanAjaxController::class . '::createAction',
+        'methods' => ['POST'],
         'inheritAccessFromModule' => 'mindfula11y_accessibility',
     ],
     'mindfula11y_getscan' => [
         'path' => '/mindfula11y/scan/get',
         'target' => ScanAjaxController::class . '::getAction',
+        'methods' => ['GET'],
         'inheritAccessFromModule' => 'mindfula11y_accessibility',
     ],
     'mindfula11y_cancelscan' => [
         'path' => '/mindfula11y/scan/cancel',
         'target' => ScanAjaxController::class . '::cancelAction',
+        'methods' => ['POST'],
         'inheritAccessFromModule' => 'mindfula11y_accessibility',
     ],
     'mindfula11y_structure_ticket' => [

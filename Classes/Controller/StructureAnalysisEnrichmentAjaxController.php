@@ -35,6 +35,8 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 /** Resolves backend-authorized editing metadata for analyzed structure records. */
 final readonly class StructureAnalysisEnrichmentAjaxController
 {
+    use JsonErrorResponseTrait;
+
     /** Must match MAX_RECORDS_PER_REQUEST in service/structure/api.ts. */
     private const MAX_RECORDS_PER_REQUEST = 200;
 
@@ -46,10 +48,14 @@ final readonly class StructureAnalysisEnrichmentAjaxController
 
     public function enrichAction(ServerRequestInterface $request): ResponseInterface
     {
+        if (!$this->permissionService->checkModuleAccess()) {
+            return $this->errorResponse('error.forbidden', 403);
+        }
+
         $body = json_decode((string)$request->getBody(), true);
         $references = is_array($body) && is_array($body['records'] ?? null) ? $body['records'] : [];
         if (count($references) > self::MAX_RECORDS_PER_REQUEST) {
-            return new JsonResponse(['error' => 'Too many records requested for structure editing metadata.'], 400);
+            return $this->errorResponse('structure.error.tooManyRecords', 400);
         }
 
         // Built once: the group is a stateless provider list, and rebuilding it

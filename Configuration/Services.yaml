@@ -23,6 +23,14 @@ services:
         event: 'TYPO3\CMS\Form\Event\BeforeRenderableIsRenderedEvent'
         method: '__invoke'
 
+  # AJAX route targets are resolved from the container by the backend
+  # RouteDispatcher and therefore need to be public.
+  MindfulMarkup\MindfulA11y\Controller\AltTextAjaxController:
+    public: true
+
+  MindfulMarkup\MindfulA11y\Controller\ScanAjaxController:
+    public: true
+
   MindfulMarkup\MindfulA11y\Controller\StructureAnalysisEnrichmentAjaxController:
     public: true
 

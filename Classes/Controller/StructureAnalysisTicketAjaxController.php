@@ -37,6 +37,8 @@ use TYPO3\CMS\Core\Site\SiteFinder;
 /** Issues signed tickets for rendering a frontend preview in the structure analyzer. */
 final readonly class StructureAnalysisTicketAjaxController
 {
+    use JsonErrorResponseTrait;
+
     public function __construct(
         private StructureAnalysisTicketService $ticketService,
         private StructureAnalysisAuthorizationService $authorizationService,
@@ -81,7 +83,7 @@ final readonly class StructureAnalysisTicketAjaxController
                 $backendOrigin,
             );
         } catch (\InvalidArgumentException|\JsonException) {
-            return new JsonResponse(['error' => 'The frontend preview URL is invalid.'], 400);
+            return $this->errorResponse('structure.error.previewUrl', 400);
         }
 
         return new JsonResponse([
@@ -131,8 +133,12 @@ final readonly class StructureAnalysisTicketAjaxController
         return (int)($backendUser->user['uid'] ?? 0) > 0 ? $backendUser : null;
     }
 
+    /**
+     * Deliberately uniform across all authorization failures: the response
+     * must not reveal which specific check rejected the request.
+     */
     private function unavailableResponse(): JsonResponse
     {
-        return new JsonResponse(['error' => 'The frontend preview is not available for structure analysis.'], 403);
+        return $this->errorResponse('structure.error.unavailable', 403);
     }
 }

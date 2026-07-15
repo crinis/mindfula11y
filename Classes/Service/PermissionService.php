@@ -23,6 +23,7 @@ declare(strict_types=1);
 
 namespace MindfulMarkup\MindfulA11y\Service;
 
+use TYPO3\CMS\Backend\Module\ModuleProvider;
 use TYPO3\CMS\Backend\Tree\Repository\PageTreeRepository;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
@@ -42,9 +43,27 @@ use TYPO3\CMS\Core\Versioning\VersionState;
  */
 class PermissionService
 {
+    /** Identifier of the accessibility backend module all AJAX endpoints inherit access from. */
+    public const MODULE_NAME = 'mindfula11y_accessibility';
+
     public function __construct(
         protected readonly TcaSchemaFactory $tcaSchemaFactory,
     ) {}
+
+    /**
+     * Whether the current backend user may access the accessibility module.
+     *
+     * The single defense-in-depth check behind every AJAX endpoint (their
+     * routes already inherit access from the module). The ModuleProvider is
+     * resolved lazily: it drags in the full backend module registry, which
+     * must not be constructed for the DataHandler-hook and frontend paths
+     * that inject this service but never check module access.
+     */
+    public function checkModuleAccess(): bool
+    {
+        return GeneralUtility::makeInstance(ModuleProvider::class)
+            ->accessGranted(self::MODULE_NAME, $this->getBackendUserAuthentication());
+    }
 
     /**
      * Whether the given table is workspace-aware.

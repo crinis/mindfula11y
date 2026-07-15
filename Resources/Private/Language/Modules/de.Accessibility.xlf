@@ -116,6 +116,30 @@
                 <source>Editing information for the found elements could not be loaded.</source>
                 <target>Bearbeitungsinformationen für die gefundenen Elemente konnten nicht geladen werden.</target>
             </trans-unit>
+            <trans-unit id="structure.error.unavailable" resname="structure.error.unavailable">
+                <source>Frontend preview unavailable</source>
+                <target>Frontend-Vorschau nicht verfügbar</target>
+            </trans-unit>
+            <trans-unit id="structure.error.unavailable.description" resname="structure.error.unavailable.description">
+                <source>The frontend preview is not available for structure analysis on this page.</source>
+                <target>Die Frontend-Vorschau steht für die Strukturanalyse dieser Seite nicht zur Verfügung.</target>
+            </trans-unit>
+            <trans-unit id="structure.error.previewUrl" resname="structure.error.previewUrl">
+                <source>Frontend preview URL invalid</source>
+                <target>Frontend-Vorschau-URL ungültig</target>
+            </trans-unit>
+            <trans-unit id="structure.error.previewUrl.description" resname="structure.error.previewUrl.description">
+                <source>The frontend preview URL generated for this page is invalid.</source>
+                <target>Die für diese Seite erzeugte Frontend-Vorschau-URL ist ungültig.</target>
+            </trans-unit>
+            <trans-unit id="structure.error.tooManyRecords" resname="structure.error.tooManyRecords">
+                <source>Too many records requested</source>
+                <target>Zu viele Datensätze angefragt</target>
+            </trans-unit>
+            <trans-unit id="structure.error.tooManyRecords.description" resname="structure.error.tooManyRecords.description">
+                <source>The structure analysis requested editing information for too many records at once.</source>
+                <target>Die Strukturanalyse hat Bearbeitungsinformationen für zu viele Datensätze auf einmal angefragt.</target>
+            </trans-unit>
             <trans-unit id="structure.viewport.mobile" resname="structure.viewport.mobile">
                 <source>Mobile</source>
                 <target>Mobil</target>

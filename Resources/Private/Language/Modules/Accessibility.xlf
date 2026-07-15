@@ -93,6 +93,24 @@
             <trans-unit id="structure.error.rendering.enrich" resname="structure.error.rendering.enrich">
                 <source>Editing information for the found elements could not be loaded.</source>
             </trans-unit>
+            <trans-unit id="structure.error.unavailable" resname="structure.error.unavailable">
+                <source>Frontend preview unavailable</source>
+            </trans-unit>
+            <trans-unit id="structure.error.unavailable.description" resname="structure.error.unavailable.description">
+                <source>The frontend preview is not available for structure analysis on this page.</source>
+            </trans-unit>
+            <trans-unit id="structure.error.previewUrl" resname="structure.error.previewUrl">
+                <source>Frontend preview URL invalid</source>
+            </trans-unit>
+            <trans-unit id="structure.error.previewUrl.description" resname="structure.error.previewUrl.description">
+                <source>The frontend preview URL generated for this page is invalid.</source>
+            </trans-unit>
+            <trans-unit id="structure.error.tooManyRecords" resname="structure.error.tooManyRecords">
+                <source>Too many records requested</source>
+            </trans-unit>
+            <trans-unit id="structure.error.tooManyRecords.description" resname="structure.error.tooManyRecords.description">
+                <source>The structure analysis requested editing information for too many records at once.</source>
+            </trans-unit>
             <trans-unit id="structure.viewport.mobile" resname="structure.viewport.mobile">
                 <source>Mobile</source>
             </trans-unit>

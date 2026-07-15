@@ -29,7 +29,7 @@ use TYPO3\CMS\Core\Versioning\VersionState;
 /** Applies TYPO3's backend authorization model to structure-analysis capabilities. */
 final readonly class StructureAnalysisAuthorizationService
 {
-    private const MODULE_IDENTIFIER = 'mindfula11y_accessibility';
+    private const MODULE_IDENTIFIER = PermissionService::MODULE_NAME;
 
     public function __construct(
         private ModuleProvider $moduleProvider,

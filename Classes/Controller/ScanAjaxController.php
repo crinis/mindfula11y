@@ -31,77 +31,42 @@ use MindfulMarkup\MindfulA11y\Service\ScanApiService;
 use MindfulMarkup\MindfulA11y\Service\GeneralModuleService;
 use MindfulMarkup\MindfulA11y\Service\PermissionService;
 use MindfulMarkup\MindfulA11y\Service\SiteLanguageService;
+use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
-use TYPO3\CMS\Core\Http\AllowedMethodsTrait;
-use TYPO3\CMS\Extbase\Mvc\Controller\ActionController;
-use TYPO3\CMS\Core\Http\Error\MethodNotAllowedException;
-use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
-use TYPO3\CMS\Core\Type\Bitmask\Permission;
+use TYPO3\CMS\Core\Http\JsonResponse;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Versioning\VersionState;
 use TYPO3\CMS\Core\Site\SiteFinder;
 
 /**
- * Class ScanAjaxController.
+ * Handles the AJAX endpoints of the accessibility-scanner feature.
  *
- * This controller handles AJAX requests for the accessibility scanner feature.
+ * Allowed HTTP methods are enforced on the route definitions
+ * (Configuration/Backend/AjaxRoutes.php and Routes.php).
  */
-class ScanAjaxController extends ActionController
+final readonly class ScanAjaxController
 {
-    use AllowedMethodsTrait;
+    use JsonErrorResponseTrait;
 
-    /**
-     * Constructor.
-     *
-     * @param ScanApiService $scanApiService The accessibility scanner service.
-     * @param GeneralModuleService $generalModuleService The general module service.
-     * @param PermissionService $permissionService The permission service.
-     * @param SiteLanguageService $siteLanguageService The site language service.
-     */
     public function __construct(
-        protected readonly ScanApiService $scanApiService,
-        protected readonly GeneralModuleService $generalModuleService,
-        protected readonly PermissionService $permissionService,
-        protected readonly SiteFinder $siteFinder,
-        protected readonly SiteLanguageService $siteLanguageService,
+        private ScanApiService $scanApiService,
+        private GeneralModuleService $generalModuleService,
+        private PermissionService $permissionService,
+        private SiteFinder $siteFinder,
+        private SiteLanguageService $siteLanguageService,
+        private ResponseFactoryInterface $responseFactory,
     ) {}
 
     /**
-     * Assert allowed HTTP method for the createScan action.
-     *
-     * @throws MethodNotAllowedException If the request method is not allowed.
-     */
-    protected function initializeCreateAction(): void
-    {
-        $this->assertAllowedHttpMethod($this->request, 'POST');
-    }
-
-    /**
-     * Assert allowed HTTP method for the report action.
-     *
-     * @throws MethodNotAllowedException If the request method is not allowed.
-     */
-    protected function initializeReportAction(): void
-    {
-        $this->assertAllowedHttpMethod($this->request, 'GET');
-    }
-
-    /**
      * Stream an HTML or PDF accessibility report for a scan.
-     *
-     * @param ServerRequestInterface $request
-     * @return ResponseInterface
-     * @throws MethodNotAllowedException If the request method is not allowed.
      */
     public function reportAction(ServerRequestInterface $request): ResponseInterface
     {
-        $backendUser = $this->getBackendUserAuthentication();
-
-        if ($error = $this->requireModuleAccess($backendUser)) {
+        if ($error = $this->requireModuleAccess()) {
             return $error;
         }
 
@@ -110,15 +75,11 @@ class ScanAjaxController extends ActionController
         $format = $queryParams['format'] ?? '';
 
         if (empty($scanId)) {
-            return $this->jsonResponse(json_encode([
-                'error' => ['title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.noScanId')]
-            ]))->withStatus(404);
+            return $this->errorResponse('scan.error.noScanId', 404);
         }
 
         if (!in_array($format, ['html', 'pdf'], true)) {
-            return $this->jsonResponse(json_encode([
-                'error' => ['title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.reportFormat')]
-            ]))->withStatus(400);
+            return $this->errorResponse('scan.error.reportFormat', 400);
         }
 
         $pageRecord = $this->requireScanPageAccess($scanId);
@@ -128,12 +89,7 @@ class ScanAjaxController extends ActionController
 
         $body = $this->scanApiService->getReport($scanId, $format);
         if (null === $body) {
-            return $this->jsonResponse(json_encode([
-                'error' => [
-                    'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.reportFailed'),
-                    'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.reportFailed.description'),
-                ]
-            ]))->withStatus(500);
+            return $this->errorResponse('scan.error.reportFailed', 500);
         }
 
         $contentType = $format === 'pdf' ? 'application/pdf' : 'text/html; charset=utf-8';
@@ -158,30 +114,15 @@ class ScanAjaxController extends ActionController
     }
 
     /**
-     * Assert allowed HTTP method for the getResult action.
-     *
-     * @throws MethodNotAllowedException If the request method is not allowed.
-     */
-    protected function initializeGetAction(): void
-    {
-        $this->assertAllowedHttpMethod($this->request, 'GET');
-    }
-
-    /**
      * Create a new accessibility scan for a page.
      *
-     * @param ServerRequestInterface $request
-     *
-     * @return ResponseInterface
-     *
      * @throws InvalidArgumentException If the request parameters are invalid.
-     * @throws MethodNotAllowedException If the request method is not allowed.
      */
     public function createAction(ServerRequestInterface $request): ResponseInterface
     {
         $backendUser = $this->getBackendUserAuthentication();
 
-        if ($error = $this->requireModuleAccess($backendUser)) {
+        if ($error = $this->requireModuleAccess()) {
             return $error;
         }
 
@@ -197,14 +138,7 @@ class ScanAjaxController extends ActionController
         }
 
         if (!$demand->validateSignature()) {
-            return $this->jsonResponse(
-                json_encode([
-                    'error' => [
-                        'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:module.error.invalidSignature'),
-                        'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:module.error.invalidSignature.description'),
-                    ]
-                ])
-            )->withStatus(400);
+            return $this->errorResponse('module.error.invalidSignature', 400);
         }
 
         $userId = $demand->getUserId();
@@ -215,51 +149,23 @@ class ScanAjaxController extends ActionController
 
         // Verify the current backend user matches the demand
         if ($backendUser->user['uid'] !== $userId) {
-            return $this->jsonResponse(
-                json_encode([
-                    'error' => [
-                        'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.invalidUser'),
-                        'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.invalidUser.description'),
-                    ]
-                ])
-            )->withStatus(403);
+            return $this->errorResponse('error.invalidUser', 403);
         }
 
         // Verify the current workspace matches the demand
         if ($backendUser->workspace !== $workspaceId) {
-            return $this->jsonResponse(
-                json_encode([
-                    'error' => [
-                        'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.invalidWorkspace'),
-                        'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.invalidWorkspace.description'),
-                    ]
-                ])
-            )->withStatus(403);
+            return $this->errorResponse('error.invalidWorkspace', 403);
         }
 
         // Check language access
         if (!$this->permissionService->checkLanguageAccess($languageId)) {
-            return $this->jsonResponse(
-                json_encode([
-                    'error' => [
-                        'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.invalidLanguage'),
-                        'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.invalidLanguage.description'),
-                    ]
-                ])
-            )->withStatus(403);
+            return $this->errorResponse('error.invalidLanguage', 403);
         }
 
         // Check TSConfig access for scan feature
         $pageTsConfig = $this->generalModuleService->getConvertedPageTsConfig($pageId);
         if (!$this->generalModuleService->hasScanAccess($pageTsConfig)) {
-            return $this->jsonResponse(
-                json_encode([
-                    'error' => [
-                        'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.noAccess'),
-                        'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.noAccess.description'),
-                    ]
-                ])
-            )->withStatus(403);
+            return $this->errorResponse('scan.noAccess', 403);
         }
 
         // The AI audit is opt-in via Page TSconfig. MindfulAPI owns skill
@@ -267,41 +173,20 @@ class ScanAjaxController extends ActionController
         $aiAuditSkills = null;
         if ($aiAuditRequested) {
             if (!$this->generalModuleService->hasAiAuditAccess($pageTsConfig)) {
-                return $this->jsonResponse(
-                    json_encode([
-                        'error' => [
-                            'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.aiAuditNotAllowed'),
-                            'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.aiAuditNotAllowed.description'),
-                        ]
-                    ])
-                )->withStatus(403);
+                return $this->errorResponse('scan.error.aiAuditNotAllowed', 403);
             }
             $aiAuditSkills = $this->generalModuleService->getAiAuditSkills($pageTsConfig);
         }
 
         // Check if scanner is configured
         if (!$this->scanApiService->isConfigured()) {
-            return $this->jsonResponse(
-                json_encode([
-                    'error' => [
-                        'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.notConfigured'),
-                        'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.notConfigured.description'),
-                    ]
-                ])
-            )->withStatus(500);
+            return $this->errorResponse('scan.error.notConfigured', 500);
         }
 
         $page = BackendUtility::getRecordWSOL('pages', $pageId);
 
         if (null === $page || VersionState::tryFrom((int)$page['t3ver_state']) === VersionState::DELETE_PLACEHOLDER) {
-            return $this->jsonResponse(
-                json_encode([
-                    'error' => [
-                        'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.pageNotFound'),
-                        'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.pageNotFound.description'),
-                    ]
-                ])
-            )->withStatus(404);
+            return $this->errorResponse('scan.error.pageNotFound', 404);
         }
 
         if ($languageId > 0) {
@@ -309,39 +194,18 @@ class ScanAjaxController extends ActionController
             if ($localizedPage) {
                 $page = $localizedPage;
             } else {
-                return $this->jsonResponse(
-                    json_encode([
-                        'error' => [
-                            'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.pageNotFound'),
-                            'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.pageNotFound.description'),
-                        ]
-                    ])
-                )->withStatus(404);
+                return $this->errorResponse('scan.error.pageNotFound', 404);
             }
         }
 
         // Verify the current backend user actually has access to the page
         if (!$this->permissionService->checkRecordEditAccess('pages', $page)) {
-            return $this->jsonResponse(
-                json_encode([
-                    'error' => [
-                        'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.noPageAccess'),
-                        'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.noPageAccess.description'),
-                    ]
-                ])
-            )->withStatus(403);
+            return $this->errorResponse('error.noPageAccess', 403);
         }
 
         // Check if page is visible (not hidden and within start/end time)
         if (!$this->generalModuleService->isPageVisible($page)) {
-            return $this->jsonResponse(
-                json_encode([
-                    'error' => [
-                        'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.pageVisible'),
-                        'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.pageVisible.description'),
-                    ]
-                ])
-            )->withStatus(403);
+            return $this->errorResponse('scan.error.pageVisible', 403);
         }
 
         // Generate scan URLs
@@ -352,14 +216,7 @@ class ScanAjaxController extends ActionController
         if ($crawl) {
             // For crawl mode the API discovers pages from the start URL - only valid on site root pages
             if (!(bool)($page['is_siteroot'] ?? false)) {
-                return $this->jsonResponse(
-                    json_encode([
-                        'error' => [
-                            'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.crawlNotRootPage'),
-                            'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.crawlNotRootPage.description'),
-                        ]
-                    ])
-                )->withStatus(403);
+                return $this->errorResponse('scan.error.crawlNotRootPage', 403);
             }
             $scanUrls = [$previewUrl];
         } else {
@@ -402,64 +259,34 @@ class ScanAjaxController extends ActionController
         } catch (ScanApiRequestException $exception) {
             // Surface the API's own explanation (e.g. "AI audit is not enabled
             // on this server.") so editors see an actionable message.
-            $description = $exception->getProblemDetail() !== ''
-                ? $exception->getProblemDetail()
-                : LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.createFailed.description');
-            return $this->jsonResponse(
-                json_encode([
-                    'error' => [
-                        'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.createFailed'),
-                        'description' => $description,
-                    ]
-                ])
-            )->withStatus($exception->getStatusCode() >= 400 && $exception->getStatusCode() < 500 ? 400 : 500);
+            $status = $exception->getStatusCode() >= 400 && $exception->getStatusCode() < 500 ? 400 : 500;
+            $description = $exception->getProblemDetail() !== '' ? $exception->getProblemDetail() : null;
+            return $this->errorResponse('scan.error.createFailed', $status, $description);
         }
 
         if (null === $scanData || !isset($scanData['id'])) {
-            return $this->jsonResponse(
-                json_encode([
-                    'error' => [
-                        'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.createFailed'),
-                        'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.createFailed.description'),
-                    ]
-                ])
-            )->withStatus(500);
+            return $this->errorResponse('scan.error.createFailed', 500);
         }
 
         $newScanId = (string)$scanData['id'];
 
         // Store scan ID in database
         if (!$this->storeScanId($page['uid'], $newScanId)) {
-            return $this->jsonResponse(
-                json_encode([
-                    'error' => [
-                        'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.storeFailed'),
-                        'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.storeFailed.description'),
-                    ]
-                ])
-            )->withStatus(500);
+            return $this->errorResponse('scan.error.storeFailed', 500);
         }
 
-        return $this->jsonResponse(json_encode([
+        return new JsonResponse([
             'scanId' => $newScanId,
             'status' => $scanData['status'] ?? 'pending',
-        ]))->withStatus(201);
+        ], 201);
     }
 
     /**
      * Get scan results by scan ID.
-     *
-     * @param ServerRequestInterface $request
-     *
-     * @return ResponseInterface
-     *
-     * @throws MethodNotAllowedException If the request method is not allowed.
      */
     public function getAction(ServerRequestInterface $request): ResponseInterface
     {
-        $backendUser = $this->getBackendUserAuthentication();
-
-        if ($error = $this->requireModuleAccess($backendUser)) {
+        if ($error = $this->requireModuleAccess()) {
             return $error;
         }
 
@@ -467,14 +294,7 @@ class ScanAjaxController extends ActionController
         $scanId = $queryParams['scanId'] ?? '';
 
         if (empty($scanId)) {
-            return $this->jsonResponse(
-                json_encode([
-                    'error' => [
-                        'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.noScanId'),
-                        'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.noScanId.description'),
-                    ]
-                ])
-            )->withStatus(404);
+            return $this->errorResponse('scan.error.noScanId', 404);
         }
 
         $pageRecord = $this->requireScanPageAccess($scanId);
@@ -521,36 +341,14 @@ class ScanAjaxController extends ActionController
             // The scanner no longer knows the id (retention pruning). 404 is
             // the client's signal to forget the stored id and re-create the
             // scan — a 500 would strand it on the loading-error view.
-            return $this->jsonResponse(json_encode([
-                'error' => [
-                    'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.notFound'),
-                    'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.notFound.description'),
-                ]
-            ]))->withStatus(404);
+            return $this->errorResponse('scan.error.notFound', 404);
         }
 
         if (null === $scan) {
-            return $this->jsonResponse(
-                json_encode([
-                    'error' => [
-                        'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.getFailed'),
-                        'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.getFailed.description'),
-                    ]
-                ])
-            )->withStatus(500);
+            return $this->errorResponse('scan.error.getFailed', 500);
         }
 
-        return $this->jsonResponse(json_encode($scan))->withStatus(200);
-    }
-
-    /**
-     * Assert allowed HTTP method for the cancel action.
-     *
-     * @throws MethodNotAllowedException If the request method is not allowed.
-     */
-    protected function initializeCancelAction(): void
-    {
-        $this->assertAllowedHttpMethod($this->request, 'POST');
+        return new JsonResponse($scan, 200);
     }
 
     /**
@@ -558,18 +356,10 @@ class ScanAjaxController extends ActionController
      *
      * Requires the same page edit access as creating a scan, since canceling
      * mutates the scan state.
-     *
-     * @param ServerRequestInterface $request
-     *
-     * @return ResponseInterface
-     *
-     * @throws MethodNotAllowedException If the request method is not allowed.
      */
     public function cancelAction(ServerRequestInterface $request): ResponseInterface
     {
-        $backendUser = $this->getBackendUserAuthentication();
-
-        if ($error = $this->requireModuleAccess($backendUser)) {
+        if ($error = $this->requireModuleAccess()) {
             return $error;
         }
 
@@ -577,14 +367,7 @@ class ScanAjaxController extends ActionController
         $scanId = $requestBody['scanId'] ?? '';
 
         if (!is_string($scanId) || $scanId === '') {
-            return $this->jsonResponse(
-                json_encode([
-                    'error' => [
-                        'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.noScanId'),
-                        'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.noScanId.description'),
-                    ]
-                ])
-            )->withStatus(404);
+            return $this->errorResponse('scan.error.noScanId', 404);
         }
 
         $pageRecord = $this->requireScanPageAccess($scanId);
@@ -593,55 +376,28 @@ class ScanAjaxController extends ActionController
         }
 
         if (!$this->permissionService->checkRecordEditAccess('pages', $pageRecord)) {
-            return $this->jsonResponse(
-                json_encode([
-                    'error' => [
-                        'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.noPageAccess'),
-                        'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.noPageAccess.description'),
-                    ]
-                ])
-            )->withStatus(403);
+            return $this->errorResponse('error.noPageAccess', 403);
         }
 
         try {
             $scanData = $this->scanApiService->cancelScan($scanId);
         } catch (ScanApiRequestException $exception) {
             // 409 = scan already terminal; the client resolves it by reloading.
-            $description = $exception->getProblemDetail() !== ''
-                ? $exception->getProblemDetail()
-                : LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.cancelFailed.description');
-            return $this->jsonResponse(
-                json_encode([
-                    'error' => [
-                        'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.cancelFailed'),
-                        'description' => $description,
-                    ]
-                ])
-            )->withStatus($exception->getStatusCode() === 409 ? 409 : 500);
+            $status = $exception->getStatusCode() === 409 ? 409 : 500;
+            $description = $exception->getProblemDetail() !== '' ? $exception->getProblemDetail() : null;
+            return $this->errorResponse('scan.error.cancelFailed', $status, $description);
         }
 
         if (null === $scanData) {
-            return $this->jsonResponse(
-                json_encode([
-                    'error' => [
-                        'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.cancelFailed'),
-                        'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.cancelFailed.description'),
-                    ]
-                ])
-            )->withStatus(500);
+            return $this->errorResponse('scan.error.cancelFailed', 500);
         }
 
-        return $this->jsonResponse(json_encode([
+        return new JsonResponse([
             'status' => $scanData['status'] ?? 'canceled',
-        ]))->withStatus(200);
+        ], 200);
     }
 
-    /**
-     * Get backend user authentication.
-     *
-     * @return BackendUserAuthentication
-     */
-    protected function getBackendUserAuthentication(): BackendUserAuthentication
+    private function getBackendUserAuthentication(): BackendUserAuthentication
     {
         return $GLOBALS['BE_USER'];
     }
@@ -651,7 +407,6 @@ class ScanAjaxController extends ActionController
      *
      * Supports repeated OpenAPI query keys (`pageUrls=https://a&pageUrls=https://b`).
      *
-     * @param ServerRequestInterface $request
      * @return string[]
      */
     private function extractPageUrls(ServerRequestInterface $request): array
@@ -696,21 +451,13 @@ class ScanAjaxController extends ActionController
 
     /**
      * Returns a 403 response if the current backend user lacks module access, null otherwise.
-     *
-     * @param BackendUserAuthentication $backendUser
-     * @return ResponseInterface|null
      */
-    private function requireModuleAccess(BackendUserAuthentication $backendUser): ?ResponseInterface
+    private function requireModuleAccess(): ?ResponseInterface
     {
-        if ($backendUser->check('modules', 'mindfula11y_accessibility')) {
+        if ($this->permissionService->checkModuleAccess()) {
             return null;
         }
-        return $this->jsonResponse(json_encode([
-            'error' => [
-                'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.forbidden'),
-                'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:error.forbidden.description'),
-            ]
-        ]))->withStatus(403);
+        return $this->errorResponse('error.forbidden', 403);
     }
 
     /**
@@ -718,38 +465,22 @@ class ScanAjaxController extends ActionController
      * allows scan access for that page. Returns the page record on success, or a
      * ResponseInterface error response on failure.
      *
-     * @param string $scanId
      * @return array<string, mixed>|ResponseInterface Page record array on success, error response on failure.
      */
     private function requireScanPageAccess(string $scanId): array|ResponseInterface
     {
         $pageRecord = $this->generalModuleService->getPageRecordByScanId($scanId);
         if (null === $pageRecord) {
-            return $this->jsonResponse(json_encode([
-                'error' => [
-                    'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.notFound'),
-                    'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.notFound.description'),
-                ]
-            ]))->withStatus(404);
+            return $this->errorResponse('scan.error.notFound', 404);
         }
 
         if (!$this->permissionService->checkPageReadAccess($pageRecord)) {
-            return $this->jsonResponse(json_encode([
-                'error' => [
-                    'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.accessDenied'),
-                    'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.error.accessDenied.description'),
-                ]
-            ]))->withStatus(403);
+            return $this->errorResponse('scan.error.accessDenied', 403);
         }
 
         $pageTsConfig = $this->generalModuleService->getConvertedPageTsConfig((int)$pageRecord['uid']);
         if (!$this->generalModuleService->hasScanAccess($pageTsConfig)) {
-            return $this->jsonResponse(json_encode([
-                'error' => [
-                    'title' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.noAccess'),
-                    'description' => LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:scan.noAccess.description'),
-                ]
-            ]))->withStatus(403);
+            return $this->errorResponse('scan.noAccess', 403);
         }
 
         return $pageRecord;
@@ -757,13 +488,8 @@ class ScanAjaxController extends ActionController
 
     /**
      * Store scan ID in database using DataHandler.
-     *
-     * @param int $pageUid The page UID.
-     * @param string $scanId The scan ID.
-     *
-     * @return bool True if the update was successful, false otherwise.
      */
-    protected function storeScanId(int $pageUid, string $scanId): bool
+    private function storeScanId(int $pageUid, string $scanId): bool
     {
         $dataHandler = GeneralUtility::makeInstance(DataHandler::class);
         ScanStateDataHandlerGuard::withInternalWriteScope(static function () use ($dataHandler, $pageUid, $scanId): void {

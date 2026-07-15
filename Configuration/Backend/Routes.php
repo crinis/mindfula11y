@@ -26,6 +26,7 @@ return [
     'mindfula11y_scanreport' => [
         'path' => '/mindfula11y/scan/report',
         'target' => ScanAjaxController::class . '::reportAction',
+        'methods' => ['GET'],
         'inheritAccessFromModule' => 'mindfula11y_accessibility',
     ],
 ];
