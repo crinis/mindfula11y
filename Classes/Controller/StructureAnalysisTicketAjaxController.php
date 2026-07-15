@@ -22,7 +22,8 @@ declare(strict_types=1);
 
 namespace MindfulMarkup\MindfulA11y\Controller;
 
-use MindfulMarkup\MindfulA11y\Service\GeneralModuleService;
+use MindfulMarkup\MindfulA11y\Service\ModuleSettingsService;
+use MindfulMarkup\MindfulA11y\Service\PagePreviewService;
 use MindfulMarkup\MindfulA11y\Service\StructureAnalysisAuthorizationService;
 use MindfulMarkup\MindfulA11y\Service\StructureAnalysisTicketService;
 use Psr\Http\Message\ResponseInterface;
@@ -42,7 +43,8 @@ final readonly class StructureAnalysisTicketAjaxController
     public function __construct(
         private StructureAnalysisTicketService $ticketService,
         private StructureAnalysisAuthorizationService $authorizationService,
-        private GeneralModuleService $generalModuleService,
+        private ModuleSettingsService $moduleSettingsService,
+        private PagePreviewService $pagePreviewService,
         private SiteFinder $siteFinder,
     ) {}
 
@@ -102,9 +104,9 @@ final readonly class StructureAnalysisTicketAjaxController
      */
     private function isStructureAnalysisEnabled(int $pageId): bool
     {
-        $pageTsConfig = $this->generalModuleService->getConvertedPageTsConfig($pageId);
-        return $this->generalModuleService->hasHeadingStructureAccess($pageTsConfig)
-            || $this->generalModuleService->hasLandmarkStructureAccess($pageTsConfig);
+        $pageTsConfig = $this->moduleSettingsService->getConvertedPageTsConfig($pageId);
+        return $this->moduleSettingsService->hasHeadingStructureAccess($pageTsConfig)
+            || $this->moduleSettingsService->hasLandmarkStructureAccess($pageTsConfig);
     }
 
     /** @param array<string, mixed> $page */
@@ -114,7 +116,7 @@ final readonly class StructureAnalysisTicketAjaxController
             $site = $this->siteFinder->getSiteByPageId($pageId);
             $site->getLanguageById($languageId);
             $previewPage = $languageId > 0
-                ? $this->generalModuleService->getLocalizedPageRecord($pageId, $languageId)
+                ? $this->pagePreviewService->getLocalizedPageRecord($pageId, $languageId)
                 : $page;
             if (!is_array($previewPage)) {
                 return null;
@@ -129,8 +131,10 @@ final readonly class StructureAnalysisTicketAjaxController
 
     private function getBackendUser(): ?BackendUserAuthentication
     {
-        $backendUser = $this->generalModuleService->getBackendUserAuthentication();
-        return (int)($backendUser->user['uid'] ?? 0) > 0 ? $backendUser : null;
+        $backendUser = $GLOBALS['BE_USER'] ?? null;
+        return $backendUser instanceof BackendUserAuthentication && (int)($backendUser->user['uid'] ?? 0) > 0
+            ? $backendUser
+            : null;
     }
 
     /**

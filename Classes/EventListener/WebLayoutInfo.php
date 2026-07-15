@@ -24,9 +24,12 @@ declare(strict_types=1);
 namespace MindfulMarkup\MindfulA11y\EventListener;
 
 use MindfulMarkup\MindfulA11y\Service\AltTextFinderService;
-use MindfulMarkup\MindfulA11y\Service\GeneralModuleService;
+use MindfulMarkup\MindfulA11y\Service\ModuleLabelService;
+use MindfulMarkup\MindfulA11y\Service\ModuleSettingsService;
+use MindfulMarkup\MindfulA11y\Service\PagePreviewService;
 use MindfulMarkup\MindfulA11y\Service\PermissionService;
 use MindfulMarkup\MindfulA11y\Service\ScanApiService;
+use MindfulMarkup\MindfulA11y\Service\ScanStateService;
 use MindfulMarkup\MindfulA11y\Domain\Model\CreateScanDemand;
 use TYPO3\CMS\Backend\Controller\Event\ModifyPageLayoutContentEvent;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
@@ -37,6 +40,7 @@ use TYPO3\CMS\Core\View\ViewFactoryData;
 use TYPO3\CMS\Core\View\ViewFactoryInterface;
 use TYPO3\CMS\Core\Domain\Repository\PageRepository;
 use TYPO3\CMS\Core\Type\Bitmask\Permission;
+use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 
 /**
  * Event listener to add heading structure analysis to the page module
@@ -46,7 +50,10 @@ class WebLayoutInfo
     public function __construct(
         protected readonly PermissionService $permissionService,
         protected readonly AltTextFinderService $altTextFinderService,
-        protected readonly GeneralModuleService $generalModuleService,
+        protected readonly ModuleSettingsService $moduleSettingsService,
+        protected readonly PagePreviewService $pagePreviewService,
+        protected readonly ScanStateService $scanStateService,
+        protected readonly ModuleLabelService $moduleLabelService,
         protected readonly ScanApiService $scanApiService,
         protected readonly UriBuilder $backendUriBuilder,
         protected readonly PageRenderer $pageRenderer,
@@ -67,9 +74,9 @@ class WebLayoutInfo
         $site = $request->getAttribute('site', null);
         $moduleData = $request->getAttribute('moduleData', null);
 
-        $backendUser = $this->generalModuleService->getBackendUserAuthentication();
+        $backendUser = $this->getBackendUserAuthentication();
 
-        if (!$backendUser->check('modules', 'mindfula11y_accessibility') || 0 === $pageId || null === $moduleData || null === $site) {
+        if (!$this->permissionService->checkModuleAccess() || 0 === $pageId || null === $moduleData || null === $site) {
             return;
         }
 
@@ -87,21 +94,21 @@ class WebLayoutInfo
             return;
         }
 
-        $localizedPageInfo = $this->generalModuleService->getLocalizedPageRecord($pageId, $languageId);
+        $localizedPageInfo = $this->pagePreviewService->getLocalizedPageRecord($pageId, $languageId);
         $finalPageInfo = $localizedPageInfo ?: $pageInfo;        
-        $pageTsConfig = $this->generalModuleService->getConvertedPageTsConfig($pageId);
+        $pageTsConfig = $this->moduleSettingsService->getConvertedPageTsConfig($pageId);
 
         if ($pageTsConfig['mod']['web_layout']['mindfula11y']['hideInfo'] ?? false) {
             return;
         }
 
-        $hasMissingAltTextAccess = $this->generalModuleService->hasMissingAltTextAccess($pageTsConfig);
-        $hasHeadingStructureAccess = $this->generalModuleService->hasHeadingStructureAccess($pageTsConfig);
-        $hasLandmarkStructureAccess = $this->generalModuleService->hasLandmarkStructureAccess($pageTsConfig);
-        $hasScanAccess = $this->generalModuleService->hasScanAccess($pageTsConfig);
+        $hasMissingAltTextAccess = $this->moduleSettingsService->hasMissingAltTextAccess($pageTsConfig);
+        $hasHeadingStructureAccess = $this->moduleSettingsService->hasHeadingStructureAccess($pageTsConfig);
+        $hasLandmarkStructureAccess = $this->moduleSettingsService->hasLandmarkStructureAccess($pageTsConfig);
+        $hasScanAccess = $this->moduleSettingsService->hasScanAccess($pageTsConfig);
 
         // Disable scan access if page is hidden/not visible
-        $isPageVisible = $this->generalModuleService->isPageVisible($finalPageInfo);
+        $isPageVisible = $this->pagePreviewService->isPageVisible($finalPageInfo);
         if ($hasScanAccess && !$isPageVisible) {
             $hasScanAccess = false;
         }
@@ -115,8 +122,8 @@ class WebLayoutInfo
         $fileReferenceCount = null;
 
         if ($hasMissingAltTextAccess) {
-            $filterFileMetaData = !$this->generalModuleService->isFileMetadataIgnored($pageTsConfig)
-                && $this->generalModuleService->canReadFileMetadataAlternative();
+            $filterFileMetaData = !$this->moduleSettingsService->isFileMetadataIgnored($pageTsConfig)
+                && $this->moduleSettingsService->canReadFileMetadataAlternative();
             $fileReferenceCount = $this->altTextFinderService->countAltlessFileReferences(
                 $pageId,
                 0,
@@ -137,7 +144,7 @@ class WebLayoutInfo
 
         // Let PreviewUriBuilder decide if a preview can be built. It returns null when a preview is not available.
         $previewUri = PreviewUriBuilder::create($finalPageInfo)->buildUri();
-        $this->generalModuleService->allowStructureAnalysisFraming($previewUri, $pageTsConfig);
+        $this->moduleSettingsService->allowStructureAnalysisFraming($previewUri, $pageTsConfig);
 
         // Prepare scan-related variables
         $scanUri = null;
@@ -148,7 +155,7 @@ class WebLayoutInfo
             // Get existing scan ID from database
             $existingScanId = $finalPageInfo['tx_mindfula11y_scanid'] ?? null;
 
-            $contentChanged = $this->generalModuleService->shouldInvalidateScan($finalPageInfo, (int)($pageInfo['SYS_LASTCHANGED'] ?? 0));
+            $contentChanged = $this->scanStateService->shouldInvalidateScan($finalPageInfo, (int)($pageInfo['SYS_LASTCHANGED'] ?? 0));
 
             // Only use existing scan ID if content hasn't changed
             if ($existingScanId && !$contentChanged) {
@@ -204,7 +211,7 @@ class WebLayoutInfo
             'scanId' => $scanId,
             'scanUri' => $scanUri,
             'createScanDemand' => $createScanDemand,
-            'autoCreateScan' => $this->generalModuleService->isAutoCreateScanEnabled($pageTsConfig),
+            'autoCreateScan' => $this->moduleSettingsService->isAutoCreateScanEnabled($pageTsConfig),
             'pageUrlFilter' => null !== $previewUri ? [(string) $previewUri] : [],
         ]);
 
@@ -214,12 +221,17 @@ class WebLayoutInfo
         $event->setHeaderContent($renderedContent . $currentHeaderContent);
 
         // Register language labels for JavaScript
-        $this->pageRenderer->addInlineLanguageLabelArray($this->generalModuleService->getInlineLanguageLabels());
+        $this->pageRenderer->addInlineLanguageLabelArray($this->moduleLabelService->getInlineLanguageLabels());
 
         // Load the JavaScript modules; all styling lives in the components'
         // shadow roots, so no global CSS file is needed here.
         $this->pageRenderer->loadJavaScriptModule('@mindfulmarkup/mindfula11y/element/structure/structure.js');
         $this->pageRenderer->loadJavaScriptModule('@mindfulmarkup/mindfula11y/element/scan-issue-count/scan-issue-count.js');
         $this->pageRenderer->loadJavaScriptModule('@mindfulmarkup/mindfula11y/element/notice/notice.js');
+    }
+
+    protected function getBackendUserAuthentication(): BackendUserAuthentication
+    {
+        return $GLOBALS['BE_USER'];
     }
 }

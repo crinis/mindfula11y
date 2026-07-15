@@ -25,9 +25,12 @@ namespace MindfulMarkup\MindfulA11y\Backend;
 use MindfulMarkup\MindfulA11y\Domain\Model\CreateScanDemand;
 use MindfulMarkup\MindfulA11y\Enum\Feature;
 use MindfulMarkup\MindfulA11y\Service\AltTextFinderService;
-use MindfulMarkup\MindfulA11y\Service\GeneralModuleService;
+use MindfulMarkup\MindfulA11y\Service\ModuleSettingsService;
+use MindfulMarkup\MindfulA11y\Service\PagePreviewService;
 use MindfulMarkup\MindfulA11y\Service\ScanApiService;
+use MindfulMarkup\MindfulA11y\Service\ScanStateService;
 use Psr\Http\Message\ResponseInterface;
+use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Backend\Routing\PreviewUriBuilder;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Core\Page\PageRenderer;
@@ -39,7 +42,9 @@ use TYPO3\CMS\Core\Page\PageRenderer;
 final readonly class OverviewFeatureRenderer implements FeatureRendererInterface
 {
     public function __construct(
-        private GeneralModuleService $generalModuleService,
+        private ModuleSettingsService $moduleSettingsService,
+        private PagePreviewService $pagePreviewService,
+        private ScanStateService $scanStateService,
         private AltTextFinderService $altTextFinderService,
         private ScanApiService $scanApiService,
         private UriBuilder $backendUriBuilder,
@@ -58,21 +63,21 @@ final readonly class OverviewFeatureRenderer implements FeatureRendererInterface
         $missingAltTextUri = null;
         $fileReferenceCount = null;
 
-        $hasMissingAltTextAccess = $this->generalModuleService->hasMissingAltTextAccess($pageTsConfig);
-        $hasHeadingStructureAccess = $this->generalModuleService->hasHeadingStructureAccess($pageTsConfig);
-        $hasLandmarkStructureAccess = $this->generalModuleService->hasLandmarkStructureAccess($pageTsConfig);
-        $hasScanAccess = $this->generalModuleService->hasScanAccess($pageTsConfig);
-        $this->generalModuleService->allowStructureAnalysisFraming($previewUri, $pageTsConfig);
+        $hasMissingAltTextAccess = $this->moduleSettingsService->hasMissingAltTextAccess($pageTsConfig);
+        $hasHeadingStructureAccess = $this->moduleSettingsService->hasHeadingStructureAccess($pageTsConfig);
+        $hasLandmarkStructureAccess = $this->moduleSettingsService->hasLandmarkStructureAccess($pageTsConfig);
+        $hasScanAccess = $this->moduleSettingsService->hasScanAccess($pageTsConfig);
+        $this->moduleSettingsService->allowStructureAnalysisFraming($previewUri, $pageTsConfig);
 
         // Disable scan access if page is hidden/not visible
-        $isPageVisible = $this->generalModuleService->isPageVisible($finalPageInfo);
+        $isPageVisible = $this->pagePreviewService->isPageVisible($finalPageInfo);
         if ($hasScanAccess && !$isPageVisible) {
             $hasScanAccess = false;
         }
 
         if ($hasMissingAltTextAccess) {
-            $filterFileMetaData = !$this->generalModuleService->isFileMetadataIgnored($pageTsConfig)
-                && $this->generalModuleService->canReadFileMetadataAlternative();
+            $filterFileMetaData = !$this->moduleSettingsService->isFileMetadataIgnored($pageTsConfig)
+                && $this->moduleSettingsService->canReadFileMetadataAlternative();
             $fileReferenceCount = $this->altTextFinderService->countAltlessFileReferences(
                 $context->pageId,
                 0,
@@ -101,7 +106,7 @@ final readonly class OverviewFeatureRenderer implements FeatureRendererInterface
             $existingScanId = $finalPageInfo['tx_mindfula11y_scanid'] ?? null;
 
             // Check if content has changed since last scan
-            $contentChanged = $this->generalModuleService->shouldInvalidateScan($finalPageInfo, (int)($context->pageInfo['SYS_LASTCHANGED'] ?? 0));
+            $contentChanged = $this->scanStateService->shouldInvalidateScan($finalPageInfo, (int)($context->pageInfo['SYS_LASTCHANGED'] ?? 0));
 
             // Only use existing scan ID if content hasn't changed
             if ($existingScanId && !$contentChanged) {
@@ -110,7 +115,7 @@ final readonly class OverviewFeatureRenderer implements FeatureRendererInterface
 
             // Create scan demand for the component
             if (null !== $previewUri) {
-                $backendUser = $this->generalModuleService->getBackendUserAuthentication();
+                $backendUser = $this->getBackendUserAuthentication();
                 $createScanDemand = new CreateScanDemand(
                     userId: (int)$backendUser->user['uid'],
                     pageId: $context->pageId,
@@ -148,7 +153,7 @@ final readonly class OverviewFeatureRenderer implements FeatureRendererInterface
             'scanId' => $scanId,
             'scanUri' => $scanUri,
             'createScanDemand' => $createScanDemand,
-            'autoCreateScan' => $this->generalModuleService->isAutoCreateScanEnabled($pageTsConfig),
+            'autoCreateScan' => $this->moduleSettingsService->isAutoCreateScanEnabled($pageTsConfig),
             'pageUrlFilter' => $previewUri !== null ? [(string)$previewUri] : [],
         ]);
 
@@ -157,5 +162,10 @@ final readonly class OverviewFeatureRenderer implements FeatureRendererInterface
         $this->pageRenderer->loadJavaScriptModule('@mindfulmarkup/mindfula11y/element/notice/notice.js');
 
         return $context->moduleTemplate->renderResponse('Backend/Overview');
+    }
+
+    private function getBackendUserAuthentication(): BackendUserAuthentication
+    {
+        return $GLOBALS['BE_USER'];
     }
 }

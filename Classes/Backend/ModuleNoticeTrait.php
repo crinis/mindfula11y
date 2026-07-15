@@ -24,6 +24,7 @@ namespace MindfulMarkup\MindfulA11y\Backend;
 
 use Psr\Http\Message\ResponseInterface;
 use TYPO3\CMS\Backend\Template\ModuleTemplate;
+use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Messaging\FlashMessage;
 use TYPO3\CMS\Core\Type\ContextualFeedbackSeverity;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -32,8 +33,7 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
  * Localized flash messages and the message-only module view.
  *
  * Using classes must provide `$this->flashMessageService`
- * (TYPO3\CMS\Core\Messaging\FlashMessageService) and
- * `$this->generalModuleService` (for the LanguageService).
+ * (TYPO3\CMS\Core\Messaging\FlashMessageService).
  */
 trait ModuleNoticeTrait
 {
@@ -45,7 +45,7 @@ trait ModuleNoticeTrait
      */
     protected function addLocalizedFlashMessage(string $labelKey, ContextualFeedbackSeverity $severity): void
     {
-        $languageService = $this->generalModuleService->getLanguageService();
+        $languageService = $this->getLanguageService();
         $flashMessage = GeneralUtility::makeInstance(
             FlashMessage::class,
             $languageService->sL(self::MODULE_LANGUAGE_FILE . $labelKey . '.description'),
@@ -67,5 +67,11 @@ trait ModuleNoticeTrait
     ): ResponseInterface {
         $this->addLocalizedFlashMessage($labelKey, $severity);
         return $moduleTemplate->renderResponse('Backend/Info')->withStatus($statusCode);
+    }
+
+    /** Provided by the backend request stack for every module route. */
+    protected function getLanguageService(): LanguageService
+    {
+        return $GLOBALS['LANG'];
     }
 }

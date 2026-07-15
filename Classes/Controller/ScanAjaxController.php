@@ -28,9 +28,11 @@ use MindfulMarkup\MindfulA11y\Domain\Model\CreateScanDemand;
 use MindfulMarkup\MindfulA11y\Exception\ScanApiRequestException;
 use MindfulMarkup\MindfulA11y\Exception\ScanCreationException;
 use MindfulMarkup\MindfulA11y\Service\ScanApiService;
-use MindfulMarkup\MindfulA11y\Service\GeneralModuleService;
+use MindfulMarkup\MindfulA11y\Service\ModuleSettingsService;
+use MindfulMarkup\MindfulA11y\Service\PagePreviewService;
 use MindfulMarkup\MindfulA11y\Service\PermissionService;
 use MindfulMarkup\MindfulA11y\Service\ScanCreationService;
+use MindfulMarkup\MindfulA11y\Service\ScanStateService;
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -52,7 +54,9 @@ final readonly class ScanAjaxController
 
     public function __construct(
         private ScanApiService $scanApiService,
-        private GeneralModuleService $generalModuleService,
+        private ModuleSettingsService $moduleSettingsService,
+        private PagePreviewService $pagePreviewService,
+        private ScanStateService $scanStateService,
         private PermissionService $permissionService,
         private SiteFinder $siteFinder,
         private ScanCreationService $scanCreationService,
@@ -160,8 +164,8 @@ final readonly class ScanAjaxController
         }
 
         // Check TSConfig access for scan feature
-        $pageTsConfig = $this->generalModuleService->getConvertedPageTsConfig($pageId);
-        if (!$this->generalModuleService->hasScanAccess($pageTsConfig)) {
+        $pageTsConfig = $this->moduleSettingsService->getConvertedPageTsConfig($pageId);
+        if (!$this->moduleSettingsService->hasScanAccess($pageTsConfig)) {
             return $this->errorResponse('scan.noAccess', 403);
         }
 
@@ -169,10 +173,10 @@ final readonly class ScanAjaxController
         // selection and applies its server-side whitelist.
         $aiAuditSkills = null;
         if ($aiAuditRequested) {
-            if (!$this->generalModuleService->hasAiAuditAccess($pageTsConfig)) {
+            if (!$this->moduleSettingsService->hasAiAuditAccess($pageTsConfig)) {
                 return $this->errorResponse('scan.error.aiAuditNotAllowed', 403);
             }
-            $aiAuditSkills = $this->generalModuleService->getAiAuditSkills($pageTsConfig);
+            $aiAuditSkills = $this->moduleSettingsService->getAiAuditSkills($pageTsConfig);
         }
 
         $page = BackendUtility::getRecordWSOL('pages', $pageId);
@@ -182,7 +186,7 @@ final readonly class ScanAjaxController
         }
 
         if ($languageId > 0) {
-            $localizedPage = $this->generalModuleService->getLocalizedPageRecord($pageId, $languageId);
+            $localizedPage = $this->pagePreviewService->getLocalizedPageRecord($pageId, $languageId);
             if ($localizedPage) {
                 $page = $localizedPage;
             } else {
@@ -196,7 +200,7 @@ final readonly class ScanAjaxController
         }
 
         // Check if page is visible (not hidden and within start/end time)
-        if (!$this->generalModuleService->isPageVisible($page)) {
+        if (!$this->pagePreviewService->isPageVisible($page)) {
             return $this->errorResponse('scan.error.pageVisible', 403);
         }
 
@@ -397,7 +401,7 @@ final readonly class ScanAjaxController
      */
     private function requireScanPageAccess(string $scanId): array|ResponseInterface
     {
-        $pageRecord = $this->generalModuleService->getPageRecordByScanId($scanId);
+        $pageRecord = $this->scanStateService->getPageRecordByScanId($scanId);
         if (null === $pageRecord) {
             return $this->errorResponse('scan.error.notFound', 404);
         }
@@ -406,8 +410,8 @@ final readonly class ScanAjaxController
             return $this->errorResponse('scan.error.accessDenied', 403);
         }
 
-        $pageTsConfig = $this->generalModuleService->getConvertedPageTsConfig((int)$pageRecord['uid']);
-        if (!$this->generalModuleService->hasScanAccess($pageTsConfig)) {
+        $pageTsConfig = $this->moduleSettingsService->getConvertedPageTsConfig((int)$pageRecord['uid']);
+        if (!$this->moduleSettingsService->hasScanAccess($pageTsConfig)) {
             return $this->errorResponse('scan.noAccess', 403);
         }
 

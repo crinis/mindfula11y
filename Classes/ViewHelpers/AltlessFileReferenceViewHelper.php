@@ -27,7 +27,7 @@ use MindfulMarkup\MindfulA11y\Domain\Model\AltlessFileReference;
 use MindfulMarkup\MindfulA11y\Domain\Model\GenerateAltTextDemand;
 use MindfulMarkup\MindfulA11y\Service\OpenAIService;
 use MindfulMarkup\MindfulA11y\Service\PermissionService;
-use MindfulMarkup\MindfulA11y\Service\GeneralModuleService;
+use MindfulMarkup\MindfulA11y\Service\ModuleSettingsService;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
@@ -48,7 +48,7 @@ class AltlessFileReferenceViewHelper extends AbstractTagBasedViewHelper
      */
     protected readonly PermissionService $permissionService;
 
-    protected readonly GeneralModuleService $generalModuleService;
+    protected readonly ModuleSettingsService $moduleSettingsService;
 
     /**
      * OpenAI service instance.
@@ -78,9 +78,9 @@ class AltlessFileReferenceViewHelper extends AbstractTagBasedViewHelper
         $this->permissionService = $permissionService;
     }
 
-    public function injectGeneralModuleService(GeneralModuleService $generalModuleService): void
+    public function injectModuleSettingsService(ModuleSettingsService $moduleSettingsService): void
     {
-        $this->generalModuleService = $generalModuleService;
+        $this->moduleSettingsService = $moduleSettingsService;
     }
 
     /**
@@ -169,7 +169,7 @@ class AltlessFileReferenceViewHelper extends AbstractTagBasedViewHelper
 
         $this->tag->addAttribute('uid', $fileReference->getUid());
 
-        if ($this->generalModuleService->canReadFileMetadataAlternative()) {
+        if ($this->moduleSettingsService->canReadFileMetadataAlternative()) {
             $fallbackAlternative = $fileReference->getOriginalResource()->getOriginalFile()->getProperty('alternative');
             if (is_string($fallbackAlternative) && '' !== $fallbackAlternative) {
                 $this->tag->addAttribute('fallback-alternative', $fallbackAlternative);

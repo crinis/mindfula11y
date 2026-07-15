@@ -23,7 +23,7 @@ declare(strict_types=1);
 namespace MindfulMarkup\MindfulA11y\Backend;
 
 use MindfulMarkup\MindfulA11y\Service\AltTextFinderService;
-use MindfulMarkup\MindfulA11y\Service\GeneralModuleService;
+use MindfulMarkup\MindfulA11y\Service\ModuleSettingsService;
 use MindfulMarkup\MindfulA11y\Service\PermissionService;
 use Psr\Http\Message\ResponseInterface;
 use TYPO3\CMS\Backend\Template\Components\ButtonBar;
@@ -48,7 +48,7 @@ final readonly class MissingAltTextFeatureRenderer implements FeatureRendererInt
     private const ITEMS_PER_PAGE = 100;
 
     public function __construct(
-        private GeneralModuleService $generalModuleService,
+        private ModuleSettingsService $moduleSettingsService,
         private AltTextFinderService $altTextFinderService,
         private PermissionService $permissionService,
         private PageRenderer $pageRenderer,
@@ -58,7 +58,7 @@ final readonly class MissingAltTextFeatureRenderer implements FeatureRendererInt
 
     public function render(ModuleContext $context): ResponseInterface
     {
-        if (!$this->generalModuleService->hasMissingAltTextAccess($context->pageTsConfig)) {
+        if (!$this->moduleSettingsService->hasMissingAltTextAccess($context->pageTsConfig)) {
             return $this->noticeResponse($context->moduleTemplate, 'altText.noAccess', ContextualFeedbackSeverity::ERROR, 403);
         }
 
@@ -74,8 +74,8 @@ final readonly class MissingAltTextFeatureRenderer implements FeatureRendererInt
 
         // Metadata fallback alt text is only considered when the TSconfig option allows
         // it AND the user may read it; the editor toggle then decides per module view.
-        $canConsiderFileMetaData = !$this->generalModuleService->isFileMetadataIgnored($context->pageTsConfig)
-            && $this->generalModuleService->canReadFileMetadataAlternative();
+        $canConsiderFileMetaData = !$this->moduleSettingsService->isFileMetadataIgnored($context->pageTsConfig)
+            && $this->moduleSettingsService->canReadFileMetadataAlternative();
         $filterFileMetaData = $canConsiderFileMetaData && (bool)$context->moduleData->get('filterFileMetaData', true);
 
         $this->menuBuilder->addDropDown($context->moduleTemplate, $this->buildPageLevelsMenu($context, $tableName, $pageLevels, $filterFileMetaData), 3);
@@ -180,14 +180,14 @@ final readonly class MissingAltTextFeatureRenderer implements FeatureRendererInt
         }
 
         return $this->menuBuilder->buildDropDown(
-            $this->generalModuleService->getLanguageService()->sL(self::MODULE_LANGUAGE_FILE . 'module.menu.tables'),
+            $this->getLanguageService()->sL(self::MODULE_LANGUAGE_FILE . 'module.menu.tables'),
             $items
         );
     }
 
     private function buildPageLevelsMenu(ModuleContext $context, string $currentTableName, int $currentPageLevels, bool $filterFileMetaData): ?DropDownButton
     {
-        $languageService = $this->generalModuleService->getLanguageService();
+        $languageService = $this->getLanguageService();
         $items = [];
         foreach ([1, 5, 10, 99] as $pageLevels) {
             $items[] = [
@@ -209,7 +209,7 @@ final readonly class MissingAltTextFeatureRenderer implements FeatureRendererInt
 
     private function buildFilterDropDown(ModuleContext $context, string $currentTableName, int $currentPageLevels, bool $filterFileMetaData): DropDownButton
     {
-        $languageService = $this->generalModuleService->getLanguageService();
+        $languageService = $this->getLanguageService();
         $button = $this->menuBuilder->createDropDownButton()
             ->setLabel($languageService->sL(self::MODULE_LANGUAGE_FILE . 'module.menu.filter'))
             ->setShowLabelText(true);
@@ -236,10 +236,10 @@ final readonly class MissingAltTextFeatureRenderer implements FeatureRendererInt
     private function getTableTitle(string $tableName): string
     {
         if (empty($tableName)) {
-            return $this->generalModuleService->getLanguageService()->sL(self::MODULE_LANGUAGE_FILE . 'module.menu.tables.all');
+            return $this->getLanguageService()->sL(self::MODULE_LANGUAGE_FILE . 'module.menu.tables.all');
         }
         if (isset($GLOBALS['TCA'][$tableName]['ctrl']['title'])) {
-            return $this->generalModuleService->getLanguageService()->sL($GLOBALS['TCA'][$tableName]['ctrl']['title']);
+            return $this->getLanguageService()->sL($GLOBALS['TCA'][$tableName]['ctrl']['title']);
         }
         return $tableName;
     }

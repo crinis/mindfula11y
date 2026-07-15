@@ -42,7 +42,8 @@ final readonly class ScanCreationService
 {
     public function __construct(
         private ScanApiService $scanApiService,
-        private GeneralModuleService $generalModuleService,
+        private ModuleSettingsService $moduleSettingsService,
+        private PagePreviewService $pagePreviewService,
         private SiteLanguageService $siteLanguageService,
     ) {}
 
@@ -78,7 +79,7 @@ final readonly class ScanCreationService
 
         // Read basic auth credentials from PageTS (server-side only, never from client input).
         $scanOptions = [];
-        $basicAuth = $this->generalModuleService->getScanBasicAuth($pageTsConfig);
+        $basicAuth = $this->moduleSettingsService->getScanBasicAuth($pageTsConfig);
         if ($basicAuth !== null) {
             $scanOptions['basicAuth'] = $basicAuth;
         }
@@ -132,7 +133,7 @@ final readonly class ScanCreationService
 
         $scanUrls = [];
         if ($demand->getPageLevels() > 0) {
-            $scanUrls = $this->generalModuleService->generatePageUrls(
+            $scanUrls = $this->pagePreviewService->generatePageUrls(
                 $demand->getPageId(),
                 $demand->getLanguageId(),
                 $demand->getPageLevels(),

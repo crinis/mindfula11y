@@ -23,10 +23,13 @@ declare(strict_types=1);
 namespace MindfulMarkup\MindfulA11y\Backend;
 
 use MindfulMarkup\MindfulA11y\Domain\Model\CreateScanDemand;
-use MindfulMarkup\MindfulA11y\Service\GeneralModuleService;
+use MindfulMarkup\MindfulA11y\Service\ModuleSettingsService;
+use MindfulMarkup\MindfulA11y\Service\PagePreviewService;
 use MindfulMarkup\MindfulA11y\Service\PermissionService;
 use MindfulMarkup\MindfulA11y\Service\ScanApiService;
+use MindfulMarkup\MindfulA11y\Service\ScanStateService;
 use Psr\Http\Message\ResponseInterface;
+use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Backend\Routing\PreviewUriBuilder;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Backend\Template\Components\Buttons\DropDownButton;
@@ -46,7 +49,9 @@ final readonly class ScanFeatureRenderer implements FeatureRendererInterface
     private const PAGE_LEVELS_OPTIONS = [0, 1, 5, 10, 99];
 
     public function __construct(
-        private GeneralModuleService $generalModuleService,
+        private ModuleSettingsService $moduleSettingsService,
+        private PagePreviewService $pagePreviewService,
+        private ScanStateService $scanStateService,
         private ScanApiService $scanApiService,
         private PermissionService $permissionService,
         private UriBuilder $backendUriBuilder,
@@ -57,7 +62,7 @@ final readonly class ScanFeatureRenderer implements FeatureRendererInterface
 
     public function render(ModuleContext $context): ResponseInterface
     {
-        if (!$this->generalModuleService->hasScanAccess($context->pageTsConfig)) {
+        if (!$this->moduleSettingsService->hasScanAccess($context->pageTsConfig)) {
             return $this->noticeResponse($context->moduleTemplate, 'scan.noAccess', ContextualFeedbackSeverity::ERROR, 403);
         }
 
@@ -73,7 +78,7 @@ final readonly class ScanFeatureRenderer implements FeatureRendererInterface
         // Get localized page info for preview URL generation
         $finalPageInfo = $context->getPreviewPageInfo();
 
-        if (!$this->generalModuleService->isPageVisible($finalPageInfo)) {
+        if (!$this->pagePreviewService->isPageVisible($finalPageInfo)) {
             return $this->noticeResponse($context->moduleTemplate, 'scan.error.pageVisible', ContextualFeedbackSeverity::INFO);
         }
 
@@ -97,7 +102,7 @@ final readonly class ScanFeatureRenderer implements FeatureRendererInterface
         $canTriggerScan = $this->permissionService->checkRecordEditAccess('pages', $finalPageInfo);
 
         // Check if content has changed since last scan
-        $contentChanged = $this->generalModuleService->shouldInvalidateScan($finalPageInfo, (int)($context->pageInfo['SYS_LASTCHANGED'] ?? 0));
+        $contentChanged = $this->scanStateService->shouldInvalidateScan($finalPageInfo, (int)($context->pageInfo['SYS_LASTCHANGED'] ?? 0));
 
         // Only use existing scan ID if content hasn't changed — stored per language on $finalPageInfo
         $scanId = null;
@@ -118,10 +123,10 @@ final readonly class ScanFeatureRenderer implements FeatureRendererInterface
             // Used by the frontend to detect when an existing scan was created with a different
             // set of URLs and needs to be restarted (autoCreate + url_list mode mismatch).
             $urlList = $pageLevels > 0
-                ? $this->generalModuleService->generatePageUrls($context->pageId, $context->languageId, $pageLevels, (string)$previewUri)
+                ? $this->pagePreviewService->generatePageUrls($context->pageId, $context->languageId, $pageLevels, (string)$previewUri)
                 : [(string)$previewUri];
 
-            $backendUser = $this->generalModuleService->getBackendUserAuthentication();
+            $backendUser = $this->getBackendUserAuthentication();
             $createScanDemand = new CreateScanDemand(
                 userId: (int)$backendUser->user['uid'],
                 pageId: $context->pageId,
@@ -149,17 +154,17 @@ final readonly class ScanFeatureRenderer implements FeatureRendererInterface
 
         // The AI audit toggle is only offered when TSConfig enables it and the
         // user can trigger scans at all; the skill list is shown for transparency.
-        $aiAuditAvailable = $canTriggerScan && $this->generalModuleService->hasAiAuditAccess($context->pageTsConfig);
+        $aiAuditAvailable = $canTriggerScan && $this->moduleSettingsService->hasAiAuditAccess($context->pageTsConfig);
         $context->moduleTemplate->assignMultiple([
             'scanId' => $scanId,
             'createScanDemand' => $createScanDemand,
             'crawlScanDemand' => $crawlScanDemand,
-            'autoCreateScan' => $pageLevels === 0 && $this->generalModuleService->isAutoCreateScanEnabled($context->pageTsConfig),
+            'autoCreateScan' => $pageLevels === 0 && $this->moduleSettingsService->isAutoCreateScanEnabled($context->pageTsConfig),
             'pageUrlFilter' => $pageUrlFilter,
             'urlList' => $urlList,
             'reportBaseUrl' => $reportBaseUrl,
             'aiAuditAvailable' => $aiAuditAvailable,
-            'aiAuditDefault' => $aiAuditAvailable && $this->generalModuleService->isAiAuditDefaultEnabled($context->pageTsConfig),
+            'aiAuditDefault' => $aiAuditAvailable && $this->moduleSettingsService->isAiAuditDefaultEnabled($context->pageTsConfig),
         ]);
 
         $this->pageRenderer->loadJavaScriptModule('@mindfulmarkup/mindfula11y/element/scan/scan.js');
@@ -169,7 +174,7 @@ final readonly class ScanFeatureRenderer implements FeatureRendererInterface
 
     private function buildPageLevelsMenu(ModuleContext $context, int $currentPageLevels): ?DropDownButton
     {
-        $languageService = $this->generalModuleService->getLanguageService();
+        $languageService = $this->getLanguageService();
         $items = [];
         foreach (self::PAGE_LEVELS_OPTIONS as $pageLevels) {
             $items[] = [
@@ -185,5 +190,10 @@ final readonly class ScanFeatureRenderer implements FeatureRendererInterface
             $languageService->sL(self::MODULE_LANGUAGE_FILE . 'module.menu.pageLevels'),
             $items
         );
+    }
+
+    private function getBackendUserAuthentication(): BackendUserAuthentication
+    {
+        return $GLOBALS['BE_USER'];
     }
 }

@@ -14,7 +14,7 @@ declare(strict_types=1);
 
 namespace MindfulMarkup\MindfulA11y\Form\FormDataProvider;
 
-use MindfulMarkup\MindfulA11y\Service\GeneralModuleService;
+use MindfulMarkup\MindfulA11y\Service\ModuleSettingsService;
 use Symfony\Component\DependencyInjection\Attribute\Autoconfigure;
 use TYPO3\CMS\Backend\Form\FormDataProviderInterface;
 
@@ -22,13 +22,13 @@ use TYPO3\CMS\Backend\Form\FormDataProviderInterface;
 final readonly class MetadataAlternativePlaceholderAccessGuard implements FormDataProviderInterface
 {
     public function __construct(
-        private GeneralModuleService $generalModuleService,
+        private ModuleSettingsService $moduleSettingsService,
     ) {}
 
     public function addData(array $result): array
     {
         if (($result['tableName'] ?? '') !== 'sys_file_reference'
-            || $this->generalModuleService->canReadFileMetadataAlternative()
+            || $this->moduleSettingsService->canReadFileMetadataAlternative()
         ) {
             return $result;
         }
