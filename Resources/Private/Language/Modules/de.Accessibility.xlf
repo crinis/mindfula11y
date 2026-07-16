@@ -1052,22 +1052,6 @@
             </trans-unit>
 
             <!-- Command: Cleanup Scan IDs -->
-            <trans-unit id="command.cleanupScanIds.option.seconds" resname="command.cleanupScanIds.option.seconds">
-                <source>Number of seconds after which scan IDs should be considered old (default: 2592000 = 30 days)</source>
-                <target>Anzahl der Sekunden, nach denen Scan-IDs als veraltet gelten (Standard: 2592000 = 30 Tage)</target>
-            </trans-unit>
-            <trans-unit id="command.cleanupScanIds.processing" resname="command.cleanupScanIds.processing">
-                <source>Finding scan IDs older than %d seconds (before %s)...</source>
-                <target>Suche nach Scan-IDs, die älter als %d Sekunden sind (vor %s)...</target>
-            </trans-unit>
-            <trans-unit id="command.cleanupScanIds.noOldScans" resname="command.cleanupScanIds.noOldScans">
-                <source>No old scan IDs found to clean up.</source>
-                <target>Keine veralteten Scan-IDs zum Bereinigen gefunden.</target>
-            </trans-unit>
-            <trans-unit id="command.cleanupScanIds.success" resname="command.cleanupScanIds.success">
-                <source>Successfully cleaned up %d old scan IDs.</source>
-                <target>%d veraltete Scan-IDs erfolgreich bereinigt.</target>
-            </trans-unit>
         </body>
     </file>
 </xliff>

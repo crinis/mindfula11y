@@ -7,7 +7,7 @@ declare(strict_types=1);
  * Copyright (C) 2025  Mindful Markup, Felix Spittel
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the General Public License as published by
+ * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
@@ -32,10 +32,13 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
-use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
 
 /**
  * Command for cleaning up old accessibility scan IDs.
+ *
+ * Output is plain English on purpose: CLI/scheduler runs have no editor
+ * language, and a missing label would turn the previous localized variant
+ * into a sprintf(null) TypeError.
  */
 #[AsCommand(
     name: 'mindfula11y:cleanupscans',
@@ -43,6 +46,12 @@ use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
 )]
 class CleanupScansCommand extends Command
 {
+    public function __construct(
+        protected readonly ConnectionPool $connectionPool,
+    ) {
+        parent::__construct();
+    }
+
     /**
      * Configure the command.
      */
@@ -52,7 +61,7 @@ class CleanupScansCommand extends Command
             'seconds',
             's',
             InputOption::VALUE_OPTIONAL,
-            LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:command.cleanupScanIds.option.seconds'),
+            'Number of seconds after which scan IDs should be considered old (default: 2592000 = 30 days)',
             2592000
         );
     }
@@ -73,14 +82,13 @@ class CleanupScansCommand extends Command
         $cutoffTimestamp = time() - $seconds;
 
         $io->info(sprintf(
-            LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:command.cleanupScanIds.processing'),
+            'Finding scan IDs older than %d seconds (before %s)...',
             $seconds,
             date('Y-m-d H:i:s', $cutoffTimestamp)
         ));
 
         // Perform cleanup in a single UPDATE query
-        $updateQuery = GeneralUtility::makeInstance(ConnectionPool::class)
-            ->getQueryBuilderForTable('pages');
+        $updateQuery = $this->connectionPool->getQueryBuilderForTable('pages');
 
         $updateQuery->getRestrictions()->removeAll()
             ->add(GeneralUtility::makeInstance(DeletedRestriction::class));
@@ -99,12 +107,12 @@ class CleanupScansCommand extends Command
             ->executeStatement();
 
         if ($cleanedCount === 0) {
-            $io->success(LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:command.cleanupScanIds.noOldScans'));
+            $io->success('No old scan IDs found to clean up.');
             return Command::SUCCESS;
         }
 
         $io->success(sprintf(
-            LocalizationUtility::translate('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:command.cleanupScanIds.success'),
+            'Successfully cleaned up %d old scan IDs.',
             $cleanedCount
         ));
 
