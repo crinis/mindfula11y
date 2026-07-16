@@ -66,7 +66,7 @@ class AltTextFinderService
         int $pageId,
         int $pageLevels,
         int $languageId,
-        array &$pageTsConfig,
+        array $pageTsConfig,
         int $firstResult = 0,
         int $maxResults = 100,
         bool $filterFileMetaData = true
@@ -112,7 +112,7 @@ class AltTextFinderService
         int $pageId,
         int $pageLevels,
         int $languageId,
-        array &$pageTsConfig,
+        array $pageTsConfig,
         int $firstResult = 0,
         int $maxResults = 100,
         bool $filterFileMetaData = true,
@@ -151,7 +151,7 @@ class AltTextFinderService
         int $pageId,
         int $pageLevels,
         int $languageId,
-        array &$pageTsConfig,
+        array $pageTsConfig,
         bool $filterFileMetaData = true
     ): int {
         $tables = [];
@@ -194,7 +194,7 @@ class AltTextFinderService
         int $pageId,
         int $pageLevels,
         int $languageId,
-        array &$pageTsConfig,
+        array $pageTsConfig,
         bool $filterFileMetaData = true
     ): int {
         $pageTreeIds = $this->permissionService->getPageTreeIds($pageId, $pageLevels);
@@ -248,7 +248,7 @@ class AltTextFinderService
      * 
      * @return array<string>
      */
-    public function getTablesWithFiles(array &$pageTsConfig): array
+    public function getTablesWithFiles(array $pageTsConfig): array
     {
         $tableNames = [];
         foreach (array_keys($GLOBALS['TCA']) as $tableName) {
@@ -277,7 +277,7 @@ class AltTextFinderService
      * 
      * @return array<string> Array of file columns.
      */
-    protected function getFileColumns(string $tableName, array &$pageTsConfig): array
+    protected function getFileColumns(string $tableName, array $pageTsConfig): array
     {
         $fileColumns = [];
         // $pageTsConfig is the converted (dot-free) form; the legacy read keeps

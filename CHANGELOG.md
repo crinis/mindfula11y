@@ -22,6 +22,7 @@ the `Publish to TER` workflow uses the release body as the TER upload comment.
 
 ### Fixed
 
+- The Missing Alternative Texts module view no longer crashes with a PHP error. Building the record-type menu passed the module's read-only TSconfig state into a by-reference parameter, which PHP rejects; the affected service methods now take the configuration by value.
 - Heading types stored on records (the `recordUid`/`recordColumnName` arguments of `<mindfula11y:heading>`, `<mindfula11y:heading.sibling>` and `<mindfula11y:heading.descendant>`) now honour the current workspace when a structure-analysis preview renders inside a workspace. Previously the live heading type was always read, so an editor previewing a workspace could see the published tag instead of their draft change; the record is now overlaid with its workspace version. Empty results are cached per request so unannotated records no longer re-query for every heading on the page.
 - A scan-creation or scan-status response with a missing or unrecognized status now surfaces as a loading error instead of silently being treated as a completed scan with no issues.
 - Asynchronous structure, scan, and alternative-text errors and save confirmations are now announced from their visible status messages. Non-visible live announcements remain limited to generated summaries and background lifecycle updates, avoiding duplicate screen-reader output.
