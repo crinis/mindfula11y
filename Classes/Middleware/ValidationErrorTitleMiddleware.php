@@ -37,6 +37,8 @@ use TYPO3\CMS\Core\Site\Entity\SiteLanguage;
  */
 final readonly class ValidationErrorTitleMiddleware implements MiddlewareInterface
 {
+    use HtmlResponseTrait;
+
     private const LABEL = 'LLL:EXT:mindfula11y/Resources/Private/Language/Frontend.xlf:validationError.titlePrefix';
 
     public function __construct(
@@ -80,13 +82,6 @@ final readonly class ValidationErrorTitleMiddleware implements MiddlewareInterfa
         return $response
             ->withoutHeader('Content-Length')
             ->withBody($this->streamFactory->createStream($rewrittenContent));
-    }
-
-    private function isHtmlResponse(ResponseInterface $response): bool
-    {
-        $contentType = strtolower($response->getHeaderLine('Content-Type'));
-        return str_starts_with($contentType, 'text/html')
-            || str_starts_with($contentType, 'application/xhtml+xml');
     }
 
     private function prefixTitle(string $content, string $prefix): string

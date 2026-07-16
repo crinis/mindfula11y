@@ -23,7 +23,6 @@ declare(strict_types=1);
 namespace MindfulMarkup\MindfulA11y\Middleware;
 
 use MindfulMarkup\MindfulA11y\Domain\Model\StructureAnalysisTicket;
-use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\StreamFactoryInterface;
@@ -36,8 +35,9 @@ use TYPO3\CMS\Core\Routing\PageArguments;
 /** Converts a validated frontend response into an isolated iframe analysis document. */
 final readonly class StructureAnalysisResponseMiddleware implements MiddlewareInterface
 {
+    use HtmlResponseTrait;
+
     public function __construct(
-        private ResponseFactoryInterface $responseFactory,
         private StreamFactoryInterface $streamFactory,
         private StructureAnalysisResponseHardener $hardener,
     ) {}
@@ -54,7 +54,7 @@ final readonly class StructureAnalysisResponseMiddleware implements MiddlewareIn
             // The signed ticket authorizes exactly one page. Any other resolved
             // route is rejected before frontend controllers, content objects or
             // plugins can execute with the ticket's preview visibility.
-            $response = $this->createMinimalHtmlResponse(403);
+            $response = $this->hardener->createMinimalHtmlResponse(403);
         } else {
             $response = $handler->handle($request);
         }
@@ -64,7 +64,7 @@ final readonly class StructureAnalysisResponseMiddleware implements MiddlewareIn
             // Never let the sandboxed frame follow a redirect off the signed
             // target: replace it with an analyzable error document (this also
             // drops the Location header).
-            $response = $this->createMinimalHtmlResponse($redirectStatus);
+            $response = $this->hardener->createMinimalHtmlResponse($redirectStatus);
         }
 
         if (!$this->isHtmlResponse($response)) {
@@ -72,7 +72,7 @@ final readonly class StructureAnalysisResponseMiddleware implements MiddlewareIn
             // capability. A successful non-HTML response becomes an explicit
             // analysis error; existing error status codes are preserved.
             $status = $response->getStatusCode();
-            $response = $this->createMinimalHtmlResponse($status >= 200 && $status < 300 ? 415 : $status);
+            $response = $this->hardener->createMinimalHtmlResponse($status >= 200 && $status < 300 ? 415 : $status);
         }
 
         $contentType = $response->getHeaderLine('Content-Type');
@@ -151,18 +151,4 @@ final readonly class StructureAnalysisResponseMiddleware implements MiddlewareIn
             ->withBody($this->streamFactory->createStream($rewrittenContent));
     }
 
-    private function createMinimalHtmlResponse(int $status): ResponseInterface
-    {
-        return $this->responseFactory
-            ->createResponse($status)
-            ->withHeader('Content-Type', 'text/html; charset=utf-8')
-            ->withBody($this->streamFactory->createStream('<!doctype html><html><body></body></html>'));
-    }
-
-    private function isHtmlResponse(ResponseInterface $response): bool
-    {
-        $contentType = strtolower($response->getHeaderLine('Content-Type'));
-        return str_starts_with($contentType, 'text/html')
-            || str_starts_with($contentType, 'application/xhtml+xml');
-    }
 }

@@ -54,6 +54,20 @@ final readonly class StructureAnalysisResponseHardener
     }
 
     /**
+     * A blank, analyzable HTML document with the given status.
+     *
+     * NOT hardened by itself: callers on the ticketed rendering path inject
+     * the runner and harden() the final response before returning it.
+     */
+    public function createMinimalHtmlResponse(int $statusCode): ResponseInterface
+    {
+        return $this->responseFactory
+            ->createResponse($statusCode)
+            ->withHeader('Content-Type', 'text/html; charset=utf-8')
+            ->withBody($this->streamFactory->createStream('<!doctype html><html><body></body></html>'));
+    }
+
+    /**
      * A hardened, script-free error document. Used when a ticketed request
      * cannot be answered with an analyzable document (missing runner bundle,
      * or a response that never passed the response middleware).
@@ -61,12 +75,8 @@ final readonly class StructureAnalysisResponseHardener
     public function createNonScriptedErrorResponse(string $backendOrigin, int $statusCode = 500): ResponseInterface
     {
         $contentSecurityPolicy = "default-src 'none'; script-src 'none'; object-src 'none'; frame-src 'none'; form-action 'none'; base-uri 'none'; frame-ancestors " . $backendOrigin;
-        $response = $this->responseFactory
-            ->createResponse($statusCode)
-            ->withHeader('Content-Type', 'text/html; charset=utf-8')
-            ->withBody($this->streamFactory->createStream('<!doctype html><html><body></body></html>'));
 
-        return $this->harden($response, $contentSecurityPolicy);
+        return $this->harden($this->createMinimalHtmlResponse($statusCode), $contentSecurityPolicy);
     }
 
     /**

@@ -22,14 +22,7 @@ declare(strict_types=1);
 
 namespace MindfulMarkup\MindfulA11y\Service;
 
-use Psr\Http\Message\UriInterface;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
-use TYPO3\CMS\Core\Security\ContentSecurityPolicy\Directive;
-use TYPO3\CMS\Core\Security\ContentSecurityPolicy\Mutation;
-use TYPO3\CMS\Core\Security\ContentSecurityPolicy\MutationCollection;
-use TYPO3\CMS\Core\Security\ContentSecurityPolicy\MutationMode;
-use TYPO3\CMS\Core\Security\ContentSecurityPolicy\PolicyRegistry;
-use TYPO3\CMS\Core\Security\ContentSecurityPolicy\UriValue;
 use TYPO3\CMS\Core\TypoScript\TypoScriptService;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
@@ -46,7 +39,6 @@ final readonly class ModuleSettingsService
     public function __construct(
         private PermissionService $permissionService,
         private TypoScriptService $typoScriptService,
-        private PolicyRegistry $policyRegistry,
     ) {}
 
     /**
@@ -114,34 +106,6 @@ final readonly class ModuleSettingsService
     public function hasLandmarkStructureAccess(array $pageTsConfig): bool
     {
         return !!($pageTsConfig['mod']['mindfula11y_accessibility']['landmarkStructure']['enable'] ?? false);
-    }
-
-    /**
-     * Permit the structure views to frame the frontend preview.
-     *
-     * The structure analysis renders the preview in iframes, which a backend
-     * Content Security Policy blocks by default. Tying the permission to the
-     * feature gates keeps it an invariant of rendering the widget rather than a
-     * step each module has to remember.
-     *
-     * @param array<string, mixed> $pageTsConfig
-     */
-    public function allowStructureAnalysisFraming(?UriInterface $previewUri, array $pageTsConfig): void
-    {
-        if (null === $previewUri
-            || (!$this->hasHeadingStructureAccess($pageTsConfig) && !$this->hasLandmarkStructureAccess($pageTsConfig))
-        ) {
-            return;
-        }
-
-        // Strip the query before building the CSP source: PreviewUriBuilder adds
-        // query parameters for access-restricted pages (ADMCMD_simUser/simTime),
-        // but a CSP host-source must not contain a query component — browsers
-        // ignore the whole source and block the iframe. Matching ignores the
-        // query anyway, so scheme/host/port/path keep the source precise.
-        $this->policyRegistry->appendMutationCollection(new MutationCollection(
-            new Mutation(MutationMode::Extend, Directive::FrameSrc, UriValue::fromUri($previewUri->withQuery('')))
-        ));
     }
 
     /**
