@@ -219,6 +219,15 @@ final readonly class PermissionService
 
         BackendUtility::workspaceOL($tableName, $row);
 
+        // Record-level edit lock (e.g. tt_content.editlock): DataHandler denies
+        // such writes via recordEditAccessInternals(), so honoring it here keeps
+        // offered controls in sync with what a save would actually allow. The
+        // page-level editlock is checked against the page row further down.
+        $editlockField = (string)($GLOBALS['TCA'][$tableName]['ctrl']['editlock'] ?? '');
+        if ($editlockField !== '' && !empty($row[$editlockField])) {
+            return false;
+        }
+
         if ($GLOBALS['TCA'][$tableName]['ctrl']['languageField'] ?? false) {
             if (!isset($row[$GLOBALS['TCA'][$tableName]['ctrl']['languageField']])) {
                 return false;
@@ -407,6 +416,11 @@ final readonly class PermissionService
      */
     public function checkFileReadAccess(FileInterface $file): bool
     {
+        // Files in the fallback storage (uid 0) pass for every backend user:
+        // core's StoragePermissionsAspect deliberately skips permission
+        // evaluation there (!$storage->isFallbackStorage()), and core's own
+        // FileMetadataPermissionsAspect applies the same permissive check.
+        // This is exact core parity, not a weakened gate.
         return $file->getStorage()->checkFileActionPermission('read', $file);
     }
 

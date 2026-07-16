@@ -31,8 +31,6 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use MindfulMarkup\MindfulA11y\Service\ScanStateService;
 use TYPO3\CMS\Core\Database\ConnectionPool;
-use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
  * Command for cleaning up old accessibility scan IDs.
@@ -95,11 +93,15 @@ class CleanupScansCommand extends Command
             date('Y-m-d H:i:s', $cutoffTimestamp)
         ));
 
-        // Perform cleanup in a single UPDATE query
+        // Perform the cleanup in a single direct UPDATE. This deliberately
+        // bypasses DataHandler: the two fields are internal scanner
+        // bookkeeping with no editorial meaning, the CLI/scheduler context has
+        // no acting backend user, and per-row DataHandler runs would only add
+        // history noise. Note that QueryBuilder restrictions are NOT applied
+        // to UPDATE statements — stale scan state is intentionally cleared on
+        // every matching row, deleted pages and workspace versions included.
         $updateQuery = $this->connectionPool->getQueryBuilderForTable('pages');
-
-        $updateQuery->getRestrictions()->removeAll()
-            ->add(GeneralUtility::makeInstance(DeletedRestriction::class));
+        $updateQuery->getRestrictions()->removeAll();
 
         $cleanedCount = $updateQuery
             ->update('pages')

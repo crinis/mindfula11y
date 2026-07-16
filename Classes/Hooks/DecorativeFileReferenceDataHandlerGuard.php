@@ -21,6 +21,16 @@ use TYPO3\CMS\Core\SysLog\Action\Database as SystemLogDatabaseAction;
 use TYPO3\CMS\Core\SysLog\Error as SystemLogErrorClassification;
 use TYPO3\CMS\Core\Utility\MathUtility;
 
+/**
+ * Guards writes to the extension's own tx_mindfula11y_decorative toggle.
+ *
+ * Deliberately scoped to that one field: the core fields (alternative,
+ * title) stay governed by DataHandler's own rules for sys_file_reference
+ * (table rights, page content-edit permission, language, editlock). Imposing
+ * this guard's stricter parent-relation requirement on core fields would
+ * change core semantics for every writer of the table — FormEngine, filelist,
+ * other extensions — and is intentionally not done.
+ */
 #[Autoconfigure(public: true)]
 final class DecorativeFileReferenceDataHandlerGuard
 {
