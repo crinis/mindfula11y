@@ -85,8 +85,10 @@ final readonly class PageTreeIdResolver
         }
 
         // PageTreeRepository is prototype-scoped (constructor state), so
-        // makeInstance is the idiomatic way to obtain it.
-        $repository = GeneralUtility::makeInstance(PageTreeRepository::class);
+        // makeInstance is the idiomatic way to obtain it. Pass the user's
+        // workspace so pages created only in the workspace are included and
+        // workspace-deleted pages are excluded from the tree.
+        $repository = GeneralUtility::makeInstance(PageTreeRepository::class, $backendUser->workspace);
         $repository->setAdditionalWhereClause($permsClauseString);
         $pages = $repository->getFlattenedPages($mountPoints, $pageLevels);
         $idList = [];

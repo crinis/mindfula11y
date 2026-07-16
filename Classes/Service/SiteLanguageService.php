@@ -151,6 +151,11 @@ final readonly class SiteLanguageService
      * Get the language ids a page is translated into, including the default
      * language, for the given workspace.
      *
+     * $workspaceId must be the CURRENT backend user's workspace: the legacy
+     * pre-14.2 branch delegates to BackendUtility::getExistingPageTranslations(),
+     * which hard-reads $GLOBALS['BE_USER']->workspace and cannot honor any
+     * other value — do not call this with a sessionless (ticket) workspace claim.
+     *
      * @return array<int>
      */
     public function getTranslatedLanguageIds(int $pageId, int $workspaceId): array

@@ -53,7 +53,9 @@ trait AjaxGuardTrait
     /**
      * Returns a 403 response if the current backend user lacks module access, null otherwise.
      *
-     * Module access is the single defense-in-depth gate behind every endpoint.
+     * Module access is the defense-in-depth gate behind the endpoints (the
+     * ticket endpoint enforces it inside
+     * StructureAnalysisAuthorizationService::authorizePage() instead).
      */
     private function requireModuleAccess(): ?ResponseInterface
     {

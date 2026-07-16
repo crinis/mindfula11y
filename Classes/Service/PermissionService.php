@@ -164,7 +164,7 @@ final readonly class PermissionService
     {
         $backendUser = $this->backendUserProvider->get();
 
-        if (!isset($GLOBALS['TCA'][$tableName]) || ($GLOBALS['TCA'][$tableName]['ctrl']['readonly'] ?? false)) {
+        if (!isset($GLOBALS['TCA'][$tableName]) || ($GLOBALS['TCA'][$tableName]['ctrl']['readOnly'] ?? false)) {
             return false;
         }
 
