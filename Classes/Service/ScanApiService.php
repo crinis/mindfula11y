@@ -158,6 +158,84 @@ class ScanApiService
     }
 
     /**
+     * Send an authorized request to a versioned scanner API endpoint.
+     *
+     * Owns the transport concerns every endpoint shares: the configuration
+     * guard, Accept/Authorization headers, timeout and error-suppression
+     * defaults, and logging of network-level failures.
+     *
+     * @param array<string, mixed> $options Request options merged over the defaults; an explicit 'headers' entry wins per header name.
+     * @param array<string, mixed> $logContext Context added to every log entry for this request.
+     * @return ResponseInterface|null Null when unconfigured or on a network-level failure (both logged).
+     */
+    protected function sendRequest(string $path, string $method, array $options, array $logContext, string $failureMessage): ?ResponseInterface
+    {
+        if (!$this->isConfigured()) {
+            $this->logger->error('Accessibility scanner API is not configured');
+            return null;
+        }
+
+        $headers = ($options['headers'] ?? []) + ['Accept' => 'application/json'];
+        $apiToken = $this->getApiToken();
+        if (!empty($apiToken)) {
+            $headers['Authorization'] = 'Bearer ' . $apiToken;
+        }
+        $options['headers'] = $headers;
+        $options += [
+            'timeout' => self::REQUEST_TIMEOUT,
+            'http_errors' => false,
+        ];
+
+        try {
+            return $this->requestFactory->request($this->getApiBaseUrl() . $path, $method, $options);
+        } catch (\Exception $e) {
+            $this->logger->error($failureMessage, ['exception' => $e->getMessage()] + $logContext);
+            return null;
+        }
+    }
+
+    /**
+     * Decode, log, and return the problem details of a failed response.
+     *
+     * @param array<string, mixed> $logContext
+     * @return array{title: string, detail: string, errors: array}
+     */
+    protected function logProblem(ResponseInterface $response, string $message, array $logContext, string $level = 'error'): array
+    {
+        $problem = $this->parseProblemDetails($response);
+        $this->logger->log($level, $message, $logContext + [
+            'status' => $response->getStatusCode(),
+            'problemTitle' => $problem['title'],
+            'problemDetail' => $problem['detail'],
+            'problemErrors' => $problem['errors'],
+        ]);
+
+        return $problem;
+    }
+
+    /**
+     * Decode a JSON response body.
+     *
+     * @param array<string, mixed> $logContext
+     * @return array|null Null when the body is not valid JSON (logged).
+     */
+    protected function decodeJsonBody(ResponseInterface $response, array $logContext): ?array
+    {
+        $body = (string)$response->getBody();
+        $data = json_decode($body, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            $this->logger->error('Invalid JSON response from scan API', $logContext + [
+                'json_error' => json_last_error_msg(),
+                'body' => $body,
+            ]);
+            return null;
+        }
+
+        return $data;
+    }
+
+    /**
      * Create a new scan for one or more URLs.
      *
      * @param string[] $urls The URLs to scan (for crawl mode: the start URL(s)).
@@ -177,23 +255,9 @@ class ScanApiService
         bool $includeAiAudit = false,
         ?array $aiAuditSkills = null,
     ): ?array {
-        if (!$this->isConfigured()) {
-            $this->logger->error('Accessibility scanner API is not configured');
-            return null;
-        }
-
         if (empty($urls)) {
             $this->logger->error('No URLs provided for scan');
             return null;
-        }
-
-        $headers = [
-            'Content-Type' => 'application/json',
-            'Accept' => 'application/json',
-        ];
-        $apiToken = $this->getApiToken();
-        if (!empty($apiToken)) {
-            $headers['Authorization'] = 'Bearer ' . $apiToken;
         }
 
         if ($crawl) {
@@ -224,47 +288,26 @@ class ScanApiService
                 : ['skills' => array_values($aiAuditSkills)];
         }
 
-        try {
-            $response = $this->requestFactory->request(
-                $this->getApiBaseUrl() . '/scans',
-                'POST',
-                [
-                    'headers' => $headers,
-                    'body' => json_encode($requestBody),
-                    'timeout' => self::REQUEST_TIMEOUT,
-                    'http_errors' => false,
-                ]
-            );
-        } catch (\Exception $e) {
-            $this->logger->error('Exception while creating scan', [
-                'exception' => $e->getMessage(),
-            ]);
+        $response = $this->sendRequest(
+            '/scans',
+            'POST',
+            [
+                'headers' => ['Content-Type' => 'application/json'],
+                'body' => json_encode($requestBody),
+            ],
+            [],
+            'Exception while creating scan',
+        );
+        if (null === $response) {
             return null;
         }
 
         if ($response->getStatusCode() !== 201) {
-            $problem = $this->parseProblemDetails($response);
-            $this->logger->error('Failed to create scan', [
-                'status' => $response->getStatusCode(),
-                'problemTitle' => $problem['title'],
-                'problemDetail' => $problem['detail'],
-                'problemErrors' => $problem['errors'],
-            ]);
+            $problem = $this->logProblem($response, 'Failed to create scan', []);
             throw new ScanApiRequestException($response->getStatusCode(), $problem['title'], $problem['detail']);
         }
 
-        $body = (string)$response->getBody();
-        $data = json_decode($body, true);
-
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            $this->logger->error('Invalid JSON response from scan API', [
-                'json_error' => json_last_error_msg(),
-                'body' => $body,
-            ]);
-            return null;
-        }
-
-        return $data;
+        return $this->decodeJsonBody($response, []);
     }
 
     /**
@@ -276,58 +319,23 @@ class ScanApiService
      */
     public function cancelScan(string $scanId): ?array
     {
-        if (!$this->isConfigured()) {
-            $this->logger->error('Accessibility scanner API is not configured');
-            return null;
-        }
-
-        $headers = ['Accept' => 'application/json'];
-        $apiToken = $this->getApiToken();
-        if (!empty($apiToken)) {
-            $headers['Authorization'] = 'Bearer ' . $apiToken;
-        }
-
-        try {
-            $response = $this->requestFactory->request(
-                $this->getApiBaseUrl() . '/scans/' . rawurlencode($scanId) . '/cancel',
-                'POST',
-                [
-                    'headers' => $headers,
-                    'timeout' => self::REQUEST_TIMEOUT,
-                    'http_errors' => false,
-                ]
-            );
-        } catch (\Exception $e) {
-            $this->logger->error('Exception while canceling scan', [
-                'exception' => $e->getMessage(),
-                'scanId' => $scanId,
-            ]);
+        $response = $this->sendRequest(
+            '/scans/' . rawurlencode($scanId) . '/cancel',
+            'POST',
+            [],
+            ['scanId' => $scanId],
+            'Exception while canceling scan',
+        );
+        if (null === $response) {
             return null;
         }
 
         if ($response->getStatusCode() !== 200) {
-            $problem = $this->parseProblemDetails($response);
-            $this->logger->warning('Failed to cancel scan', [
-                'status' => $response->getStatusCode(),
-                'scanId' => $scanId,
-                'problemTitle' => $problem['title'],
-                'problemDetail' => $problem['detail'],
-            ]);
+            $problem = $this->logProblem($response, 'Failed to cancel scan', ['scanId' => $scanId], 'warning');
             throw new ScanApiRequestException($response->getStatusCode(), $problem['title'], $problem['detail']);
         }
 
-        $body = (string)$response->getBody();
-        $data = json_decode($body, true);
-
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            $this->logger->error('Invalid JSON response from scan API', [
-                'json_error' => json_last_error_msg(),
-                'scanId' => $scanId,
-            ]);
-            return null;
-        }
-
-        return $data;
+        return $this->decodeJsonBody($response, ['scanId' => $scanId]);
     }
 
     /**
@@ -339,50 +347,27 @@ class ScanApiService
      */
     public function getReport(string $scanId, string $format): ?string
     {
-        if (!$this->isConfigured()) {
-            $this->logger->error('Accessibility scanner API is not configured');
+        $response = $this->sendRequest(
+            '/scans/' . rawurlencode($scanId) . '/reports/' . $format,
+            'GET',
+            [
+                'headers' => ['Accept' => $format === 'pdf' ? 'application/pdf' : 'text/html'],
+                // Report rendering (PDF especially) may exceed the default API timeout.
+                'timeout' => 30,
+            ],
+            ['scanId' => $scanId, 'format' => $format],
+            'Exception while getting scan report',
+        );
+        if (null === $response) {
             return null;
         }
 
-        try {
-            $accept = $format === 'pdf' ? 'application/pdf' : 'text/html';
-            $headers = ['Accept' => $accept];
-            $apiToken = $this->getApiToken();
-            if (!empty($apiToken)) {
-                $headers['Authorization'] = 'Bearer ' . $apiToken;
-            }
-
-            $response = $this->requestFactory->request(
-                $this->getApiBaseUrl() . '/scans/' . rawurlencode($scanId) . '/reports/' . $format,
-                'GET',
-                [
-                    'headers' => $headers,
-                    'timeout' => 30,
-                    'http_errors' => false,
-                ]
-            );
-
-            if ($response->getStatusCode() !== 200) {
-                $problem = $this->parseProblemDetails($response);
-                $this->logger->error('Failed to get scan report', [
-                    'status' => $response->getStatusCode(),
-                    'scanId' => $scanId,
-                    'format' => $format,
-                    'problemTitle' => $problem['title'],
-                    'problemDetail' => $problem['detail'],
-                ]);
-                return null;
-            }
-
-            return $response->getBody()->getContents();
-        } catch (\Exception $e) {
-            $this->logger->error('Exception while getting scan report', [
-                'exception' => $e->getMessage(),
-                'scanId' => $scanId,
-                'format' => $format,
-            ]);
+        if ($response->getStatusCode() !== 200) {
+            $this->logProblem($response, 'Failed to get scan report', ['scanId' => $scanId, 'format' => $format]);
             return null;
         }
+
+        return (string)$response->getBody();
     }
 
     /**
@@ -396,50 +381,24 @@ class ScanApiService
      */
     public function getScan(string $scanId, array $pageUrls = []): ?array
     {
-        if (!$this->isConfigured()) {
-            $this->logger->error('Accessibility scanner API is not configured');
-            return null;
-        }
-
-        $headers = ['Accept' => 'application/json'];
-        $apiToken = $this->getApiToken();
-        if (!empty($apiToken)) {
-            $headers['Authorization'] = 'Bearer ' . $apiToken;
-        }
-
-        $url = $this->getApiBaseUrl() . '/scans/' . rawurlencode($scanId);
+        $path = '/scans/' . rawurlencode($scanId);
         if (!empty($pageUrls)) {
             $queryParts = [];
             foreach ($pageUrls as $pageUrl) {
                 $queryParts[] = 'pageUrls=' . rawurlencode($pageUrl);
             }
-            $url .= '?' . implode('&', $queryParts);
+            $path .= '?' . implode('&', $queryParts);
         }
 
-        try {
-            $response = $this->requestFactory->request(
-                $url,
-                'GET',
-                [
-                    'headers' => $headers,
-                    'timeout' => self::REQUEST_TIMEOUT,
-                    'http_errors' => false,
-                ]
-            );
-        } catch (\Exception $e) {
-            $this->logger->error('Exception while getting scan results', [
-                'exception' => $e->getMessage(),
-                'scanId' => $scanId,
-            ]);
+        $response = $this->sendRequest($path, 'GET', [], ['scanId' => $scanId], 'Exception while getting scan results');
+        if (null === $response) {
             return null;
         }
-
-        $statusCode = $response->getStatusCode();
 
         // Handle 404 specifically - scan not found, should trigger new scan.
         // Thrown (not null) so the controller can answer 404 instead of the
         // generic 500 for failures — the client recovers by re-creating.
-        if ($statusCode === 404) {
+        if ($response->getStatusCode() === 404) {
             $this->logger->info('Scan not found, will trigger new scan', [
                 'scanId' => $scanId,
             ]);
@@ -447,42 +406,11 @@ class ScanApiService
             throw new ScanApiRequestException(404, $problem['title'], $problem['detail']);
         }
 
-        if ($statusCode !== 200) {
-            $body = '';
-            try {
-                $body = $response->getBody()->getContents();
-            } catch (\Exception $bodyException) {
-                $this->logger->warning('Could not read response body', [
-                    'scanId' => $scanId,
-                    'status' => $statusCode,
-                    'exception' => $bodyException->getMessage(),
-                ]);
-            }
-
-            $problem = $this->parseProblemDetails($response);
-            $this->logger->error('Failed to get scan results', [
-                'status' => $statusCode,
-                'scanId' => $scanId,
-                'body' => $body,
-                'problemTitle' => $problem['title'],
-                'problemDetail' => $problem['detail'],
-            ]);
+        if ($response->getStatusCode() !== 200) {
+            $this->logProblem($response, 'Failed to get scan results', ['scanId' => $scanId]);
             return null;
         }
 
-        $body = $response->getBody()->getContents();
-        $data = json_decode($body, true);
-
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            $this->logger->error('Invalid JSON response from API', [
-                'scanId' => $scanId,
-                'json_error' => json_last_error_msg(),
-                'body' => $body,
-            ]);
-            return null;
-        }
-
-        // Return the raw API response as-is
-        return $data;
+        return $this->decodeJsonBody($response, ['scanId' => $scanId]);
     }
 }
