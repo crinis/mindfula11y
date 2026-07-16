@@ -22,19 +22,7 @@ declare(strict_types=1);
 
 namespace MindfulMarkup\MindfulA11y\Backend;
 
-use MindfulMarkup\MindfulA11y\Domain\Model\CreateScanDemand;
-use MindfulMarkup\MindfulA11y\Enum\Feature;
-use MindfulMarkup\MindfulA11y\Service\AltTextFinderService;
-use MindfulMarkup\MindfulA11y\Service\ModuleSettingsService;
-use MindfulMarkup\MindfulA11y\Service\PagePreviewService;
-use MindfulMarkup\MindfulA11y\Service\PermissionService;
-use MindfulMarkup\MindfulA11y\Service\ScanApiService;
-use MindfulMarkup\MindfulA11y\Service\ScanStateService;
 use Psr\Http\Message\ResponseInterface;
-use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
-use TYPO3\CMS\Backend\Routing\PreviewUriBuilder;
-use TYPO3\CMS\Backend\Routing\UriBuilder;
-use TYPO3\CMS\Core\Page\PageRenderer;
 
 /**
  * Renders the overview feature: the structure analysis plus status cards for
@@ -43,138 +31,20 @@ use TYPO3\CMS\Core\Page\PageRenderer;
 final readonly class OverviewFeatureRenderer implements FeatureRendererInterface
 {
     public function __construct(
-        private ModuleSettingsService $moduleSettingsService,
-        private PagePreviewService $pagePreviewService,
-        private ScanStateService $scanStateService,
-        private PermissionService $permissionService,
-        private AltTextFinderService $altTextFinderService,
-        private ScanApiService $scanApiService,
-        private UriBuilder $backendUriBuilder,
-        private PageRenderer $pageRenderer,
+        private OverviewViewStateFactory $viewStateFactory,
     ) {}
 
     public function render(ModuleContext $context): ResponseInterface
     {
-        $finalPageInfo = $context->getPreviewPageInfo();
-        $pageTsConfig = $context->pageTsConfig;
-
-        // Let PreviewUriBuilder decide if a preview can be built. It returns null when a preview is not available.
-        $previewUri = PreviewUriBuilder::create($finalPageInfo)
-            ->buildUri();
-
-        $missingAltTextUri = null;
-        $fileReferenceCount = null;
-
-        $hasMissingAltTextAccess = $this->moduleSettingsService->hasMissingAltTextAccess($pageTsConfig);
-        $hasHeadingStructureAccess = $this->moduleSettingsService->hasHeadingStructureAccess($pageTsConfig);
-        $hasLandmarkStructureAccess = $this->moduleSettingsService->hasLandmarkStructureAccess($pageTsConfig);
-        $hasScanAccess = $this->moduleSettingsService->hasScanAccess($pageTsConfig);
-        $this->moduleSettingsService->allowStructureAnalysisFraming($previewUri, $pageTsConfig);
-
-        // Disable scan access if page is hidden/not visible
-        $isPageVisible = $this->pagePreviewService->isPageVisible($finalPageInfo);
-        if ($hasScanAccess && !$isPageVisible) {
-            $hasScanAccess = false;
-        }
-
-        if ($hasMissingAltTextAccess) {
-            $filterFileMetaData = !$this->moduleSettingsService->isFileMetadataIgnored($pageTsConfig)
-                && $this->moduleSettingsService->canReadFileMetadataAlternative();
-            $fileReferenceCount = $this->altTextFinderService->countAltlessFileReferences(
-                $context->pageId,
-                0,
-                $context->languageId,
-                $pageTsConfig,
-                $filterFileMetaData
-            );
-
-            $missingAltTextUri = $this->backendUriBuilder->buildUriFromRoute(
-                'mindfula11y_accessibility',
-                [
-                    'id' => $context->pageId,
-                    'feature' => Feature::MISSING_ALT_TEXT->value,
-                    'languageId' => $context->languageId,
-                ]
-            );
-        }
-
-        // Prepare scan-related variables
-        $scanUri = null;
-        $scanId = null;
-        $createScanDemand = null;
-
-        if ($hasScanAccess && $this->scanApiService->isConfigured()) {
-            // Get existing scan ID — stored per language on whichever record ($finalPageInfo) was scanned
-            $existingScanId = $finalPageInfo['tx_mindfula11y_scanid'] ?? null;
-
-            // Check if content has changed since last scan
-            $contentChanged = $this->scanStateService->shouldInvalidateScan($finalPageInfo, (int)($context->pageInfo['SYS_LASTCHANGED'] ?? 0));
-
-            // Only use existing scan ID if content hasn't changed
-            if ($existingScanId && !$contentChanged) {
-                $scanId = $existingScanId;
-            }
-
-            // Create scan demand for the component only when redeeming it could
-            // succeed ("signed => authorized at issuance"): in the live workspace
-            // (the external scanner cannot fetch workspace previews, and storing
-            // the scan id must not version the page) and with edit access to the
-            // page record the scan id is stored on.
-            $backendUser = $this->getBackendUserAuthentication();
-            if (null !== $previewUri
-                && $backendUser->workspace === 0
-                && $this->permissionService->checkRecordEditAccess('pages', $finalPageInfo)
-            ) {
-                $createScanDemand = new CreateScanDemand(
-                    userId: (int)$backendUser->user['uid'],
-                    pageId: $context->pageId,
-                    previewUrl: (string)$previewUri,
-                    languageId: $context->languageId,
-                    workspaceId: $backendUser->workspace,
-                );
-            }
-
-            // Create URI to the scan feature
-            $scanUri = $this->backendUriBuilder->buildUriFromRoute(
-                'mindfula11y_accessibility',
-                [
-                    'id' => $context->pageId,
-                    'feature' => Feature::SCAN->value,
-                    'languageId' => $context->languageId,
-                ]
-            );
-        }
-
-        $context->moduleTemplate->assignMultiple([
-            'pageId' => $context->pageId,
-            // The preview is built from $finalPageInfo; when the page has no
-            // translation in the selected language it falls back to the
-            // default-language record, so the structure analysis must target
-            // language 0 to match that preview URL.
-            'languageId' => null === $context->localizedPageInfo ? 0 : $context->languageId,
-            'fileReferenceCount' => $fileReferenceCount,
-            'previewUrl' => (null !== $previewUri ? (string)$previewUri : null),
-            'missingAltTextUri' => $missingAltTextUri,
-            'hasMissingAltTextAccess' => $hasMissingAltTextAccess,
-            'hasHeadingStructureAccess' => $hasHeadingStructureAccess,
-            'hasLandmarkStructureAccess' => $hasLandmarkStructureAccess,
-            'hasScanAccess' => $hasScanAccess,
-            'scanId' => $scanId,
-            'scanUri' => $scanUri,
-            'createScanDemand' => $createScanDemand,
-            'autoCreateScan' => $this->moduleSettingsService->isAutoCreateScanEnabled($pageTsConfig),
-            'pageUrlFilter' => $previewUri !== null ? [(string)$previewUri] : [],
-        ]);
-
-        $this->pageRenderer->loadJavaScriptModule('@mindfulmarkup/mindfula11y/element/structure/structure.js');
-        $this->pageRenderer->loadJavaScriptModule('@mindfulmarkup/mindfula11y/element/scan-issue-count/scan-issue-count.js');
-        $this->pageRenderer->loadJavaScriptModule('@mindfulmarkup/mindfula11y/element/notice/notice.js');
+        $context->moduleTemplate->assignMultiple($this->viewStateFactory->build(
+            $context->pageId,
+            $context->languageId,
+            $context->pageInfo,
+            $context->localizedPageInfo,
+            $context->pageTsConfig,
+        ));
+        $this->viewStateFactory->registerJavaScriptModules();
 
         return $context->moduleTemplate->renderResponse('Backend/Overview');
-    }
-
-    private function getBackendUserAuthentication(): BackendUserAuthentication
-    {
-        return $GLOBALS['BE_USER'];
     }
 }

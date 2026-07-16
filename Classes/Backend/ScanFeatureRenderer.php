@@ -22,14 +22,12 @@ declare(strict_types=1);
 
 namespace MindfulMarkup\MindfulA11y\Backend;
 
-use MindfulMarkup\MindfulA11y\Domain\Model\CreateScanDemand;
 use MindfulMarkup\MindfulA11y\Service\ModuleSettingsService;
 use MindfulMarkup\MindfulA11y\Service\PagePreviewService;
-use MindfulMarkup\MindfulA11y\Service\PermissionService;
 use MindfulMarkup\MindfulA11y\Service\ScanApiService;
+use MindfulMarkup\MindfulA11y\Service\ScanDemandFactory;
 use MindfulMarkup\MindfulA11y\Service\ScanStateService;
 use Psr\Http\Message\ResponseInterface;
-use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Backend\Routing\PreviewUriBuilder;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Backend\Template\Components\Buttons\DropDownButton;
@@ -53,7 +51,7 @@ final readonly class ScanFeatureRenderer implements FeatureRendererInterface
         private PagePreviewService $pagePreviewService,
         private ScanStateService $scanStateService,
         private ScanApiService $scanApiService,
-        private PermissionService $permissionService,
+        private ScanDemandFactory $scanDemandFactory,
         private UriBuilder $backendUriBuilder,
         private PageRenderer $pageRenderer,
         private FlashMessageService $flashMessageService,
@@ -98,20 +96,11 @@ final readonly class ScanFeatureRenderer implements FeatureRendererInterface
 
         $this->menuBuilder->addDropDown($context->moduleTemplate, $this->buildPageLevelsMenu($context, $pageLevels), 3);
 
-        // Triggering scans requires edit access to the page record and the live
-        // workspace: the external scanner cannot fetch workspace previews, and
-        // storing the scan id must not create a workspace version of the page.
-        $canTriggerScan = $this->getBackendUserAuthentication()->workspace === 0
-            && $this->permissionService->checkRecordEditAccess('pages', $finalPageInfo);
+        $canTriggerScan = $this->scanDemandFactory->canTriggerScan($finalPageInfo);
 
-        // Check if content has changed since last scan
-        $contentChanged = $this->scanStateService->shouldInvalidateScan($finalPageInfo, (int)($context->pageInfo['SYS_LASTCHANGED'] ?? 0));
-
-        // Only use existing scan ID if content hasn't changed — stored per language on $finalPageInfo
-        $scanId = null;
-        if (($finalPageInfo['tx_mindfula11y_scanid'] ?? false) && !$contentChanged) {
-            $scanId = $finalPageInfo['tx_mindfula11y_scanid'] ?? null;
-        }
+        // Reuse the stored scan only while the page content is unchanged —
+        // stored per language on $finalPageInfo.
+        $scanId = $this->scanStateService->resolveEffectiveScanId($finalPageInfo, (int)($context->pageInfo['SYS_LASTCHANGED'] ?? 0));
 
         // Filter by the current page URL only when scanning a single page (pageLevels = 0).
         // When pageLevels > 0 the scan covers multiple pages and all results should be shown.
@@ -129,23 +118,20 @@ final readonly class ScanFeatureRenderer implements FeatureRendererInterface
                 ? $this->pagePreviewService->generatePageUrls($context->pageId, $context->languageId, $pageLevels, (string)$previewUri)
                 : [(string)$previewUri];
 
-            $backendUser = $this->getBackendUserAuthentication();
-            $createScanDemand = new CreateScanDemand(
-                userId: (int)$backendUser->user['uid'],
-                pageId: $context->pageId,
-                previewUrl: (string)$previewUri,
-                languageId: $context->languageId,
-                workspaceId: $backendUser->workspace,
+            $createScanDemand = $this->scanDemandFactory->create(
+                $finalPageInfo,
+                $context->pageId,
+                (string)$previewUri,
+                $context->languageId,
                 pageLevels: $pageLevels,
             );
             // Crawl mode is only available for site root pages (check default-language record)
             if ((bool)($context->pageInfo['is_siteroot'] ?? false)) {
-                $crawlScanDemand = new CreateScanDemand(
-                    userId: (int)$backendUser->user['uid'],
-                    pageId: $context->pageId,
-                    previewUrl: (string)$previewUri,
-                    languageId: $context->languageId,
-                    workspaceId: $backendUser->workspace,
+                $crawlScanDemand = $this->scanDemandFactory->create(
+                    $finalPageInfo,
+                    $context->pageId,
+                    (string)$previewUri,
+                    $context->languageId,
                     crawl: true,
                 );
             }
@@ -193,10 +179,5 @@ final readonly class ScanFeatureRenderer implements FeatureRendererInterface
             $languageService->sL(self::MODULE_LANGUAGE_FILE . 'module.menu.pageLevels'),
             $items
         );
-    }
-
-    private function getBackendUserAuthentication(): BackendUserAuthentication
-    {
-        return $GLOBALS['BE_USER'];
     }
 }

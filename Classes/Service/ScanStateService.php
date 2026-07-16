@@ -23,7 +23,6 @@ declare(strict_types=1);
 namespace MindfulMarkup\MindfulA11y\Service;
 
 use TYPO3\CMS\Backend\Utility\BackendUtility;
-use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
 use TYPO3\CMS\Core\Database\Query\Restriction\WorkspaceRestriction;
@@ -37,6 +36,7 @@ final readonly class ScanStateService
 {
     public function __construct(
         private ConnectionPool $connectionPool,
+        private BackendUserProvider $backendUserProvider,
     ) {}
 
     /**
@@ -62,6 +62,26 @@ final readonly class ScanStateService
     }
 
     /**
+     * Resolve the scan ID stored on a page record, if it is still current.
+     *
+     * Returns null when no scan was stored or the page content changed since
+     * the scan ran — the single implementation of the "reuse the stored scan
+     * only while it is fresh" rule every scan card follows.
+     *
+     * @param array<string, mixed> $pageInfo The (localized) page record the scan id is stored on.
+     * @param int $fallbackSysLastChanged Fallback SYS_LASTCHANGED from the default-language page record.
+     */
+    public function resolveEffectiveScanId(array $pageInfo, int $fallbackSysLastChanged = 0): ?string
+    {
+        $scanId = (string)($pageInfo['tx_mindfula11y_scanid'] ?? '');
+        if ($scanId === '' || $this->shouldInvalidateScan($pageInfo, $fallbackSysLastChanged)) {
+            return null;
+        }
+
+        return $scanId;
+    }
+
+    /**
      * Get the workspace-overlaid page record carrying the given scan ID.
      *
      * @return array<string, mixed>|null The page record or null if not found.
@@ -71,7 +91,7 @@ final readonly class ScanStateService
         $queryBuilder = $this->connectionPool->getQueryBuilderForTable('pages');
         $queryBuilder->getRestrictions()->removeAll()
             ->add(GeneralUtility::makeInstance(DeletedRestriction::class))
-            ->add(GeneralUtility::makeInstance(WorkspaceRestriction::class, (int)$this->getBackendUserAuthentication()->workspace));
+            ->add(GeneralUtility::makeInstance(WorkspaceRestriction::class, (int)$this->backendUserProvider->get()->workspace));
 
         $result = $queryBuilder
             ->select('uid', 'pid', 't3ver_oid')
@@ -102,10 +122,5 @@ final readonly class ScanStateService
         $pageRecord = BackendUtility::getRecordWSOL('pages', $liveUid);
 
         return is_array($pageRecord) ? $pageRecord : null;
-    }
-
-    private function getBackendUserAuthentication(): BackendUserAuthentication
-    {
-        return $GLOBALS['BE_USER'];
     }
 }
