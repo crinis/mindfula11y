@@ -119,7 +119,7 @@ final readonly class AltTextAjaxController
         // For sys_file_metadata the TYPO3 core uses editMeta (writable file mount) as the
         // permission check (see FileMetadataPermissionsAspect). For all other tables, a
         // read file mount check is sufficient.
-        $hasFileAccess = ('sys_file_metadata' === $recordTable)
+        $hasFileAccess = ('sys_file_metadata' === $demand->getRecordTable())
             ? $this->permissionService->checkFileMetaEditAccess($file)
             : $this->permissionService->checkFileReadAccess($file);
 
