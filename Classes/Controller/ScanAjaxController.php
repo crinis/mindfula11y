@@ -23,7 +23,6 @@ declare(strict_types=1);
 
 namespace MindfulMarkup\MindfulA11y\Controller;
 
-use InvalidArgumentException;
 use MindfulMarkup\MindfulA11y\Domain\Model\CreateScanDemand;
 use MindfulMarkup\MindfulA11y\Exception\ScanApiRequestException;
 use MindfulMarkup\MindfulA11y\Exception\ScanCreationException;
@@ -40,7 +39,7 @@ use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Http\JsonResponse;
 use TYPO3\CMS\Core\Versioning\VersionState;
-use TYPO3\CMS\Core\Site\SiteFinder;
+use MindfulMarkup\MindfulA11y\Service\SiteLanguageService;
 
 /**
  * Handles the AJAX endpoints of the accessibility-scanner feature.
@@ -51,6 +50,7 @@ use TYPO3\CMS\Core\Site\SiteFinder;
 final readonly class ScanAjaxController
 {
     use JsonErrorResponseTrait;
+    use AjaxGuardTrait;
 
     public function __construct(
         private ScanApiService $scanApiService,
@@ -58,7 +58,7 @@ final readonly class ScanAjaxController
         private PagePreviewService $pagePreviewService,
         private ScanStateService $scanStateService,
         private PermissionService $permissionService,
-        private SiteFinder $siteFinder,
+        private SiteLanguageService $siteLanguageService,
         private ScanCreationService $scanCreationService,
         private ResponseFactoryInterface $responseFactory,
         private BackendUserProvider $backendUserProvider,
@@ -119,51 +119,40 @@ final readonly class ScanAjaxController
     /**
      * Create a new accessibility scan for a page.
      *
-     * @throws InvalidArgumentException If the request parameters are invalid.
      */
     public function createAction(ServerRequestInterface $request): ResponseInterface
     {
-        $backendUser = $this->backendUserProvider->get();
-
         if ($error = $this->requireModuleAccess()) {
             return $error;
         }
 
-        $requestBody = json_decode((string)$request->getBody(), true);
-        $requestBody = is_array($requestBody) ? $requestBody : [];
+        $requestBody = $this->parseJsonBody($request);
         $demand = CreateScanDemand::fromRequestData($requestBody);
         // Editor choice riding alongside the signed demand fields: authorization
         // happens via Page TSconfig below, so it needs no HMAC coverage.
         $aiAuditRequested = (bool)($requestBody['aiAudit'] ?? false);
 
         if ($demand === null) {
-            throw new InvalidArgumentException('Missing or invalid parameters for creating a scan');
+            return $this->errorResponse('error.invalidRequest', 400);
         }
 
         if (!$demand->validateSignature()) {
             return $this->errorResponse('module.error.invalidSignature', 400);
         }
 
-        $userId = $demand->getUserId();
         $pageId = $demand->getPageId();
         $languageId = $demand->getLanguageId();
         $workspaceId = $demand->getWorkspaceId();
 
-        // Verify the current backend user matches the demand
-        if ($backendUser->user['uid'] !== $userId) {
-            return $this->errorResponse('error.invalidUser', 403);
+        if ($error = $this->requireDemandSession($demand->getUserId(), $workspaceId, $languageId)) {
+            return $error;
         }
 
-        // Verify the current workspace matches the demand. Scans are also a
-        // live-workspace feature: the external scanner cannot fetch workspace
-        // previews, and storing the scan id must not version the page record.
-        if ($backendUser->workspace !== $workspaceId || $workspaceId !== 0) {
+        // Scans are also a live-workspace feature: the external scanner cannot
+        // fetch workspace previews, and storing the scan id must not version
+        // the page record.
+        if ($workspaceId !== 0) {
             return $this->errorResponse('error.invalidWorkspace', 403);
-        }
-
-        // Check language access
-        if (!$this->permissionService->checkLanguageAccess($languageId)) {
-            return $this->errorResponse('error.invalidLanguage', 403);
         }
 
         // Check TSConfig access for scan feature
@@ -243,32 +232,7 @@ final readonly class ScanAjaxController
         $pageUrls = array_values(array_filter($pageUrls, fn(string $url): bool => filter_var($url, FILTER_VALIDATE_URL) !== false));
 
         // Only forward filters within this site's configured language bases.
-        if (!empty($pageUrls)) {
-            try {
-                $site = $this->siteFinder->getSiteByPageId((int)$pageRecord['uid']);
-                $allowedBases = [];
-                foreach ($site->getLanguages() as $language) {
-                    $base = rtrim((string)$language->getBase(), '/');
-                    if ($base !== '') {
-                        $allowedBases[] = $base;
-                    }
-                }
-                $siteBase = rtrim((string)$site->getBase(), '/');
-                if ($siteBase !== '' && !in_array($siteBase, $allowedBases, true)) {
-                    $allowedBases[] = $siteBase;
-                }
-                $pageUrls = array_values(array_filter($pageUrls, static function (string $url) use ($allowedBases): bool {
-                    foreach ($allowedBases as $base) {
-                        if (str_starts_with($url, $base . '/') || $url === $base) {
-                            return true;
-                        }
-                    }
-                    return false;
-                }));
-            } catch (\Exception) {
-                $pageUrls = [];
-            }
-        }
+        $pageUrls = $this->siteLanguageService->filterUrlsToSiteBases($pageUrls, (int)$pageRecord['uid']);
 
         try {
             $scan = $this->scanApiService->getScan($scanId, $pageUrls);
@@ -298,7 +262,7 @@ final readonly class ScanAjaxController
             return $error;
         }
 
-        $requestBody = json_decode((string)$request->getBody(), true) ?? [];
+        $requestBody = $this->parseJsonBody($request);
         $scanId = $requestBody['scanId'] ?? '';
 
         if (!is_string($scanId) || $scanId === '') {
@@ -377,17 +341,6 @@ final readonly class ScanAjaxController
         }
 
         return array_values(array_unique($pageUrls));
-    }
-
-    /**
-     * Returns a 403 response if the current backend user lacks module access, null otherwise.
-     */
-    private function requireModuleAccess(): ?ResponseInterface
-    {
-        if ($this->permissionService->checkModuleAccess()) {
-            return null;
-        }
-        return $this->errorResponse('error.forbidden', 403);
     }
 
     /**

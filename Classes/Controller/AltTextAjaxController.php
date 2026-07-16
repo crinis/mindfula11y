@@ -23,7 +23,6 @@ declare(strict_types=1);
 
 namespace MindfulMarkup\MindfulA11y\Controller;
 
-use InvalidArgumentException;
 use MindfulMarkup\MindfulA11y\Domain\Model\GenerateAltTextDemand;
 use MindfulMarkup\MindfulA11y\Service\AltTextGeneratorService;
 use MindfulMarkup\MindfulA11y\Service\BackendUserProvider;
@@ -49,6 +48,7 @@ use TYPO3\CMS\Core\Schema\TcaSchemaFactory;
 final readonly class AltTextAjaxController
 {
     use JsonErrorResponseTrait;
+    use AjaxGuardTrait;
 
     public function __construct(
         private AltTextGeneratorService $altTextGeneratorService,
@@ -80,99 +80,28 @@ final readonly class AltTextAjaxController
      *
      * This action handles the AJAX request to generate alternative text for a given image and
      * returns the generated text as a JSON response.
-     *
-     * @throws InvalidArgumentException If the request parameters are invalid.
      */
     public function generateAction(ServerRequestInterface $request): ResponseInterface
     {
-        $requestBody = json_decode((string)$request->getBody(), true);
-        $requestBody = is_array($requestBody) ? $requestBody : [];
-        $demand = GenerateAltTextDemand::fromRequestData($requestBody);
+        if ($error = $this->requireModuleAccess()) {
+            return $error;
+        }
 
+        $demand = GenerateAltTextDemand::fromRequestData($this->parseJsonBody($request));
         if ($demand === null) {
-            throw new InvalidArgumentException('Missing or invalid parameters for generating alternative text');
+            return $this->errorResponse('error.invalidRequest', 400);
         }
 
         if (!$demand->validateSignature()) {
             return $this->errorResponse('module.error.invalidSignature', 400);
         }
 
-        $backendUser = $this->backendUserProvider->get();
-
-        // Check if user has access to the mindfula11y_accessibility module
-        if (!$this->permissionService->checkModuleAccess()) {
-            return $this->errorResponse('error.forbidden', 403);
+        if ($error = $this->requireDemandSession($demand->getUserId(), $demand->getWorkspaceId(), $demand->getLanguageUid())) {
+            return $error;
         }
 
-        $userId = $demand->getUserId();
-        $pageUid = $demand->getPageUid();
-        $languageUid = $demand->getLanguageUid();
-        $workspaceId = $demand->getWorkspaceId();
-        $recordTable = $demand->getRecordTable();
-
-        // Verify the current backend user matches the demand
-        if ($backendUser->user['uid'] !== $userId) {
-            return $this->errorResponse('error.invalidUser', 403);
-        }
-
-        // Verify the current workspace matches the demand
-        if ($backendUser->workspace !== $workspaceId) {
-            return $this->errorResponse('error.invalidWorkspace', 403);
-        }
-
-        // Check language access
-        if (!$this->permissionService->checkLanguageAccess($languageUid)) {
-            return $this->errorResponse('error.invalidLanguage', 403);
-        }
-
-        // Check if user has access to the page.
-        // Root-level tables like sys_file_metadata have ignoreRootLevelRestriction=true in TCA
-        // and are not governed by page tree permissions when their records sit at pid=0.
-        // Only skip when both conditions are true: the record is at root AND the table allows it.
-        if (!(0 === $pageUid && $this->tableIgnoresRootLevelRestriction($recordTable))) {
-            $pageInfo = BackendUtility::readPageAccess($pageUid, $backendUser->getPagePermsClause(Permission::PAGE_SHOW));
-            if (false === $pageInfo) {
-                return $this->errorResponse('error.noPageAccess', 403);
-            }
-        }
-
-        // Check if user has read access to sys_file
-        if (!$this->permissionService->checkTableReadAccess('sys_file')) {
-            return $this->errorResponse('error.noFileAccess', 403);
-        }
-
-        // Check if user has edit access to the record
-        $recordUid = $demand->getRecordUid();
-        $recordColumns = $demand->getRecordColumns();
-        $recordData = BackendUtility::getRecordWSOL($recordTable, $recordUid);
-
-        // Fail closed: a missing (e.g. meanwhile deleted) record must reject the
-        // request outright — skipping the record-level checks would fail open.
-        if (!is_array($recordData)) {
-            return $this->errorResponse('error.invalidRecordAccess', 403);
-        }
-
-        // Check if user has edit access to the record.
-        // For sys_file_metadata the TYPO3 core permission model (FileMetadataPermissionsAspect)
-        // is file-mount based (editMeta), not page-based. checkRecordEditAccess relies on a
-        // parent page row which does not exist for root-level records (pid=0), so skip it when
-        // the record is at root on a table that explicitly allows it, and enforce editMeta below.
-        if (!(0 === $pageUid && $this->tableIgnoresRootLevelRestriction($recordTable))
-            && !$this->permissionService->checkRecordEditAccess($recordTable, $recordData, $recordColumns)
-        ) {
-            return $this->errorResponse('error.invalidRecordAccess', 403);
-        }
-
-        // For root-level records (e.g. sys_file_metadata) checkRecordEditAccess is skipped above
-        // because it cannot resolve a parent page row. Enforce the equivalent guards manually:
-        // table write access and non-exclude field access — matching what checkRecordEditAccess
-        // would verify via checkTableWriteAccess and checkNonExcludeFields.
-        if (0 === $pageUid && $this->tableIgnoresRootLevelRestriction($recordTable)) {
-            if (!$this->permissionService->checkTableWriteAccess($recordTable)
-                || !$this->permissionService->checkNonExcludeFields($recordTable, $recordColumns)
-            ) {
-                return $this->errorResponse('error.invalidRecordAccess', 403);
-            }
+        if ($error = $this->authorizeDemand($demand)) {
+            return $error;
         }
 
         try {
@@ -205,5 +134,62 @@ final readonly class AltTextAjaxController
         }
 
         return new JsonResponse(['altText' => $altText], 201);
+    }
+
+    /**
+     * Verify the current user may edit the record the demand targets.
+     *
+     * Returns null when authorized, or the error response to send.
+     */
+    private function authorizeDemand(GenerateAltTextDemand $demand): ?ResponseInterface
+    {
+        $pageUid = $demand->getPageUid();
+        $recordTable = $demand->getRecordTable();
+        $recordColumns = $demand->getRecordColumns();
+
+        // Root-level tables like sys_file_metadata have ignoreRootLevelRestriction=true in TCA
+        // and are not governed by page tree permissions when their records sit at pid=0.
+        // Only exempt when both conditions are true: the record is at root AND the table allows it.
+        $isRootLevelExempt = 0 === $pageUid && $this->tableIgnoresRootLevelRestriction($recordTable);
+
+        if (!$isRootLevelExempt) {
+            $pageInfo = BackendUtility::readPageAccess(
+                $pageUid,
+                $this->backendUserProvider->get()->getPagePermsClause(Permission::PAGE_SHOW)
+            );
+            if (false === $pageInfo) {
+                return $this->errorResponse('error.noPageAccess', 403);
+            }
+        }
+
+        // Check if user has read access to sys_file
+        if (!$this->permissionService->checkTableReadAccess('sys_file')) {
+            return $this->errorResponse('error.noFileAccess', 403);
+        }
+
+        $recordData = BackendUtility::getRecordWSOL($recordTable, $demand->getRecordUid());
+
+        // Fail closed: a missing (e.g. meanwhile deleted) record must reject the
+        // request outright — skipping the record-level checks would fail open.
+        if (!is_array($recordData)) {
+            return $this->errorResponse('error.invalidRecordAccess', 403);
+        }
+
+        if ($isRootLevelExempt) {
+            // For sys_file_metadata the TYPO3 core permission model (FileMetadataPermissionsAspect)
+            // is file-mount based (editMeta), not page-based. checkRecordEditAccess relies on a
+            // parent page row which does not exist for root-level records (pid=0), so enforce the
+            // equivalent guards manually — table write access and non-exclude field access —
+            // matching what checkRecordEditAccess would verify; editMeta is enforced by the caller.
+            if (!$this->permissionService->checkTableWriteAccess($recordTable)
+                || !$this->permissionService->checkNonExcludeFields($recordTable, $recordColumns)
+            ) {
+                return $this->errorResponse('error.invalidRecordAccess', 403);
+            }
+        } elseif (!$this->permissionService->checkRecordEditAccess($recordTable, $recordData, $recordColumns)) {
+            return $this->errorResponse('error.invalidRecordAccess', 403);
+        }
+
+        return null;
     }
 }

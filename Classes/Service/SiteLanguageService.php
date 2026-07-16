@@ -89,23 +89,6 @@ class SiteLanguageService
     }
 
     /**
-     * Get language fallbacks by language UID and page ID.
-     * 
-     * @param int $languageUid The UID of the language.
-     * @param int $pageId The ID of the page.
-     * 
-     * @return array<int> The language fallbacks.
-     * 
-     * @throws SiteNotFoundException If the site is not found.
-     * @throws InvalidArgumentException If the language UID is invalid or page ID is 0.
-     */
-    public function getFallbackLanguageIds(int $languageUid, int $pageId): array
-    {
-        $siteLanguage = $this->getSiteLanguage($pageId, $languageUid);
-        return $siteLanguage->getFallbackLanguageIds();
-    }
-
-    /**
      * Get site language by page ID and language UID.
      * 
      * @param int $pageId The ID of the page.
@@ -157,6 +140,49 @@ class SiteLanguageService
             return $origin . rtrim($langBase->getPath(), '/');
         } catch (\Throwable) {
             return null;
+        }
+    }
+
+    /**
+     * Keep only URLs living under one of the page's site (language) bases.
+     *
+     * Security allowlist for user-influenced URL filters that are forwarded to
+     * the external scanner API: everything outside the site's own URL space is
+     * dropped, and any resolution failure drops all URLs (fail closed).
+     *
+     * @param list<string> $urls
+     * @return list<string>
+     */
+    public function filterUrlsToSiteBases(array $urls, int $pageId): array
+    {
+        if ($urls === []) {
+            return [];
+        }
+
+        try {
+            $site = $this->siteFinder->getSiteByPageId($pageId);
+            $allowedBases = [];
+            foreach ($site->getLanguages() as $language) {
+                $base = rtrim((string)$language->getBase(), '/');
+                if ($base !== '') {
+                    $allowedBases[] = $base;
+                }
+            }
+            $siteBase = rtrim((string)$site->getBase(), '/');
+            if ($siteBase !== '' && !in_array($siteBase, $allowedBases, true)) {
+                $allowedBases[] = $siteBase;
+            }
+
+            return array_values(array_filter($urls, static function (string $url) use ($allowedBases): bool {
+                foreach ($allowedBases as $base) {
+                    if (str_starts_with($url, $base . '/') || $url === $base) {
+                        return true;
+                    }
+                }
+                return false;
+            }));
+        } catch (\Exception) {
+            return [];
         }
     }
 }

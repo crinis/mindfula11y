@@ -38,6 +38,7 @@ use TYPO3\CMS\Core\Site\SiteFinder;
 final readonly class StructureAnalysisTicketAjaxController
 {
     use JsonErrorResponseTrait;
+    use AjaxGuardTrait;
 
     public function __construct(
         private StructureAnalysisTicketService $ticketService,
@@ -50,9 +51,9 @@ final readonly class StructureAnalysisTicketAjaxController
 
     public function ticketAction(ServerRequestInterface $request): ResponseInterface
     {
-        $body = json_decode((string)$request->getBody(), true);
-        $pageId = is_array($body) ? (int)($body['pageId'] ?? 0) : 0;
-        $languageId = is_array($body) ? (int)($body['languageId'] ?? 0) : 0;
+        $body = $this->parseJsonBody($request);
+        $pageId = (int)($body['pageId'] ?? 0);
+        $languageId = (int)($body['languageId'] ?? 0);
         $backendUser = $this->backendUserProvider->getAuthenticated();
         if ($backendUser === null) {
             return $this->unavailableResponse();

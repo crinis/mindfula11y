@@ -492,6 +492,12 @@
             </trans-unit>
 
             <!-- General Errors -->
+            <trans-unit id="error.invalidRequest" resname="error.invalidRequest">
+                <source>Invalid request</source>
+            </trans-unit>
+            <trans-unit id="error.invalidRequest.description" resname="error.invalidRequest.description">
+                <source>The request is missing required parameters or they are malformed. Please reload the page and try again.</source>
+            </trans-unit>
             <trans-unit id="error.forbidden" resname="error.forbidden">
                 <source>Access denied</source>
             </trans-unit>

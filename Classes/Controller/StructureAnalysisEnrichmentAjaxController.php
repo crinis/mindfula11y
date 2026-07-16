@@ -37,6 +37,7 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 final readonly class StructureAnalysisEnrichmentAjaxController
 {
     use JsonErrorResponseTrait;
+    use AjaxGuardTrait;
 
     /** Must match MAX_RECORDS_PER_REQUEST in service/structure/api.ts. */
     private const MAX_RECORDS_PER_REQUEST = 200;
@@ -50,12 +51,12 @@ final readonly class StructureAnalysisEnrichmentAjaxController
 
     public function enrichAction(ServerRequestInterface $request): ResponseInterface
     {
-        if (!$this->permissionService->checkModuleAccess()) {
-            return $this->errorResponse('error.forbidden', 403);
+        if ($error = $this->requireModuleAccess()) {
+            return $error;
         }
 
-        $body = json_decode((string)$request->getBody(), true);
-        $references = is_array($body) && is_array($body['records'] ?? null) ? $body['records'] : [];
+        $body = $this->parseJsonBody($request);
+        $references = is_array($body['records'] ?? null) ? $body['records'] : [];
         if (count($references) > self::MAX_RECORDS_PER_REQUEST) {
             return $this->errorResponse('structure.error.tooManyRecords', 400);
         }

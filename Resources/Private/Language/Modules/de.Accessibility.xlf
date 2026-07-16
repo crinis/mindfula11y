@@ -596,6 +596,14 @@
             </trans-unit>
 
             <!-- General Errors -->
+            <trans-unit id="error.invalidRequest" resname="error.invalidRequest">
+                <source>Invalid request</source>
+                <target>Ungültige Anfrage</target>
+            </trans-unit>
+            <trans-unit id="error.invalidRequest.description" resname="error.invalidRequest.description">
+                <source>The request is missing required parameters or they are malformed. Please reload the page and try again.</source>
+                <target>Der Anfrage fehlen erforderliche Parameter oder sie sind fehlerhaft. Bitte laden Sie die Seite neu und versuchen Sie es erneut.</target>
+            </trans-unit>
             <trans-unit id="error.forbidden" resname="error.forbidden">
                 <source>Access denied</source>
                 <target>Zugriff verweigert</target>
