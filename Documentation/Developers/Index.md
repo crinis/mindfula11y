@@ -42,6 +42,12 @@ explicit `alt` and `title` arguments retain TYPO3's normal precedence and overri
 
 ## Heading ViewHelpers
 
+Every element has a *logical* heading level, whether or not a heading is visible: render
+`<mindfula11y:heading>` unconditionally in templates. When its content is empty or
+`renderTag="false"` (e.g. `header_layout` 100 "hidden"), it outputs nothing — an empty
+heading tag is an accessibility defect — but still registers its relation, so descendant
+and sibling headings keep deriving their levels from it.
+
 ### 1) Main heading: `<mindfula11y:heading>`
 
 Use this for the primary heading output of a record.
@@ -50,7 +56,9 @@ Use this for the primary heading output of a record.
 <mindfula11y:heading
     recordUid="{f:if(condition: data._LOCALIZED_UID, then: data._LOCALIZED_UID, else: data.uid)}"
     type="{data.tx_mindfula11y_headingtype}"
-    relationId="{data.uid}">
+    childType="{data.tx_mindfula11y_childheadingtype}"
+    relationId="{data.uid}"
+    renderTag="{f:if(condition: '{data.header_layout} == 100', then: '0', else: '1')}">
     {data.header}
 </mindfula11y:heading>
 ```
@@ -61,6 +69,18 @@ Edge cases:
 - If `type` is not set, the ViewHelper resolves the heading type from the configured record field.
 - If neither is available, it falls back to `h2`.
 - Use `relationId` if you want to reference this heading from descendant/sibling headings.
+- `childType` explicitly configures the level of descendant headings (see below). Pass it from
+  template data as shown to save a database query; when the argument is omitted entirely, the
+  record's `tx_mindfula11y_childheadingtype` column (override with `childTypeColumnName`) is
+  consulted — but only when that column is defined in the record table's TCA. Custom tables
+  without the column simply resolve to "automatic"; they need no child-type column of their own.
+  An empty value means "automatic": descendants use this heading's own level plus one.
+  In the heading structure module, the child heading type is edited on the **container
+  element's row**. A container that renders no heading of its own (empty header,
+  `renderTag="false"`) still appears as a "Hidden container element" row during analysis —
+  the ViewHelper emits a hidden marker for validated structure-analysis requests only; normal
+  frontend output is unchanged. Derived child headings are read-only in the module and link to
+  their container's row.
 - **Translated content:** `recordUid` must be the *localized* record's uid, otherwise editing
   targets the default-language record. With the classic `data` array (above) that is
   `data._LOCALIZED_UID` falling back to `data.uid`; in the TYPO3 14 `record` / `PAGEVIEW`
@@ -95,6 +115,69 @@ Edge cases:
 - `ancestorId` only resolves when the referenced heading is rendered earlier in output.
 - If the referenced heading is not available yet, set `type` directly or provide record arguments.
 - If level increment would exceed `h6`, output becomes `p`.
+- When the ancestor carries a configured **child heading type** (its `childType` argument or
+  `tx_mindfula11y_childheadingtype` column), the descendant uses that level *verbatim* with the
+  default `levels` of 1 — this is the only way a descendant can render as `h1`, since plain
+  incrementing always starts at `h2`. Deeper `levels` continue from it
+  (`childType + levels − 1`).
+- Give a descendant its own `relationId` to let *its* descendants derive from it — each nesting
+  level steps down one further level automatically:
+
+```html
+<mindfula11y:heading.descendant ancestorId="container" relationId="child">
+    Child heading
+</mindfula11y:heading.descendant>
+
+<mindfula11y:heading.descendant ancestorId="child">
+    Grandchild heading, one level deeper
+</mindfula11y:heading.descendant>
+```
+
+### Container elements: configuring child heading levels
+
+The optional tt_content column `tx_mindfula11y_childheadingtype` lets editors set the heading
+level for all children of a container element (including `h1`), or leave it on "Automatic"
+(one level below the container's own heading). The column ships **unassigned** — add it to your
+container CTypes:
+
+```php
+\TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addToAllTCAtypes(
+    'tt_content',
+    'tx_mindfula11y_childheadingtype',
+    'my_container_ctype',
+    'after:header'
+);
+```
+
+The field **must be part of the CType's showitem** (as above): FormEngine only shows fields from
+showitem, and the heading-structure module's enrichment uses the same processed TCA — without it,
+the container's row offers no child-type select in the module either.
+
+A container template renders its heading unconditionally with `relationId` and `childType`
+(see the main-heading example). Child elements reference it via `ancestorId`; with
+`b13/container`, children carry the container uid in `tx_container_parent`:
+
+```html
+<mindfula11y:heading.descendant
+    ancestorId="{data.tx_container_parent}"
+    relationId="{data.uid}">
+    {data.header}
+</mindfula11y:heading.descendant>
+```
+
+Because the container registers even when it renders no heading (empty header or
+`renderTag="false"`), a headingless container still anchors its children: with a configured
+child type they render exactly that level; on "Automatic" a headingless container registers no
+own level either, and children fall back to their own heading-type field.
+
+In the heading-structure backend module, the child-type select lives on the **container's own
+row**, not on the derived children: one change writes the shared column, so **all** children of
+that container shift together, and their own descendants (linked via `relationId`/"Automatic")
+re-derive with them. A container that renders no heading of its own still gets a row — labeled
+"Hidden container element" — so the field stays reachable and its children keep a jump target;
+this row is a module-only construct built from the hidden marker `renderContainerMarker()` emits
+for validated structure-analysis requests and never appears in normal frontend output. Derived
+child rows are always read-only in the module; each links back to its container's row instead.
 
 ### 3) Sibling heading: `<mindfula11y:heading.sibling>`
 

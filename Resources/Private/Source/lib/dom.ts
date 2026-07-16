@@ -36,7 +36,25 @@ export const extractRecord = (element: HTMLElement): RecordReference | null => {
     if (tableName === '' || columnName === '' || Number.isNaN(uid)) {
         return null;
     }
-    return { tableName, columnName, uid, editLink: '' };
+    // Present (possibly empty = "automatic") only when the stored value can differ
+    // from the rendered state; absence keeps the rendered-state semantics.
+    const storedValue = element.dataset.mindfula11yRecordValue;
+    return { tableName, columnName, uid, editLink: '', ...(storedValue !== undefined ? { storedValue } : {}) };
+};
+
+/**
+ * Child-type column coordinates of a container element (or its hidden marker).
+ * Unlike `extractRecord`, the stored value is always present — '' means
+ * "automatic" and is a real, selectable state of the column.
+ */
+export const extractChildTypeRecord = (element: HTMLElement): RecordReference | null => {
+    const tableName = element.dataset.mindfula11yChildtypeTableName ?? '';
+    const columnName = element.dataset.mindfula11yChildtypeColumnName ?? '';
+    const uid = Number.parseInt(element.dataset.mindfula11yChildtypeUid ?? '', 10);
+    if (tableName === '' || columnName === '' || Number.isNaN(uid)) {
+        return null;
+    }
+    return { tableName, columnName, uid, editLink: '', storedValue: element.dataset.mindfula11yChildtypeValue ?? '' };
 };
 
 /**

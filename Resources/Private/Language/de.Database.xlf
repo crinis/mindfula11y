@@ -63,7 +63,19 @@
 				<source>Generic div (div)</source>
 				<target>Generic div (div)</target>
 			</trans-unit>
-			
+			<trans-unit id="ttContent.columns.mindfula11y.childHeadingType" resname="ttContent.columns.mindfula11y.childHeadingType">
+				<source>Child heading type</source>
+				<target>Überschriftentyp für Unterelemente</target>
+			</trans-unit>
+			<trans-unit id="ttContent.columns.mindfula11y.childHeadingType.description" resname="ttContent.columns.mindfula11y.childHeadingType.description">
+				<source>Heading level for content elements placed inside this element. "Automatic" uses one level below this element's own heading type.</source>
+				<target>Überschriftenebene für Inhaltselemente innerhalb dieses Elements. "Automatisch" verwendet eine Ebene unterhalb des eigenen Überschriftentyps dieses Elements.</target>
+			</trans-unit>
+			<trans-unit id="ttContent.columns.mindfula11y.childHeadingType.items.automatic" resname="ttContent.columns.mindfula11y.childHeadingType.items.automatic">
+				<source>Automatic</source>
+				<target>Automatisch</target>
+			</trans-unit>
+
 			<!-- Accessibility Tab -->
 			<trans-unit id="ttContent.tabs.accessibility"
 				resname="ttContent.tabs.accessibility">

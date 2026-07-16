@@ -23,14 +23,18 @@ declare(strict_types=1);
 
 namespace MindfulMarkup\MindfulA11y\ViewHelpers;
 
-use MindfulMarkup\MindfulA11y\Enum\HeadingType;
-
 /**
  * Heading ViewHelper to allow editing heading types using the heading structure module.
  *
  * This ViewHelper renders a heading element and adds data attributes with DB information
  * in case we use the heading structure backend module. The `relationId` argument can be used to cache and reference
  * the heading type for use by sibling or descendant headings.
+ *
+ * Use it unconditionally in templates: when the content is empty or `renderTag` is false
+ * (e.g. header_layout "hidden"), nothing is output but the relation is still registered,
+ * so the element keeps its logical heading level for descendants. The `childType`
+ * argument (or the record's tx_mindfula11y_childheadingtype column) explicitly configures
+ * the level descendant headings use verbatim — the only way a descendant can be an h1.
  *
  * Usage examples:
  *
@@ -42,6 +46,10 @@ use MindfulMarkup\MindfulA11y\Enum\HeadingType;
  *
  * Specify heading type without way to edit it: Use for dependent headings like child headings.
  * <mindfula11y:heading type="h2">{data.header}</mindfula11y:heading>
+ *
+ * Container element publishing an explicit level for its children (renders nothing when
+ * the header is empty, but children still derive their level):
+ * <mindfula11y:heading relationId="{data.uid}" recordUid="{data.uid}" type="{data.tx_mindfula11y_headingtype}" childType="{data.tx_mindfula11y_childheadingtype}">{data.header}</mindfula11y:heading>
  *
  * Example using relationId for referencing in siblings/descendants:
  * <mindfula11y:heading relationId="mainHeading" type="h2">Main heading</mindfula11y:heading>
@@ -58,27 +66,7 @@ class HeadingViewHelper extends AbstractHeadingViewHelper
         parent::initializeArguments();
         $this->registerArgument('relationId', 'string', 'The relation identifier for this heading (used for rendering related headings).', false, null);
         $this->registerCommonHeadingArguments();
-    }
-
-    /**
-     * Publishes the tag name this heading was finally rendered with (resolved type or
-     * default) to the HeadingRelationRegistry under `relationId`, for later
-     * sibling/descendant ViewHelpers to consume. A no-op if no `relationId` is given.
-     *
-     * Note: reads $this->tag->getTagName() rather than the resolved HeadingType so that
-     * a default-tag fallback (no type/registry/record resolved) is registered too, same
-     * as when this used the runtime cache directly.
-     *
-     * @return void
-     */
-    protected function registerHeadingRelation(): void
-    {
-        if (!empty($this->arguments['relationId'])) {
-            $this->headingRelationRegistry->register(
-                $this->arguments['relationId'],
-                HeadingType::from($this->tag->getTagName()),
-            );
-        }
+        $this->registerChildTypeArguments();
     }
 
     /**
@@ -89,10 +77,11 @@ class HeadingViewHelper extends AbstractHeadingViewHelper
      */
     protected function addAnalysisDataAttributes(): void
     {
-        if (!empty($this->arguments['relationId'])) {
-            $this->tag->addAttribute('data-mindfula11y-relation-id', $this->arguments['relationId']);
+        if ($this->publishesRelation()) {
+            $this->tag->addAttribute('data-mindfula11y-relation-id', (string)$this->arguments['relationId']);
         }
 
         $this->addRecordDataAttributes();
+        $this->addChildTypeDataAttributesTo($this->tag);
     }
 }

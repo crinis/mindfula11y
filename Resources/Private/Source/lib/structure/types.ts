@@ -61,16 +61,25 @@ export interface HeadingRelation {
     targetRelationId: string;
 }
 
+/** Rendered heading, or a hidden marker standing in for a suppressed container element. */
+export type HeadingNodeKind = 'heading' | 'container';
+
 /** One heading in the analyzed document, nested by level. */
 export interface HeadingNode {
     id: string;
     /** Position in the document, stable across viewports; orders the merged tree. */
     documentOrder: number;
+    kind: HeadingNodeKind;
+    /** For containers: the element's own (unrendered) level; 0 when its own type is not h1-h6. */
     level: number;
     label: string;
     /** Always `{}` from the analyzer; populated in place by `applyRecordMetadata` after backend enrichment. */
     availableTypes: Record<string, string>;
+    /** Select items of the container-owned child-type column; populated by `applyRecordMetadata`. */
+    availableChildTypes: Record<string, string>;
     record: RecordReference | null;
+    /** The container-owned column storing the level of this element's child headings. */
+    childTypeRecord: RecordReference | null;
     relationId: string;
     relation: HeadingRelation | null;
     skippedLevels: number;

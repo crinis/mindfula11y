@@ -6,6 +6,7 @@
 /.gitattributes export-ignore
 /Configuration/Sets/MindfulA11yDev export-ignore
 /Configuration/Sets/MindfulA11yVisualEditorDemo export-ignore
+/Configuration/TCA/Overrides/tt_content_dev_fixtures.php export-ignore
 /Documentation export-ignore
 /Resources/Private/Build export-ignore
 /Resources/Private/Source export-ignore

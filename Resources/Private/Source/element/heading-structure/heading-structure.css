@@ -24,30 +24,20 @@
  */
 @layer component {
     /*
-     * Nested ordered lists ARE the hierarchy; every nested level gets an
-     * indentation rail. All geometry comes from the rem space scale so the
-     * tree scales with root font size and zoom.
+     * One flat list: hierarchy is announced per row via the heading level, so
+     * the indentation is a purely visual aid derived from the level. The step
+     * comes from the rem space scale so the structure scales with root font
+     * size and zoom; the indent factor is a runtime value the component sets
+     * per item (--mindfula11y-heading-structure-indent).
      */
     .tree {
         display: flex;
         flex-direction: column;
         gap: var(--mindfula11y-space-3xs);
-
-        .tree {
-            padding-inline-start: var(--mindfula11y-space-2xs);
-            margin-block-start: var(--mindfula11y-space-3xs);
-            margin-inline-start: var(--mindfula11y-space-2xs);
-            border-inline-start: 1px solid var(--mindfula11y-border);
-        }
     }
 
-    @container (inline-size >= 28rem) {
-        .tree {
-            .tree {
-                padding-inline-start: var(--mindfula11y-space-xs);
-                margin-inline-start: var(--mindfula11y-space-xs);
-            }
-        }
+    .node {
+        padding-inline-start: calc(var(--mindfula11y-heading-structure-indent, 0) * var(--mindfula11y-space-s));
     }
 
     .row {
@@ -59,29 +49,59 @@
         padding-inline: var(--mindfula11y-space-2xs);
         border-radius: var(--mindfula11y-input-radius);
 
-        &:hover {
+        /* :where() keeps the hover at the base specificity so the later
+           shared control-chip recipe doesn't rank as descending. */
+        &:where(:hover) {
             background-color: var(--mindfula11y-component-hover-bg);
+        }
+
+        /* A row carrying its findings inline (no separate issue row beneath
+           it) is marked as the error/warning surface itself. */
+        &[data-error] {
+            border: 1px solid var(--mindfula11y-state-danger-border);
+        }
+
+        &[data-warning] {
+            border: 1px solid var(--mindfula11y-state-warning-border);
         }
     }
 
     /*
-     * The level chip: one geometry, three variants (select, locked display,
-     * relation jump button) so the tree scans as an aligned column. Em-based
-     * minimum sizes keep the hit target >= 24px at every zoom level.
+     * Container rows carry a badge (crossed-eye icon + label) instead of
+     * heading text: TYPO3's established "hidden record" visual, in the tree's
+     * dashed not-rendered-here language. The badge is non-interactive; its
+     * label is real text, the icon decorative.
      */
-    .level {
+    .container-badge {
         display: inline-flex;
         gap: var(--mindfula11y-space-3xs);
         align-items: center;
-        justify-content: center;
-        min-inline-size: 3.5em;
+        padding-block: var(--mindfula11y-space-3xs);
+        padding-inline: var(--mindfula11y-space-2xs);
+        font-size: var(--mindfula11y-font-size-xs);
+        font-weight: 600;
+        color: var(--mindfula11y-text-subtle);
+        border: 1px dashed var(--mindfula11y-border);
+        border-radius: var(--mindfula11y-input-radius);
+    }
+
+    /*
+     * One control-chip recipe for BOTH selects (the heading-type and the
+     * child-type select) and the level chip's display variants, so every
+     * editable select shares the same solid input look — dashed borders are
+     * reserved for derived, read-only chips. `:where()` keeps the shared
+     * recipe at zero specificity so the per-class rules below always win.
+     * Em-based minimum sizes keep the hit target >= 24px at every zoom level.
+     */
+    :where(.level, .child-level) {
+        display: inline-flex;
+        gap: var(--mindfula11y-space-3xs);
+        align-items: center;
         min-block-size: var(--mindfula11y-control-min-size);
         padding-block: var(--mindfula11y-control-padding-block);
         padding-inline: var(--mindfula11y-control-padding-inline);
-        font-weight: 700;
         font-variant-numeric: tabular-nums;
         color: var(--mindfula11y-input-color);
-        text-align: center;
         background-color: var(--mindfula11y-input-bg);
         border: 1px solid var(--mindfula11y-input-border);
         border-radius: var(--mindfula11y-input-radius);
@@ -89,10 +109,27 @@
         &:hover {
             border-color: var(--mindfula11y-input-hover-border);
         }
+    }
 
+    /*
+     * The level chip: one geometry, three variants (select, locked display,
+     * relation jump button) so the tree scans as an aligned column.
+     */
+    .level {
+        justify-content: center;
+        min-inline-size: 3.5em;
+        font-weight: 700;
+        text-align: center;
+
+        /* Dashed = derived; only the jump-button variant (carrying data-control)
+           is interactive — the plain variant marks a heading derived from a
+           parent that renders no own heading, so there is nothing to jump to. */
         &[data-relation] {
-            cursor: pointer;
             border-style: dashed;
+
+            &[data-control] {
+                cursor: pointer;
+            }
         }
 
         &[data-locked] {
@@ -117,13 +154,44 @@
         }
     }
 
+    /*
+     * The label is the row's one flexible column: it grows so controls and
+     * meta (badges, edit link, findings) gather visibly separated at the row
+     * end, and its minimum measure decides when trailing items wrap onto the
+     * next line instead of squeezing the text away.
+     */
     .text {
+        flex: 1 1 auto;
+        min-inline-size: min(100%, 16ch);
         overflow-wrap: anywhere;
 
         &[data-empty] {
             font-style: italic;
             color: var(--mindfula11y-text-subtle);
         }
+    }
+
+    /* Label + select + note wrap as one unit, never separating mid-group. */
+    .child-control {
+        display: inline-flex;
+        flex-wrap: wrap;
+        gap: var(--mindfula11y-space-3xs);
+        align-items: center;
+    }
+
+    .child-label {
+        font-size: var(--mindfula11y-font-size-xs);
+        color: var(--mindfula11y-text-subtle);
+    }
+
+    /* In-row finding cues: flow with the row's controls and never exceed the
+       row's width (the wrapper also anchors the aria-describedby id). */
+    .row-issues {
+        display: inline-flex;
+        flex-wrap: wrap;
+        gap: var(--mindfula11y-space-3xs);
+        align-items: center;
+        max-inline-size: 100%;
     }
 
     .issues {

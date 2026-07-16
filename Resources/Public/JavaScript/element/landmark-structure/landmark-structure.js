@@ -62,7 +62,7 @@ let LandmarkStructure = class extends StructureView {
         )
       });
     }
-    return html`<span class="role" data-locked aria-describedby=${this.describedby(node)}>
+    return html`<span class="role" data-locked>
             ${this.renderLockedChip(this.roleDisplayName(node.role))}
         </span>`;
   }

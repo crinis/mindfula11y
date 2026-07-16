@@ -12,6 +12,7 @@ import { describe, expect, it } from 'vitest';
 import {
     applyRecordMetadata,
     collectRecordRequests,
+    recordKey,
     type StructureRecordMetadata,
 } from '../../../../Resources/Private/Source/lib/structure/enrichment.js';
 import type {
@@ -31,10 +32,13 @@ const record = (uid: number, columnName = 'header_layout'): RecordReference => (
 const heading = (overrides: Partial<HeadingNode> = {}): HeadingNode => ({
     id: `heading:${overrides.documentOrder ?? 0}`,
     documentOrder: 0,
+    kind: 'heading',
     level: 2,
     label: 'Heading',
     availableTypes: {},
+    availableChildTypes: {},
     record: null,
+    childTypeRecord: null,
     relationId: '',
     relation: null,
     skippedLevels: 0,
@@ -165,5 +169,39 @@ describe('applyRecordMetadata', () => {
         const analysis: StructureAnalysis = { headings: null, landmarks: null };
 
         expect(() => applyRecordMetadata(analysis, new Map())).not.toThrow();
+    });
+
+    it('collects and applies child-type records on heading nodes', () => {
+        const childTypeRecord = { ...record(5, 'tx_mindfula11y_childheadingtype'), storedValue: '' };
+        const node = heading({
+            record: record(5, 'tx_mindfula11y_headingtype'),
+            childTypeRecord,
+        });
+        const analysis: StructureAnalysis = { headings: { nodes: [node], errors: [] }, landmarks: null };
+
+        const requests = collectRecordRequests(analysis);
+        expect(requests).toContainEqual({
+            tableName: 'tt_content',
+            columnName: 'tx_mindfula11y_childheadingtype',
+            uid: 5,
+        });
+
+        const metadata = new Map<string, StructureRecordMetadata>([
+            [
+                recordKey(childTypeRecord),
+                {
+                    tableName: 'tt_content',
+                    columnName: 'tx_mindfula11y_childheadingtype',
+                    uid: 5,
+                    editLink: '/edit/5',
+                    availableValues: { '': 'Automatic', h3: 'H3' },
+                },
+            ],
+        ]);
+        applyRecordMetadata(analysis, metadata);
+
+        expect(node.childTypeRecord?.editLink).toBe('/edit/5');
+        expect(node.childTypeRecord?.storedValue).toBe('');
+        expect(node.availableChildTypes).toEqual({ '': 'Automatic', h3: 'H3' });
     });
 });

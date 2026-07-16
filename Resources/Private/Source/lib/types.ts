@@ -33,6 +33,13 @@ export interface RecordReference {
     columnName: string;
     uid: number;
     editLink: string;
+    /**
+     * The column's stored value when it can differ from what the rendered element
+     * implies — emitted for headings whose level derives from a container's
+     * child-type column (empty string = "automatic"). Absent for ordinary records,
+     * where the rendered state is the stored state.
+     */
+    storedValue?: string;
 }
 
 /** Detail payloads of the extension's custom events, keyed by event name. */

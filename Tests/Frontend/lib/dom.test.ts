@@ -11,7 +11,11 @@
 // @vitest-environment happy-dom
 
 import { describe, expect, it } from 'vitest';
-import { extractRecord, indexStructureNodes } from '../../../Resources/Private/Source/lib/dom.js';
+import {
+    extractChildTypeRecord,
+    extractRecord,
+    indexStructureNodes,
+} from '../../../Resources/Private/Source/lib/dom.js';
 
 const makeElement = (record?: { tableName: string; columnName: string; uid: number | string }): HTMLElement => {
     const element = document.createElement('div');
@@ -111,5 +115,30 @@ describe('indexStructureNodes', () => {
         const index = indexStructureNodes(elements);
 
         expect(elements.map((element) => index.get(element)?.documentOrder)).toEqual([0, 1, 2]);
+    });
+});
+
+describe('extractChildTypeRecord', () => {
+    it('extracts child-type coordinates with the stored value', () => {
+        const element = document.createElement('h2');
+        element.setAttribute('data-mindfula11y-childtype-table-name', 'tt_content');
+        element.setAttribute('data-mindfula11y-childtype-column-name', 'tx_mindfula11y_childheadingtype');
+        element.setAttribute('data-mindfula11y-childtype-uid', '5');
+        element.setAttribute('data-mindfula11y-childtype-value', '');
+
+        expect(extractChildTypeRecord(element)).toEqual({
+            tableName: 'tt_content',
+            columnName: 'tx_mindfula11y_childheadingtype',
+            uid: 5,
+            editLink: '',
+            storedValue: '',
+        });
+    });
+
+    it('returns null when coordinates are incomplete', () => {
+        const element = document.createElement('h2');
+        element.setAttribute('data-mindfula11y-childtype-table-name', 'tt_content');
+
+        expect(extractChildTypeRecord(element)).toBeNull();
     });
 });

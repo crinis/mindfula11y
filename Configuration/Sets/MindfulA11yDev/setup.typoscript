@@ -64,3 +64,57 @@ lib.contentElement.layoutRootPaths.1745149906 = EXT:mindfula11y/Resources/Privat
 lib.contentElement.partialRootPaths.1745149906 = EXT:mindfula11y/Resources/Private/Partials/
 
 config.contentObjectExceptionHandler = 0
+
+# Container Heading Lab: a minimal "container" content element (CType defined
+# in the dev-only Configuration/TCA/Overrides/tt_content_dev_fixtures.php)
+# demonstrating tx_mindfula11y_childheadingtype. The container renders its own
+# heading — registered with relationId + childType, exactly like the shipped
+# Header partial — and pulls its children (colPos 100) plus one nested level
+# (colPos 101, under the first child) as descendant headings. This mirrors the
+# pattern integrators implement for real container elements.
+tt_content.mindfula11ydev_container = FLUIDTEMPLATE
+tt_content.mindfula11ydev_container {
+  template = TEXT
+  template.value (
+<html xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers" xmlns:mindfula11y="http://typo3.org/ns/MindfulMarkup/MindfulA11y/ViewHelpers" data-namespace-typo3-fluid="true">
+<section id="c{data.uid}">
+  <mindfula11y:heading
+    recordUid="{data.uid}"
+    type="{data.tx_mindfula11y_headingtype}"
+    childType="{data.tx_mindfula11y_childheadingtype}"
+    relationId="{data.uid}"
+  >{data.header}</mindfula11y:heading>
+  <f:format.html>{data.bodytext}</f:format.html>
+  <f:for each="{children}" as="child" iteration="childIteration">
+    <section>
+      <mindfula11y:heading.descendant ancestorId="{data.uid}" relationId="{child.data.uid}">{child.data.header}</mindfula11y:heading.descendant>
+      <f:format.html>{child.data.bodytext}</f:format.html>
+      <f:if condition="{childIteration.isFirst}">
+        <f:for each="{grandchildren}" as="grandchild">
+          <section>
+            <mindfula11y:heading.descendant ancestorId="{child.data.uid}">{grandchild.data.header}</mindfula11y:heading.descendant>
+            <f:format.html>{grandchild.data.bodytext}</f:format.html>
+          </section>
+        </f:for>
+      </f:if>
+    </section>
+  </f:for>
+</section>
+  )
+  dataProcessing {
+    10 = database-query
+    10 {
+      table = tt_content
+      where = colPos = 100
+      orderBy = sorting
+      as = children
+    }
+    20 = database-query
+    20 {
+      table = tt_content
+      where = colPos = 101
+      orderBy = sorting
+      as = grandchildren
+    }
+  }
+}

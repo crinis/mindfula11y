@@ -1,0 +1,7 @@
+"tt_content"
+,"uid","pid","header","tx_mindfula11y_headingtype","tx_mindfula11y_childheadingtype"
+,800,0,"Container with child type","h2","h4"
+,801,0,"Container without child type","h3",""
+"tx_a11ytest_content"
+,"uid","pid","headingtype"
+,900,0,"h3"

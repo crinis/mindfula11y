@@ -72,6 +72,50 @@ ExtensionManagementUtility::addTCAcolumns(
                 ],
             ],
         ],
+        // Intentionally not added to any palette/showitem: only meaningful on container-like
+        // CTypes, which this extension does not know about. Integrators add it to their
+        // container types (see Documentation/Developers/Index.md) — note the structure
+        // module's enrichment also requires the field in the type's showitem.
+        'tx_mindfula11y_childheadingtype' => [
+            'exclude' => true,
+            'label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.childHeadingType',
+            'description' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.childHeadingType.description',
+            'config' => [
+                'type' => 'select',
+                'renderType' => 'selectSingle',
+                'default' => '',
+                'items' => [
+                    [
+                        'label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.childHeadingType.items.automatic',
+                        'value' => '',
+                    ],
+                    [
+                        'label' => HeadingType::H1->getLabelKey(),
+                        'value' => HeadingType::H1->value,
+                    ],
+                    [
+                        'label' => HeadingType::H2->getLabelKey(),
+                        'value' => HeadingType::H2->value,
+                    ],
+                    [
+                        'label' => HeadingType::H3->getLabelKey(),
+                        'value' => HeadingType::H3->value,
+                    ],
+                    [
+                        'label' => HeadingType::H4->getLabelKey(),
+                        'value' => HeadingType::H4->value,
+                    ],
+                    [
+                        'label' => HeadingType::H5->getLabelKey(),
+                        'value' => HeadingType::H5->value,
+                    ],
+                    [
+                        'label' => HeadingType::H6->getLabelKey(),
+                        'value' => HeadingType::H6->value,
+                    ],
+                ],
+            ],
+        ],
         'tx_mindfula11y_landmark' => [
             'exclude' => true,
             'label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.landmark',

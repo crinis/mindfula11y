@@ -25,6 +25,7 @@ namespace MindfulMarkup\MindfulA11y\ViewHelpers;
 
 use MindfulMarkup\MindfulA11y\Domain\Model\StructureAnalysisTicket;
 use Psr\Http\Message\ServerRequestInterface;
+use TYPO3Fluid\Fluid\Core\ViewHelper\TagBuilder;
 
 /**
  * Shared structure-analysis request handling for tag-based ViewHelpers.
@@ -88,17 +89,20 @@ trait StructureAnalysisAwareTrait
 
     /**
      * Adds the record coordinate data attributes (table name, column name, UID) to the
-     * tag, if record information is available. Used by structure-analysis requests to
-     * resolve edit links and TCA options for the rendered element.
+     * given tag (defaulting to $this->tag), if record information is available. Used by
+     * structure-analysis requests to resolve edit links and TCA options for the rendered
+     * element.
      *
+     * @param TagBuilder|null $tag Target tag; defaults to the ViewHelper's own $this->tag.
      * @return void
      */
-    protected function addRecordDataAttributes(): void
+    protected function addRecordDataAttributes(?TagBuilder $tag = null): void
     {
         if ($this->hasRecordInformation()) {
-            $this->tag->addAttribute('data-mindfula11y-record-table-name', $this->arguments['recordTableName']);
-            $this->tag->addAttribute('data-mindfula11y-record-column-name', $this->arguments['recordColumnName']);
-            $this->tag->addAttribute('data-mindfula11y-record-uid', $this->arguments['recordUid']);
+            $tag ??= $this->tag;
+            $tag->addAttribute('data-mindfula11y-record-table-name', $this->arguments['recordTableName']);
+            $tag->addAttribute('data-mindfula11y-record-column-name', $this->arguments['recordColumnName']);
+            $tag->addAttribute('data-mindfula11y-record-uid', $this->arguments['recordUid']);
         }
     }
 }

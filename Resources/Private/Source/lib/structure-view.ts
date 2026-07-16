@@ -73,6 +73,10 @@ export abstract class StructureView<T extends StructureViewNode<T>> extends LitE
 
     private readonly recordService: RecordService = new RecordService();
     private pendingFocusId: string = '';
+    /** `data-control` value of the just-saved select, so focus returns to that
+     * exact control rather than the row's first `controlSelector` match — a
+     * row can carry both an own-level and a child-level control. */
+    private pendingFocusControl: string = '';
 
     /** Selector of a node row's primary control, preferred over the edit link as focus target. */
     protected abstract readonly controlSelector: string;
@@ -99,16 +103,25 @@ export abstract class StructureView<T extends StructureViewNode<T>> extends LitE
     protected override updated(changed: PropertyValues<this>): void {
         if (changed.has('nodes') && this.pendingFocusId !== '') {
             const nodeId = this.pendingFocusId;
+            const controlName = this.pendingFocusControl;
             this.pendingFocusId = '';
-            this.focusControl(nodeId);
+            this.pendingFocusControl = '';
+            this.focusControl(nodeId, controlName);
         }
     }
 
-    /** Moves focus to the control of the given node (used after saves and by the container). */
-    focusControl(nodeId: string): void {
+    /**
+     * Moves focus to the control of the given node (used after saves and by the
+     * container). `controlName` — a `data-control` value — prefers that exact
+     * control over the row's first `controlSelector` match; a row can carry
+     * both an own-level and a child-level control, and after saving one the
+     * other must not steal focus. Omit it for the unchanged default behavior
+     * (container jump / finding focus paths).
+     */
+    focusControl(nodeId: string, controlName: string = ''): void {
         const row = this.renderRoot.querySelector<HTMLElement>(`[data-node-id="${CSS.escape(nodeId)}"]`);
         if (row !== null) {
-            this.focusRow(row);
+            this.focusRow(row, controlName);
         }
     }
 
@@ -185,10 +198,16 @@ export abstract class StructureView<T extends StructureViewNode<T>> extends LitE
         </a>`;
     }
 
-    /** Busy spinner shown next to a row's controls while its save is in flight. */
+    /**
+     * Busy spinner shown next to a row's controls while its save is in flight.
+     * The spinner icon is a purely visual cue, so screen-reader-only text
+     * carries the state (completion is announced by the container's existing
+     * pre-rendered status region after re-analysis).
+     */
     protected renderBusySpinner(node: T): TemplateResult | typeof nothing {
         return this.busyNodeId === node.id
-            ? html`<typo3-backend-spinner size="small"></typo3-backend-spinner>`
+            ? html`<typo3-backend-spinner size="small"></typo3-backend-spinner>
+                  <span class="sr-only">${lll('mindfula11y.structure.saving')}</span>`
             : nothing;
     }
 
@@ -209,7 +228,11 @@ export abstract class StructureView<T extends StructureViewNode<T>> extends LitE
      * so a failed save reverts visually through the next re-render (triggered
      * by `busyNodeId` resetting in `saveNodeValue`'s `finally`) rather than a
      * manual DOM mutation, which can disagree with the template after
-     * unrelated re-renders.
+     * unrelated re-renders. The select is deliberately NOT disabled while its
+     * save is in flight: disabling the focused element blurs it to the
+     * document body, stranding keyboard/screen-reader users for the whole
+     * save window (and permanently on failure) — re-entry is guarded in
+     * {@link saveNodeValue} instead.
      */
     protected renderValueSelect(
         node: T,
@@ -219,6 +242,10 @@ export abstract class StructureView<T extends StructureViewNode<T>> extends LitE
             ariaLabel: string;
             currentValue: string;
             options: Record<string, string>;
+            /** Save target when the select edits a column other than `node.record` (e.g. a container's child-type column). */
+            record?: RecordReference;
+            /** Overrides the issue-derived aria-describedby (e.g. a purpose note for the child-type select). */
+            describedby?: string;
         },
     ): TemplateResult {
         return html`<select
@@ -226,11 +253,15 @@ export abstract class StructureView<T extends StructureViewNode<T>> extends LitE
             class=${opts.className}
             data-control=${opts.className}
             aria-label=${opts.ariaLabel}
-            aria-describedby=${this.describedby(node)}
-            ?disabled=${this.busyNodeId === node.id}
+            aria-describedby=${opts.describedby ?? this.describedby(node)}
             .value=${live(opts.currentValue)}
             @change=${(event: Event): void => {
-                void this.saveNodeValue(node, event.currentTarget as HTMLSelectElement, opts.currentValue);
+                void this.saveNodeValue(
+                    node,
+                    event.currentTarget as HTMLSelectElement,
+                    opts.currentValue,
+                    opts.record ?? node.record,
+                );
             }}
         >
             ${Object.entries(opts.options).map(
@@ -248,20 +279,29 @@ export abstract class StructureView<T extends StructureViewNode<T>> extends LitE
      * `renderValueSelect`'s `live()` binding reverts the select to
      * `currentValue` without a manual `select.value =` mutation.
      */
-    protected async saveNodeValue(node: T, select: HTMLSelectElement, currentValue: string): Promise<void> {
+    protected async saveNodeValue(
+        node: T,
+        select: HTMLSelectElement,
+        currentValue: string,
+        record: RecordReference | null = node.record,
+    ): Promise<void> {
         const value = select.value;
-        if (node.record === null || value === currentValue) {
+        // The re-entry guard replaces disabling the select (see
+        // renderValueSelect): a change made while a save is in flight is
+        // dropped and reverted by the live() binding on the next re-render.
+        if (this.busyNodeId !== '' || record === null || value === currentValue) {
             return;
         }
         this.busyNodeId = node.id;
         try {
-            await this.recordService.updateField(node.record, value);
+            await this.recordService.updateField(record, value);
             this.pendingFocusId = node.id;
+            this.pendingFocusControl = select.dataset.control ?? '';
             dispatch(this, 'mindfula11y:structure:changed', {
                 nodeId: node.id,
-                tableName: node.record.tableName,
-                uid: node.record.uid,
-                columnName: node.record.columnName,
+                tableName: record.tableName,
+                uid: record.uid,
+                columnName: record.columnName,
                 value,
             });
         } catch {
@@ -272,9 +312,16 @@ export abstract class StructureView<T extends StructureViewNode<T>> extends LitE
         }
     }
 
-    /** Focuses a node row's control (or the row itself) and flashes the highlight. */
-    protected focusRow(row: HTMLElement): void {
+    /**
+     * Focuses a node row's control (or the row itself) and flashes the
+     * highlight. `preferredControl` — a `data-control` value — is tried before
+     * the `controlSelector`/edit-link fallback chain (see {@link focusControl}).
+     */
+    protected focusRow(row: HTMLElement, preferredControl: string = ''): void {
         const control =
+            (preferredControl !== ''
+                ? row.querySelector<HTMLElement>(`[data-control="${CSS.escape(preferredControl)}"]`)
+                : null) ??
             row.querySelector<HTMLElement>(this.controlSelector) ??
             row.querySelector<HTMLElement>('[data-control="edit"]');
         if (control !== null) {

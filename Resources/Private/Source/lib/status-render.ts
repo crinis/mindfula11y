@@ -95,9 +95,14 @@ export function renderSeverityChip(severity: StructureErrorSeverity, labelKey: s
         <span><span class="sr-only">${lll(severityLabelKey(severity))}: </span>${lll(labelKey)}</span>`;
 }
 
-/** Neutral badges naming the viewports a node or finding applies to. */
+/**
+ * Neutral badges naming the viewports a node or finding applies to. The
+ * pill styling is a visual convention, so a screen-reader-only prefix names
+ * what the badges mean before they are read.
+ */
 export const renderViewportBadges = (viewports: readonly StructureViewport[]): TemplateResult =>
     html`<span class="viewports">
+        <span class="sr-only">${lll('mindfula11y.structure.viewports')}: </span>
         ${viewports.map(
             (viewport) => html`<span class="viewport">${lll(`mindfula11y.structure.viewport.${viewport}`)}</span>`,
         )}

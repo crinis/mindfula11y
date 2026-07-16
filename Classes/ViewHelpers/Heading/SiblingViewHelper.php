@@ -62,13 +62,17 @@ class SiblingViewHelper extends AbstractHeadingViewHelper
     }
 
     /**
-     * Resolves the sibling's heading type from the HeadingRelationRegistry.
+     * Resolves the sibling's heading type from the HeadingRelationRegistry: a sibling
+     * shares the referenced heading's own (logical) level; the relation's configured
+     * child type only concerns descendants.
      *
      * @return HeadingType|null
      */
     protected function resolveRelatedHeadingType(): ?HeadingType
     {
-        return $this->headingRelationRegistry->resolve($this->arguments['siblingId']);
+        // Cast: Fluid v2 (TYPO3 13) passes an integer value (e.g. {data.uid})
+        // into string-typed arguments uncast; Fluid v4 casts it.
+        return $this->headingRelationRegistry->resolve((string)$this->arguments['siblingId'])?->type;
     }
 
     /**
@@ -78,6 +82,6 @@ class SiblingViewHelper extends AbstractHeadingViewHelper
      */
     protected function addAnalysisDataAttributes(): void
     {
-        $this->tag->addAttribute('data-mindfula11y-sibling-id', $this->arguments['siblingId']);
+        $this->tag->addAttribute('data-mindfula11y-sibling-id', (string)$this->arguments['siblingId']);
     }
 }

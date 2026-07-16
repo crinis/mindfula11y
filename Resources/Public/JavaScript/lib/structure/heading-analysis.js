@@ -1,6 +1,6 @@
-import { extractRecord, indexStructureNodes } from "../dom.js";
+import { extractChildTypeRecord, extractRecord, indexStructureNodes } from "../dom.js";
 import { createErrorCollector } from "./analysis.js";
-import { resolveExposure } from "./element-exposure.js";
+import { isElementExposed, resolveExposure } from "./element-exposure.js";
 import { StructureErrorSeverity } from "./types.js";
 const ERROR_KEYS = {
   missingH1: "mindfula11y.structure.headings.error.missingH1",
@@ -8,6 +8,7 @@ const ERROR_KEYS = {
   emptyHeading: "mindfula11y.structure.headings.error.emptyHeadings",
   skippedLevel: "mindfula11y.structure.headings.error.skippedLevel"
 };
+const CONTAINER_SELECTOR = "[data-mindfula11y-container]";
 const extractRelation = (element) => {
   const ancestorId = element.dataset.mindfula11yAncestorId ?? "";
   if (ancestorId !== "") {
@@ -22,20 +23,50 @@ const extractRelation = (element) => {
 const analyzeHeadings = (doc, options = {}) => {
   const viewport = options.viewport ?? "desktop";
   const isExposed = resolveExposure(options.isExposed);
-  const candidates = Array.from(doc.querySelectorAll("h1, h2, h3, h4, h5, h6"));
+  const rawExposure = options.isExposed ?? isElementExposed;
+  const candidates = Array.from(doc.querySelectorAll(`h1, h2, h3, h4, h5, h6, ${CONTAINER_SELECTOR}`));
   const index = indexStructureNodes(candidates, (element) => {
     const relationId = element.dataset.mindfula11yRelationId ?? "";
     return relationId === "" ? "" : `rel:${relationId}`;
   });
-  const headings = candidates.filter(isExposed);
+  const exposed = candidates.filter(
+    (element) => element.matches(CONTAINER_SELECTOR) ? element.parentElement === null || rawExposure(element.parentElement) : isExposed(element)
+  );
+  const headings = exposed.filter((element) => !element.matches(CONTAINER_SELECTOR));
   const collector = createErrorCollector(viewport);
   const rootNodes = [];
   const parentStack = [];
+  const nodesByRelationId = /* @__PURE__ */ new Map();
   const h1Count = headings.filter((heading) => heading.tagName === "H1").length;
   if (headings.length > 0 && h1Count === 0) {
     collector.pageError(ERROR_KEYS.missingH1, StructureErrorSeverity.Error);
   }
-  headings.forEach((element) => {
+  exposed.forEach((element) => {
+    if (element.matches(CONTAINER_SELECTOR)) {
+      const ownType = /^h([1-6])$/.exec(element.dataset.mindfula11yContainer ?? "");
+      const container = {
+        id: index.get(element)?.id ?? "",
+        documentOrder: index.get(element)?.documentOrder ?? 0,
+        kind: "container",
+        level: ownType === null ? 0 : Number.parseInt(ownType[1] ?? "0", 10),
+        label: "",
+        availableTypes: {},
+        availableChildTypes: {},
+        record: extractRecord(element),
+        childTypeRecord: extractChildTypeRecord(element),
+        relationId: element.dataset.mindfula11yRelationId ?? "",
+        relation: null,
+        skippedLevels: 0,
+        viewports: [viewport],
+        errors: [],
+        children: []
+      };
+      if (container.relationId !== "" && !nodesByRelationId.has(container.relationId)) {
+        nodesByRelationId.set(container.relationId, container);
+      }
+      (parentStack.at(-1)?.children ?? rootNodes).push(container);
+      return;
+    }
     const level = Number.parseInt(element.tagName.charAt(1), 10);
     const record = extractRecord(element);
     const relationId = element.dataset.mindfula11yRelationId ?? "";
@@ -46,27 +77,40 @@ const analyzeHeadings = (doc, options = {}) => {
     }
     const parent = parentStack.at(-1) ?? null;
     const skippedLevels = parent === null ? 0 : Math.max(0, level - parent.level - 1);
+    const relation = extractRelation(element);
+    const relationTarget = relation === null ? void 0 : nodesByRelationId.get(relation.targetRelationId);
+    const attributedContainer = skippedLevels > 0 && relationTarget?.kind === "container" ? relationTarget : null;
     const node = {
       id: nodeId,
       documentOrder: index.get(element)?.documentOrder ?? 0,
+      kind: "heading",
       level,
       label,
       availableTypes: {},
+      availableChildTypes: {},
       record,
+      childTypeRecord: extractChildTypeRecord(element),
       relationId,
-      relation: extractRelation(element),
-      skippedLevels,
+      relation,
+      skippedLevels: attributedContainer === null ? skippedLevels : 0,
       viewports: [viewport],
       errors: [],
       children: []
     };
+    if (relationId !== "" && !nodesByRelationId.has(relationId)) {
+      nodesByRelationId.set(relationId, node);
+    }
     if (h1Count > 1 && level === 1) {
       collector.nodeError(node, ERROR_KEYS.multipleH1, StructureErrorSeverity.Warning);
     }
     if (label === "") {
       collector.nodeError(node, ERROR_KEYS.emptyHeading, StructureErrorSeverity.Error);
     }
-    if (skippedLevels > 0) {
+    if (attributedContainer !== null) {
+      if (!attributedContainer.errors.some((error) => error.key === ERROR_KEYS.skippedLevel)) {
+        collector.nodeError(attributedContainer, ERROR_KEYS.skippedLevel, StructureErrorSeverity.Error);
+      }
+    } else if (skippedLevels > 0) {
       collector.nodeError(node, ERROR_KEYS.skippedLevel, StructureErrorSeverity.Error);
     }
     if (parent === null) {

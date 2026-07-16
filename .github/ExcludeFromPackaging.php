@@ -42,6 +42,9 @@ return [
         'Configuration\/Sets\/MindfulA11yDev',
         'Configuration\/Sets\/MindfulA11yVisualEditorDemo',
         'Resources\/Private\/VisualEditorDemo',
+        // Development-only container CType backing the dev set's Container
+        // Heading Lab; matches the export-ignore in .gitattributes.
+        'Configuration\/TCA\/Overrides\/tt_content_dev_fixtures\.php',
         // Rendered on docs.typo3.org from the git repository; matches the
         // export-ignore in .gitattributes.
         'Documentation',

@@ -9,7 +9,7 @@
  */
 
 import type { RecordReference } from '../types.js';
-import type { StructureAnalysis } from './types.js';
+import type { HeadingNode, StructureAnalysis } from './types.js';
 
 /** A record's annotated column; `columnName` alone distinguishes the domains. */
 export interface StructureRecordRequest {
@@ -51,7 +51,10 @@ const addRecord = (records: Map<string, StructureRecordRequest>, record: RecordR
 export const collectRecordRequests = (analysis: StructureAnalysis): StructureRecordRequest[] => {
     const records = new Map<string, StructureRecordRequest>();
     if (analysis.headings !== null) {
-        walk(analysis.headings.nodes, (node) => addRecord(records, node.record));
+        walk(analysis.headings.nodes, (node: HeadingNode) => {
+            addRecord(records, node.record);
+            addRecord(records, node.childTypeRecord);
+        });
     }
     if (analysis.landmarks !== null) {
         walk(analysis.landmarks.nodes, (node) => addRecord(records, node.record));
@@ -80,18 +83,26 @@ const enrichNode = (
 /**
  * Mutates `analysis` in place: sets `availableTypes`/`availableRoles` and
  * `record.editLink` on every node whose record matches an entry in
- * `metadata`; nodes without a match (or without a record) are left as-is.
+ * `metadata` — and, for headings, `availableChildTypes` and
+ * `childTypeRecord.editLink` for the container-owned child-type column;
+ * nodes without a match (or without a record) are left as-is.
  */
 export const applyRecordMetadata = (
     analysis: StructureAnalysis,
     metadata: ReadonlyMap<string, StructureRecordMetadata>,
 ): void => {
     if (analysis.headings !== null) {
-        walk(analysis.headings.nodes, (node) =>
+        walk(analysis.headings.nodes, (node: HeadingNode) => {
             enrichNode(node, metadata, (values) => {
                 node.availableTypes = values;
-            }),
-        );
+            });
+            const childValue =
+                node.childTypeRecord === null ? undefined : metadata.get(recordKey(node.childTypeRecord));
+            if (node.childTypeRecord !== null && childValue !== undefined) {
+                node.childTypeRecord = { ...node.childTypeRecord, editLink: childValue.editLink };
+                node.availableChildTypes = childValue.availableValues;
+            }
+        });
     }
     if (analysis.landmarks !== null) {
         walk(analysis.landmarks.nodes, (node) =>

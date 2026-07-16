@@ -26,6 +26,8 @@
                     recordTableName="tt_content"
                     recordColumnName="tx_mindfula11y_headingtype"
                     type="{data.tx_mindfula11y_headingtype}"
+                    childType="{data.tx_mindfula11y_childheadingtype}"
+                    relationId="{record.uid}"
                     class="{f:if(condition: data.header_position, then: 'ce-headline-{data.header_position}')}">
                     <f:link.typolink parameter="{data.header_link}">{header}</f:link.typolink>
                 </mindfula11y:heading>

@@ -50,7 +50,19 @@
 				resname="ttContent.columns.mindfula11y.headingType.items.div">
 				<source>Generic div (div)</source>
 			</trans-unit>
-			
+			<trans-unit id="ttContent.columns.mindfula11y.childHeadingType"
+				resname="ttContent.columns.mindfula11y.childHeadingType">
+				<source>Child heading type</source>
+			</trans-unit>
+			<trans-unit id="ttContent.columns.mindfula11y.childHeadingType.description"
+				resname="ttContent.columns.mindfula11y.childHeadingType.description">
+				<source>Heading level for content elements placed inside this element. "Automatic" uses one level below this element's own heading type.</source>
+			</trans-unit>
+			<trans-unit id="ttContent.columns.mindfula11y.childHeadingType.items.automatic"
+				resname="ttContent.columns.mindfula11y.childHeadingType.items.automatic">
+				<source>Automatic</source>
+			</trans-unit>
+
 			<!-- Accessibility Tab -->
 			<trans-unit id="ttContent.tabs.accessibility"
 				resname="ttContent.tabs.accessibility">

@@ -117,6 +117,12 @@
             <trans-unit id="structure.viewport.desktop" resname="structure.viewport.desktop">
                 <source>Desktop</source>
             </trans-unit>
+            <trans-unit id="structure.viewports" resname="structure.viewports">
+                <source>Applies to</source>
+            </trans-unit>
+            <trans-unit id="structure.saving" resname="structure.saving">
+                <source>Saving changes</source>
+            </trans-unit>
 
             <trans-unit id="general.viewDetails" resname="general.viewDetails">
                 <source>View Details</source>
@@ -375,8 +381,17 @@
             <trans-unit id="structure.headings.unlabeled" resname="structure.headings.unlabeled">
                 <source>Unlabeled heading</source>
             </trans-unit>
+            <trans-unit id="structure.headings.container" resname="structure.headings.container">
+                <source>Hidden container element</source>
+            </trans-unit>
             <trans-unit id="structure.headings.type" resname="structure.headings.type">
                 <source>Heading type</source>
+            </trans-unit>
+            <trans-unit id="structure.headings.childType" resname="structure.headings.childType">
+                <source>Child heading type</source>
+            </trans-unit>
+            <trans-unit id="structure.headings.childType.applies" resname="structure.headings.childType.applies">
+                <source>Applies to all child headings deriving from this element.</source>
             </trans-unit>
             <trans-unit id="structure.headings.relation.descendant" resname="structure.headings.relation.descendant">
                 <source>Related to parent heading</source>

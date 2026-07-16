@@ -27,10 +27,13 @@ vi.mock('../../../../Resources/Private/Source/service/structure/api.js', () => {
 const heading = (viewport: StructureViewport): HeadingNode => ({
     id: 'heading:1',
     documentOrder: 0,
+    kind: 'heading',
     level: 1,
     label: 'Title',
     availableTypes: {},
+    availableChildTypes: {},
     record: null,
+    childTypeRecord: null,
     relationId: '',
     relation: null,
     skippedLevels: 0,

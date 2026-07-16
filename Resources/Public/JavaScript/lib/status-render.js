@@ -35,6 +35,7 @@ function renderSeverityChip(severity, labelKey) {
         <span><span class="sr-only">${lll(severityLabelKey(severity))}: </span>${lll(labelKey)}</span>`;
 }
 const renderViewportBadges = (viewports) => html`<span class="viewports">
+        <span class="sr-only">${lll("mindfula11y.structure.viewports")}: </span>
         ${viewports.map(
   (viewport) => html`<span class="viewport">${lll(`mindfula11y.structure.viewport.${viewport}`)}</span>`
 )}

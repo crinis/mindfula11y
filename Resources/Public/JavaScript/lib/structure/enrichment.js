@@ -15,7 +15,10 @@ const addRecord = (records, record) => {
 const collectRecordRequests = (analysis) => {
   const records = /* @__PURE__ */ new Map();
   if (analysis.headings !== null) {
-    walk(analysis.headings.nodes, (node) => addRecord(records, node.record));
+    walk(analysis.headings.nodes, (node) => {
+      addRecord(records, node.record);
+      addRecord(records, node.childTypeRecord);
+    });
   }
   if (analysis.landmarks !== null) {
     walk(analysis.landmarks.nodes, (node) => addRecord(records, node.record));
@@ -36,12 +39,16 @@ const enrichNode = (node, metadata, applyValues) => {
 };
 const applyRecordMetadata = (analysis, metadata) => {
   if (analysis.headings !== null) {
-    walk(
-      analysis.headings.nodes,
-      (node) => enrichNode(node, metadata, (values) => {
+    walk(analysis.headings.nodes, (node) => {
+      enrichNode(node, metadata, (values) => {
         node.availableTypes = values;
-      })
-    );
+      });
+      const childValue = node.childTypeRecord === null ? void 0 : metadata.get(recordKey(node.childTypeRecord));
+      if (node.childTypeRecord !== null && childValue !== void 0) {
+        node.childTypeRecord = { ...node.childTypeRecord, editLink: childValue.editLink };
+        node.availableChildTypes = childValue.availableValues;
+      }
+    });
   }
   if (analysis.landmarks !== null) {
     walk(

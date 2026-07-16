@@ -148,6 +148,14 @@
                 <source>Desktop</source>
                 <target>Desktop</target>
             </trans-unit>
+            <trans-unit id="structure.viewports" resname="structure.viewports">
+                <source>Applies to</source>
+                <target>Gilt für</target>
+            </trans-unit>
+            <trans-unit id="structure.saving" resname="structure.saving">
+                <source>Saving changes</source>
+                <target>Änderungen werden gespeichert</target>
+            </trans-unit>
 
             <trans-unit id="general.viewDetails" resname="general.viewDetails">
                 <source>View Details</source>
@@ -448,9 +456,21 @@
                 <source>Unlabeled heading</source>
                 <target>Unbetitelte Überschrift</target>
             </trans-unit>
+            <trans-unit id="structure.headings.container" resname="structure.headings.container">
+                <source>Hidden container element</source>
+                <target>Verstecktes Container-Element</target>
+            </trans-unit>
             <trans-unit id="structure.headings.type" resname="structure.headings.type">
                 <source>Heading type</source>
                 <target>Überschriftentyp</target>
+            </trans-unit>
+            <trans-unit id="structure.headings.childType" resname="structure.headings.childType">
+                <source>Child heading type</source>
+                <target>Typ der untergeordneten Überschriften</target>
+            </trans-unit>
+            <trans-unit id="structure.headings.childType.applies" resname="structure.headings.childType.applies">
+                <source>Applies to all child headings deriving from this element.</source>
+                <target>Gilt für alle untergeordneten Überschriften dieses Elements.</target>
             </trans-unit>
             <trans-unit id="structure.headings.relation.descendant" resname="structure.headings.relation.descendant">
                 <source>Related to parent heading</source>

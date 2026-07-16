@@ -31,6 +31,10 @@ class StructureView extends LitElement {
     this.busyNodeId = "";
     this.recordService = new RecordService();
     this.pendingFocusId = "";
+    /** `data-control` value of the just-saved select, so focus returns to that
+     * exact control rather than the row's first `controlSelector` match — a
+     * row can carry both an own-level and a child-level control. */
+    this.pendingFocusControl = "";
   }
   static {
     /**
@@ -54,15 +58,24 @@ class StructureView extends LitElement {
   updated(changed) {
     if (changed.has("nodes") && this.pendingFocusId !== "") {
       const nodeId = this.pendingFocusId;
+      const controlName = this.pendingFocusControl;
       this.pendingFocusId = "";
-      this.focusControl(nodeId);
+      this.pendingFocusControl = "";
+      this.focusControl(nodeId, controlName);
     }
   }
-  /** Moves focus to the control of the given node (used after saves and by the container). */
-  focusControl(nodeId) {
+  /**
+   * Moves focus to the control of the given node (used after saves and by the
+   * container). `controlName` — a `data-control` value — prefers that exact
+   * control over the row's first `controlSelector` match; a row can carry
+   * both an own-level and a child-level control, and after saving one the
+   * other must not steal focus. Omit it for the unchanged default behavior
+   * (container jump / finding focus paths).
+   */
+  focusControl(nodeId, controlName = "") {
     const row = this.renderRoot.querySelector(`[data-node-id="${CSS.escape(nodeId)}"]`);
     if (row !== null) {
-      this.focusRow(row);
+      this.focusRow(row, controlName);
     }
   }
   /** Focuses the first element affected by the given error key; page-level issues focus their message. */
@@ -130,9 +143,15 @@ class StructureView extends LitElement {
             <span class="sr-only">${lll(`${this.labelPrefix}.edit`)}: ${label}</span>
         </a>`;
   }
-  /** Busy spinner shown next to a row's controls while its save is in flight. */
+  /**
+   * Busy spinner shown next to a row's controls while its save is in flight.
+   * The spinner icon is a purely visual cue, so screen-reader-only text
+   * carries the state (completion is announced by the container's existing
+   * pre-rendered status region after re-analysis).
+   */
   renderBusySpinner(node) {
-    return this.busyNodeId === node.id ? html`<typo3-backend-spinner size="small"></typo3-backend-spinner>` : nothing;
+    return this.busyNodeId === node.id ? html`<typo3-backend-spinner size="small"></typo3-backend-spinner>
+                  <span class="sr-only">${lll("mindfula11y.structure.saving")}</span>` : nothing;
   }
   /**
    * Icon + sr-only "not editable" text (key `<labelPrefix>.edit.locked`) for
@@ -150,7 +169,11 @@ class StructureView extends LitElement {
    * so a failed save reverts visually through the next re-render (triggered
    * by `busyNodeId` resetting in `saveNodeValue`'s `finally`) rather than a
    * manual DOM mutation, which can disagree with the template after
-   * unrelated re-renders.
+   * unrelated re-renders. The select is deliberately NOT disabled while its
+   * save is in flight: disabling the focused element blurs it to the
+   * document body, stranding keyboard/screen-reader users for the whole
+   * save window (and permanently on failure) — re-entry is guarded in
+   * {@link saveNodeValue} instead.
    */
   renderValueSelect(node, opts) {
     return html`<select
@@ -158,11 +181,15 @@ class StructureView extends LitElement {
             class=${opts.className}
             data-control=${opts.className}
             aria-label=${opts.ariaLabel}
-            aria-describedby=${this.describedby(node)}
-            ?disabled=${this.busyNodeId === node.id}
+            aria-describedby=${opts.describedby ?? this.describedby(node)}
             .value=${live(opts.currentValue)}
             @change=${(event) => {
-      void this.saveNodeValue(node, event.currentTarget, opts.currentValue);
+      void this.saveNodeValue(
+        node,
+        event.currentTarget,
+        opts.currentValue,
+        opts.record ?? node.record
+      );
     }}
         >
             ${Object.entries(opts.options).map(
@@ -178,20 +205,21 @@ class StructureView extends LitElement {
    * `renderValueSelect`'s `live()` binding reverts the select to
    * `currentValue` without a manual `select.value =` mutation.
    */
-  async saveNodeValue(node, select, currentValue) {
+  async saveNodeValue(node, select, currentValue, record = node.record) {
     const value = select.value;
-    if (node.record === null || value === currentValue) {
+    if (this.busyNodeId !== "" || record === null || value === currentValue) {
       return;
     }
     this.busyNodeId = node.id;
     try {
-      await this.recordService.updateField(node.record, value);
+      await this.recordService.updateField(record, value);
       this.pendingFocusId = node.id;
+      this.pendingFocusControl = select.dataset.control ?? "";
       dispatch(this, "mindfula11y:structure:changed", {
         nodeId: node.id,
-        tableName: node.record.tableName,
-        uid: node.record.uid,
-        columnName: node.record.columnName,
+        tableName: record.tableName,
+        uid: record.uid,
+        columnName: record.columnName,
         value
       });
     } catch {
@@ -201,9 +229,13 @@ class StructureView extends LitElement {
       this.busyNodeId = "";
     }
   }
-  /** Focuses a node row's control (or the row itself) and flashes the highlight. */
-  focusRow(row) {
-    const control = row.querySelector(this.controlSelector) ?? row.querySelector('[data-control="edit"]');
+  /**
+   * Focuses a node row's control (or the row itself) and flashes the
+   * highlight. `preferredControl` — a `data-control` value — is tried before
+   * the `controlSelector`/edit-link fallback chain (see {@link focusControl}).
+   */
+  focusRow(row, preferredControl = "") {
+    const control = (preferredControl !== "" ? row.querySelector(`[data-control="${CSS.escape(preferredControl)}"]`) : null) ?? row.querySelector(this.controlSelector) ?? row.querySelector('[data-control="edit"]');
     if (control !== null) {
       control.focus();
     } else {

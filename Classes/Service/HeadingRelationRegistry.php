@@ -23,20 +23,27 @@ declare(strict_types=1);
 
 namespace MindfulMarkup\MindfulA11y\Service;
 
-use MindfulMarkup\MindfulA11y\Enum\HeadingType;
+use MindfulMarkup\MindfulA11y\Domain\Model\HeadingRelation;
 
 /**
- * Coordinates heading types across `<mindfula11y:heading>`, `<mindfula11y:heading.sibling>`
+ * Coordinates heading relations across `<mindfula11y:heading>`, `<mindfula11y:heading.sibling>`
  * and `<mindfula11y:heading.descendant>` ViewHelpers within a single template render, keyed
  * by the template author's `relationId`/`siblingId`/`ancestorId` argument.
  *
- * Ordering constraint: a relation must be `register()`-ed by a `<mindfula11y:heading>`
- * (via its `relationId` argument) before a `<mindfula11y:heading.sibling>` or
- * `<mindfula11y:heading.descendant>` referencing that same identifier is rendered. Fluid
- * evaluates ViewHelper nodes in document order, so the referencing ViewHelper must appear
- * later in the template than the one registering the relation. If the reference appears
- * first (or the identifier was never registered), `resolve()` returns null and the calling
- * ViewHelper falls back to its `type` argument, its record lookup, or its default tag.
+ * Publishers are `<mindfula11y:heading>` — which registers even when its output is
+ * suppressed (empty content or `renderTag="false"`), so a headingless container still
+ * anchors its descendants — and `<mindfula11y:heading.descendant>` via its own
+ * `relationId`, which lets nested descendants derive from each other. Each entry is a
+ * {@see HeadingRelation} carrying the publisher's own logical level, an optional explicit
+ * child type, and the child-type column's record coordinates.
+ *
+ * Ordering constraint: a relation must be `register()`-ed before a
+ * `<mindfula11y:heading.sibling>` or `<mindfula11y:heading.descendant>` referencing that
+ * same identifier is rendered. Fluid evaluates ViewHelper nodes in document order, so the
+ * referencing ViewHelper must appear later in the template than the one registering the
+ * relation. If the reference appears first (or the identifier was never registered),
+ * `resolve()` returns null and the calling ViewHelper falls back to its `type` argument,
+ * its record lookup, or its default tag.
  *
  * Request-scoped by construction: this is a plain autowired (shared) DI service backed by
  * an array property, not a cache. TYPO3's Fluid ServiceProvider tags every ViewHelperInterface
@@ -52,16 +59,16 @@ use MindfulMarkup\MindfulA11y\Enum\HeadingType;
 final class HeadingRelationRegistry
 {
     /**
-     * @var array<string, HeadingType>
+     * @var array<string, HeadingRelation>
      */
     private array $relations = [];
 
-    public function register(string $relationId, HeadingType $type): void
+    public function register(string $relationId, HeadingRelation $relation): void
     {
-        $this->relations[$relationId] = $type;
+        $this->relations[$relationId] = $relation;
     }
 
-    public function resolve(string $relationId): ?HeadingType
+    public function resolve(string $relationId): ?HeadingRelation
     {
         return $this->relations[$relationId] ?? null;
     }

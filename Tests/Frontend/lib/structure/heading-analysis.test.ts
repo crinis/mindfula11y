@@ -144,4 +144,193 @@ describe('analyzeHeadings', () => {
         const siblingNode = nodes.find((node) => node.label === 'Sibling child');
         expect(siblingNode?.relation).toEqual({ kind: 'sibling', targetRelationId: 'hero' });
     });
+
+    it('keeps record coordinates on a relation-carrying heading (container child-type editing)', () => {
+        document.body.innerHTML = `
+            <h1>Page title</h1>
+            <h2 data-mindfula11y-relation-id="container-1">Container</h2>
+            <h3
+                data-mindfula11y-ancestor-id="container-1"
+                data-mindfula11y-record-table-name="tt_content"
+                data-mindfula11y-record-column-name="tx_mindfula11y_childheadingtype"
+                data-mindfula11y-record-uid="800"
+                data-mindfula11y-record-value=""
+            >Derived child</h3>
+        `;
+
+        const analysis = analyzeHeadings(document);
+        const childNode = flatten(analysis.nodes).find((node) => node.label === 'Derived child');
+
+        expect(childNode?.relation).toEqual({ kind: 'ancestor', targetRelationId: 'container-1' });
+        expect(childNode?.record).toMatchObject({
+            tableName: 'tt_content',
+            columnName: 'tx_mindfula11y_childheadingtype',
+            uid: 800,
+            storedValue: '',
+        });
+    });
+
+    it('omits storedValue when no record-value attribute is emitted', () => {
+        document.body.innerHTML = `
+            <h1
+                data-mindfula11y-record-table-name="tt_content"
+                data-mindfula11y-record-column-name="tx_mindfula11y_headingtype"
+                data-mindfula11y-record-uid="7"
+            >Ordinary heading</h1>
+        `;
+
+        const analysis = analyzeHeadings(document);
+        const node = flatten(analysis.nodes).find((candidate) => candidate.label === 'Ordinary heading');
+
+        expect(node?.record?.storedValue).toBeUndefined();
+    });
+
+    it('assigns distinct node ids to headings sharing identical record coordinates', () => {
+        document.body.innerHTML = `
+            <h1>Page title</h1>
+            <h2
+                data-mindfula11y-ancestor-id="container-1"
+                data-mindfula11y-record-table-name="tt_content"
+                data-mindfula11y-record-column-name="tx_mindfula11y_childheadingtype"
+                data-mindfula11y-record-uid="800"
+            >First child</h2>
+            <h2
+                data-mindfula11y-ancestor-id="container-1"
+                data-mindfula11y-record-table-name="tt_content"
+                data-mindfula11y-record-column-name="tx_mindfula11y_childheadingtype"
+                data-mindfula11y-record-uid="800"
+            >Second child</h2>
+        `;
+
+        const analysis = analyzeHeadings(document);
+        const nodes = flatten(analysis.nodes).filter((node) => node.record?.uid === 800);
+
+        expect(nodes).toHaveLength(2);
+        expect(nodes[0]?.id).not.toBe(nodes[1]?.id);
+    });
+
+    it('maps hidden container markers to container nodes in the current heading context', () => {
+        document.body.innerHTML = `
+            <h2 data-mindfula11y-relation-id="top">Top</h2>
+            <span hidden data-mindfula11y-container="h2" data-mindfula11y-relation-id="acc"
+                data-mindfula11y-record-table-name="tt_content"
+                data-mindfula11y-record-column-name="tx_mindfula11y_headingtype"
+                data-mindfula11y-record-uid="5" data-mindfula11y-record-value="h2"
+                data-mindfula11y-childtype-table-name="tt_content"
+                data-mindfula11y-childtype-column-name="tx_mindfula11y_childheadingtype"
+                data-mindfula11y-childtype-uid="5" data-mindfula11y-childtype-value=""></span>
+            <h3 data-mindfula11y-ancestor-id="acc">Derived</h3>
+            <h1>Page</h1>`;
+
+        const analysis = analyzeHeadings(document, { isExposed: () => true });
+
+        const container = analysis.nodes[0]?.children.find((node) => node.kind === 'container');
+        expect(container).toBeDefined();
+        expect(container?.relationId).toBe('acc');
+        expect(container?.level).toBe(2);
+        expect(container?.label).toBe('');
+        expect(container?.record?.storedValue).toBe('h2');
+        expect(container?.childTypeRecord?.storedValue).toBe('');
+        expect(container?.errors).toEqual([]);
+        // Containers are not headings: no empty-heading error, no level participation.
+        expect(analysis.errors).toEqual([]);
+    });
+
+    it('excludes container markers whose parent is not exposed in the viewport', () => {
+        document.body.innerHTML = `
+            <h2>Top</h2>
+            <div data-hidden-for-test>
+                <span hidden data-mindfula11y-container="h2" data-mindfula11y-relation-id="acc"></span>
+            </div>`;
+
+        const analysis = analyzeHeadings(document, {
+            isExposed: (element: HTMLElement) => !element.hasAttribute('data-hidden-for-test'),
+        });
+
+        expect(analysis.nodes[0]?.children).toEqual([]);
+    });
+
+    it("reads a heading's own child-type coordinates", () => {
+        document.body.innerHTML = `
+            <h2 data-mindfula11y-relation-id="acc"
+                data-mindfula11y-childtype-table-name="tt_content"
+                data-mindfula11y-childtype-column-name="tx_mindfula11y_childheadingtype"
+                data-mindfula11y-childtype-uid="7" data-mindfula11y-childtype-value="h4">Visible container</h2>`;
+
+        const analysis = analyzeHeadings(document, { isExposed: () => true });
+
+        expect(analysis.nodes[0]?.kind).toBe('heading');
+        expect(analysis.nodes[0]?.childTypeRecord?.uid).toBe(7);
+        expect(analysis.nodes[0]?.childTypeRecord?.storedValue).toBe('h4');
+    });
+
+    it('treats a container with a non-heading own type as level 0', () => {
+        document.body.innerHTML = `
+            <span hidden data-mindfula11y-container="p" data-mindfula11y-relation-id="acc"></span>`;
+
+        const analysis = analyzeHeadings(document, { isExposed: () => true });
+
+        expect(analysis.nodes[0]?.kind).toBe('container');
+        expect(analysis.nodes[0]?.level).toBe(0);
+    });
+
+    it('keeps container markers whose parent only has a presentational role', () => {
+        document.body.innerHTML = `
+            <h1>Page</h1>
+            <div role="presentation">
+                <span hidden data-mindfula11y-container="h2" data-mindfula11y-relation-id="acc"></span>
+            </div>`;
+
+        const analysis = analyzeHeadings(document, { isExposed: () => true });
+
+        expect(analysis.nodes[0]?.children.some((node) => node.kind === 'container')).toBe(true);
+    });
+
+    it('reports a skip caused by a hidden container once on the container row', () => {
+        // The container row already shows the unrendered level and hosts the
+        // child-type select that fixes the gap — per-heading placeholders next
+        // to it would duplicate (and visually contradict) that row.
+        document.body.innerHTML = `
+            <h1>Page</h1>
+            <span hidden data-mindfula11y-container="h2" data-mindfula11y-relation-id="acc"></span>
+            <h3 data-mindfula11y-ancestor-id="acc">First child</h3>
+            <h3 data-mindfula11y-ancestor-id="acc">Second child</h3>`;
+
+        const analysis = analyzeHeadings(document, { isExposed: () => true });
+
+        const root = analysis.nodes[0];
+        const container = root?.children.find((node) => node.kind === 'container');
+        const headingChildren = root?.children.filter((node) => node.kind === 'heading') ?? [];
+        expect(container?.errors.map((error) => error.key)).toEqual([
+            'mindfula11y.structure.headings.error.skippedLevel',
+        ]);
+        expect(analysis.errors).toHaveLength(1);
+        expect(headingChildren.flatMap((node) => node.errors)).toEqual([]);
+        expect(headingChildren.every((node) => node.skippedLevels === 0)).toBe(true);
+    });
+
+    it('keeps per-heading skip placeholders when the relation target is a rendered heading', () => {
+        document.body.innerHTML = `
+            <h1>Page</h1>
+            <h2 data-mindfula11y-relation-id="visible">Visible container</h2>
+            <h4 data-mindfula11y-ancestor-id="visible">Deep child</h4>`;
+
+        const analysis = analyzeHeadings(document, { isExposed: () => true });
+
+        const child = analysis.nodes[0]?.children[0]?.children[0];
+        expect(child?.skippedLevels).toBe(1);
+        expect(child?.errors.map((error) => error.key)).toEqual(['mindfula11y.structure.headings.error.skippedLevel']);
+    });
+
+    it('keeps per-heading skip placeholders when the container row is absent', () => {
+        document.body.innerHTML = `
+            <h1>Page</h1>
+            <h3 data-mindfula11y-ancestor-id="missing">Orphan</h3>`;
+
+        const analysis = analyzeHeadings(document, { isExposed: () => true });
+
+        const child = analysis.nodes[0]?.children[0];
+        expect(child?.skippedLevels).toBe(1);
+        expect(child?.errors).toHaveLength(1);
+    });
 });
