@@ -22,6 +22,7 @@ declare(strict_types=1);
 
 namespace MindfulMarkup\MindfulA11y\Hooks;
 
+use MindfulMarkup\MindfulA11y\Service\ScanStateService;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
 use TYPO3\CMS\Core\SysLog\Action\Database as SystemLogDatabaseAction;
 use TYPO3\CMS\Core\SysLog\Error as SystemLogErrorClassification;
@@ -32,8 +33,8 @@ final class ScanStateDataHandlerGuard
      * @var array<string>
      */
     private const SCAN_STATE_FIELDS = [
-        'tx_mindfula11y_scanid',
-        'tx_mindfula11y_scanupdated',
+        ScanStateService::FIELD_SCAN_ID,
+        ScanStateService::FIELD_SCAN_UPDATED,
     ];
 
     private static int $internalWriteDepth = 0;

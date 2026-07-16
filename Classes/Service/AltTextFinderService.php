@@ -42,13 +42,14 @@ class AltTextFinderService
         protected readonly AltlessFileReferenceRepository $altlessFileReferenceRepository,
         protected readonly PermissionService $permissionService,
         protected readonly BackendUserProvider $backendUserProvider,
+        protected readonly PageTreeIdResolver $pageTreeIdResolver,
     ) {}
 
     /**
      * Get altless file references.
      * 
      * Query for file references that are missing alternative text and apply filters based on user
-     * permissions and Page TSConfig settings. Does not check for language permissions.
+     * permissions and Page TSConfig settings. Does not check for table or language permissions.
      * 
      * @param int $pageId The ID of the page to check.
      * @param int $pageLevels The number of page levels below $pageId to select records from.
@@ -57,6 +58,7 @@ class AltTextFinderService
      * @param int $firstResult The offset for the query.
      * @param int $maxResults The maximum number of results to return.
      * @param bool $filterFileMetaData If true, filter results based on presence of alternative text in file metadata.
+     * @param string|null $tableName Restrict to a single table; null queries every table with file columns.
      * 
      * @return array<AltlessFileReference> An array of file reference objects that are missing alternative text.
      * 
@@ -69,65 +71,17 @@ class AltTextFinderService
         array $pageTsConfig,
         int $firstResult = 0,
         int $maxResults = 100,
-        bool $filterFileMetaData = true
-    ): array {
-        $tables = [];
-        $pageIds = $this->permissionService->getPageTreeIds($pageId, $pageLevels);
-        foreach ($this->getTablesWithFiles($pageTsConfig) as $tableName) {
-            $tables[] = $this->createAltlessFileReferenceTable($tableName, $pageIds, $pageTsConfig);
-        }
-
-        return $this->altlessFileReferenceRepository->findForTables(
-            $tables,
-            $languageId,
-            $this->backendUserProvider->get()->workspace,
-            $firstResult,
-            $maxResults,
-            $filterFileMetaData,
-            $this->permissionService->checkFileReadAccess(...)
-        );
-    }
-
-    /**
-     * Query file references from a given table that are missing alternative text.
-     * 
-     * Queries the database for file references associated with a specific table and page ID and
-     * creates FileReference objects for each record. Does not check for table or language permissions.
-     * 
-     * @param string $tableName The name of the table to query.
-     * @param int $pageId The ID of the page to check.
-     * @param int $pageLevels The number of page levels below $pageId to select records from.
-     * @param int $languageId The language ID to select records for.
-     * @param array<string, mixed> $pageTsConfig The Page TSConfig for the current page.
-     * @param int $firstResult The offset for the query.
-     * @param int $maxResults The maximum number of results to return.
-     * @param bool $filterFileMetaData If true, filter results based on presence of alternative text in file metadata.
-     * 
-     * @return array<AltlessFileReference> An array of file reference objects that are missing alternative text.
-     * 
-     * @throws \Exception If there is an error executing the query.
-     */
-    public function getAltlessFileReferencesForTable(
-        string $tableName,
-        int $pageId,
-        int $pageLevels,
-        int $languageId,
-        array $pageTsConfig,
-        int $firstResult = 0,
-        int $maxResults = 100,
         bool $filterFileMetaData = true,
+        ?string $tableName = null,
     ): array {
-        $pageTreeIds = $this->permissionService->getPageTreeIds($pageId, $pageLevels);
-        $table = $this->createAltlessFileReferenceTable($tableName, $pageTreeIds, $pageTsConfig);
-
         return $this->altlessFileReferenceRepository->findForTables(
-            [$table],
+            $this->buildTables($tableName, $pageId, $pageLevels, $pageTsConfig),
             $languageId,
             $this->backendUserProvider->get()->workspace,
+            $this->permissionService->checkFileReadAccess(...),
             $firstResult,
             $maxResults,
-            $filterFileMetaData,
-            $this->permissionService->checkFileReadAccess(...)
+            $filterFileMetaData
         );
     }
 
@@ -135,13 +89,14 @@ class AltTextFinderService
      * Count altless file references.
      * 
      * Counts file references that are missing alternative text, applying filters based on user
-     * permissions and Page TSConfig settings. Does not check for language permissions.
+     * permissions and Page TSConfig settings. Does not check for table or language permissions.
      * 
      * @param int $pageId The ID of the page to check.
      * @param int $pageLevels The number of page levels below $pageId to select records from.
      * @param int $languageId The language ID to select records for.
      * @param array<string, mixed> $pageTsConfig The Page TSConfig for the current page.
      * @param bool $filterFileMetaData If true, filter results based on presence of alternative text in file metadata.
+     * @param string|null $tableName Restrict to a single table; null counts every table with file columns.
      * 
      * @return int The count of file references missing alternative text.
      * 
@@ -152,61 +107,37 @@ class AltTextFinderService
         int $pageLevels,
         int $languageId,
         array $pageTsConfig,
-        bool $filterFileMetaData = true
+        bool $filterFileMetaData = true,
+        ?string $tableName = null,
     ): int {
-        $tables = [];
-        $pageIds = null;
-        foreach ($this->getTablesWithFiles($pageTsConfig) as $tableName) {
-            if (null === $pageIds) {
-                $pageIds = $this->permissionService->getPageTreeIds($pageId, $pageLevels);
-            }
-            $tables[] = $this->createAltlessFileReferenceTable($tableName, $pageIds, $pageTsConfig);
-        }
-
         return $this->altlessFileReferenceRepository->countForTables(
-            $tables,
+            $this->buildTables($tableName, $pageId, $pageLevels, $pageTsConfig),
             $languageId,
             $this->backendUserProvider->get()->workspace,
-            $filterFileMetaData,
-            $this->permissionService->checkFileReadAccess(...)
+            $this->permissionService->checkFileReadAccess(...),
+            $filterFileMetaData
         );
     }
 
     /**
-     * Count file references from a given table that are missing alternative text.
+     * Build the table configurations a query should cover.
      * 
-     * Counts file references associated with a specific table and page ID that are missing alternative text.
-     * Does not check for table or language permissions.
-     * 
-     * @param string $tableName The name of the table to query.
-     * @param int $pageId The ID of the page to check.
-     * @param int $pageLevels The number of page levels below $pageId to select records from.
-     * @param int $languageId The language ID to select records for.
-     * @param array<string, mixed> $pageTsConfig The Page TSConfig for the current page.
-     * @param bool $filterFileMetaData If true, filter results based on presence of alternative text in file metadata.
-     * 
-     * @return int The count of file references missing alternative text.
-     * 
-     * @throws \Exception If there is an error executing the query.
+     * @return array<AltlessFileReferenceTable> Empty when no table qualifies (the page-tree lookup is skipped then).
      */
-    public function countAltlessFileReferencesForTable(
-        string $tableName,
-        int $pageId,
-        int $pageLevels,
-        int $languageId,
-        array $pageTsConfig,
-        bool $filterFileMetaData = true
-    ): int {
-        $pageTreeIds = $this->permissionService->getPageTreeIds($pageId, $pageLevels);
-        $table = $this->createAltlessFileReferenceTable($tableName, $pageTreeIds, $pageTsConfig);
+    protected function buildTables(?string $tableName, int $pageId, int $pageLevels, array $pageTsConfig): array
+    {
+        $tableNames = $tableName !== null ? [$tableName] : $this->getTablesWithFiles($pageTsConfig);
+        if ([] === $tableNames) {
+            return [];
+        }
 
-        return $this->altlessFileReferenceRepository->countForTables(
-            [$table],
-            $languageId,
-            $this->backendUserProvider->get()->workspace,
-            $filterFileMetaData,
-            $this->permissionService->checkFileReadAccess(...)
-        );
+        $pageIds = $this->pageTreeIdResolver->getPageTreeIds($pageId, $pageLevels);
+        $tables = [];
+        foreach ($tableNames as $name) {
+            $tables[] = $this->createAltlessFileReferenceTable($name, $pageIds, $pageTsConfig);
+        }
+
+        return $tables;
     }
 
     /**
@@ -221,7 +152,7 @@ class AltTextFinderService
      * 
      * @return AltlessFileReferenceTable The table configuration object.
      */
-    public function createAltlessFileReferenceTable(string $tableName, array $pageIds, array $pageTsConfig): AltlessFileReferenceTable
+    protected function createAltlessFileReferenceTable(string $tableName, array $pageIds, array $pageTsConfig): AltlessFileReferenceTable
     {
         $fileColumnNames = $this->getFileColumns($tableName, $pageTsConfig);
         $authModeColumns = $this->permissionService->getAllowedAuthModeValues($tableName);

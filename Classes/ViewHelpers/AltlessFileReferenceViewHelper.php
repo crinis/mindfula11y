@@ -31,7 +31,6 @@ use MindfulMarkup\MindfulA11y\Service\PermissionService;
 use MindfulMarkup\MindfulA11y\Service\ModuleSettingsService;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
-use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
 use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractTagBasedViewHelper;
 
@@ -59,11 +58,6 @@ class AltlessFileReferenceViewHelper extends AbstractTagBasedViewHelper
      * Backend Uri Builder instance.
      */
     protected readonly UriBuilder $backendUriBuilder;
-
-    /**
-     * ExtensionConfiguration instance.
-     */
-    protected readonly ExtensionConfiguration $extensionConfiguration;
 
     /**
      * Backend user provider instance.
@@ -105,14 +99,6 @@ class AltlessFileReferenceViewHelper extends AbstractTagBasedViewHelper
     }
 
     /**
-     * Inject ExtensionConfiguration.
-     */
-    public function injectAltTextGeneratorService(ExtensionConfiguration $extensionConfiguration): void
-    {
-        $this->extensionConfiguration = $extensionConfiguration;
-    }
-
-    /**
      * Inject backend user provider.
      */
     public function injectBackendUserProvider(BackendUserProvider $backendUserProvider): void
@@ -145,9 +131,7 @@ class AltlessFileReferenceViewHelper extends AbstractTagBasedViewHelper
         // syntax for them, so `<tag />` would leave the element open.
         $this->tag->forceClosingTag(true);
 
-        $recordTableName = $fileReference->getOriginalResource()->getReferenceProperty('tablenames');
-        $recordColumnName = $fileReference->getOriginalResource()->getReferenceProperty('fieldname');
-        $recordUid = $fileReference->getOriginalResource()->getReferenceProperty('uid_foreign');
+        [$recordTableName, $recordColumnName, $recordUid] = $this->getRecordCoordinates($fileReference);
 
         $record = BackendUtility::getRecordWSOL($recordTableName, (int)$recordUid);
 
@@ -200,15 +184,29 @@ class AltlessFileReferenceViewHelper extends AbstractTagBasedViewHelper
     }
 
     /**
+     * The record coordinates (table, column, uid) the file reference points at.
+     *
+     * @return array{0: string, 1: string, 2: int|string}
+     */
+    protected function getRecordCoordinates(AltlessFileReference $fileReference): array
+    {
+        $reference = $fileReference->getOriginalResource();
+
+        return [
+            $reference->getReferenceProperty('tablenames'),
+            $reference->getReferenceProperty('fieldname'),
+            $reference->getReferenceProperty('uid_foreign'),
+        ];
+    }
+
+    /**
      * Get alt text demand used for generating the alt text.
      */
     protected function getGenerateAltTextDemand(
         AltlessFileReference $fileReference
     ): GenerateAltTextDemand {
         $backendUser = $this->backendUserProvider->get();
-        $recordTableName = $fileReference->getOriginalResource()->getReferenceProperty('tablenames');
-        $recordColumnName = $fileReference->getOriginalResource()->getReferenceProperty('fieldname');
-        $recordUid = $fileReference->getOriginalResource()->getReferenceProperty('uid_foreign');
+        [$recordTableName, $recordColumnName, $recordUid] = $this->getRecordCoordinates($fileReference);
         $fileUid = $fileReference->getOriginalResource()->getOriginalFile()->getUid();
         return new GenerateAltTextDemand(
             $backendUser->user['uid'],

@@ -29,6 +29,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
+use MindfulMarkup\MindfulA11y\Service\ScanStateService;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -95,13 +96,13 @@ class CleanupScansCommand extends Command
 
         $cleanedCount = $updateQuery
             ->update('pages')
-            ->set('tx_mindfula11y_scanid', '')
-            ->set('tx_mindfula11y_scanupdated', 0)
+            ->set(ScanStateService::FIELD_SCAN_ID, '')
+            ->set(ScanStateService::FIELD_SCAN_UPDATED, 0)
             ->where(
                 $updateQuery->expr()->and(
-                    $updateQuery->expr()->isNotNull('tx_mindfula11y_scanid'),
-                    $updateQuery->expr()->neq('tx_mindfula11y_scanid', $updateQuery->createNamedParameter('')),
-                    $updateQuery->expr()->lt('tx_mindfula11y_scanupdated', $updateQuery->createNamedParameter($cutoffTimestamp))
+                    $updateQuery->expr()->isNotNull(ScanStateService::FIELD_SCAN_ID),
+                    $updateQuery->expr()->neq(ScanStateService::FIELD_SCAN_ID, $updateQuery->createNamedParameter('')),
+                    $updateQuery->expr()->lt(ScanStateService::FIELD_SCAN_UPDATED, $updateQuery->createNamedParameter($cutoffTimestamp))
                 )
             )
             ->executeStatement();

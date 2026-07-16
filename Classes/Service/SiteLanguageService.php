@@ -24,8 +24,12 @@ namespace MindfulMarkup\MindfulA11y\Service;
 
 use TYPO3\CMS\Core\Exception\SiteNotFoundException;
 use \InvalidArgumentException;
+use TYPO3\CMS\Backend\Domain\Repository\Localization\LocalizationRepository;
+use TYPO3\CMS\Backend\Utility\BackendUtility;
+use TYPO3\CMS\Core\Information\Typo3Version;
 use TYPO3\CMS\Core\Site\Entity\SiteLanguage;
 use TYPO3\CMS\Core\Site\SiteFinder;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
  * Class SiteLanguageService.
@@ -141,6 +145,41 @@ class SiteLanguageService
         } catch (\Throwable) {
             return null;
         }
+    }
+
+    /**
+     * Get the language ids a page is translated into, including the default
+     * language, for the given workspace.
+     *
+     * @return array<int>
+     */
+    public function getTranslatedLanguageIds(int $pageId, int $workspaceId): array
+    {
+        $translatedLanguageIds = [0]; // Default language is always available
+
+        // LocalizationRepository::getPageTranslations() and the deprecation of
+        // the legacy BackendUtility::getExistingPageTranslations() both landed
+        // in TYPO3 v14.2 (#108799 / #108810); on v13 and v14.0/v14.1 the legacy
+        // method is the only one that exists.
+        if (version_compare((new Typo3Version())->getVersion(), '14.2', '>=')) {
+            // getPageTranslations() returns RawRecord[] keyed by language id,
+            // so the ids are the array keys.
+            $repository = GeneralUtility::makeInstance(LocalizationRepository::class);
+            foreach (array_keys($repository->getPageTranslations($pageId, [], $workspaceId)) as $languageId) {
+                $translatedLanguageIds[] = (int)$languageId;
+            }
+        } else {
+            // TYPO3 v13 / v14.0 / v14.1: the legacy API returns page rows.
+            $pageTranslations = BackendUtility::getExistingPageTranslations($pageId);
+            foreach ($pageTranslations as $pageTranslation) {
+                $languageId = $pageTranslation[$GLOBALS['TCA']['pages']['ctrl']['languageField']] ?? null;
+                if (null !== $languageId) {
+                    $translatedLanguageIds[] = (int)$languageId;
+                }
+            }
+        }
+
+        return array_unique($translatedLanguageIds);
     }
 
     /**

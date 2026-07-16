@@ -47,6 +47,8 @@ final readonly class PagePreviewService
         private ModuleSettingsService $moduleSettingsService,
         private ConnectionPool $connectionPool,
         private BackendUserProvider $backendUserProvider,
+        private PageTreeIdResolver $pageTreeIdResolver,
+        private Context $context,
     ) {}
 
     /**
@@ -79,7 +81,7 @@ final readonly class PagePreviewService
             return false;
         }
 
-        $now = GeneralUtility::makeInstance(Context::class)->getPropertyFromAspect('date', 'timestamp') ?? time();
+        $now = $this->context->getPropertyFromAspect('date', 'timestamp') ?? time();
 
         // Check starttime
         $starttimeField = $enableColumns['starttime'] ?? 'starttime';
@@ -204,7 +206,7 @@ final readonly class PagePreviewService
      */
     public function generatePageUrls(int $pageId, int $languageId, int $pageLevels, string $fallbackUrl = ''): array
     {
-        $pageTreeIds = $this->permissionService->getPageTreeIds($pageId, $pageLevels);
+        $pageTreeIds = $this->pageTreeIdResolver->getPageTreeIds($pageId, $pageLevels);
         $urls = [];
 
         foreach ($pageTreeIds as $treePageId) {

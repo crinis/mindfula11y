@@ -116,6 +116,12 @@ final readonly class StructureAnalysisAuthorizationService
         return $page;
     }
 
+    /**
+     * Deliberately NOT delegated to PagePreviewService::getLocalizedPageRecord()
+     * despite the similar query: that method derives the workspace from the
+     * session's $GLOBALS['BE_USER'], while this service authorizes session-less
+     * ticket requests against the ticket's own workspace claim.
+     */
     private function hasPageTranslation(int $pageId, int $languageId, int $workspaceId): bool
     {
         $languageField = (string)($GLOBALS['TCA']['pages']['ctrl']['languageField'] ?? 'sys_language_uid');

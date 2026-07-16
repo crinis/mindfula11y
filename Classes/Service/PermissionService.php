@@ -24,14 +24,11 @@ declare(strict_types=1);
 namespace MindfulMarkup\MindfulA11y\Service;
 
 use TYPO3\CMS\Backend\Module\ModuleProvider;
-use TYPO3\CMS\Backend\Tree\Repository\PageTreeRepository;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
-use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Resource\FileInterface;
 use TYPO3\CMS\Core\Schema\Capability\TcaSchemaCapability;
 use TYPO3\CMS\Core\Schema\TcaSchemaFactory;
 use TYPO3\CMS\Core\Type\Bitmask\Permission;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Versioning\VersionState;
 
 /**
@@ -125,61 +122,6 @@ class PermissionService
         }
 
         return $allowedAuthModeValues;
-    }
-
-    /**
-     * Get the list of pages to check for records with missing alternative text.
-     * 
-     * Find all page IDs that are accessible to the current user and have file references
-     * with missing alternative text. Check for write permissions on the page content. Page IDs will be the original IDs not workspace
-     * or localized IDs.
-     * 
-     * @param int $pageId The ID of the selected page.
-     * @param int $pageLevels The number of page levels to check.
-     * 
-     * @return array<int>
-     */
-    public function getPageTreeIds(int $pageId, int $pageLevels): array
-    {
-        $backendUser = $this->backendUserProvider->get();
-
-        $expressionBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
-            ->getQueryBuilderForTable('pages')
-            ->expr();
-
-        $permsClause = $expressionBuilder->and(
-            $backendUser->getPagePermsClause(Permission::PAGE_SHOW),
-        );
-        
-        // This will hide records from display - it has nothing to do with user rights!!
-        $hiddenPidList = GeneralUtility::intExplode(',', (string)($backendUser->getTSConfig()['options.']['hideRecords.']['pages'] ?? ''), true);
-        if (!empty($hiddenPidList)) {
-            $permsClause = $permsClause->with($expressionBuilder->notIn('pages.uid', $hiddenPidList));
-        }
-        $perms_clause = (string)$permsClause;
-
-        if (!$backendUser->isAdmin() && $pageId === 0) {
-            $mountPoints = $backendUser->getWebmounts();
-        } else {
-            // Self-contained mount containment: the perms clause below is pure
-            // permission-bit arithmetic, so without this check the method's
-            // safety would rest entirely on every caller pre-validating
-            // $pageId (currently they do, via readPageAccess()).
-            if (!$backendUser->isAdmin() && $backendUser->isInWebMount($pageId) === null) {
-                return [];
-            }
-            $mountPoints = [$pageId];
-        }
-
-        $repository = GeneralUtility::makeInstance(PageTreeRepository::class);
-        $repository->setAdditionalWhereClause($perms_clause);
-        $pages = $repository->getFlattenedPages($mountPoints, $pageLevels);
-        $idList = [];
-        foreach ($pages as $page) {
-            $idList[] = (int)$page['uid'];
-        }
-
-        return array_unique($idList);
     }
 
     /**

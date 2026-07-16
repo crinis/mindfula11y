@@ -36,10 +36,10 @@ use MindfulMarkup\MindfulA11y\Service\ModuleLabelService;
 use MindfulMarkup\MindfulA11y\Service\ModuleSettingsService;
 use MindfulMarkup\MindfulA11y\Service\PagePreviewService;
 use MindfulMarkup\MindfulA11y\Service\PermissionService;
+use MindfulMarkup\MindfulA11y\Service\SiteLanguageService;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Backend\Attribute\AsController;
-use TYPO3\CMS\Backend\Domain\Repository\Localization\LocalizationRepository;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Backend\Template\Components\Buttons\DropDownButton;
 use TYPO3\CMS\Backend\Template\ModuleTemplateFactory;
@@ -47,13 +47,11 @@ use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Http\AllowedMethodsTrait;
 use TYPO3\CMS\Core\Http\Error\MethodNotAllowedException;
 use TYPO3\CMS\Core\Http\RedirectResponse;
-use TYPO3\CMS\Core\Information\Typo3Version;
 use TYPO3\CMS\Core\Messaging\FlashMessageService;
 use TYPO3\CMS\Core\Page\PageRenderer;
 use TYPO3\CMS\Core\Site\Entity\SiteLanguage;
 use TYPO3\CMS\Core\Type\Bitmask\Permission;
 use TYPO3\CMS\Core\Type\ContextualFeedbackSeverity;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
  * Entry point of the accessibility backend module.
@@ -82,6 +80,7 @@ final readonly class AccessibilityModuleController
         private MissingAltTextFeatureRenderer $missingAltTextFeatureRenderer,
         private ScanFeatureRenderer $scanFeatureRenderer,
         private BackendUserProvider $backendUserProvider,
+        private SiteLanguageService $siteLanguageService,
     ) {}
 
     /**
@@ -255,33 +254,10 @@ final readonly class AccessibilityModuleController
      */
     private function getAvailableLanguageIds(int $pageId): array
     {
-        $availableLanguageIds = [0]; // Default language is always available
-
-        // LocalizationRepository::getPageTranslations() and the deprecation of
-        // the legacy BackendUtility::getExistingPageTranslations() both landed
-        // in TYPO3 v14.2 (#108799 / #108810); on v13 and v14.0/v14.1 the legacy
-        // method is the only one that exists.
-        if (version_compare((new Typo3Version())->getVersion(), '14.2', '>=')) {
-            // Pass the backend user's workspace so the result matches the
-            // workspace-aware legacy path. getPageTranslations() returns
-            // RawRecord[] keyed by language id, so the ids are the array keys.
-            $workspaceId = $this->backendUserProvider->get()->workspace;
-            $repository = GeneralUtility::makeInstance(LocalizationRepository::class);
-            foreach (array_keys($repository->getPageTranslations($pageId, [], $workspaceId)) as $languageId) {
-                $availableLanguageIds[] = (int)$languageId;
-            }
-        } else {
-            // TYPO3 v13 / v14.0 / v14.1: the legacy API returns page rows.
-            $pageTranslations = BackendUtility::getExistingPageTranslations($pageId);
-            foreach ($pageTranslations as $pageTranslation) {
-                $languageId = $pageTranslation[$GLOBALS['TCA']['pages']['ctrl']['languageField']] ?? null;
-                if (null !== $languageId) {
-                    $availableLanguageIds[] = (int)$languageId;
-                }
-            }
-        }
-
-        return array_unique($availableLanguageIds);
+        return $this->siteLanguageService->getTranslatedLanguageIds(
+            $pageId,
+            $this->backendUserProvider->get()->workspace
+        );
     }
 
     /**

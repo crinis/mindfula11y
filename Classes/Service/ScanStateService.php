@@ -34,6 +34,10 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
  */
 final readonly class ScanStateService
 {
+    /** The page fields owned by the scan feature — the authoritative naming for every reader and writer. */
+    public const FIELD_SCAN_ID = 'tx_mindfula11y_scanid';
+    public const FIELD_SCAN_UPDATED = 'tx_mindfula11y_scanupdated';
+
     public function __construct(
         private ConnectionPool $connectionPool,
         private BackendUserProvider $backendUserProvider,
@@ -50,7 +54,7 @@ final readonly class ScanStateService
     public function shouldInvalidateScan(array $pageInfo, int $fallbackSysLastChanged = 0): bool
     {
         $sysLastChanged = max((int)($pageInfo['SYS_LASTCHANGED'] ?? 0), $fallbackSysLastChanged);
-        $scanUpdated = $pageInfo['tx_mindfula11y_scanupdated'] ?? null;
+        $scanUpdated = $pageInfo[self::FIELD_SCAN_UPDATED] ?? null;
 
         // If no scan has been done yet, scan should be invalidated (new scan needed)
         if (!$scanUpdated) {
@@ -73,7 +77,7 @@ final readonly class ScanStateService
      */
     public function resolveEffectiveScanId(array $pageInfo, int $fallbackSysLastChanged = 0): ?string
     {
-        $scanId = (string)($pageInfo['tx_mindfula11y_scanid'] ?? '');
+        $scanId = (string)($pageInfo[self::FIELD_SCAN_ID] ?? '');
         if ($scanId === '' || $this->shouldInvalidateScan($pageInfo, $fallbackSysLastChanged)) {
             return null;
         }
@@ -97,7 +101,7 @@ final readonly class ScanStateService
             ->select('uid', 'pid', 't3ver_oid')
             ->from('pages')
             ->where(
-                $queryBuilder->expr()->eq('tx_mindfula11y_scanid', $queryBuilder->createNamedParameter($scanId))
+                $queryBuilder->expr()->eq(self::FIELD_SCAN_ID, $queryBuilder->createNamedParameter($scanId))
             )
             ->executeQuery()
             ->fetchAssociative();

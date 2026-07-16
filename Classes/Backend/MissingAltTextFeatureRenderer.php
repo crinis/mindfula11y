@@ -100,43 +100,26 @@ final readonly class MissingAltTextFeatureRenderer implements FeatureRendererInt
 
         $offset = ($currentPage - 1) * self::ITEMS_PER_PAGE;
 
-        if (!empty($tableName)) {
-            $fileReferenceCount = $this->altTextFinderService->countAltlessFileReferencesForTable(
-                $tableName,
-                $context->pageId,
-                $pageLevels,
-                $context->languageId,
-                $context->pageTsConfig,
-                $filterFileMetaData
-            );
-            $fileReferences = $this->altTextFinderService->getAltlessFileReferencesForTable(
-                $tableName,
-                $context->pageId,
-                $pageLevels,
-                $context->languageId,
-                $context->pageTsConfig,
-                $offset,
-                self::ITEMS_PER_PAGE,
-                $filterFileMetaData
-            );
-        } else {
-            $fileReferenceCount = $this->altTextFinderService->countAltlessFileReferences(
-                $context->pageId,
-                $pageLevels,
-                $context->languageId,
-                $context->pageTsConfig,
-                $filterFileMetaData
-            );
-            $fileReferences = $this->altTextFinderService->getAltlessFileReferences(
-                $context->pageId,
-                $pageLevels,
-                $context->languageId,
-                $context->pageTsConfig,
-                $offset,
-                self::ITEMS_PER_PAGE,
-                $filterFileMetaData
-            );
-        }
+        // An empty table selection means "all record types".
+        $tableFilter = $tableName !== '' ? $tableName : null;
+        $fileReferenceCount = $this->altTextFinderService->countAltlessFileReferences(
+            $context->pageId,
+            $pageLevels,
+            $context->languageId,
+            $context->pageTsConfig,
+            $filterFileMetaData,
+            $tableFilter
+        );
+        $fileReferences = $this->altTextFinderService->getAltlessFileReferences(
+            $context->pageId,
+            $pageLevels,
+            $context->languageId,
+            $context->pageTsConfig,
+            $offset,
+            self::ITEMS_PER_PAGE,
+            $filterFileMetaData,
+            $tableFilter
+        );
 
         // Not using extbase queries: fill with null, then insert fileReferences at the correct offset
         $paginatorItems = array_fill(0, $fileReferenceCount, null);

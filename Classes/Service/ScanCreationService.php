@@ -154,8 +154,8 @@ final readonly class ScanCreationService
             $dataHandler->start([
                 'pages' => [
                     $pageUid => [
-                        'tx_mindfula11y_scanid' => $scanId,
-                        'tx_mindfula11y_scanupdated' => time(),
+                        ScanStateService::FIELD_SCAN_ID => $scanId,
+                        ScanStateService::FIELD_SCAN_UPDATED => time(),
                     ]
                 ]
             ], []);
