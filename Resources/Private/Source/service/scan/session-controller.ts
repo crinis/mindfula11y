@@ -20,6 +20,7 @@
 import type { ReactiveController, ReactiveControllerHost } from 'lit';
 import type { ScanApi } from './api.js';
 import type { CreateScanDemand, ScanResult, ScanStatus } from './types.js';
+import { isScanInProgress } from './types.js';
 
 const POLL_DELAY_MS = 5000;
 
@@ -28,7 +29,8 @@ export type ScanSessionState = 'initial' | 'loading' | 'ready' | 'error';
 
 /** Wiring the host supplies so the controller can read attributes and react to transitions. */
 export interface ScanSessionOptions {
-    service: ScanApi;
+    /** The async scan endpoints the controller drives (in production: a {@link ScanApi}). */
+    service: Pick<ScanApi, 'createScan' | 'loadScan' | 'cancelScan'>;
     /** Attribute-provided scan id (`''` = none). */
     scanId: () => string;
     /** Auto-create demand; `null` disables auto-create (a manual trigger still calls `createScan`). */
@@ -129,7 +131,7 @@ export class ScanSessionController implements ReactiveController {
         // Resume polling when reinserted mid-scan: disconnecting cleared the
         // only timer and nothing else re-triggers a load after reconnect, so
         // resume polling here.
-        if (this.lastStatus !== '' && this.options.service.isScanInProgress(this.lastStatus)) {
+        if (this.lastStatus !== '' && isScanInProgress(this.lastStatus)) {
             this.schedulePoll();
         }
     }
@@ -190,7 +192,7 @@ export class ScanSessionController implements ReactiveController {
             // on the load's success path only. lastStatus is left untouched on
             // failure, so re-arm here while the scan is still believed to be in
             // progress — the next poll recovers.
-            if (this.lastStatus !== '' && this.options.service.isScanInProgress(this.lastStatus)) {
+            if (this.lastStatus !== '' && isScanInProgress(this.lastStatus)) {
                 this.schedulePoll();
             }
         }
@@ -320,7 +322,7 @@ export class ScanSessionController implements ReactiveController {
     /** Detects the transition, re-arms the poll while in progress, and notifies the host. */
     private commitStatus(result: ScanResult): void {
         const previous = this.lastStatus;
-        if (this.options.service.isScanInProgress(result.status)) {
+        if (isScanInProgress(result.status)) {
             this.schedulePoll();
         }
         if (this.justCreated) {
@@ -329,9 +331,9 @@ export class ScanSessionController implements ReactiveController {
             this.options.onTransition?.(null, result);
             return;
         }
-        const wasInProgress = previous !== '' && this.options.service.isScanInProgress(previous);
+        const wasInProgress = previous !== '' && isScanInProgress(previous);
         this.lastStatus = result.status;
-        if (wasInProgress && !this.options.service.isScanInProgress(result.status)) {
+        if (wasInProgress && !isScanInProgress(result.status)) {
             this.options.onTransition?.(previous, result);
         }
     }

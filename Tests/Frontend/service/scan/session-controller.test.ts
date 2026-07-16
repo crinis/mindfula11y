@@ -12,15 +12,12 @@
 
 import type { ReactiveControllerHost } from 'lit';
 import { afterEach, describe, expect, it, type Mock, vi } from 'vitest';
-import type { ScanApi } from '../../../../Resources/Private/Source/service/scan/api.js';
 import {
     ScanSessionController,
     type ScanSessionOptions,
 } from '../../../../Resources/Private/Source/service/scan/session-controller.js';
 import type { CreateScanDemand, ScanResult } from '../../../../Resources/Private/Source/service/scan/types.js';
 import { ScanStatus } from '../../../../Resources/Private/Source/service/scan/types.js';
-
-const IN_PROGRESS = new Set<ScanStatus>([ScanStatus.Pending, ScanStatus.Running, ScanStatus.Analyzing]);
 
 const demand: CreateScanDemand = {
     userId: 1,
@@ -58,14 +55,12 @@ interface FakeService {
     createScan: Mock;
     loadScan: Mock;
     cancelScan: Mock;
-    isScanInProgress: (status: ScanStatus | '') => boolean;
 }
 
 const createFakeService = (): FakeService => ({
     createScan: vi.fn(),
     loadScan: vi.fn(),
     cancelScan: vi.fn(),
-    isScanInProgress: (status: ScanStatus | ''): boolean => status !== '' && IN_PROGRESS.has(status),
 });
 
 const flush = async (): Promise<void> => {
@@ -81,7 +76,7 @@ const build = (
     const host = new FakeHost();
     const onTransition = vi.fn();
     const controller = new ScanSessionController(host, {
-        service: service as unknown as ScanApi,
+        service: service as unknown as ScanSessionOptions['service'],
         scanId: options.scanId ?? ((): string => ''),
         demand: options.demand ?? ((): CreateScanDemand | null => null),
         pageUrlFilter: options.pageUrlFilter ?? ((): string[] => []),

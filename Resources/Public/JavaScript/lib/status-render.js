@@ -1,6 +1,16 @@
 import { lll } from "@typo3/core/lit-helper.js";
 import { html } from "lit";
 import { StructureErrorSeverity } from "./structure/types.js";
+const IMPACT_ORDER = ["critical", "serious", "moderate", "minor"];
+const IMPACT_STATES = {
+  critical: "danger",
+  serious: "serious",
+  moderate: "warning",
+  minor: "info"
+};
+function impactState(impact) {
+  return IMPACT_STATES[impact];
+}
 function noticeState(severity) {
   return severity === StructureErrorSeverity.Error ? "danger" : "warning";
 }
@@ -29,9 +39,21 @@ const renderViewportBadges = (viewports) => html`<span class="viewports">
   (viewport) => html`<span class="viewport">${lll(`mindfula11y.structure.viewport.${viewport}`)}</span>`
 )}
     </span>`;
+const renderNoticeBody = (view) => html`<span>
+        <span class="notice-title">${view.title}</span>
+        ${view.description}
+    </span>`;
+const renderLoadingPlaceholder = (label) => html`<div class="placeholder">
+        <typo3-backend-spinner size="default"></typo3-backend-spinner>
+        <span>${label}</span>
+    </div>`;
 export {
+  IMPACT_ORDER,
+  impactState,
   noticeState,
   noticeStateIcon,
+  renderLoadingPlaceholder,
+  renderNoticeBody,
   renderSeverityChip,
   renderViewportBadges,
   severityLabelKey

@@ -22,18 +22,19 @@ import type { CSSResult, TemplateResult } from 'lit';
 import { html, LitElement, nothing } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { LiveAnnouncer } from '../../lib/live-announcer.js';
-import { activateTabFromKeydown, renderTablist, renderTabPanel, type TabDescriptor } from '../../lib/tabs.js';
-import { errorView, RequestError } from '../../service/request-error.js';
+import { IMPACT_ORDER, impactState } from '../../lib/status-render.js';
+import { type TabDescriptor, TabsController } from '../../lib/tabs.js';
+import { dispatch } from '../../lib/types.js';
+import { type ErrorView, errorView, RequestError } from '../../service/request-error.js';
 import { ScanApi } from '../../service/scan/api.js';
 import { ScanSessionController } from '../../service/scan/session-controller.js';
 import type { CreateScanDemand, ScanResult } from '../../service/scan/types.js';
-import { ScanStatus } from '../../service/scan/types.js';
+import { isScanInProgress, ScanStatus } from '../../service/scan/types.js';
 import { baseStyles } from '../../styles/base-styles.js';
 import buttonStyles from '../../styles/button.css.js';
 import noticeStyles from '../../styles/notice.css.js';
 import placeholderStyles from '../../styles/placeholder.css.js';
 import tabsStyles from '../../styles/tabs.css.js';
-import { IMPACT_ORDER, impactState } from '../scan-results/scan-results.js';
 import componentStyles from './scan.css.js';
 import { renderPanelContent, type ScanPanelCallbacks, type ScanPanelData, type ScanTab } from './scan-panel.js';
 
@@ -69,14 +70,14 @@ export class Scan extends LitElement {
     @property({ type: Array, attribute: 'url-list' }) urlList: string[] = [];
     @property({ attribute: 'report-base-url' }) reportBaseUrl: string = '';
 
-    @state() private activeTab: ScanTab = 'scan';
     @state() private actionBusy: boolean = false;
-    @state() private actionError: { title: string; description: string } | null = null;
+    @state() private actionError: ErrorView | null = null;
     /** Editor's toggle choice; null = follow the TSConfig-provided default. */
     @state() private aiAuditChecked: boolean | null = null;
 
     private readonly scanApi: ScanApi = new ScanApi();
     private readonly announcer: LiveAnnouncer = new LiveAnnouncer(this);
+    private readonly tabs: TabsController<ScanTab> = new TabsController(this, () => this.enabledTabs(), 'scan');
 
     private readonly controller: ScanSessionController = new ScanSessionController(this, {
         service: this.scanApi,
@@ -98,14 +99,9 @@ export class Scan extends LitElement {
         return html`<div class="scan">
             ${
                 tabs.length > 1
-                    ? renderTablist({
+                    ? this.tabs.renderTablist({
                           ariaLabel: lll('mindfula11y.scan'),
                           tabs: tabs.map((tab) => this.tabDescriptor(tab)),
-                          activeTab: this.activeTab,
-                          onSelect: (id: string): void => {
-                              this.activeTab = id as ScanTab;
-                          },
-                          onKeydown: this.handleTabKeydown,
                       })
                     : nothing
             }
@@ -131,7 +127,7 @@ export class Scan extends LitElement {
     }
 
     private isScanRunning(): boolean {
-        return this.controller.result !== null && this.scanApi.isScanInProgress(this.controller.result.status);
+        return this.controller.result !== null && isScanInProgress(this.controller.result.status);
     }
 
     private isAiAuditChecked(): boolean {
@@ -169,9 +165,8 @@ export class Scan extends LitElement {
         // flicker aria-busy on every tick.
         const busy = this.actionBusy || (this.controller.state === 'loading' && this.tabResult(tab) === null);
         const content = renderPanelContent(this.panelData(tab), this.panelCallbacks);
-        return renderTabPanel({
+        return this.tabs.renderPanel({
             tab,
-            active: this.activeTab === tab,
             withTablist: withTabs,
             busy,
             content,
@@ -268,33 +263,15 @@ export class Scan extends LitElement {
         }
         const scanId = this.effectiveScanId();
         if (result.status === ScanStatus.Completed) {
-            this.dispatchEvent(
-                new CustomEvent('mindfula11y:scan:completed', {
-                    bubbles: true,
-                    composed: true,
-                    detail: { scanId, totalIssueCount: result.totalIssueCount },
-                }),
-            );
+            dispatch(this, 'mindfula11y:scan:completed', { scanId, totalIssueCount: result.totalIssueCount });
             await this.announcer.announce(lll('mindfula11y.scan.announce.completed', result.totalIssueCount));
         } else if (result.status === ScanStatus.Canceled) {
-            this.dispatchEvent(
-                new CustomEvent('mindfula11y:scan:canceled', {
-                    bubbles: true,
-                    composed: true,
-                    detail: { scanId },
-                }),
-            );
+            dispatch(this, 'mindfula11y:scan:canceled', { scanId });
             await this.announcer.announce(lll('mindfula11y.scan.announce.canceled'));
         } else if (result.status === ScanStatus.Failed) {
             await this.announcer.announce(lll('mindfula11y.scan.announce.failed'));
         }
     }
-
-    private handleTabKeydown = (event: KeyboardEvent): void => {
-        void activateTabFromKeydown(this, event, this.enabledTabs(), this.activeTab, (tab) => {
-            this.activeTab = tab;
-        });
-    };
 }
 
 declare global {

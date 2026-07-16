@@ -60,9 +60,6 @@ class ScanApi {
     }
     return data.status;
   }
-  isScanInProgress(status) {
-    return status === ScanStatus.Pending || status === ScanStatus.Running || status === ScanStatus.Analyzing;
-  }
 }
 export {
   ScanApi

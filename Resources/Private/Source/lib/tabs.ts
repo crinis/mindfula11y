@@ -17,7 +17,7 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-import type { LitElement, TemplateResult } from 'lit';
+import type { LitElement, ReactiveController, TemplateResult } from 'lit';
 import { html, nothing } from 'lit';
 
 /**
@@ -136,4 +136,70 @@ export async function activateTabFromKeydown<T extends string>(
     activate(next);
     await host.updateComplete;
     host.renderRoot.querySelector<HTMLElement>(`[data-tab="${next}"]`)?.focus();
+}
+
+/**
+ * Reactive controller owning a tabbed container's glue: the active-tab state,
+ * tab selection and the tablist keyboard activation. The host supplies only
+ * its {@link TabDescriptor}s and panel contents; the rendered markup comes
+ * unchanged from {@link renderTablist}/{@link renderTabPanel}.
+ */
+export class TabsController<T extends string> implements ReactiveController {
+    private active: T;
+
+    constructor(
+        private readonly host: LitElement,
+        /** Currently available tabs, in display order (drives arrow-key cycling). */
+        private readonly tabs: () => readonly T[],
+        initial: T,
+    ) {
+        this.active = initial;
+        host.addController(this);
+    }
+
+    hostConnected(): void {
+        // All state is component-lifetime; registering as a controller only
+        // ties `select()`'s requestUpdate to the host. (ReactiveController is
+        // a weak type — one member must be declared.)
+    }
+
+    get activeTab(): T {
+        return this.active;
+    }
+
+    /** Activates a tab and re-renders the host (click selection, findings jump). */
+    select(tab: T): void {
+        this.active = tab;
+        this.host.requestUpdate();
+    }
+
+    /**
+     * Re-anchors the active tab when it is no longer available. Call from
+     * `willUpdate` — the host is already updating, so no update is requested.
+     */
+    ensureActive(fallback: T): void {
+        const available = this.tabs();
+        if (!available.includes(this.active)) {
+            this.active = available[0] ?? fallback;
+        }
+    }
+
+    /** Renders the tablist for the host-built descriptors of the current tab set. */
+    renderTablist(opts: { ariaLabel: string; tabs: TabDescriptor[] }): TemplateResult {
+        return renderTablist({
+            ...opts,
+            activeTab: this.active,
+            onSelect: (id: string): void => this.select(id as T),
+            onKeydown: this.handleKeydown,
+        });
+    }
+
+    /** Renders one panel wrapper around the host-supplied content. */
+    renderPanel(opts: { tab: T; withTablist: boolean; busy: boolean; content: TemplateResult }): TemplateResult {
+        return renderTabPanel({ ...opts, active: this.active === opts.tab });
+    }
+
+    private readonly handleKeydown = (event: KeyboardEvent): void => {
+        void activateTabFromKeydown(this.host, event, this.tabs(), this.active, (tab) => this.select(tab));
+    };
 }

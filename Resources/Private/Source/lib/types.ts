@@ -51,3 +51,16 @@ export interface Mindfula11yEventMap {
 declare global {
     interface HTMLElementEventMap extends Mindfula11yEventMap {}
 }
+
+/**
+ * Dispatches one of the extension's custom events with its typed detail and
+ * the mandatory `bubbles: true, composed: true` (§3.E) — the single place the
+ * event-dispatch contract is spelled out.
+ */
+export function dispatch<K extends keyof Mindfula11yEventMap>(
+    target: EventTarget,
+    name: K,
+    detail: Mindfula11yEventMap[K]['detail'],
+): void {
+    target.dispatchEvent(new CustomEvent(name, { bubbles: true, composed: true, detail }));
+}

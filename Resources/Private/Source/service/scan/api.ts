@@ -112,8 +112,4 @@ export class ScanApi {
         }
         return data.status;
     }
-
-    isScanInProgress(status: ScanStatus | ''): boolean {
-        return status === ScanStatus.Pending || status === ScanStatus.Running || status === ScanStatus.Analyzing;
-    }
 }

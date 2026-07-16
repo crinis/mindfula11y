@@ -26,7 +26,7 @@ import { repeat } from 'lit/directives/repeat.js';
 import '@typo3/backend/element/icon-element.js';
 import { renderViewportBadges } from '../../lib/status-render.js';
 import type { HeadingNode } from '../../lib/structure/types.js';
-import { StructureView } from '../../lib/structure/view.js';
+import { StructureView } from '../../lib/structure-view.js';
 import componentStyles from './heading-structure.css.js';
 
 /**

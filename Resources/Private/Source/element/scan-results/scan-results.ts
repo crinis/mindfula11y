@@ -23,7 +23,7 @@ import { html, LitElement, nothing } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import '@typo3/backend/element/icon-element.js';
 import { scrollIntoViewCentered } from '../../lib/dom.js';
-import type { NoticeState } from '../../lib/status-render.js';
+import { IMPACT_ORDER, impactState, renderNoticeBody } from '../../lib/status-render.js';
 import { safeHttpUrl } from '../../lib/url.js';
 import type {
     AgentFindingDto,
@@ -38,25 +38,6 @@ import { baseStyles } from '../../styles/base-styles.js';
 import findingsStyles from '../../styles/findings.css.js';
 import noticeStyles from '../../styles/notice.css.js';
 import componentStyles from './scan-results.css.js';
-
-/** Worst-first axe impact order, also used for chip and grouping order. */
-export const IMPACT_ORDER: readonly ImpactSeverity[] = ['critical', 'serious', 'moderate', 'minor'];
-
-/**
- * Maps an axe impact (also used by agent findings) to the notice palette —
- * one distinct color per severity step, matching the scanner's PDF/HTML
- * report (critical red, serious orange, moderate yellow).
- */
-const IMPACT_STATES: Record<ImpactSeverity, NoticeState> = {
-    critical: 'danger',
-    serious: 'serious',
-    moderate: 'warning',
-    minor: 'info',
-};
-
-export function impactState(impact: ImpactSeverity): NoticeState {
-    return IMPACT_STATES[impact];
-}
 
 const skillLabel = (skill: AiAuditSkill): string => {
     const translated = lll(`mindfula11y.scan.aiAudit.skill.${skill}`);
@@ -231,10 +212,10 @@ export class ScanResults extends LitElement {
         return html`<section class="ai">
             <h2 class="ai-title">${lll('mindfula11y.scan.aiAudit.section')}</h2>
             <mindfula11y-notice state="warning">
-                <span>
-                    <span class="notice-title">${lll('mindfula11y.scan.aiAudit.disclaimer.title')}</span>
-                    ${lll('mindfula11y.scan.aiAudit.disclaimer.description')}
-                </span>
+                ${renderNoticeBody({
+                    title: lll('mindfula11y.scan.aiAudit.disclaimer.title'),
+                    description: lll('mindfula11y.scan.aiAudit.disclaimer.description'),
+                })}
             </mindfula11y-notice>
             ${
                 audit.tasksFailed > 0

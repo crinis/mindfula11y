@@ -10,13 +10,11 @@
 
 import type { MergeableAnalysis, MergeableNode } from '../../lib/structure/analysis.js';
 import { mergeAnalyses } from '../../lib/structure/analysis.js';
-import { applyRecordMetadata, collectRecordRequests, type StructureAnalysis } from '../../lib/structure/enrichment.js';
+import { applyRecordMetadata, collectRecordRequests } from '../../lib/structure/enrichment.js';
 import { StructureAnalysisError } from '../../lib/structure/error.js';
-import type { StructureViewport } from '../../lib/structure/types.js';
+import type { StructureAnalysis, StructureViewport } from '../../lib/structure/types.js';
 import { StructureAnalysisApi } from './api.js';
 import { RenderedPageLoader, type RenderedStructureAnalysis, type StructureRenderOptions } from './page-loader.js';
-
-export type { StructureAnalysis };
 
 interface StructureAnalysisBackend {
     fetchRecordMetadata: StructureAnalysisApi['fetchRecordMetadata'];

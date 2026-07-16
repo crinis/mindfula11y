@@ -25,15 +25,16 @@ import { property, state } from 'lit/decorators.js';
 import { live } from 'lit/directives/live.js';
 import '@typo3/backend/element/icon-element.js';
 import '@typo3/backend/element/spinner-element.js';
-import { RecordService } from '../../service/record-service.js';
-import { baseStyles } from '../../styles/base-styles.js';
-import noticeStyles from '../../styles/notice.css.js';
-import structureViewStyles from '../../styles/structure-view.css.js';
-import viewportStyles from '../../styles/viewport.css.js';
-import { scrollIntoViewCentered } from '../dom.js';
-import { noticeState, renderSeverityChip, renderViewportBadges } from '../status-render.js';
-import type { RecordReference } from '../types.js';
-import type { StructureError, StructureViewport } from './types.js';
+import { RecordService } from '../service/record-service.js';
+import { baseStyles } from '../styles/base-styles.js';
+import noticeStyles from '../styles/notice.css.js';
+import structureViewStyles from '../styles/structure-view.css.js';
+import viewportStyles from '../styles/viewport.css.js';
+import { scrollIntoViewCentered } from './dom.js';
+import { noticeState, renderSeverityChip, renderViewportBadges } from './status-render.js';
+import type { StructureError, StructureViewport } from './structure/types.js';
+import type { RecordReference } from './types.js';
+import { dispatch } from './types.js';
 
 /** Node shape the analyzers share, generic over the concrete node type. */
 export interface StructureViewNode<T> {
@@ -256,19 +257,13 @@ export abstract class StructureView<T extends StructureViewNode<T>> extends LitE
         try {
             await this.recordService.updateField(node.record, value);
             this.pendingFocusId = node.id;
-            this.dispatchEvent(
-                new CustomEvent('mindfula11y:structure:changed', {
-                    bubbles: true,
-                    composed: true,
-                    detail: {
-                        nodeId: node.id,
-                        tableName: node.record.tableName,
-                        uid: node.record.uid,
-                        columnName: node.record.columnName,
-                        value,
-                    },
-                }),
-            );
+            dispatch(this, 'mindfula11y:structure:changed', {
+                nodeId: node.id,
+                tableName: node.record.tableName,
+                uid: node.record.uid,
+                columnName: node.record.columnName,
+                value,
+            });
         } catch {
             const errorKey = `${this.labelPrefix}.error.store`;
             Notification.error(lll(errorKey), lll(`${errorKey}.description`));

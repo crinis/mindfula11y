@@ -7,6 +7,9 @@ var ScanStatus = /* @__PURE__ */ ((ScanStatus2) => {
   ScanStatus2["Canceled"] = "canceled";
   return ScanStatus2;
 })(ScanStatus || {});
+function isScanInProgress(status) {
+  return status === "pending" /* Pending */ || status === "running" /* Running */ || status === "analyzing" /* Analyzing */;
+}
 var AiAuditStatus = /* @__PURE__ */ ((AiAuditStatus2) => {
   AiAuditStatus2["Skipped"] = "skipped";
   AiAuditStatus2["Pending"] = "pending";
@@ -16,5 +19,6 @@ var AiAuditStatus = /* @__PURE__ */ ((AiAuditStatus2) => {
 })(AiAuditStatus || {});
 export {
   AiAuditStatus,
-  ScanStatus
+  ScanStatus,
+  isScanInProgress
 };

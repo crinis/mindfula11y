@@ -53,6 +53,12 @@ export const toRequestError = async (error: unknown): Promise<unknown> => {
     return error;
 };
 
+/** Display pair every caught error is rendered as. */
+export interface ErrorView {
+    title: string;
+    description: string;
+}
+
 /**
  * Renders any caught error as a `{ title, description }` pair for display:
  * a RequestError's own localized title/description (the title doubles as the
@@ -61,7 +67,7 @@ export const toRequestError = async (error: unknown): Promise<unknown> => {
  * description) for anything else — an unexpected exception must never leak
  * its raw message to editors.
  */
-export const errorView = (error: unknown, fallbackKey: string): { title: string; description: string } => {
+export const errorView = (error: unknown, fallbackKey: string): ErrorView => {
     if (error instanceof RequestError) {
         return { title: error.message, description: error.description !== '' ? error.description : error.message };
     }

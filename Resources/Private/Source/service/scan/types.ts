@@ -29,6 +29,11 @@ export enum ScanStatus {
     Canceled = 'canceled',
 }
 
+/** `true` while the scan still runs (pending, running, or the AI-audit analyzing phase). */
+export function isScanInProgress(status: ScanStatus | ''): boolean {
+    return status === ScanStatus.Pending || status === ScanStatus.Running || status === ScanStatus.Analyzing;
+}
+
 /** Immutable scan-creation scope signed and serialized by PHP. */
 export interface CreateScanDemand {
     readonly userId: number;

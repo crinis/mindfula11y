@@ -13,6 +13,7 @@ import { html, LitElement, nothing } from "lit";
 import { customElement, property } from "lit/decorators.js";
 import "@typo3/backend/element/icon-element.js";
 import { scrollIntoViewCentered } from "../../lib/dom.js";
+import { IMPACT_ORDER, impactState, renderNoticeBody } from "../../lib/status-render.js";
 import { safeHttpUrl } from "../../lib/url.js";
 import { AiAuditStatus } from "../../service/scan/types.js";
 import "../notice/notice.js";
@@ -20,16 +21,6 @@ import { baseStyles } from "../../styles/base-styles.js";
 import findingsStyles from "../../styles/findings.css.js";
 import noticeStyles from "../../styles/notice.css.js";
 import componentStyles from "./scan-results.css.js";
-const IMPACT_ORDER = ["critical", "serious", "moderate", "minor"];
-const IMPACT_STATES = {
-  critical: "danger",
-  serious: "serious",
-  moderate: "warning",
-  minor: "info"
-};
-function impactState(impact) {
-  return IMPACT_STATES[impact];
-}
 const skillLabel = (skill) => {
   const translated = lll(`mindfula11y.scan.aiAudit.skill.${skill}`);
   if (translated !== "") {
@@ -164,10 +155,10 @@ let ScanResults = class extends LitElement {
     return html`<section class="ai">
             <h2 class="ai-title">${lll("mindfula11y.scan.aiAudit.section")}</h2>
             <mindfula11y-notice state="warning">
-                <span>
-                    <span class="notice-title">${lll("mindfula11y.scan.aiAudit.disclaimer.title")}</span>
-                    ${lll("mindfula11y.scan.aiAudit.disclaimer.description")}
-                </span>
+                ${renderNoticeBody({
+      title: lll("mindfula11y.scan.aiAudit.disclaimer.title"),
+      description: lll("mindfula11y.scan.aiAudit.disclaimer.description")
+    })}
             </mindfula11y-notice>
             ${audit.tasksFailed > 0 ? html`<p class="notice" data-state="warning" data-variant="inline">
                           <span>${lll("mindfula11y.scan.aiAudit.tasksFailed", audit.tasksFailed)}</span>
@@ -244,7 +235,5 @@ ScanResults = __decorateClass([
   customElement("mindfula11y-scan-results")
 ], ScanResults);
 export {
-  IMPACT_ORDER,
-  ScanResults,
-  impactState
+  ScanResults
 };

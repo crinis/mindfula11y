@@ -12,17 +12,18 @@ import { lll } from "@typo3/core/lit-helper.js";
 import { html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { LiveAnnouncer } from "../../lib/live-announcer.js";
-import { activateTabFromKeydown, renderTablist, renderTabPanel } from "../../lib/tabs.js";
+import { IMPACT_ORDER, impactState } from "../../lib/status-render.js";
+import { TabsController } from "../../lib/tabs.js";
+import { dispatch } from "../../lib/types.js";
 import { errorView, RequestError } from "../../service/request-error.js";
 import { ScanApi } from "../../service/scan/api.js";
 import { ScanSessionController } from "../../service/scan/session-controller.js";
-import { ScanStatus } from "../../service/scan/types.js";
+import { isScanInProgress, ScanStatus } from "../../service/scan/types.js";
 import { baseStyles } from "../../styles/base-styles.js";
 import buttonStyles from "../../styles/button.css.js";
 import noticeStyles from "../../styles/notice.css.js";
 import placeholderStyles from "../../styles/placeholder.css.js";
 import tabsStyles from "../../styles/tabs.css.js";
-import { IMPACT_ORDER, impactState } from "../scan-results/scan-results.js";
 import componentStyles from "./scan.css.js";
 import { renderPanelContent } from "./scan-panel.js";
 let Scan = class extends LitElement {
@@ -37,12 +38,12 @@ let Scan = class extends LitElement {
     this.pageUrlFilter = [];
     this.urlList = [];
     this.reportBaseUrl = "";
-    this.activeTab = "scan";
     this.actionBusy = false;
     this.actionError = null;
     this.aiAuditChecked = null;
     this.scanApi = new ScanApi();
     this.announcer = new LiveAnnouncer(this);
+    this.tabs = new TabsController(this, () => this.enabledTabs(), "scan");
     this.controller = new ScanSessionController(this, {
       service: this.scanApi,
       scanId: () => this.scanId,
@@ -71,23 +72,13 @@ let Scan = class extends LitElement {
         void this.controller.reload();
       }
     };
-    this.handleTabKeydown = (event) => {
-      void activateTabFromKeydown(this, event, this.enabledTabs(), this.activeTab, (tab) => {
-        this.activeTab = tab;
-      });
-    };
   }
   render() {
     const tabs = this.enabledTabs();
     return html`<div class="scan">
-            ${tabs.length > 1 ? renderTablist({
+            ${tabs.length > 1 ? this.tabs.renderTablist({
       ariaLabel: lll("mindfula11y.scan"),
-      tabs: tabs.map((tab) => this.tabDescriptor(tab)),
-      activeTab: this.activeTab,
-      onSelect: (id) => {
-        this.activeTab = id;
-      },
-      onKeydown: this.handleTabKeydown
+      tabs: tabs.map((tab) => this.tabDescriptor(tab))
     }) : nothing}
             ${this.announcer.render()}
             ${tabs.map((tab) => this.renderPanel(tab, tabs.length > 1))}
@@ -106,7 +97,7 @@ let Scan = class extends LitElement {
     return tab === "scan" ? this.createScanDemand : this.crawlScanDemand;
   }
   isScanRunning() {
-    return this.controller.result !== null && this.scanApi.isScanInProgress(this.controller.result.status);
+    return this.controller.result !== null && isScanInProgress(this.controller.result.status);
   }
   isAiAuditChecked() {
     return this.aiAuditChecked ?? this.aiAuditDefault;
@@ -137,9 +128,8 @@ let Scan = class extends LitElement {
   renderPanel(tab, withTabs) {
     const busy = this.actionBusy || this.controller.state === "loading" && this.tabResult(tab) === null;
     const content = renderPanelContent(this.panelData(tab), this.panelCallbacks);
-    return renderTabPanel({
+    return this.tabs.renderPanel({
       tab,
-      active: this.activeTab === tab,
       withTablist: withTabs,
       busy,
       content
@@ -209,22 +199,10 @@ let Scan = class extends LitElement {
     }
     const scanId = this.effectiveScanId();
     if (result.status === ScanStatus.Completed) {
-      this.dispatchEvent(
-        new CustomEvent("mindfula11y:scan:completed", {
-          bubbles: true,
-          composed: true,
-          detail: { scanId, totalIssueCount: result.totalIssueCount }
-        })
-      );
+      dispatch(this, "mindfula11y:scan:completed", { scanId, totalIssueCount: result.totalIssueCount });
       await this.announcer.announce(lll("mindfula11y.scan.announce.completed", result.totalIssueCount));
     } else if (result.status === ScanStatus.Canceled) {
-      this.dispatchEvent(
-        new CustomEvent("mindfula11y:scan:canceled", {
-          bubbles: true,
-          composed: true,
-          detail: { scanId }
-        })
-      );
+      dispatch(this, "mindfula11y:scan:canceled", { scanId });
       await this.announcer.announce(lll("mindfula11y.scan.announce.canceled"));
     } else if (result.status === ScanStatus.Failed) {
       await this.announcer.announce(lll("mindfula11y.scan.announce.failed"));
@@ -266,9 +244,6 @@ __decorateClass([
 __decorateClass([
   property({ attribute: "report-base-url" })
 ], Scan.prototype, "reportBaseUrl", 2);
-__decorateClass([
-  state()
-], Scan.prototype, "activeTab", 2);
 __decorateClass([
   state()
 ], Scan.prototype, "actionBusy", 2);

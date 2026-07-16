@@ -65,7 +65,52 @@ async function activateTabFromKeydown(host, event, tabs, activeTab, activate) {
   await host.updateComplete;
   host.renderRoot.querySelector(`[data-tab="${next}"]`)?.focus();
 }
+class TabsController {
+  constructor(host, tabs, initial) {
+    this.host = host;
+    this.tabs = tabs;
+    this.handleKeydown = (event) => {
+      void activateTabFromKeydown(this.host, event, this.tabs(), this.active, (tab) => this.select(tab));
+    };
+    this.active = initial;
+    host.addController(this);
+  }
+  hostConnected() {
+  }
+  get activeTab() {
+    return this.active;
+  }
+  /** Activates a tab and re-renders the host (click selection, findings jump). */
+  select(tab) {
+    this.active = tab;
+    this.host.requestUpdate();
+  }
+  /**
+   * Re-anchors the active tab when it is no longer available. Call from
+   * `willUpdate` — the host is already updating, so no update is requested.
+   */
+  ensureActive(fallback) {
+    const available = this.tabs();
+    if (!available.includes(this.active)) {
+      this.active = available[0] ?? fallback;
+    }
+  }
+  /** Renders the tablist for the host-built descriptors of the current tab set. */
+  renderTablist(opts) {
+    return renderTablist({
+      ...opts,
+      activeTab: this.active,
+      onSelect: (id) => this.select(id),
+      onKeydown: this.handleKeydown
+    });
+  }
+  /** Renders one panel wrapper around the host-supplied content. */
+  renderPanel(opts) {
+    return renderTabPanel({ ...opts, active: this.active === opts.tab });
+  }
+}
 export {
+  TabsController,
   activateTabFromKeydown,
   renderTabPanel,
   renderTablist

@@ -2,7 +2,9 @@ import { lll } from "@typo3/core/lit-helper.js";
 import { html, nothing } from "lit";
 import "@typo3/backend/element/icon-element.js";
 import "@typo3/backend/element/spinner-element.js";
+import { renderLoadingPlaceholder, renderNoticeBody } from "../../lib/status-render.js";
 import { withQueryParams } from "../../lib/url.js";
+import { scanStatusView } from "../../service/scan/status-view.js";
 import { AiAuditStatus, ScanStatus } from "../../service/scan/types.js";
 import "../notice/notice.js";
 import "../scan-results/scan-results.js";
@@ -19,50 +21,36 @@ function renderProgressNotice(title, progressText) {
         <span>${title}${progressText !== null ? html` — ${progressText}` : nothing}</span>
     </mindfula11y-notice>`;
 }
-function renderStatus(result, isCrawl) {
-  switch (result.status) {
-    case ScanStatus.Pending:
-      return renderProgressNotice(lll("mindfula11y.scan.status.pending"), null);
-    case ScanStatus.Running: {
-      let progressText = null;
-      if (isCrawl && result.progress !== null) {
-        progressText = result.progress.pagesDiscovered === 0 ? lll("mindfula11y.scan.progress.discovering") : lll(
-          "mindfula11y.scan.progress.pages",
-          result.progress.pagesScanned,
-          result.progress.pagesDiscovered
-        );
-        if (result.progress.pagesFailed > 0) {
-          progressText += ` \u2014 ${lll("mindfula11y.scan.progress.pagesFailed", result.progress.pagesFailed)}`;
-        }
-      }
-      return renderProgressNotice(lll("mindfula11y.scan.status.running"), progressText);
+function progressDetail(result, isCrawl) {
+  if (result.status === ScanStatus.Running) {
+    if (!isCrawl || result.progress === null) {
+      return null;
     }
-    case ScanStatus.Analyzing: {
-      const audit = result.aiAudit;
-      const progressText = audit !== null && audit.tasksTotal > 0 ? lll("mindfula11y.scan.aiAudit.status.running", audit.tasksCompleted, audit.tasksTotal) : null;
-      return renderProgressNotice(lll("mindfula11y.scan.status.analyzing"), progressText);
+    let progressText = result.progress.pagesDiscovered === 0 ? lll("mindfula11y.scan.progress.discovering") : lll("mindfula11y.scan.progress.pages", result.progress.pagesScanned, result.progress.pagesDiscovered);
+    if (result.progress.pagesFailed > 0) {
+      progressText += ` \u2014 ${lll("mindfula11y.scan.progress.pagesFailed", result.progress.pagesFailed)}`;
     }
-    case ScanStatus.Failed:
-      return html`<mindfula11y-notice state="danger">
-                <span>
-                    <span class="notice-title">${lll("mindfula11y.scan.status.failed")}</span>
-                    ${lll("mindfula11y.scan.status.failed.description")}
-                </span>
-            </mindfula11y-notice>`;
-    case ScanStatus.Canceled:
-      return html`<mindfula11y-notice state="info">
-                <span>
-                    <span class="notice-title">${lll("mindfula11y.scan.status.canceled")}</span>
-                    ${lll("mindfula11y.scan.status.canceled.description")}
-                </span>
-            </mindfula11y-notice>`;
-    default:
-      return result.totalIssueCount > 0 ? html`<mindfula11y-notice state="warning">
-                      <span>${lll("mindfula11y.scan.issuesFound", result.totalIssueCount)}</span>
-                  </mindfula11y-notice>` : html`<mindfula11y-notice state="success">
-                      <span>${lll("mindfula11y.scan.noIssues")}</span>
-                  </mindfula11y-notice>`;
+    return progressText;
   }
+  if (result.status === ScanStatus.Analyzing) {
+    const audit = result.aiAudit;
+    return audit !== null && audit.tasksTotal > 0 ? lll("mindfula11y.scan.aiAudit.status.running", audit.tasksCompleted, audit.tasksTotal) : null;
+  }
+  return null;
+}
+function renderStatus(result, isCrawl) {
+  const view = scanStatusView(result);
+  if (view.spinner === true) {
+    return renderProgressNotice(lll(view.labelKey), progressDetail(result, isCrawl));
+  }
+  if (result.status === ScanStatus.Failed || result.status === ScanStatus.Canceled) {
+    return html`<mindfula11y-notice state=${view.state}>
+            ${renderNoticeBody({ title: lll(view.labelKey), description: lll(`${view.labelKey}.description`) })}
+        </mindfula11y-notice>`;
+  }
+  return html`<mindfula11y-notice state=${view.state}>
+        <span>${lll(view.labelKey, ...view.labelArgs ?? [])}</span>
+    </mindfula11y-notice>`;
 }
 function renderUpdatedAt(result) {
   if (result.updatedAt === null) {
@@ -98,10 +86,10 @@ function renderHints(data) {
   if (data.tab === "crawl") {
     if (data.result === null && !data.running && !data.actionBusy) {
       return html`<mindfula11y-notice state="info">
-                <span>
-                    <span class="notice-title">${lll("mindfula11y.scan.crawl.idle.title")}</span>
-                    ${lll("mindfula11y.scan.crawl.idle.description")}
-                </span>
+                ${renderNoticeBody({
+        title: lll("mindfula11y.scan.crawl.idle.title"),
+        description: lll("mindfula11y.scan.crawl.idle.description")
+      })}
             </mindfula11y-notice>`;
     }
     return nothing;
@@ -110,18 +98,18 @@ function renderHints(data) {
   const result = data.result;
   if (result !== null && result.mode !== "crawl" && urlList.length > 0 && !urlListCovered(urlList, result.targets)) {
     return html`<mindfula11y-notice state="info">
-            <span>
-                <span class="notice-title">${lll("mindfula11y.scan.scopeExpanded")}</span>
-                ${lll("mindfula11y.scan.scopeExpanded.description")}
-            </span>
+            ${renderNoticeBody({
+      title: lll("mindfula11y.scan.scopeExpanded"),
+      description: lll("mindfula11y.scan.scopeExpanded.description")
+    })}
         </mindfula11y-notice>`;
   }
   if (result === null && !data.actionBusy && data.controllerState !== "loading" && data.demand !== null && urlList.length > 1) {
     return html`<mindfula11y-notice state="info">
-            <span>
-                <span class="notice-title">${lll("mindfula11y.scan.multiPage.manualScan")}</span>
-                ${lll("mindfula11y.scan.multiPage.manualScan.description")}
-            </span>
+            ${renderNoticeBody({
+      title: lll("mindfula11y.scan.multiPage.manualScan"),
+      description: lll("mindfula11y.scan.multiPage.manualScan.description")
+    })}
         </mindfula11y-notice>`;
   }
   return nothing;
@@ -169,18 +157,12 @@ function renderAiToggle(data, onChange) {
 function renderRequestError(data, onReload) {
   if (data.actionError !== null) {
     return html`<mindfula11y-notice state="danger">
-            <span>
-                <span class="notice-title">${data.actionError.title}</span>
-                ${data.actionError.description}
-            </span>
+            ${renderNoticeBody(data.actionError)}
         </mindfula11y-notice>`;
   }
   if (data.controllerState === "error") {
     return html`<mindfula11y-notice state="danger">
-            <span>
-                <span class="notice-title">${lll("mindfula11y.scan.error.loading")}</span>
-                ${data.loadErrorDescription}
-            </span>
+            ${renderNoticeBody({ title: lll("mindfula11y.scan.error.loading"), description: data.loadErrorDescription })}
             <button type="button" class="button" @click=${onReload}>${lll("mindfula11y.scan.refresh")}</button>
         </mindfula11y-notice>`;
   }
@@ -193,10 +175,7 @@ function renderBody(data) {
   const result = data.result;
   if (result === null) {
     if (data.controllerState === "loading" && data.scanId !== "") {
-      return html`<div class="placeholder">
-                <typo3-backend-spinner size="default"></typo3-backend-spinner>
-                <span>${lll("mindfula11y.scan.loading")}</span>
-            </div>`;
+      return renderLoadingPlaceholder(lll("mindfula11y.scan.loading"));
     }
     return nothing;
   }

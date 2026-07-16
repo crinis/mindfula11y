@@ -104,3 +104,9 @@ export interface LandmarkAnalysis {
     nodes: LandmarkNode[];
     errors: StructureError[];
 }
+
+/** Merged (mobile+desktop) result of both structure analyzers, before backend enrichment. */
+export interface StructureAnalysis {
+    headings: HeadingAnalysis | null;
+    landmarks: LandmarkAnalysis | null;
+}

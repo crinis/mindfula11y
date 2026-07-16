@@ -29,19 +29,30 @@ import '../heading-structure/heading-structure.js';
 import '../landmark-structure/landmark-structure.js';
 import '../notice/notice.js';
 import { LiveAnnouncer } from '../../lib/live-announcer.js';
-import { noticeState, renderSeverityChip, renderViewportBadges } from '../../lib/status-render.js';
-import { mergeViewports } from '../../lib/structure/analysis.js';
+import {
+    noticeState,
+    renderLoadingPlaceholder,
+    renderNoticeBody,
+    renderSeverityChip,
+    renderViewportBadges,
+} from '../../lib/status-render.js';
 import { StructureAnalysisError } from '../../lib/structure/error.js';
+import {
+    aggregateFindings,
+    enabledDomains,
+    type Finding,
+    pageErrors,
+    severityCounts,
+} from '../../lib/structure/findings.js';
 import type {
     HeadingAnalysis,
     LandmarkAnalysis,
+    StructureAnalysis,
     StructureDomain,
     StructureError,
-    StructureViewport,
 } from '../../lib/structure/types.js';
-import { StructureErrorSeverity } from '../../lib/structure/types.js';
-import { activateTabFromKeydown, renderTablist, renderTabPanel, type TabDescriptor } from '../../lib/tabs.js';
-import { type StructureAnalysis, StructureAnalysisCoordinator } from '../../service/structure/coordinator.js';
+import { type TabDescriptor, TabsController } from '../../lib/tabs.js';
+import { StructureAnalysisCoordinator } from '../../service/structure/coordinator.js';
 import { baseStyles } from '../../styles/base-styles.js';
 import buttonStyles from '../../styles/button.css.js';
 import findingsStyles from '../../styles/findings.css.js';
@@ -50,15 +61,6 @@ import placeholderStyles from '../../styles/placeholder.css.js';
 import tabsStyles from '../../styles/tabs.css.js';
 import viewportStyles from '../../styles/viewport.css.js';
 import componentStyles from './structure.css.js';
-
-/** One findings-summary chip: an error type with its occurrence count. */
-interface Finding {
-    key: string;
-    severity: StructureErrorSeverity;
-    count: number;
-    domain: StructureDomain;
-    viewports: StructureViewport[];
-}
 
 /**
  * Static h1–h6 tag names for the single-view title. The level is a fixed
@@ -87,35 +89,31 @@ interface DomainDescriptor {
     labelKey: string;
     /** Tag of the view element rendering this domain — also used to query it back for focus. */
     tag: 'mindfula11y-heading-structure' | 'mindfula11y-landmark-structure';
-    /** Reads the existing boolean `@property` gating access to this domain. */
-    hasAccess: (self: Structure) => boolean;
     /** Narrows a merged analysis result down to this domain's slice. */
     analysisOf: (analysis: StructureAnalysis) => DomainAnalysis | null;
     /** Renders this domain's view element bound to its slice of the analysis. */
-    renderView: (analysis: DomainAnalysis | null, pageErrors: StructureError[]) => TemplateResult;
+    renderView: (analysis: DomainAnalysis | null, pageLevelErrors: StructureError[]) => TemplateResult;
 }
 
 const DOMAINS: Record<StructureDomain, DomainDescriptor> = {
     headings: {
         labelKey: 'mindfula11y.structure.headings',
         tag: 'mindfula11y-heading-structure',
-        hasAccess: (self: Structure): boolean => self.hasHeadingStructureAccess,
         analysisOf: (analysis: StructureAnalysis): DomainAnalysis | null => analysis.headings,
-        renderView: (analysis: DomainAnalysis | null, pageErrors: StructureError[]): TemplateResult =>
+        renderView: (analysis: DomainAnalysis | null, pageLevelErrors: StructureError[]): TemplateResult =>
             html`<mindfula11y-heading-structure
                 .nodes=${analysis?.nodes ?? []}
-                .pageErrors=${pageErrors}
+                .pageErrors=${pageLevelErrors}
             ></mindfula11y-heading-structure>`,
     },
     landmarks: {
         labelKey: 'mindfula11y.structure.landmarks',
         tag: 'mindfula11y-landmark-structure',
-        hasAccess: (self: Structure): boolean => self.hasLandmarkStructureAccess,
         analysisOf: (analysis: StructureAnalysis): DomainAnalysis | null => analysis.landmarks,
-        renderView: (analysis: DomainAnalysis | null, pageErrors: StructureError[]): TemplateResult =>
+        renderView: (analysis: DomainAnalysis | null, pageLevelErrors: StructureError[]): TemplateResult =>
             html`<mindfula11y-landmark-structure
                 .nodes=${analysis?.nodes ?? []}
-                .pageErrors=${pageErrors}
+                .pageErrors=${pageLevelErrors}
             ></mindfula11y-landmark-structure>`,
     },
 };
@@ -153,10 +151,14 @@ export class Structure extends LitElement {
         false;
 
     @state() private analysis: StructureAnalysis | null = null;
-    @state() private activeTab: StructureDomain = DEFAULT_DOMAIN;
 
     private readonly announcer: LiveAnnouncer = new LiveAnnouncer(this);
     private readonly coordinator: StructureAnalysisCoordinator = StructureAnalysisCoordinator.createDefault();
+    private readonly tabs: TabsController<StructureDomain> = new TabsController(
+        this,
+        () => this.enabledTabs(),
+        DEFAULT_DOMAIN,
+    );
 
     private readonly analyzeTask = new Task(this, {
         args: (): readonly [number, number, boolean, boolean] => [
@@ -197,11 +199,8 @@ export class Structure extends LitElement {
     }
 
     protected override willUpdate(changed: PropertyValues<this>): void {
-        if (
-            (changed.has('hasHeadingStructureAccess') || changed.has('hasLandmarkStructureAccess')) &&
-            !this.enabledTabs().includes(this.activeTab)
-        ) {
-            this.activeTab = this.enabledTabs()[0] ?? DEFAULT_DOMAIN;
+        if (changed.has('hasHeadingStructureAccess') || changed.has('hasLandmarkStructureAccess')) {
+            this.tabs.ensureActive(DEFAULT_DOMAIN);
         }
     }
 
@@ -215,7 +214,14 @@ export class Structure extends LitElement {
     }
 
     private enabledTabs(): StructureDomain[] {
-        return (Object.keys(DOMAINS) as StructureDomain[]).filter((domain) => DOMAINS[domain].hasAccess(this));
+        return enabledDomains(this.enabledFlags());
+    }
+
+    private enabledFlags(): { headings: boolean; landmarks: boolean } {
+        return {
+            headings: this.hasHeadingStructureAccess,
+            landmarks: this.hasLandmarkStructureAccess,
+        };
     }
 
     private renderHeader(): TemplateResult | typeof nothing {
@@ -225,14 +231,9 @@ export class Structure extends LitElement {
             const single = tabs[0];
             return single === undefined ? nothing : this.renderHeading(this.tabLabel(single));
         }
-        return renderTablist({
+        return this.tabs.renderTablist({
             ariaLabel: lll('mindfula11y.structure'),
             tabs: tabs.map((tab) => this.tabDescriptor(tab)),
-            activeTab: this.activeTab,
-            onSelect: (id: string): void => {
-                this.activeTab = id as StructureDomain;
-            },
-            onKeydown: this.handleTabKeydown,
         });
     }
 
@@ -240,7 +241,7 @@ export class Structure extends LitElement {
         return {
             id: tab,
             label: this.tabLabel(tab),
-            badge: this.renderTabBadge(this.severityCounts(tab)),
+            badge: this.renderTabBadge(severityCounts(this.analysis, tab)),
             disabled: this.analysis === null && this.analyzeTask.status === TaskStatus.PENDING,
         };
     }
@@ -271,10 +272,7 @@ export class Structure extends LitElement {
                 ? lll(`mindfula11y.structure.error.rendering.${error.code}`)
                 : lll('mindfula11y.structure.error.rendering.description');
         return html`<mindfula11y-notice state="danger">
-            <span>
-                <span class="notice-title">${lll('mindfula11y.structure.error.rendering')}</span>
-                ${description}
-            </span>
+            ${renderNoticeBody({ title: lll('mindfula11y.structure.error.rendering'), description })}
             <button
                 type="button"
                 class="button retry"
@@ -292,10 +290,7 @@ export class Structure extends LitElement {
             return nothing;
         }
         if (this.analysis === null) {
-            return html`<div class="placeholder">
-                <typo3-backend-spinner size="default"></typo3-backend-spinner>
-                <span>${lll('mindfula11y.structure.analyzing')}</span>
-            </div>`;
+            return renderLoadingPlaceholder(lll('mindfula11y.structure.analyzing'));
         }
 
         const tabs = this.enabledTabs();
@@ -307,11 +302,10 @@ export class Structure extends LitElement {
         const busy = this.analyzeTask.status === TaskStatus.PENDING;
         const domain = DOMAINS[tab];
         const analysis = this.analysis === null ? null : domain.analysisOf(this.analysis);
-        const view = domain.renderView(analysis, this.pageErrors(tab));
+        const view = domain.renderView(analysis, pageErrors(this.analysis, tab));
 
-        return renderTabPanel({
+        return this.tabs.renderPanel({
             tab,
-            active: this.activeTab === tab,
             withTablist: withTabs,
             busy,
             content: view,
@@ -319,7 +313,7 @@ export class Structure extends LitElement {
     }
 
     private renderSummary(): TemplateResult | typeof nothing {
-        const findings = this.aggregateFindings();
+        const findings = aggregateFindings(this.analysis, this.enabledFlags());
         if (findings.length === 0) {
             // No all-clear message by design: silence means no problems, the
             // live region still announces the analysis result.
@@ -357,78 +351,19 @@ export class Structure extends LitElement {
         return lll(DOMAINS[tab].labelKey);
     }
 
-    private domainErrors(domain: StructureDomain): StructureError[] {
-        if (this.analysis === null) {
-            return [];
-        }
-        return DOMAINS[domain].analysisOf(this.analysis)?.errors ?? [];
-    }
-
-    private pageErrors(domain: StructureDomain): StructureError[] {
-        return this.domainErrors(domain).filter((error) => error.nodeId === null);
-    }
-
-    private severityCounts(domain: StructureDomain): { errors: number; warnings: number } {
-        const counts = { errors: 0, warnings: 0 };
-        for (const error of this.domainErrors(domain)) {
-            if (error.severity === StructureErrorSeverity.Error) {
-                counts.errors += 1;
-            } else {
-                counts.warnings += 1;
-            }
-        }
-        return counts;
-    }
-
-    private aggregateFindings(): Finding[] {
-        const findings = new Map<string, Finding>();
-        for (const domain of this.enabledTabs()) {
-            for (const error of this.domainErrors(domain)) {
-                // Keyed by domain + error key: the same label key can be reused by
-                // both analyzers, and their findings must never merge into one chip.
-                const findingKey = `${domain} ${error.key}`;
-                const existing = findings.get(findingKey);
-                if (existing === undefined) {
-                    findings.set(findingKey, {
-                        key: error.key,
-                        severity: error.severity,
-                        count: 1,
-                        domain,
-                        viewports: [...error.viewports],
-                    });
-                } else {
-                    existing.count += 1;
-                    existing.viewports = mergeViewports(existing.viewports, error.viewports);
-                }
-            }
-        }
-        return Array.from(findings.values()).sort((a, b) => {
-            if (a.severity === b.severity) {
-                return 0;
-            }
-            return a.severity === StructureErrorSeverity.Error ? -1 : 1;
-        });
-    }
-
     private async handleFindingClick(finding: Finding): Promise<void> {
-        this.activeTab = finding.domain;
+        this.tabs.select(finding.domain);
         await this.updateComplete;
         const view = this.renderRoot.querySelector(DOMAINS[finding.domain].tag);
         view?.focusFirstIssue(finding.key);
     }
-
-    private handleTabKeydown = (event: KeyboardEvent): void => {
-        void activateTabFromKeydown(this, event, this.enabledTabs(), this.activeTab, (tab) => {
-            this.activeTab = tab;
-        });
-    };
 
     /** Announces the analysis outcome with total error/warning counts. */
     private async announceResult(signal: AbortSignal, isRefresh: boolean): Promise<void> {
         let errors = 0;
         let warnings = 0;
         for (const domain of this.enabledTabs()) {
-            const counts = this.severityCounts(domain);
+            const counts = severityCounts(this.analysis, domain);
             errors += counts.errors;
             warnings += counts.warnings;
         }

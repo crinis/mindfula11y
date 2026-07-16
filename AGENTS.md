@@ -3,7 +3,7 @@
 Conventions for all frontend code in this TYPO3 backend extension. The PHP side follows TYPO3
 extension conventions and is not covered here. The reference implementation for everything below
 is the vertical slice `Resources/Private/Source/element/scan-issue-count/` (+
-`service/scan-service.ts`, `lib/types.ts`, `styles/`).
+`service/scan/api.ts` — class `ScanApi` —, `lib/types.ts`, `styles/`).
 
 ## 1. Golden Rules
 
@@ -22,7 +22,7 @@ is the vertical slice `Resources/Private/Source/element/scan-issue-count/` (+
    `{ bubbles: true, composed: true }`; every detail payload is typed in `lib/types.ts` (§3.E).
 7. **Labels via `lll()`** from `@typo3/core/lit-helper.js` — never read `TYPO3.lang` directly,
    never hand-roll `%d`/`%s` substitution (§3.F).
-8. **Relative imports always end in `.js`** (`import { ScanService } from '../service/scan-service.js'`);
+8. **Relative imports always end in `.js`** (`import { ScanApi } from '../service/scan/api.js'`);
    TypeScript resolves them to `.ts`, the browser to the transpiled output.
 9. **Never bundle or npm-install runtime copies of `lit`, `@lit/*`, or `@typo3/*`** — the TYPO3
    core importmap provides them. The npm devDependencies exist for types only and `lit` stays
@@ -47,7 +47,7 @@ with every source change (CI fails on stale output).
 | `Resources/Private/Source/service/scan/`     | Accessibility-scan feature: typed api over the scan endpoints, wire types, Lit reactive session controller |
 | `Resources/Private/Source/service/structure/` | Structure-analysis pipeline: backend api, coordinator, iframe page loader, isolated runner (the build's sole bundled entry) |
 | `Resources/Private/Source/lib/`              | Cross-feature modules: `types.ts` (shared types + event map), pure utilities, shared render helpers |
-| `Resources/Private/Source/lib/structure/`    | Structure-analysis domain core: domain types, heading/landmark analysis, iframe protocol, enrichment, shared view base |
+| `Resources/Private/Source/lib/structure/`    | Structure-analysis domain core (DOM-pure — importable by the iframe runner): domain types, heading/landmark analysis, iframe protocol, enrichment, findings aggregation |
 | `Resources/Private/Source/styles/`           | `tokens.css` (token bridge), `reset.css`, `base.css`, `utilities.css`, `base-styles.ts` |
 | `Resources/Private/Build/`                   | `build.mjs` (the build script)                                 |
 | `Resources/Private/Build/types/`             | Ambient decls: `typo3.d.ts` (@typo3/* modules), `css-modules.d.ts` |

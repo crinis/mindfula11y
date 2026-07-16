@@ -24,9 +24,11 @@ import { customElement, property } from 'lit/decorators.js';
 import '@typo3/backend/element/spinner-element.js';
 import { LiveAnnouncer } from '../../lib/live-announcer.js';
 import type { NoticeState } from '../../lib/status-render.js';
+import { dispatch } from '../../lib/types.js';
 import { errorView } from '../../service/request-error.js';
 import { ScanApi } from '../../service/scan/api.js';
 import { ScanSessionController } from '../../service/scan/session-controller.js';
+import { scanStatusView } from '../../service/scan/status-view.js';
 import type { CreateScanDemand, ScanResult } from '../../service/scan/types.js';
 import { ScanStatus } from '../../service/scan/types.js';
 import { baseStyles } from '../../styles/base-styles.js';
@@ -117,36 +119,25 @@ export class ScanIssueCount extends LitElement {
     }
 
     private viewFromResult(result: ScanResult): StatusView {
-        if (this.scanApi.isScanInProgress(result.status)) {
-            let label = lll('mindfula11y.scan.status.pending');
-            if (result.status === ScanStatus.Running) {
-                label = lll('mindfula11y.scan.status.running');
-            } else if (result.status === ScanStatus.Analyzing) {
-                label = lll('mindfula11y.scan.status.analyzing');
-            }
-            return { state: 'info', text: label, showSpinner: true };
-        }
+        // The compact callout reuses the loading-error label for a failed scan
+        // — there is no room for the scan module's full failure description.
         if (result.status === ScanStatus.Failed) {
             return { state: 'danger', text: lll('mindfula11y.scan.error.loading') };
         }
-        if (result.status === ScanStatus.Canceled) {
-            return { state: 'info', text: lll('mindfula11y.scan.status.canceled') };
-        }
-        if (result.totalIssueCount > 0) {
-            return { state: 'warning', text: lll('mindfula11y.scan.issuesFound', result.totalIssueCount) };
-        }
-        return { state: 'success', text: lll('mindfula11y.scan.noIssues') };
+        const view = scanStatusView(result);
+        return {
+            state: view.state,
+            text: lll(view.labelKey, ...(view.labelArgs ?? [])),
+            ...(view.spinner === true ? { showSpinner: true } : {}),
+        };
     }
 
     private handleTransition(previous: ScanStatus | null, result: ScanResult): void {
         if (previous !== null && previous !== ScanStatus.Completed && result.status === ScanStatus.Completed) {
-            this.dispatchEvent(
-                new CustomEvent('mindfula11y:scan:completed', {
-                    bubbles: true,
-                    composed: true,
-                    detail: { scanId: this.controller.effectiveScanId(), totalIssueCount: result.totalIssueCount },
-                }),
-            );
+            dispatch(this, 'mindfula11y:scan:completed', {
+                scanId: this.controller.effectiveScanId(),
+                totalIssueCount: result.totalIssueCount,
+            });
         }
     }
 

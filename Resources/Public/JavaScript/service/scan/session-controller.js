@@ -1,3 +1,4 @@
+import { isScanInProgress } from "./types.js";
 const POLL_DELAY_MS = 5e3;
 class ScanSessionController {
   constructor(host, options) {
@@ -52,7 +53,7 @@ class ScanSessionController {
       this.start();
       return;
     }
-    if (this.lastStatus !== "" && this.options.service.isScanInProgress(this.lastStatus)) {
+    if (this.lastStatus !== "" && isScanInProgress(this.lastStatus)) {
       this.schedulePoll();
     }
   }
@@ -101,7 +102,7 @@ class ScanSessionController {
       }
       this._error = error;
       this.setState("error");
-      if (this.lastStatus !== "" && this.options.service.isScanInProgress(this.lastStatus)) {
+      if (this.lastStatus !== "" && isScanInProgress(this.lastStatus)) {
         this.schedulePoll();
       }
     }
@@ -222,7 +223,7 @@ class ScanSessionController {
   /** Detects the transition, re-arms the poll while in progress, and notifies the host. */
   commitStatus(result) {
     const previous = this.lastStatus;
-    if (this.options.service.isScanInProgress(result.status)) {
+    if (isScanInProgress(result.status)) {
       this.schedulePoll();
     }
     if (this.justCreated) {
@@ -231,9 +232,9 @@ class ScanSessionController {
       this.options.onTransition?.(null, result);
       return;
     }
-    const wasInProgress = previous !== "" && this.options.service.isScanInProgress(previous);
+    const wasInProgress = previous !== "" && isScanInProgress(previous);
     this.lastStatus = result.status;
-    if (wasInProgress && !this.options.service.isScanInProgress(result.status)) {
+    if (wasInProgress && !isScanInProgress(result.status)) {
       this.options.onTransition?.(previous, result);
     }
   }

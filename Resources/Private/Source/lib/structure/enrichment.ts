@@ -9,13 +9,7 @@
  */
 
 import type { RecordReference } from '../types.js';
-import type { HeadingAnalysis, LandmarkAnalysis } from './types.js';
-
-/** Merged (mobile+desktop) result of both structure analyzers, before backend enrichment. */
-export interface StructureAnalysis {
-    headings: HeadingAnalysis | null;
-    landmarks: LandmarkAnalysis | null;
-}
+import type { StructureAnalysis } from './types.js';
 
 /** A record's annotated column; `columnName` alone distinguishes the domains. */
 export interface StructureRecordRequest {

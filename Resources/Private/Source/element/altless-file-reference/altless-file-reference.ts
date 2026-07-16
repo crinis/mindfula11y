@@ -26,10 +26,11 @@ import '@typo3/backend/element/icon-element.js';
 import '@typo3/backend/element/spinner-element.js';
 import '../notice/notice.js';
 import { LiveAnnouncer } from '../../lib/live-announcer.js';
+import { renderNoticeBody } from '../../lib/status-render.js';
 import type { GenerateAltTextDemand } from '../../lib/types.js';
 import { AltTextService } from '../../service/alt-text-service.js';
 import { RecordService } from '../../service/record-service.js';
-import { errorView } from '../../service/request-error.js';
+import { type ErrorView, errorView } from '../../service/request-error.js';
 import { baseStyles } from '../../styles/base-styles.js';
 import buttonStyles from '../../styles/button.css.js';
 import noticeStyles from '../../styles/notice.css.js';
@@ -67,7 +68,7 @@ export class AltlessFileReference extends LitElement {
     @state() private decorative: boolean = false;
     @state() private lastSavedDecorative: boolean = false;
     @state() private busy: 'idle' | 'generating' | 'saving' = 'idle';
-    @state() private actionError: { title: string; description: string } | null = null;
+    @state() private actionError: ErrorView | null = null;
     @state() private saved: boolean = false;
 
     private readonly altTextService = new AltTextService();
@@ -189,10 +190,7 @@ export class AltlessFileReference extends LitElement {
                 ${
                     this.actionError !== null
                         ? html`<mindfula11y-notice class="status" state="danger">
-                              <span>
-                                  <span class="notice-title">${this.actionError.title}</span>
-                                  ${this.actionError.description}
-                              </span>
+                              ${renderNoticeBody(this.actionError)}
                           </mindfula11y-notice>`
                         : this.saved
                           ? html`<mindfula11y-notice class="status" state="success">
@@ -209,10 +207,7 @@ export class AltlessFileReference extends LitElement {
             return nothing;
         }
         return html`<mindfula11y-notice class="status" state="info">
-            <span>
-                <span class="notice-title">${lll('mindfula11y.altText.fallbackAltLabel')}</span>
-                ${this.fallbackAlternative}
-            </span>
+            ${renderNoticeBody({ title: lll('mindfula11y.altText.fallbackAltLabel'), description: this.fallbackAlternative })}
         </mindfula11y-notice>`;
     }
 
@@ -269,11 +264,10 @@ export class AltlessFileReference extends LitElement {
             this.lastSavedValue = this.value;
             this.lastSavedDecorative = this.decorative;
             this.saved = true;
-        } catch {
-            this.actionError = {
-                title: lll('mindfula11y.altText.save.error'),
-                description: lll('mindfula11y.altText.save.error.description'),
-            };
+        } catch (error) {
+            // RecordService throws RecordUpdateError (not a RequestError), so
+            // this resolves to the same fallback title/description pair as before.
+            this.actionError = errorView(error, 'mindfula11y.altText.save.error');
         } finally {
             this.busy = 'idle';
         }

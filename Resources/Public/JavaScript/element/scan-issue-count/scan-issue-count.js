@@ -13,9 +13,11 @@ import { html, LitElement, nothing } from "lit";
 import { customElement, property } from "lit/decorators.js";
 import "@typo3/backend/element/spinner-element.js";
 import { LiveAnnouncer } from "../../lib/live-announcer.js";
+import { dispatch } from "../../lib/types.js";
 import { errorView } from "../../service/request-error.js";
 import { ScanApi } from "../../service/scan/api.js";
 import { ScanSessionController } from "../../service/scan/session-controller.js";
+import { scanStatusView } from "../../service/scan/status-view.js";
 import { ScanStatus } from "../../service/scan/types.js";
 import { baseStyles } from "../../styles/base-styles.js";
 import "../notice/notice.js";
@@ -71,35 +73,22 @@ let ScanIssueCount = class extends LitElement {
     return null;
   }
   viewFromResult(result) {
-    if (this.scanApi.isScanInProgress(result.status)) {
-      let label = lll("mindfula11y.scan.status.pending");
-      if (result.status === ScanStatus.Running) {
-        label = lll("mindfula11y.scan.status.running");
-      } else if (result.status === ScanStatus.Analyzing) {
-        label = lll("mindfula11y.scan.status.analyzing");
-      }
-      return { state: "info", text: label, showSpinner: true };
-    }
     if (result.status === ScanStatus.Failed) {
       return { state: "danger", text: lll("mindfula11y.scan.error.loading") };
     }
-    if (result.status === ScanStatus.Canceled) {
-      return { state: "info", text: lll("mindfula11y.scan.status.canceled") };
-    }
-    if (result.totalIssueCount > 0) {
-      return { state: "warning", text: lll("mindfula11y.scan.issuesFound", result.totalIssueCount) };
-    }
-    return { state: "success", text: lll("mindfula11y.scan.noIssues") };
+    const view = scanStatusView(result);
+    return {
+      state: view.state,
+      text: lll(view.labelKey, ...view.labelArgs ?? []),
+      ...view.spinner === true ? { showSpinner: true } : {}
+    };
   }
   handleTransition(previous, result) {
     if (previous !== null && previous !== ScanStatus.Completed && result.status === ScanStatus.Completed) {
-      this.dispatchEvent(
-        new CustomEvent("mindfula11y:scan:completed", {
-          bubbles: true,
-          composed: true,
-          detail: { scanId: this.controller.effectiveScanId(), totalIssueCount: result.totalIssueCount }
-        })
-      );
+      dispatch(this, "mindfula11y:scan:completed", {
+        scanId: this.controller.effectiveScanId(),
+        totalIssueCount: result.totalIssueCount
+      });
     }
   }
   announceIfChanged(text) {

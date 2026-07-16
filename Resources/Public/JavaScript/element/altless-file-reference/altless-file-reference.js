@@ -16,6 +16,7 @@ import "@typo3/backend/element/icon-element.js";
 import "@typo3/backend/element/spinner-element.js";
 import "../notice/notice.js";
 import { LiveAnnouncer } from "../../lib/live-announcer.js";
+import { renderNoticeBody } from "../../lib/status-render.js";
 import { AltTextService } from "../../service/alt-text-service.js";
 import { RecordService } from "../../service/record-service.js";
 import { errorView } from "../../service/request-error.js";
@@ -130,10 +131,7 @@ let AltlessFileReference = class extends LitElement {
             ${this.announcer.render()}
             <div class="status-region" role="status">
                 ${this.actionError !== null ? html`<mindfula11y-notice class="status" state="danger">
-                              <span>
-                                  <span class="notice-title">${this.actionError.title}</span>
-                                  ${this.actionError.description}
-                              </span>
+                              ${renderNoticeBody(this.actionError)}
                           </mindfula11y-notice>` : this.saved ? html`<mindfula11y-notice class="status" state="success">
                                 <span>${lll("mindfula11y.altText.save.success")}</span>
                             </mindfula11y-notice>` : nothing}
@@ -145,10 +143,7 @@ let AltlessFileReference = class extends LitElement {
       return nothing;
     }
     return html`<mindfula11y-notice class="status" state="info">
-            <span>
-                <span class="notice-title">${lll("mindfula11y.altText.fallbackAltLabel")}</span>
-                ${this.fallbackAlternative}
-            </span>
+            ${renderNoticeBody({ title: lll("mindfula11y.altText.fallbackAltLabel"), description: this.fallbackAlternative })}
         </mindfula11y-notice>`;
   }
   /** Alt for the preview itself: the drafted text or a generic image label. */
@@ -200,11 +195,8 @@ let AltlessFileReference = class extends LitElement {
       this.lastSavedValue = this.value;
       this.lastSavedDecorative = this.decorative;
       this.saved = true;
-    } catch {
-      this.actionError = {
-        title: lll("mindfula11y.altText.save.error"),
-        description: lll("mindfula11y.altText.save.error.description")
-      };
+    } catch (error) {
+      this.actionError = errorView(error, "mindfula11y.altText.save.error");
     } finally {
       this.busy = "idle";
     }

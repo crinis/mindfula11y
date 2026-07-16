@@ -27,10 +27,31 @@
 import { lll } from '@typo3/core/lit-helper.js';
 import type { TemplateResult } from 'lit';
 import { html } from 'lit';
+import type { ImpactSeverity } from '../service/scan/types.js';
 import { StructureErrorSeverity, type StructureViewport } from './structure/types.js';
 
 /** Visual state of the shared `.notice` pattern (styles/notice.css). */
 export type NoticeState = 'info' | 'success' | 'warning' | 'serious' | 'danger';
+
+/** Worst-first axe impact order, also used for chip and grouping order. */
+export const IMPACT_ORDER: readonly ImpactSeverity[] = ['critical', 'serious', 'moderate', 'minor'];
+
+/**
+ * Maps an axe impact (also used by agent findings) to the notice palette —
+ * one distinct color per severity step, matching the scanner's PDF/HTML
+ * report (critical red, serious orange, moderate yellow). The dedicated
+ * `serious` notice state exists for exactly this scale.
+ */
+const IMPACT_STATES: Record<ImpactSeverity, NoticeState> = {
+    critical: 'danger',
+    serious: 'serious',
+    moderate: 'warning',
+    minor: 'info',
+};
+
+export function impactState(impact: ImpactSeverity): NoticeState {
+    return IMPACT_STATES[impact];
+}
 
 /** Maps a structure finding's severity to the notice state presenting it. */
 export function noticeState(severity: StructureErrorSeverity): NoticeState {
@@ -81,3 +102,21 @@ export const renderViewportBadges = (viewports: readonly StructureViewport[]): T
             (viewport) => html`<span class="viewport">${lll(`mindfula11y.structure.viewport.${viewport}`)}</span>`,
         )}
     </span>`;
+
+/**
+ * The title + description body every block notice slots in — the single
+ * implementation of the `<span><span class="notice-title">…</span>…</span>`
+ * markup contract styles/notice.css relies on.
+ */
+export const renderNoticeBody = (view: { title: string; description: string }): TemplateResult =>
+    html`<span>
+        <span class="notice-title">${view.title}</span>
+        ${view.description}
+    </span>`;
+
+/** Spinner + label placeholder shown while a view's initial load is running (styles/placeholder.css). */
+export const renderLoadingPlaceholder = (label: string): TemplateResult =>
+    html`<div class="placeholder">
+        <typo3-backend-spinner size="default"></typo3-backend-spinner>
+        <span>${label}</span>
+    </div>`;
