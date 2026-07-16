@@ -103,13 +103,20 @@ final readonly class ScanAjaxController
         $response->getBody()->write($body);
         $response = $response
             ->withHeader('Content-Type', $contentType)
-            ->withHeader('Content-Disposition', $disposition . '; filename="' . $filename . '"');
+            ->withHeader('Content-Disposition', $disposition . '; filename="' . $filename . '"')
+            ->withHeader('X-Content-Type-Options', 'nosniff')
+            // The report URL carries the route token and scanId — subresource
+            // requests from inside the report must not leak it via Referer.
+            ->withHeader('Referrer-Policy', 'no-referrer');
 
-        // Prevent scripts in HTML reports from running at the TYPO3 backend origin.
+        // Prevent scripts in HTML reports from running at the TYPO3 backend
+        // origin. form-action/base-uri/frame-ancestors do NOT fall back to
+        // default-src, so they are pinned explicitly; the report is only ever
+        // opened as a top-level navigation, never framed.
         if ($format === 'html') {
             $response = $response->withHeader(
                 'Content-Security-Policy',
-                "default-src 'none'; style-src 'unsafe-inline'; img-src data: https:; font-src 'self' data:"
+                "default-src 'none'; style-src 'unsafe-inline'; img-src data: https:; font-src 'self' data:; form-action 'none'; base-uri 'none'; frame-ancestors 'none'"
             );
         }
 

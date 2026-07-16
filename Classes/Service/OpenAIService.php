@@ -73,11 +73,14 @@ final readonly class OpenAIService
             'instructions' => $instructions,
             'input' => $messages,
         ];
-        $options = [
-            'headers' => $headers,
-            'body' => json_encode($body),
-        ];
         try {
+            $options = [
+                'headers' => $headers,
+                // THROW_ON_ERROR: an encode failure (e.g. malformed UTF-8 in
+                // record-derived content) must fail cleanly instead of
+                // sending a literal `false` as the request body.
+                'body' => json_encode($body, JSON_THROW_ON_ERROR),
+            ];
             /** @var ResponseInterface $response */
             $response = $this->requestFactory->request($url, 'POST', $options);
             $responseBody = $response->getBody()->getContents();
