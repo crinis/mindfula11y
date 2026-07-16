@@ -64,6 +64,7 @@ return [
         'phpunit\.xml',
         'phpunit\.xml\.dist',
         'phpunit\.functional\.xml\.dist',
+        'vitest\.config\.ts',
         // Frontend toolchain configs and agent instructions.
         'tsconfig\.json',
         'biome\.json',
