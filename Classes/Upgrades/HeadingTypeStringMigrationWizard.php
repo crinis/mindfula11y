@@ -39,16 +39,22 @@ use Doctrine\DBAL\ParameterType;
  * to the new string-based heading type field (tx_mindfula11y_headingtype), converting numeric 
  * values (1, 2, 3, 4, 5, 6, -1) to HTML tag names (h1, h2, h3, h4, h5, h6, p).
  */
-#[UpgradeWizard('mindfulA11yHeadingTypeStringMigration')]
+#[UpgradeWizard(self::IDENTIFIER)]
 class HeadingTypeStringMigrationWizard implements UpgradeWizardInterface
 {
+    private const IDENTIFIER = 'mindfulA11yHeadingTypeStringMigration';
     private const TABLE_NAME = 'tt_content';
     private const OLD_FIELD_NAME = 'tx_mindfula11y_headinglevel';
     private const NEW_FIELD_NAME = 'tx_mindfula11y_headingtype';
 
     /**
      * Mapping from old integer values to new string values.
-     * 
+     *
+     * Deliberately NOT delegated to HeadingType::fromNumericLevel(): that
+     * helper falls back to 'p' for every unknown level, while this migration
+     * must SKIP unknown values (a 0 "unset" must not become a paragraph).
+     * The targets mirror the HeadingType enum cases.
+     *
      * @var array<int, string>
      */
     private const VALUE_MAPPING = [
@@ -66,7 +72,7 @@ class HeadingTypeStringMigrationWizard implements UpgradeWizardInterface
      */
     public function getIdentifier(): string
     {
-        return 'mindfulA11yHeadingTypeStringMigration';
+        return self::IDENTIFIER;
     }
 
     /**
@@ -104,29 +110,31 @@ class HeadingTypeStringMigrationWizard implements UpgradeWizardInterface
             ->where(
                 $queryBuilder->expr()->and(
                     $queryBuilder->expr()->isNotNull(self::OLD_FIELD_NAME),
-                    $queryBuilder->expr()->neq(self::OLD_FIELD_NAME, $queryBuilder->createNamedParameter(''))
+                    $queryBuilder->expr()->neq(self::OLD_FIELD_NAME, $queryBuilder->createNamedParameter('')),
+                    // Same condition as updateNecessary(): never overwrite an
+                    // already-migrated (or manually set) value on a re-run.
+                    $queryBuilder->expr()->or(
+                        $queryBuilder->expr()->isNull(self::NEW_FIELD_NAME),
+                        $queryBuilder->expr()->eq(self::NEW_FIELD_NAME, $queryBuilder->createNamedParameter(''))
+                    )
                 )
             )
             ->executeQuery();
 
-        $updatedCount = 0;
         while ($record = $records->fetchAssociative()) {
-            $oldValue = $record[self::OLD_FIELD_NAME];
-            $newValue = $this->convertOldValueToNewValue($oldValue);
-            
-            if ($newValue !== null) {
-                // Update the record with the new value
-                $updateBuilder = $connection->createQueryBuilder();
-                $updateBuilder
-                    ->update(self::TABLE_NAME)
-                    ->where(
-                        $updateBuilder->expr()->eq('uid', $updateBuilder->createNamedParameter($record['uid'], ParameterType::INTEGER))
-                    )
-                    ->set(self::NEW_FIELD_NAME, $newValue)
-                    ->executeStatement();
-                    
-                $updatedCount++;
+            $newValue = $this->convertOldValueToNewValue($record[self::OLD_FIELD_NAME]);
+            if ($newValue === null) {
+                continue;
             }
+
+            $updateBuilder = $connection->createQueryBuilder();
+            $updateBuilder
+                ->update(self::TABLE_NAME)
+                ->where(
+                    $updateBuilder->expr()->eq('uid', $updateBuilder->createNamedParameter($record['uid'], ParameterType::INTEGER))
+                )
+                ->set(self::NEW_FIELD_NAME, $newValue)
+                ->executeStatement();
         }
 
         return true;
