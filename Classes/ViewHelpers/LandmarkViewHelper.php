@@ -62,9 +62,10 @@ class LandmarkViewHelper extends AbstractTagBasedViewHelper
     public function initializeArguments(): void
     {
         parent::initializeArguments();
-        $this->registerArgument('recordUid', 'int', 'The UID of the record that is being rendered.', false, null);
-        $this->registerArgument('recordTableName', 'string', 'Database table name of the record being rendered. (Defaults to tt_content)', false, 'tt_content');
-        $this->registerArgument('recordColumnName', 'string', 'Name of field that stores the role. (Defaults to tx_mindfula11y_landmark)', false, 'tx_mindfula11y_landmark');
+        $this->registerRecordArguments(
+            'Name of field that stores the role. Together with recordUid and recordTableName it only annotates the element for structure analysis — no database fallback is performed. (Defaults to tx_mindfula11y_landmark)',
+            'tx_mindfula11y_landmark',
+        );
         $this->registerArgument('role', 'string', 'The landmark role value. (Defaults to "")', false, "");
         $this->registerArgument('tagName', 'string', 'Override the HTML tag name regardless of the role. The role attribute will still be applied. (Defaults to "")', false, "");
     }

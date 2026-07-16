@@ -40,7 +40,7 @@ describe('StructureAnalysisApi', () => {
     beforeEach(() => {
         ajaxPost.mockReset();
         const ajaxUrls = {};
-        Reflect.set(ajaxUrls, 'mindfula11y_structure_ticket', '/ticket');
+        Reflect.set(ajaxUrls, 'mindfula11y_structure_ticket_issue', '/ticket');
         Reflect.set(ajaxUrls, 'mindfula11y_structure_enrich', '/enrich');
         Reflect.set(globalThis, 'TYPO3', {
             settings: { ajaxUrls },

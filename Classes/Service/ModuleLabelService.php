@@ -33,7 +33,7 @@ use TYPO3\CMS\Core\Localization\LanguageService;
  */
 final readonly class ModuleLabelService
 {
-    private const LANGUAGE_FILE = 'LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:';
+    public const LANGUAGE_FILE = 'LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:';
 
     private const LABEL_IDS = [
         'structureErrors',

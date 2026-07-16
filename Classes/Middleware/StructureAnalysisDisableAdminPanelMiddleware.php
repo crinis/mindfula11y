@@ -32,18 +32,20 @@ use TYPO3\CMS\Core\TypoScript\FrontendTypoScript;
 /**
  * Disable admin panel rendering for structure analysis requests.
  */
-class StructureAnalysisDisableAdminPanelMiddleware implements MiddlewareInterface
+final readonly class StructureAnalysisDisableAdminPanelMiddleware implements MiddlewareInterface
 {
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
-        if (StructureAnalysisTicket::fromRequest($request) !== null) {
-            $frontendTypoScript = $request->getAttribute('frontend.typoscript');
-            if ($frontendTypoScript instanceof FrontendTypoScript) {
-                $config = $frontendTypoScript->getConfigArray();
-                $config['admPanel'] = 0;
-                $frontendTypoScript->setConfigArray($config);
-                $request = $request->withAttribute('frontend.typoscript', $frontendTypoScript);
-            }
+        if (StructureAnalysisTicket::fromRequest($request) === null) {
+            return $handler->handle($request);
+        }
+
+        $frontendTypoScript = $request->getAttribute('frontend.typoscript');
+        if ($frontendTypoScript instanceof FrontendTypoScript) {
+            $config = $frontendTypoScript->getConfigArray();
+            $config['admPanel'] = 0;
+            $frontendTypoScript->setConfigArray($config);
+            $request = $request->withAttribute('frontend.typoscript', $frontendTypoScript);
         }
 
         return $handler->handle($request);

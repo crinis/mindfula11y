@@ -36,6 +36,21 @@ use Psr\Http\Message\ServerRequestInterface;
 trait StructureAnalysisAwareTrait
 {
     /**
+     * Registers the record coordinate arguments (recordUid, recordTableName,
+     * recordColumnName) read by hasRecordInformation()/addRecordDataAttributes(),
+     * shared by all structure-analysis aware ViewHelpers.
+     *
+     * @param string $columnDescription Family-specific description of the recordColumnName argument.
+     * @param string $columnDefault Family-specific default value of the recordColumnName argument.
+     */
+    protected function registerRecordArguments(string $columnDescription, string $columnDefault): void
+    {
+        $this->registerArgument('recordUid', 'int', 'The UID of the record that is being rendered.', false, null);
+        $this->registerArgument('recordTableName', 'string', 'Database table name of the record being rendered. (Defaults to tt_content)', false, 'tt_content');
+        $this->registerArgument('recordColumnName', 'string', $columnDescription, false, $columnDefault);
+    }
+
+    /**
      * Returns the current PSR-7 request from the rendering context, if available.
      *
      * @return ServerRequestInterface|null The current request or null if not available.

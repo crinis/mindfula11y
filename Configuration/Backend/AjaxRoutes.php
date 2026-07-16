@@ -50,7 +50,7 @@ return [
         'methods' => ['POST'],
         'inheritAccessFromModule' => 'mindfula11y_accessibility',
     ],
-    'mindfula11y_structure_ticket' => [
+    'mindfula11y_structure_ticket_issue' => [
         'path' => '/mindfula11y/structure/ticket',
         'target' => StructureAnalysisTicketAjaxController::class . '::ticketAction',
         'methods' => ['POST'],

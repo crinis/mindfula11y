@@ -31,17 +31,17 @@ use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
  * 
  * This class is responsible for generating alternative text for images.
  */
-class AltTextGeneratorService
+final readonly class AltTextGeneratorService
 {
     /**
      * Constructor.
-     * 
+     *
      * @param OpenAIService $openAIService The OpenAI service instance.
      * @param ExtensionConfiguration $extensionConfiguration The extension configuration instance.
      */
     public function __construct(
-        protected readonly OpenAIService $openAIService,
-        protected readonly ExtensionConfiguration $extensionConfiguration,
+        private OpenAIService $openAIService,
+        private ExtensionConfiguration $extensionConfiguration,
     ) {}
 
     /**
@@ -86,7 +86,7 @@ class AltTextGeneratorService
      * 
      * @return string
      */
-    protected function buildInstructions(string $languageCode): string
+    private function buildInstructions(string $languageCode): string
     {
         return 'You are an accessibility specialist generating WCAG 2.1 compliant alt text for web images. Respond in the language identified by this ISO language code: ' . $languageCode . '. Follow these rules strictly: (1) Describe the essential meaning and purpose of the image — not a literal catalogue of visual details. (2) Be concise, ideally under 125 characters. (3) Never begin with "image of", "photo of", "picture of", or equivalent phrases — screen readers already announce the element as an image. (4) If the image contains readable text, transcribe it verbatim. (5) If the image is purely decorative and conveys no meaningful information, respond with exactly: DECORATIVE. (6) Respond with only the alt text string — no surrounding quotes, no trailing punctuation, no explanations.';
     }
@@ -96,7 +96,7 @@ class AltTextGeneratorService
      * 
      * @return string The OpenAI chat image detail.
      */
-    protected function getChatImageDetail(): string
+    private function getChatImageDetail(): string
     {
         return $this->extensionConfiguration->get('mindfula11y')['openAIChatImageDetail'] ?? 'auto';
     }
@@ -108,7 +108,7 @@ class AltTextGeneratorService
      * 
      * @return string The base64 encoded image url.
      */
-    protected function getBase64ImageUrlFromFile(FileInterface $file): string
+    private function getBase64ImageUrlFromFile(FileInterface $file): string
     {
         $contents = base64_encode($file->getContents());
         return 'data:' . $file->getMimeType() . ';base64,' . $contents;

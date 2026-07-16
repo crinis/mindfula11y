@@ -33,16 +33,16 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
  * This class provides methods to find file references that are missing alternative text
  * and to check user permissions for accessing specific tables and fields in the TYPO3 backend.
  */
-class AltTextFinderService
+final readonly class AltTextFinderService
 {
     /**
      * Constructor.
      */
     public function __construct(
-        protected readonly AltlessFileReferenceRepository $altlessFileReferenceRepository,
-        protected readonly PermissionService $permissionService,
-        protected readonly BackendUserProvider $backendUserProvider,
-        protected readonly PageTreeIdResolver $pageTreeIdResolver,
+        private AltlessFileReferenceRepository $altlessFileReferenceRepository,
+        private PermissionService $permissionService,
+        private BackendUserProvider $backendUserProvider,
+        private PageTreeIdResolver $pageTreeIdResolver,
     ) {}
 
     /**
@@ -124,7 +124,7 @@ class AltTextFinderService
      * 
      * @return array<AltlessFileReferenceTable> Empty when no table qualifies (the page-tree lookup is skipped then).
      */
-    protected function buildTables(?string $tableName, int $pageId, int $pageLevels, array $pageTsConfig): array
+    private function buildTables(?string $tableName, int $pageId, int $pageLevels, array $pageTsConfig): array
     {
         $tableNames = $tableName !== null ? [$tableName] : $this->getTablesWithFiles($pageTsConfig);
         if ([] === $tableNames) {
@@ -152,7 +152,7 @@ class AltTextFinderService
      * 
      * @return AltlessFileReferenceTable The table configuration object.
      */
-    protected function createAltlessFileReferenceTable(string $tableName, array $pageIds, array $pageTsConfig): AltlessFileReferenceTable
+    private function createAltlessFileReferenceTable(string $tableName, array $pageIds, array $pageTsConfig): AltlessFileReferenceTable
     {
         $fileColumnNames = $this->getFileColumns($tableName, $pageTsConfig);
         $authModeColumns = $this->permissionService->getAllowedAuthModeValues($tableName);
@@ -208,7 +208,7 @@ class AltTextFinderService
      * 
      * @return array<string> Array of file columns.
      */
-    protected function getFileColumns(string $tableName, array $pageTsConfig): array
+    private function getFileColumns(string $tableName, array $pageTsConfig): array
     {
         $fileColumns = [];
         // $pageTsConfig is the converted (dot-free) form; the legacy read keeps

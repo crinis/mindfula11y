@@ -8,7 +8,7 @@ const MAX_RECORDS_PER_REQUEST = 200;
 class StructureAnalysisApi {
   async issueTicket(pageId, languageId, signal) {
     const value = await this.post(
-      "mindfula11y_structure_ticket",
+      "mindfula11y_structure_ticket_issue",
       "ticket",
       { pageId, languageId },
       signal

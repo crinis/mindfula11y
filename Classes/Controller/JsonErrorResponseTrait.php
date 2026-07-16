@@ -22,6 +22,7 @@ declare(strict_types=1);
 
 namespace MindfulMarkup\MindfulA11y\Controller;
 
+use MindfulMarkup\MindfulA11y\Service\ModuleLabelService;
 use TYPO3\CMS\Core\Http\JsonResponse;
 use TYPO3\CMS\Core\Localization\LanguageService;
 
@@ -34,7 +35,7 @@ use TYPO3\CMS\Core\Localization\LanguageService;
  */
 trait JsonErrorResponseTrait
 {
-    private const ERROR_LANGUAGE_FILE = 'LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:';
+    private const ERROR_LANGUAGE_FILE = ModuleLabelService::LANGUAGE_FILE;
 
     /**
      * Builds the uniform localized JSON error response.

@@ -43,14 +43,14 @@ use TYPO3\CMS\Extbase\Persistence\Generic\Mapper\DataMapper;
  * the injected DataMapper, which maps result rows to AltlessFileReference
  * models (the extension's single Extbase-mapped entity).
  */
-class AltlessFileReferenceRepository
+final readonly class AltlessFileReferenceRepository
 {
     private const COUNT_FILTER_CHUNK_SIZE = 500;
 
     public function __construct(
-        protected readonly ConnectionPool $connectionPool,
-        protected readonly DataMapper $dataMapper,
-        protected readonly ResourceFactory $resourceFactory,
+        private ConnectionPool $connectionPool,
+        private DataMapper $dataMapper,
+        private ResourceFactory $resourceFactory,
     ) {}
 
     /**
@@ -148,7 +148,7 @@ class AltlessFileReferenceRepository
      * @param callable(\TYPO3\CMS\Core\Resource\FileInterface): bool $fileFilter
      * @return \Generator<int>
      */
-    protected function streamAccessibleReferenceUids(
+    private function streamAccessibleReferenceUids(
         array $tables,
         int $languageId,
         int $workspaceId,
@@ -184,7 +184,7 @@ class AltlessFileReferenceRepository
      * @param array<AltlessFileReferenceTable> $tables
      * @return array<int>
      */
-    protected function fetchReferenceUidChunk(
+    private function fetchReferenceUidChunk(
         array $tables,
         int $languageId,
         int $workspaceId,
@@ -209,7 +209,7 @@ class AltlessFileReferenceRepository
      * @param array<int> $referenceUids
      * @return array<int>
      */
-    protected function resolveWorkspaceReferenceUids(array $referenceUids, int $workspaceId): array
+    private function resolveWorkspaceReferenceUids(array $referenceUids, int $workspaceId): array
     {
         $resolver = GeneralUtility::makeInstance(PlainDataResolver::class, 'sys_file_reference', $referenceUids);
         $resolver->setWorkspaceId($workspaceId);
@@ -225,7 +225,7 @@ class AltlessFileReferenceRepository
      * @param array<int> $referenceUids
      * @return array<array<string, mixed>>
      */
-    protected function fetchFileRowsForReferenceUids(
+    private function fetchFileRowsForReferenceUids(
         array $tables,
         int $languageId,
         int $workspaceId,
@@ -248,7 +248,7 @@ class AltlessFileReferenceRepository
      * @param array<int> $referenceUids
      * @return array<array<string, mixed>>
      */
-    protected function fetchReferenceRowsForReferenceUids(
+    private function fetchReferenceRowsForReferenceUids(
         array $tables,
         int $languageId,
         int $workspaceId,
@@ -270,7 +270,7 @@ class AltlessFileReferenceRepository
      * @param array<AltlessFileReferenceTable> $tables
      * @return QueryBuilder
      */
-    protected function createFilteredQueryBuilder(
+    private function createFilteredQueryBuilder(
         array $tables,
         int $languageId,
         int $workspaceId,
@@ -293,7 +293,7 @@ class AltlessFileReferenceRepository
      *
      * @return QueryBuilder QueryBuilder instance used as a base for the query.
      */
-    protected function createQueryBuilderForTables(
+    private function createQueryBuilderForTables(
         array $tables,
         int $languageId,
         int $workspaceId = 0
@@ -372,7 +372,7 @@ class AltlessFileReferenceRepository
      * 
      * @param QueryBuilder $queryBuilder The query builder instance.
      */
-    protected function addFilterByFileMetaDataClauses(QueryBuilder $queryBuilder): QueryBuilder
+    private function addFilterByFileMetaDataClauses(QueryBuilder $queryBuilder): QueryBuilder
     {
         $queryBuilder->leftJoin(
             'sys_file_reference',
@@ -397,7 +397,7 @@ class AltlessFileReferenceRepository
      * 
      * @return array<string> Array of image file extensions.
      */
-    protected function getImageFileExtensions(): array
+    private function getImageFileExtensions(): array
     {
         return explode(',', $GLOBALS['TYPO3_CONF_VARS']['GFX']['imagefile_ext'] ?? '');
     }
@@ -407,7 +407,7 @@ class AltlessFileReferenceRepository
      * 
      * @param string $tableName The name of the table.
      */
-    protected function getLanguageField(string $tableName): string
+    private function getLanguageField(string $tableName): string
     {
         return $GLOBALS['TCA'][$tableName]['ctrl']['languageField'];
     }

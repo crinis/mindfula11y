@@ -37,19 +37,19 @@ use TYPO3\CMS\Core\Versioning\VersionState;
  * This class provides methods to check user permissions and access rights for various tables
  * in the TYPO3 backend.
  */
-class PermissionService
+final readonly class PermissionService
 {
     /** Identifier of the accessibility backend module all AJAX endpoints inherit access from. */
     public const MODULE_NAME = 'mindfula11y_accessibility';
 
     public function __construct(
-        protected readonly TcaSchemaFactory $tcaSchemaFactory,
+        private TcaSchemaFactory $tcaSchemaFactory,
         // Constructor-injected on purpose: ModuleProvider is not makeInstance-
         // resolvable on TYPO3 v14 (its ServiceProvider registration was removed
         // and its constructor grew a second dependency), so lazy resolution
         // fatals. This service is always container-wired, never new'ed.
-        protected readonly ModuleProvider $moduleProvider,
-        protected readonly BackendUserProvider $backendUserProvider,
+        private ModuleProvider $moduleProvider,
+        private BackendUserProvider $backendUserProvider,
     ) {}
 
     /**
@@ -71,7 +71,7 @@ class PermissionService
      * and v14, so no version branch is required. Returns false for tables not
      * present in TCA, matching the behaviour of the previous method.
      */
-    protected function isTableWorkspaceAware(string $tableName): bool
+    private function isTableWorkspaceAware(string $tableName): bool
     {
         return $this->tcaSchemaFactory->has($tableName)
             && $this->tcaSchemaFactory->get($tableName)

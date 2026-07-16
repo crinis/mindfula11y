@@ -36,17 +36,17 @@ use TYPO3\CMS\Core\Http\RequestFactory;
  * API (mindfulapi >= 0.7, versioned route prefix /v1, errors as RFC 9457
  * application/problem+json).
  */
-class ScanApiService
+final readonly class ScanApiService
 {
     /**
      * Timeout for HTTP requests to the external scanner API (seconds).
      */
-    protected const REQUEST_TIMEOUT = 10;
+    private const REQUEST_TIMEOUT = 10;
 
     /**
      * Versioned route prefix of all business endpoints (the health endpoint is unprefixed).
      */
-    protected const API_VERSION_PREFIX = '/v1';
+    private const API_VERSION_PREFIX = '/v1';
 
     /**
      * Constructor.
@@ -56,9 +56,9 @@ class ScanApiService
      * @param LoggerInterface $logger The logger instance.
      */
     public function __construct(
-        protected readonly ExtensionConfiguration $extensionConfiguration,
-        protected readonly RequestFactory $requestFactory,
-        protected readonly LoggerInterface $logger,
+        private ExtensionConfiguration $extensionConfiguration,
+        private RequestFactory $requestFactory,
+        private LoggerInterface $logger,
     ) {}
 
     /**
@@ -66,7 +66,7 @@ class ScanApiService
      *
      * @return string The API URL.
      */
-    protected function getApiUrl(): string
+    private function getApiUrl(): string
     {
         return rtrim($this->extensionConfiguration->get('mindfula11y')['scannerApiUrl'] ?? '', '/');
     }
@@ -74,7 +74,7 @@ class ScanApiService
     /**
      * Get the versioned base URL for business endpoints.
      */
-    protected function getApiBaseUrl(): string
+    private function getApiBaseUrl(): string
     {
         return $this->getApiUrl() . self::API_VERSION_PREFIX;
     }
@@ -84,7 +84,7 @@ class ScanApiService
      *
      * @return string The API token.
      */
-    protected function getApiToken(): string
+    private function getApiToken(): string
     {
         return $this->extensionConfiguration->get('mindfula11y')['scannerApiToken'] ?? '';
     }
@@ -140,7 +140,7 @@ class ScanApiService
      *
      * @return array{title: string, detail: string, errors: array} Empty strings/array when the body is not problem+json.
      */
-    protected function parseProblemDetails(ResponseInterface $response): array
+    private function parseProblemDetails(ResponseInterface $response): array
     {
         $problem = ['title' => '', 'detail' => '', 'errors' => []];
         try {
@@ -168,7 +168,7 @@ class ScanApiService
      * @param array<string, mixed> $logContext Context added to every log entry for this request.
      * @return ResponseInterface|null Null when unconfigured or on a network-level failure (both logged).
      */
-    protected function sendRequest(string $path, string $method, array $options, array $logContext, string $failureMessage): ?ResponseInterface
+    private function sendRequest(string $path, string $method, array $options, array $logContext, string $failureMessage): ?ResponseInterface
     {
         if (!$this->isConfigured()) {
             $this->logger->error('Accessibility scanner API is not configured');
@@ -200,7 +200,7 @@ class ScanApiService
      * @param array<string, mixed> $logContext
      * @return array{title: string, detail: string, errors: array}
      */
-    protected function logProblem(ResponseInterface $response, string $message, array $logContext, string $level = 'error'): array
+    private function logProblem(ResponseInterface $response, string $message, array $logContext, string $level = 'error'): array
     {
         $problem = $this->parseProblemDetails($response);
         $this->logger->log($level, $message, $logContext + [
@@ -219,7 +219,7 @@ class ScanApiService
      * @param array<string, mixed> $logContext
      * @return array|null Null when the body is not valid JSON (logged).
      */
-    protected function decodeJsonBody(ResponseInterface $response, array $logContext): ?array
+    private function decodeJsonBody(ResponseInterface $response, array $logContext): ?array
     {
         $body = (string)$response->getBody();
         $data = json_decode($body, true);

@@ -32,7 +32,7 @@ use TYPO3\CMS\Frontend\Cache\CacheInstruction;
 /**
  * Disable frontend cache for structure analysis requests.
  */
-class StructureAnalysisDisableCacheMiddleware implements MiddlewareInterface
+final readonly class StructureAnalysisDisableCacheMiddleware implements MiddlewareInterface
 {
     /**
      * Process the request and disable frontend cache for an authenticated structure analysis.

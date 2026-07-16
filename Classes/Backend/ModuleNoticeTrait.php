@@ -22,6 +22,7 @@ declare(strict_types=1);
 
 namespace MindfulMarkup\MindfulA11y\Backend;
 
+use MindfulMarkup\MindfulA11y\Service\ModuleLabelService;
 use Psr\Http\Message\ResponseInterface;
 use TYPO3\CMS\Backend\Template\ModuleTemplate;
 use TYPO3\CMS\Core\Localization\LanguageService;
@@ -37,7 +38,7 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
  */
 trait ModuleNoticeTrait
 {
-    private const MODULE_LANGUAGE_FILE = 'LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:';
+    private const MODULE_LANGUAGE_FILE = ModuleLabelService::LANGUAGE_FILE;
 
     /**
      * Adds a localized flash message: the title from `<labelKey>`, the message

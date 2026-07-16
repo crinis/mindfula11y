@@ -124,9 +124,10 @@ abstract class AbstractHeadingViewHelper extends AbstractTagBasedViewHelper
      */
     protected function registerCommonHeadingArguments(): void
     {
-        $this->registerArgument('recordTableName', 'string', 'Database table name of the record with the heading. (Defaults to tt_content)', false, 'tt_content');
-        $this->registerArgument('recordColumnName', 'string', 'Name of field that stores the heading type. (Defaults to tx_mindfula11y_headingtype)', false, 'tx_mindfula11y_headingtype');
-        $this->registerArgument('recordUid', 'int', 'The UID of the record with the heading.', false, null);
+        $this->registerRecordArguments(
+            'Name of field that stores the heading type. (Defaults to tx_mindfula11y_headingtype)',
+            'tx_mindfula11y_headingtype',
+        );
         $this->registerArgument('type', 'string', 'The heading type to use (h1, h2, h3, h4, h5, h6, p, div, etc.). If not provided, the value will be fetched from the database record, relationship or set to "h2".', false, null);
     }
 

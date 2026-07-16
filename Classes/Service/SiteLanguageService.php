@@ -36,15 +36,15 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
  * 
  * This class provides methods to retrieve language codes based on language UIDs and page IDs.
  */
-class SiteLanguageService
+final readonly class SiteLanguageService
 {
     /**
      * Constructor.
-     * 
+     *
      * @param SiteFinder $siteFinder
      */
     public function __construct(
-        protected readonly SiteFinder $siteFinder,
+        private SiteFinder $siteFinder,
     ) {}
 
     /**
@@ -74,7 +74,7 @@ class SiteLanguageService
      * @param int $languageUid
      * @return string
      */
-    protected function getLanguageCodeFromAnySite(int $languageUid): string
+    private function getLanguageCodeFromAnySite(int $languageUid): string
     {
         foreach ($this->siteFinder->getAllSites() as $site) {
             try {
@@ -103,7 +103,7 @@ class SiteLanguageService
      * @throws SiteNotFoundException If the site is not found.
      * @throws InvalidArgumentException If the language UID is invalid or page ID is 0.
      */
-    protected function getSiteLanguage(int $pageId, int $languageUid): SiteLanguage
+    private function getSiteLanguage(int $pageId, int $languageUid): SiteLanguage
     {
         if (0 === $pageId) {
             throw new InvalidArgumentException('Page ID cannot be 0.', 1634567890);

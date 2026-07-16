@@ -30,7 +30,7 @@ export interface StructureAnalysisTicket {
 export class StructureAnalysisApi {
     async issueTicket(pageId: number, languageId: number, signal: AbortSignal): Promise<StructureAnalysisTicket> {
         const value = await this.post<unknown>(
-            'mindfula11y_structure_ticket',
+            'mindfula11y_structure_ticket_issue',
             'ticket',
             { pageId, languageId },
             signal,

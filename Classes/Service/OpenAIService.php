@@ -33,17 +33,17 @@ use RuntimeException;
  * 
  * This class is responsible for interacting with OpenAI's API.
  */
-class OpenAIService
+final readonly class OpenAIService
 {
     /**
      * Constructor.
-     * 
+     *
      * @param ExtensionConfiguration $extensionConfiguration
      * @param RequestFactory $requestFactory
      */
     public function __construct(
-        protected readonly ExtensionConfiguration $extensionConfiguration,
-        protected readonly RequestFactory $requestFactory,
+        private ExtensionConfiguration $extensionConfiguration,
+        private RequestFactory $requestFactory,
     ) {}
 
     /**
@@ -106,7 +106,7 @@ class OpenAIService
      * 
      * @return string The OpenAI model name.
      */
-    protected function getModelName(): string
+    private function getModelName(): string
     {
         return $this->extensionConfiguration->get('mindfula11y')['openAIChatModel'] ?? 'gpt-5.4-mini';
     }
@@ -116,7 +116,7 @@ class OpenAIService
      * 
      * @return string The OpenAI API key.
      */
-    protected function getApiKey(): string
+    private function getApiKey(): string
     {
         return $this->extensionConfiguration->get('mindfula11y')['openAIApiKey'] ?? '';
     }
