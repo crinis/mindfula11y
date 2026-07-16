@@ -186,16 +186,19 @@ class AltlessFileReferenceViewHelper extends AbstractTagBasedViewHelper
     /**
      * The record coordinates (table, column, uid) the file reference points at.
      *
-     * @return array{0: string, 1: string, 2: int|string}
+     * @return array{0: string, 1: string, 2: int}
      */
     protected function getRecordCoordinates(AltlessFileReference $fileReference): array
     {
         $reference = $fileReference->getOriginalResource();
 
+        // Cast at the boundary: reference properties may arrive string-typed
+        // from the driver, and GenerateAltTextDemand declares int under
+        // strict_types.
         return [
-            $reference->getReferenceProperty('tablenames'),
-            $reference->getReferenceProperty('fieldname'),
-            $reference->getReferenceProperty('uid_foreign'),
+            (string)$reference->getReferenceProperty('tablenames'),
+            (string)$reference->getReferenceProperty('fieldname'),
+            (int)$reference->getReferenceProperty('uid_foreign'),
         ];
     }
 
@@ -209,9 +212,9 @@ class AltlessFileReferenceViewHelper extends AbstractTagBasedViewHelper
         [$recordTableName, $recordColumnName, $recordUid] = $this->getRecordCoordinates($fileReference);
         $fileUid = $fileReference->getOriginalResource()->getOriginalFile()->getUid();
         return new GenerateAltTextDemand(
-            $backendUser->user['uid'],
+            (int)$backendUser->user['uid'],
             $fileReference->getPid(),
-            $fileReference->getOriginalResource()->getReferenceProperty('sys_language_uid'),
+            (int)$fileReference->getOriginalResource()->getReferenceProperty('sys_language_uid'),
             $backendUser->workspace,
             $recordTableName,
             $recordUid,

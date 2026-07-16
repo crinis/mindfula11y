@@ -143,11 +143,7 @@ final readonly class ScanApiService
     private function parseProblemDetails(ResponseInterface $response): array
     {
         $problem = ['title' => '', 'detail' => '', 'errors' => []];
-        try {
-            $data = json_decode((string)$response->getBody(), true);
-        } catch (\Exception) {
-            return $problem;
-        }
+        $data = json_decode((string)$response->getBody(), true);
         if (!is_array($data)) {
             return $problem;
         }
@@ -227,7 +223,9 @@ final readonly class ScanApiService
         if (json_last_error() !== JSON_ERROR_NONE) {
             $this->logger->error('Invalid JSON response from scan API', $logContext + [
                 'json_error' => json_last_error_msg(),
-                'body' => $body,
+                // Capped: a misbehaving endpoint may answer with a full HTML
+                // error page that must not land in the log verbatim.
+                'body' => mb_substr($body, 0, 2048),
             ]);
             return null;
         }

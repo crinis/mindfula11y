@@ -69,7 +69,7 @@ final readonly class PageTreeIdResolver
         if (!empty($hiddenPidList)) {
             $permsClause = $permsClause->with($expressionBuilder->notIn('pages.uid', $hiddenPidList));
         }
-        $perms_clause = (string)$permsClause;
+        $permsClauseString = (string)$permsClause;
 
         if (!$backendUser->isAdmin() && $pageId === 0) {
             $mountPoints = $backendUser->getWebmounts();
@@ -87,7 +87,7 @@ final readonly class PageTreeIdResolver
         // PageTreeRepository is prototype-scoped (constructor state), so
         // makeInstance is the idiomatic way to obtain it.
         $repository = GeneralUtility::makeInstance(PageTreeRepository::class);
-        $repository->setAdditionalWhereClause($perms_clause);
+        $repository->setAdditionalWhereClause($permsClauseString);
         $pages = $repository->getFlattenedPages($mountPoints, $pageLevels);
         $idList = [];
         foreach ($pages as $page) {

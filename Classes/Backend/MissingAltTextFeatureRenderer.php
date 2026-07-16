@@ -47,6 +47,9 @@ final readonly class MissingAltTextFeatureRenderer implements FeatureRendererInt
 
     private const ITEMS_PER_PAGE = 100;
 
+    /** Page-levels choices offered by the menu; other values are rejected. */
+    private const PAGE_LEVELS_OPTIONS = [1, 5, 10, 99];
+
     public function __construct(
         private ModuleSettingsService $moduleSettingsService,
         private AltTextFinderService $altTextFinderService,
@@ -62,8 +65,13 @@ final readonly class MissingAltTextFeatureRenderer implements FeatureRendererInt
             return $this->noticeResponse($context->moduleTemplate, 'altText.noAccess', ContextualFeedbackSeverity::ERROR, 403);
         }
 
-        $currentPage = (int)$context->moduleData->get('currentPage', 1);
+        // Module data is GET-writable: clamp the page (ArrayPaginator throws
+        // on < 1) and only accept the page-levels values the menu offers.
+        $currentPage = max(1, (int)$context->moduleData->get('currentPage', 1));
         $pageLevels = (int)$context->moduleData->get('pageLevels', 1);
+        if (!in_array($pageLevels, self::PAGE_LEVELS_OPTIONS, true)) {
+            $pageLevels = 1;
+        }
         $tableName = (string)$context->moduleData->get('tableName', '');
 
         // Ensure tableName is valid. If the table doesn't exist in TCA (e.g. '0' or invalid param),
@@ -172,7 +180,7 @@ final readonly class MissingAltTextFeatureRenderer implements FeatureRendererInt
     {
         $languageService = $this->getLanguageService();
         $items = [];
-        foreach ([1, 5, 10, 99] as $pageLevels) {
+        foreach (self::PAGE_LEVELS_OPTIONS as $pageLevels) {
             $items[] = [
                 'title' => $languageService->sL(self::MODULE_LANGUAGE_FILE . 'module.menu.pageLevels.' . $pageLevels),
                 'href' => $this->menuBuilder->buildMenuItemUri($context, [

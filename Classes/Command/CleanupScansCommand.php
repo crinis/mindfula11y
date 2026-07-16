@@ -61,7 +61,7 @@ class CleanupScansCommand extends Command
         $this->addOption(
             'seconds',
             's',
-            InputOption::VALUE_OPTIONAL,
+            InputOption::VALUE_REQUIRED,
             'Number of seconds after which scan IDs should be considered old (default: 2592000 = 30 days)',
             2592000
         );
@@ -79,6 +79,13 @@ class CleanupScansCommand extends Command
     {
         $io = new SymfonyStyle($input, $output);
         $seconds = (int)$input->getOption('seconds');
+
+        // A non-positive threshold would set the cutoff to "now" and wipe
+        // every stored scan ID site-wide — refuse instead of guessing.
+        if ($seconds <= 0) {
+            $io->error('The --seconds option must be a positive integer.');
+            return Command::INVALID;
+        }
 
         $cutoffTimestamp = time() - $seconds;
 
