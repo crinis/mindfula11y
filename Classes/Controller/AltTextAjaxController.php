@@ -26,11 +26,11 @@ namespace MindfulMarkup\MindfulA11y\Controller;
 use InvalidArgumentException;
 use MindfulMarkup\MindfulA11y\Domain\Model\GenerateAltTextDemand;
 use MindfulMarkup\MindfulA11y\Service\AltTextGeneratorService;
+use MindfulMarkup\MindfulA11y\Service\BackendUserProvider;
 use MindfulMarkup\MindfulA11y\Service\PermissionService;
 use MindfulMarkup\MindfulA11y\Service\SiteLanguageService;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
-use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Http\JsonResponse;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Type\Bitmask\Permission;
@@ -56,6 +56,7 @@ final readonly class AltTextAjaxController
         private ResourceFactory $resourceFactory,
         private PermissionService $permissionService,
         private TcaSchemaFactory $tcaSchemaFactory,
+        private BackendUserProvider $backendUserProvider,
     ) {}
 
     /**
@@ -96,7 +97,7 @@ final readonly class AltTextAjaxController
             return $this->errorResponse('module.error.invalidSignature', 400);
         }
 
-        $backendUser = $this->getBackendUserAuthentication();
+        $backendUser = $this->backendUserProvider->get();
 
         // Check if user has access to the mindfula11y_accessibility module
         if (!$this->permissionService->checkModuleAccess()) {
@@ -204,10 +205,5 @@ final readonly class AltTextAjaxController
         }
 
         return new JsonResponse(['altText' => $altText], 201);
-    }
-
-    private function getBackendUserAuthentication(): BackendUserAuthentication
-    {
-        return $GLOBALS['BE_USER'];
     }
 }

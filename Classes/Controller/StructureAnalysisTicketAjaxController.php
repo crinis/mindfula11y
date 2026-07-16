@@ -22,6 +22,7 @@ declare(strict_types=1);
 
 namespace MindfulMarkup\MindfulA11y\Controller;
 
+use MindfulMarkup\MindfulA11y\Service\BackendUserProvider;
 use MindfulMarkup\MindfulA11y\Service\ModuleSettingsService;
 use MindfulMarkup\MindfulA11y\Service\PagePreviewService;
 use MindfulMarkup\MindfulA11y\Service\StructureAnalysisAuthorizationService;
@@ -29,7 +30,6 @@ use MindfulMarkup\MindfulA11y\Service\StructureAnalysisTicketService;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Backend\Routing\PreviewUriBuilder;
-use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Http\JsonResponse;
 use TYPO3\CMS\Core\Http\NormalizedParams;
 use TYPO3\CMS\Core\Site\SiteFinder;
@@ -45,6 +45,7 @@ final readonly class StructureAnalysisTicketAjaxController
         private ModuleSettingsService $moduleSettingsService,
         private PagePreviewService $pagePreviewService,
         private SiteFinder $siteFinder,
+        private BackendUserProvider $backendUserProvider,
     ) {}
 
     public function ticketAction(ServerRequestInterface $request): ResponseInterface
@@ -52,7 +53,7 @@ final readonly class StructureAnalysisTicketAjaxController
         $body = json_decode((string)$request->getBody(), true);
         $pageId = is_array($body) ? (int)($body['pageId'] ?? 0) : 0;
         $languageId = is_array($body) ? (int)($body['languageId'] ?? 0) : 0;
-        $backendUser = $this->getBackendUser();
+        $backendUser = $this->backendUserProvider->getAuthenticated();
         if ($backendUser === null) {
             return $this->unavailableResponse();
         }
@@ -125,14 +126,6 @@ final readonly class StructureAnalysisTicketAjaxController
         }
 
         return $previewUri === null ? null : (string)$previewUri;
-    }
-
-    private function getBackendUser(): ?BackendUserAuthentication
-    {
-        $backendUser = $GLOBALS['BE_USER'] ?? null;
-        return $backendUser instanceof BackendUserAuthentication && (int)($backendUser->user['uid'] ?? 0) > 0
-            ? $backendUser
-            : null;
     }
 
     /**

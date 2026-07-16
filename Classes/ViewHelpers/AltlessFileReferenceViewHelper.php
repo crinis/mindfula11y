@@ -25,12 +25,12 @@ namespace MindfulMarkup\MindfulA11y\ViewHelpers;
 
 use MindfulMarkup\MindfulA11y\Domain\Model\AltlessFileReference;
 use MindfulMarkup\MindfulA11y\Domain\Model\GenerateAltTextDemand;
+use MindfulMarkup\MindfulA11y\Service\BackendUserProvider;
 use MindfulMarkup\MindfulA11y\Service\OpenAIService;
 use MindfulMarkup\MindfulA11y\Service\PermissionService;
 use MindfulMarkup\MindfulA11y\Service\ModuleSettingsService;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
-use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
 use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractTagBasedViewHelper;
@@ -64,6 +64,11 @@ class AltlessFileReferenceViewHelper extends AbstractTagBasedViewHelper
      * ExtensionConfiguration instance.
      */
     protected readonly ExtensionConfiguration $extensionConfiguration;
+
+    /**
+     * Backend user provider instance.
+     */
+    protected readonly BackendUserProvider $backendUserProvider;
 
     /**
      * Tag name.
@@ -105,6 +110,14 @@ class AltlessFileReferenceViewHelper extends AbstractTagBasedViewHelper
     public function injectAltTextGeneratorService(ExtensionConfiguration $extensionConfiguration): void
     {
         $this->extensionConfiguration = $extensionConfiguration;
+    }
+
+    /**
+     * Inject backend user provider.
+     */
+    public function injectBackendUserProvider(BackendUserProvider $backendUserProvider): void
+    {
+        $this->backendUserProvider = $backendUserProvider;
     }
 
     /**
@@ -192,7 +205,7 @@ class AltlessFileReferenceViewHelper extends AbstractTagBasedViewHelper
     protected function getGenerateAltTextDemand(
         AltlessFileReference $fileReference
     ): GenerateAltTextDemand {
-        $backendUser = $this->getBackendUserAuthentication();
+        $backendUser = $this->backendUserProvider->get();
         $recordTableName = $fileReference->getOriginalResource()->getReferenceProperty('tablenames');
         $recordColumnName = $fileReference->getOriginalResource()->getReferenceProperty('fieldname');
         $recordUid = $fileReference->getOriginalResource()->getReferenceProperty('uid_foreign');
@@ -217,15 +230,5 @@ class AltlessFileReferenceViewHelper extends AbstractTagBasedViewHelper
     protected function getLanguageService(): LanguageService
     {
         return $GLOBALS['LANG'];
-    }
-
-    /**
-     * Get backend user authentication.
-     * 
-     * @return BackendUserAuthentication
-     */
-    protected function getBackendUserAuthentication(): BackendUserAuthentication
-    {
-        return $GLOBALS['BE_USER'];
     }
 }

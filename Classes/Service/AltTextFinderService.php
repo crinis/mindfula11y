@@ -25,7 +25,6 @@ namespace MindfulMarkup\MindfulA11y\Service;
 use MindfulMarkup\MindfulA11y\Domain\Model\AltlessFileReference;
 use MindfulMarkup\MindfulA11y\Domain\Model\AltlessFileReferenceTable;
 use MindfulMarkup\MindfulA11y\Domain\Repository\AltlessFileReferenceRepository;
-use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
@@ -42,6 +41,7 @@ class AltTextFinderService
     public function __construct(
         protected readonly AltlessFileReferenceRepository $altlessFileReferenceRepository,
         protected readonly PermissionService $permissionService,
+        protected readonly BackendUserProvider $backendUserProvider,
     ) {}
 
     /**
@@ -80,7 +80,7 @@ class AltTextFinderService
         return $this->altlessFileReferenceRepository->findForTables(
             $tables,
             $languageId,
-            $this->getBackendUserAuthentication()->workspace,
+            $this->backendUserProvider->get()->workspace,
             $firstResult,
             $maxResults,
             $filterFileMetaData,
@@ -123,7 +123,7 @@ class AltTextFinderService
         return $this->altlessFileReferenceRepository->findForTables(
             [$table],
             $languageId,
-            $this->getBackendUserAuthentication()->workspace,
+            $this->backendUserProvider->get()->workspace,
             $firstResult,
             $maxResults,
             $filterFileMetaData,
@@ -166,7 +166,7 @@ class AltTextFinderService
         return $this->altlessFileReferenceRepository->countForTables(
             $tables,
             $languageId,
-            $this->getBackendUserAuthentication()->workspace,
+            $this->backendUserProvider->get()->workspace,
             $filterFileMetaData,
             $this->permissionService->checkFileReadAccess(...)
         );
@@ -203,7 +203,7 @@ class AltTextFinderService
         return $this->altlessFileReferenceRepository->countForTables(
             [$table],
             $languageId,
-            $this->getBackendUserAuthentication()->workspace,
+            $this->backendUserProvider->get()->workspace,
             $filterFileMetaData,
             $this->permissionService->checkFileReadAccess(...)
         );
@@ -299,15 +299,5 @@ class AltTextFinderService
         }
 
         return $fileColumns;
-    }
-
-    /**
-     * Get backend user authentication.
-     * 
-     * @return BackendUserAuthentication
-     */
-    protected function getBackendUserAuthentication(): BackendUserAuthentication
-    {
-        return $GLOBALS['BE_USER'];
     }
 }

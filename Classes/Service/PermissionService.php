@@ -26,7 +26,6 @@ namespace MindfulMarkup\MindfulA11y\Service;
 use TYPO3\CMS\Backend\Module\ModuleProvider;
 use TYPO3\CMS\Backend\Tree\Repository\PageTreeRepository;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
-use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Resource\FileInterface;
 use TYPO3\CMS\Core\Schema\Capability\TcaSchemaCapability;
@@ -53,6 +52,7 @@ class PermissionService
         // and its constructor grew a second dependency), so lazy resolution
         // fatals. This service is always container-wired, never new'ed.
         protected readonly ModuleProvider $moduleProvider,
+        protected readonly BackendUserProvider $backendUserProvider,
     ) {}
 
     /**
@@ -63,7 +63,7 @@ class PermissionService
      */
     public function checkModuleAccess(): bool
     {
-        return $this->moduleProvider->accessGranted(self::MODULE_NAME, $this->getBackendUserAuthentication());
+        return $this->moduleProvider->accessGranted(self::MODULE_NAME, $this->backendUserProvider->get());
     }
 
     /**
@@ -93,7 +93,7 @@ class PermissionService
      */
     public function getAllowedAuthModeValues(string $tableName): array
     {
-        $backendUser = $this->getBackendUserAuthentication();
+        $backendUser = $this->backendUserProvider->get();
 
         if (!isset($GLOBALS['TCA'][$tableName])) {
             return [];
@@ -116,7 +116,7 @@ class PermissionService
 
                     $allowedAuthModeValues[$columnName] = [];
                     foreach ($columnValue['config']['items'] as $item) {
-                        if (null !== $backendUser && $backendUser->checkAuthMode($tableName, $columnName, $item['value'])) {
+                        if ($backendUser->checkAuthMode($tableName, $columnName, $item['value'])) {
                             $allowedAuthModeValues[$columnName][] = $item['value'];
                         }
                     }
@@ -141,11 +141,7 @@ class PermissionService
      */
     public function getPageTreeIds(int $pageId, int $pageLevels): array
     {
-        $backendUser = $this->getBackendUserAuthentication();
-
-        if (null === $backendUser) {
-            return [];
-        }
+        $backendUser = $this->backendUserProvider->get();
 
         $expressionBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
             ->getQueryBuilderForTable('pages')
@@ -195,9 +191,9 @@ class PermissionService
      */
     public function checkTableReadAccess(string $tableName): bool
     {
-        $backendUser = $this->getBackendUserAuthentication();
+        $backendUser = $this->backendUserProvider->get();
 
-        if (null === $backendUser || !isset($GLOBALS['TCA'][$tableName])) {
+        if (!isset($GLOBALS['TCA'][$tableName])) {
             return false;
         }
 
@@ -224,11 +220,7 @@ class PermissionService
      */
     public function checkTableWriteAccess(string $tableName): bool
     {
-        $backendUser = $this->getBackendUserAuthentication();
-
-        if (null === $backendUser) {
-            return false;
-        }
+        $backendUser = $this->backendUserProvider->get();
 
         if (!isset($GLOBALS['TCA'][$tableName]) || ($GLOBALS['TCA'][$tableName]['ctrl']['readonly'] ?? false)) {
             return false;
@@ -277,7 +269,7 @@ class PermissionService
             return false;
         }
 
-        $backendUser = $this->getBackendUserAuthentication();
+        $backendUser = $this->backendUserProvider->get();
 
         if ($backendUser->isAdmin()) {
             return true;
@@ -365,11 +357,7 @@ class PermissionService
      */
     public function checkNonExcludeFields(string $tableName, array $columnNames): bool
     {
-        $backendUser = $this->getBackendUserAuthentication();
-
-        if (null === $backendUser) {
-            return false;
-        }
+        $backendUser = $this->backendUserProvider->get();
 
         if ($backendUser->isAdmin()) {
             return true;
@@ -402,11 +390,7 @@ class PermissionService
      */
     public function checkPageReadAccess(array $pageRecord): bool
     {
-        $backendUser = $this->getBackendUserAuthentication();
-
-        if (null === $backendUser) {
-            return false;
-        }
+        $backendUser = $this->backendUserProvider->get();
 
         if ($backendUser->isAdmin()) {
             return true;
@@ -462,11 +446,8 @@ class PermissionService
      */
     public function checkLanguageAccess(int $languageId): bool
     {
-        $backendUser = $this->getBackendUserAuthentication();
-        if (null === $backendUser) {
-            return false;
-        }
-        
+        $backendUser = $this->backendUserProvider->get();
+
         // Admins always have access
         if ($backendUser->isAdmin()) {
             return true;
@@ -500,15 +481,5 @@ class PermissionService
     public function checkFileMetaEditAccess(FileInterface $file): bool
     {
         return $file->getStorage()->checkFileActionPermission('editMeta', $file);
-    }
-
-    /**
-     * Get backend user authentication.
-     * 
-     * @return BackendUserAuthentication
-     */
-    protected function getBackendUserAuthentication(): ?BackendUserAuthentication
-    {
-        return $GLOBALS['BE_USER'] ?? null;
     }
 }

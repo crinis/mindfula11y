@@ -31,6 +31,7 @@ use MindfulMarkup\MindfulA11y\Backend\ModuleNoticeTrait;
 use MindfulMarkup\MindfulA11y\Backend\OverviewFeatureRenderer;
 use MindfulMarkup\MindfulA11y\Backend\ScanFeatureRenderer;
 use MindfulMarkup\MindfulA11y\Enum\Feature;
+use MindfulMarkup\MindfulA11y\Service\BackendUserProvider;
 use MindfulMarkup\MindfulA11y\Service\ModuleLabelService;
 use MindfulMarkup\MindfulA11y\Service\ModuleSettingsService;
 use MindfulMarkup\MindfulA11y\Service\PagePreviewService;
@@ -43,7 +44,6 @@ use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Backend\Template\Components\Buttons\DropDownButton;
 use TYPO3\CMS\Backend\Template\ModuleTemplateFactory;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
-use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Http\AllowedMethodsTrait;
 use TYPO3\CMS\Core\Http\Error\MethodNotAllowedException;
 use TYPO3\CMS\Core\Http\RedirectResponse;
@@ -81,6 +81,7 @@ final readonly class AccessibilityModuleController
         private OverviewFeatureRenderer $overviewFeatureRenderer,
         private MissingAltTextFeatureRenderer $missingAltTextFeatureRenderer,
         private ScanFeatureRenderer $scanFeatureRenderer,
+        private BackendUserProvider $backendUserProvider,
     ) {}
 
     /**
@@ -96,7 +97,7 @@ final readonly class AccessibilityModuleController
         $moduleTemplate = $this->moduleTemplateFactory->create($request);
         $moduleTemplate->setTitle($languageService->sL(self::MODULE_LANGUAGE_FILE . 'mlang_tabs_tab'));
 
-        $backendUser = $this->getBackendUserAuthentication();
+        $backendUser = $this->backendUserProvider->get();
         $pageId = (int)($request->getParsedBody()['id'] ?? $request->getQueryParams()['id'] ?? 0);
 
         if (0 === $pageId) {
@@ -244,7 +245,7 @@ final readonly class AccessibilityModuleController
             return [];
         }
 
-        return $site->getAvailableLanguages($this->getBackendUserAuthentication(), false, $pageId);
+        return $site->getAvailableLanguages($this->backendUserProvider->get(), false, $pageId);
     }
 
     /**
@@ -264,7 +265,7 @@ final readonly class AccessibilityModuleController
             // Pass the backend user's workspace so the result matches the
             // workspace-aware legacy path. getPageTranslations() returns
             // RawRecord[] keyed by language id, so the ids are the array keys.
-            $workspaceId = $this->getBackendUserAuthentication()->workspace;
+            $workspaceId = $this->backendUserProvider->get()->workspace;
             $repository = GeneralUtility::makeInstance(LocalizationRepository::class);
             foreach (array_keys($repository->getPageTranslations($pageId, [], $workspaceId)) as $languageId) {
                 $availableLanguageIds[] = (int)$languageId;
@@ -305,10 +306,5 @@ final readonly class AccessibilityModuleController
         }
 
         return null;
-    }
-
-    private function getBackendUserAuthentication(): BackendUserAuthentication
-    {
-        return $GLOBALS['BE_USER'];
     }
 }

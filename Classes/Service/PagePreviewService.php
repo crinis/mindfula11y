@@ -24,7 +24,6 @@ namespace MindfulMarkup\MindfulA11y\Service;
 
 use TYPO3\CMS\Backend\Routing\PreviewUriBuilder;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
-use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Context\Context;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
@@ -47,6 +46,7 @@ final readonly class PagePreviewService
         private PermissionService $permissionService,
         private ModuleSettingsService $moduleSettingsService,
         private ConnectionPool $connectionPool,
+        private BackendUserProvider $backendUserProvider,
     ) {}
 
     /**
@@ -165,7 +165,7 @@ final readonly class PagePreviewService
         $queryBuilder->getRestrictions()
             ->removeAll()
             ->add(GeneralUtility::makeInstance(DeletedRestriction::class))
-            ->add(GeneralUtility::makeInstance(WorkspaceRestriction::class, $this->getBackendUserAuthentication()->workspace));
+            ->add(GeneralUtility::makeInstance(WorkspaceRestriction::class, $this->backendUserProvider->get()->workspace));
         $overlayRecord = $queryBuilder
             ->select('*')
             ->from('pages')
@@ -183,7 +183,7 @@ final readonly class PagePreviewService
             ->executeQuery()
             ->fetchAssociative();
         if ($overlayRecord) {
-            BackendUtility::workspaceOL('pages', $overlayRecord, $this->getBackendUserAuthentication()->workspace);
+            BackendUtility::workspaceOL('pages', $overlayRecord, $this->backendUserProvider->get()->workspace);
         }
         return is_array($overlayRecord) ? $overlayRecord : null;
     }
@@ -243,10 +243,5 @@ final readonly class PagePreviewService
         }
 
         return $urls;
-    }
-
-    private function getBackendUserAuthentication(): BackendUserAuthentication
-    {
-        return $GLOBALS['BE_USER'];
     }
 }

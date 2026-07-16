@@ -25,7 +25,9 @@ namespace MindfulMarkup\MindfulA11y\Form\FieldControl;
 
 use Exception;
 use MindfulMarkup\MindfulA11y\Domain\Model\GenerateAltTextDemand;
+use MindfulMarkup\MindfulA11y\Service\BackendUserProvider;
 use MindfulMarkup\MindfulA11y\Service\OpenAIService;
+use MindfulMarkup\MindfulA11y\Service\PermissionService;
 use TYPO3\CMS\Backend\Form\AbstractNode;
 use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Page\JavaScriptModuleInstruction;
@@ -51,6 +53,8 @@ class GenerateAltTextControl extends AbstractNode
         protected readonly OpenAIService $openAIService,
         protected readonly ResourceFactory $resourceFactory,
         protected readonly PageRenderer $pageRenderer,
+        protected readonly PermissionService $permissionService,
+        protected readonly BackendUserProvider $backendUserProvider,
     ) {
     }
 
@@ -68,14 +72,14 @@ class GenerateAltTextControl extends AbstractNode
             null === $file
             || !$this->openAIService->isFileExtSupported($file->getExtension())
             || !$this->openAIService->isEnabledAndConfigured()
-            || !$GLOBALS['BE_USER']->check('modules', 'mindfula11y_accessibility')
+            || !$this->permissionService->checkModuleAccess()
         ) {
             return [];
         }
 
         $languageService = $this->getLanguageService();
         $itemName = (string)$this->data['parameterArray']['itemFormElName'];
-        $backendUser = $GLOBALS['BE_USER'];
+        $backendUser = $this->backendUserProvider->get();
         $generateAltTextDemand = new GenerateAltTextDemand(
             $backendUser->user['uid'],
             (int)$this->data['effectivePid'],

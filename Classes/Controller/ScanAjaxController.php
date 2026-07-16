@@ -28,6 +28,7 @@ use MindfulMarkup\MindfulA11y\Domain\Model\CreateScanDemand;
 use MindfulMarkup\MindfulA11y\Exception\ScanApiRequestException;
 use MindfulMarkup\MindfulA11y\Exception\ScanCreationException;
 use MindfulMarkup\MindfulA11y\Service\ScanApiService;
+use MindfulMarkup\MindfulA11y\Service\BackendUserProvider;
 use MindfulMarkup\MindfulA11y\Service\ModuleSettingsService;
 use MindfulMarkup\MindfulA11y\Service\PagePreviewService;
 use MindfulMarkup\MindfulA11y\Service\PermissionService;
@@ -37,7 +38,6 @@ use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
-use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Http\JsonResponse;
 use TYPO3\CMS\Core\Versioning\VersionState;
 use TYPO3\CMS\Core\Site\SiteFinder;
@@ -61,6 +61,7 @@ final readonly class ScanAjaxController
         private SiteFinder $siteFinder,
         private ScanCreationService $scanCreationService,
         private ResponseFactoryInterface $responseFactory,
+        private BackendUserProvider $backendUserProvider,
     ) {}
 
     /**
@@ -122,7 +123,7 @@ final readonly class ScanAjaxController
      */
     public function createAction(ServerRequestInterface $request): ResponseInterface
     {
-        $backendUser = $this->getBackendUserAuthentication();
+        $backendUser = $this->backendUserProvider->get();
 
         if ($error = $this->requireModuleAccess()) {
             return $error;
@@ -329,11 +330,6 @@ final readonly class ScanAjaxController
         return new JsonResponse([
             'status' => $scanData['status'] ?? 'canceled',
         ], 200);
-    }
-
-    private function getBackendUserAuthentication(): BackendUserAuthentication
-    {
-        return $GLOBALS['BE_USER'];
     }
 
     /**
