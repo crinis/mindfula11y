@@ -19,9 +19,6 @@ use MindfulMarkup\MindfulA11y\Controller\StructureAnalysisTicketAjaxController;
 use MindfulMarkup\MindfulA11y\Domain\Model\StructureAnalysisTicket;
 use MindfulMarkup\MindfulA11y\Service\StructureAnalysisAuthorizationService;
 use MindfulMarkup\MindfulA11y\Tests\Functional\AbstractAuthorizationTestCase;
-use Psr\Http\Message\ServerRequestInterface;
-use TYPO3\CMS\Core\Http\NormalizedParams;
-use TYPO3\CMS\Core\Http\ServerRequest;
 
 /**
  * Authorization coverage for structure-analysis ticket issuance
@@ -63,40 +60,6 @@ final class StructureAnalysisAuthorizationTest extends AbstractAuthorizationTest
         return $this->get(StructureAnalysisAuthorizationService::class);
     }
 
-    /**
-     * SECURITY NOTE: not actually a production-security finding — this is a
-     * test-infrastructure bug in AbstractAuthorizationTestCase::createJsonRequest(),
-     * which this suite cannot edit (hard rule). That helper builds
-     * `new ServerRequest($url, $method, 'php://temp', ...)`. TYPO3's
-     * Request::__construct() wraps a *string* body as `new Stream($body)`,
-     * whose default mode is 'r' (read-only) — see Stream::__construct()'s
-     * `string $mode = 'r'` default. Writing to that stream afterwards always
-     * throws `RuntimeException: Error writing to stream`, deterministically,
-     * confirmed via a standalone `fopen('php://temp', 'r')` + `fwrite()`
-     * reproduction (returns false, no warning). TYPO3's own
-     * `StreamFactory::createStream()` opens `'php://temp'` with 'r+' for
-     * exactly this reason. Every suite relying on the shared
-     * createJsonRequest() helper is affected, not just this one — flagged
-     * prominently in the final report. This local replacement passes an
-     * already-open 'r+' resource instead of a path string, which bypasses
-     * Stream's string-mode branch entirely (Request wraps a resource as-is).
-     */
-    private function jsonRequest(array $payload, string $method = 'POST'): ServerRequestInterface
-    {
-        $resource = fopen('php://temp', 'r+');
-        fwrite($resource, json_encode($payload, JSON_THROW_ON_ERROR));
-        rewind($resource);
-        $request = new ServerRequest(
-            'https://typo3-testing.local/typo3/ajax/mindfula11y',
-            $method,
-            $resource,
-            ['Content-Type' => 'application/json'],
-            ['HTTP_HOST' => 'typo3-testing.local', 'HTTPS' => 'on', 'REQUEST_URI' => '/typo3/ajax/mindfula11y'],
-        );
-
-        return $request->withAttribute('normalizedParams', NormalizedParams::createFromRequest($request));
-    }
-
     private function buildTicket(
         int $backendUserId,
         int $pageId = 10,
@@ -124,7 +87,7 @@ final class StructureAnalysisAuthorizationTest extends AbstractAuthorizationTest
     {
         $this->logInBackendUser(2);
         $response = $this->ticketController()->ticketAction(
-            $this->jsonRequest(['pageId' => 10, 'languageId' => 0])
+            $this->createJsonRequest(['pageId' => 10, 'languageId' => 0])
         );
 
         self::assertSame(200, $response->getStatusCode());
@@ -139,7 +102,7 @@ final class StructureAnalysisAuthorizationTest extends AbstractAuthorizationTest
     {
         $this->logInBackendUser(2);
         $response = $this->ticketController()->ticketAction(
-            $this->jsonRequest(['pageId' => 10, 'languageId' => 1])
+            $this->createJsonRequest(['pageId' => 10, 'languageId' => 1])
         );
 
         self::assertSame(200, $response->getStatusCode());
@@ -156,7 +119,7 @@ final class StructureAnalysisAuthorizationTest extends AbstractAuthorizationTest
     {
         $this->logInBackendUser(3);
         $response = $this->ticketController()->ticketAction(
-            $this->jsonRequest(['pageId' => 10, 'languageId' => 0])
+            $this->createJsonRequest(['pageId' => 10, 'languageId' => 0])
         );
 
         self::assertSame(403, $response->getStatusCode());
@@ -170,7 +133,7 @@ final class StructureAnalysisAuthorizationTest extends AbstractAuthorizationTest
     {
         $this->logInBackendUser(2);
         $response = $this->ticketController()->ticketAction(
-            $this->jsonRequest(['pageId' => 14, 'languageId' => 0])
+            $this->createJsonRequest(['pageId' => 14, 'languageId' => 0])
         );
 
         self::assertSame(403, $response->getStatusCode());
@@ -189,7 +152,7 @@ final class StructureAnalysisAuthorizationTest extends AbstractAuthorizationTest
     {
         $this->logInBackendUser(2);
         $response = $this->ticketController()->ticketAction(
-            $this->jsonRequest(['pageId' => 11, 'languageId' => 0])
+            $this->createJsonRequest(['pageId' => 11, 'languageId' => 0])
         );
 
         self::assertSame(200, $response->getStatusCode());
@@ -212,7 +175,7 @@ final class StructureAnalysisAuthorizationTest extends AbstractAuthorizationTest
     {
         $this->logInBackendUser(2);
         $response = $this->ticketController()->ticketAction(
-            $this->jsonRequest(['pageId' => 20, 'languageId' => 0])
+            $this->createJsonRequest(['pageId' => 20, 'languageId' => 0])
         );
 
         self::assertSame(403, $response->getStatusCode());
@@ -226,7 +189,7 @@ final class StructureAnalysisAuthorizationTest extends AbstractAuthorizationTest
     {
         $this->logInBackendUser(6);
         $response = $this->ticketController()->ticketAction(
-            $this->jsonRequest(['pageId' => 10, 'languageId' => 1])
+            $this->createJsonRequest(['pageId' => 10, 'languageId' => 1])
         );
 
         self::assertSame(403, $response->getStatusCode());
@@ -243,7 +206,7 @@ final class StructureAnalysisAuthorizationTest extends AbstractAuthorizationTest
     {
         $this->logInBackendUser(2);
         $response = $this->ticketController()->ticketAction(
-            $this->jsonRequest(['pageId' => 601, 'languageId' => 1])
+            $this->createJsonRequest(['pageId' => 601, 'languageId' => 1])
         );
 
         self::assertSame(403, $response->getStatusCode());
@@ -264,7 +227,7 @@ final class StructureAnalysisAuthorizationTest extends AbstractAuthorizationTest
     {
         $this->logInBackendUser(2);
         $response = $this->ticketController()->ticketAction(
-            $this->jsonRequest(['pageId' => 600, 'languageId' => 0])
+            $this->createJsonRequest(['pageId' => 600, 'languageId' => 0])
         );
 
         self::assertSame(403, $response->getStatusCode());
@@ -278,7 +241,7 @@ final class StructureAnalysisAuthorizationTest extends AbstractAuthorizationTest
     {
         $this->logInBackendUser(2);
         $response = $this->ticketController()->ticketAction(
-            $this->jsonRequest(['pageId' => 0, 'languageId' => 0])
+            $this->createJsonRequest(['pageId' => 0, 'languageId' => 0])
         );
 
         self::assertSame(403, $response->getStatusCode());
@@ -288,7 +251,7 @@ final class StructureAnalysisAuthorizationTest extends AbstractAuthorizationTest
     {
         $this->logInBackendUser(2);
         $response = $this->ticketController()->ticketAction(
-            $this->jsonRequest(['pageId' => 10, 'languageId' => -1])
+            $this->createJsonRequest(['pageId' => 10, 'languageId' => -1])
         );
 
         self::assertSame(403, $response->getStatusCode());
@@ -309,7 +272,7 @@ final class StructureAnalysisAuthorizationTest extends AbstractAuthorizationTest
     {
         $this->logInBackendUser(2, 1);
         $response = $this->ticketController()->ticketAction(
-            $this->jsonRequest(['pageId' => 10, 'languageId' => 0])
+            $this->createJsonRequest(['pageId' => 10, 'languageId' => 0])
         );
 
         self::assertSame(200, $response->getStatusCode());
@@ -418,7 +381,7 @@ final class StructureAnalysisAuthorizationTest extends AbstractAuthorizationTest
     public function testEnrichActionDeniesUserWithoutModuleAccess(): void
     {
         $this->logInBackendUser(3);
-        $response = $this->enrichmentController()->enrichAction($this->jsonRequest(['records' => [
+        $response = $this->enrichmentController()->enrichAction($this->createJsonRequest(['records' => [
             ['tableName' => 'tt_content', 'columnName' => 'tx_mindfula11y_headingtype', 'uid' => 101],
         ]]));
 
@@ -428,7 +391,7 @@ final class StructureAnalysisAuthorizationTest extends AbstractAuthorizationTest
     public function testEnrichActionPositiveBaselineReturnsMetadataForEditableRecord(): void
     {
         $this->logInBackendUser(2);
-        $response = $this->enrichmentController()->enrichAction($this->jsonRequest(['records' => [
+        $response = $this->enrichmentController()->enrichAction($this->createJsonRequest(['records' => [
             ['tableName' => 'tt_content', 'columnName' => 'tx_mindfula11y_headingtype', 'uid' => 101],
         ]]));
 
@@ -451,7 +414,7 @@ final class StructureAnalysisAuthorizationTest extends AbstractAuthorizationTest
     public function testEnrichActionFiltersOutRecordWithoutEditContentPermission(): void
     {
         $this->logInBackendUser(2);
-        $response = $this->enrichmentController()->enrichAction($this->jsonRequest(['records' => [
+        $response = $this->enrichmentController()->enrichAction($this->createJsonRequest(['records' => [
             ['tableName' => 'tt_content', 'columnName' => 'tx_mindfula11y_headingtype', 'uid' => 103],
         ]]));
 
@@ -470,7 +433,7 @@ final class StructureAnalysisAuthorizationTest extends AbstractAuthorizationTest
     public function testEnrichActionFiltersOutRecordInDisallowedLanguage(): void
     {
         $this->logInBackendUser(6);
-        $response = $this->enrichmentController()->enrichAction($this->jsonRequest(['records' => [
+        $response = $this->enrichmentController()->enrichAction($this->createJsonRequest(['records' => [
             ['tableName' => 'tt_content', 'columnName' => 'tx_mindfula11y_headingtype', 'uid' => 102],
         ]]));
 

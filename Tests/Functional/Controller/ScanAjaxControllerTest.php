@@ -20,9 +20,6 @@ use MindfulMarkup\MindfulA11y\Service\ModuleLabelService;
 use MindfulMarkup\MindfulA11y\Service\ScanStateService;
 use MindfulMarkup\MindfulA11y\Tests\Functional\AbstractAuthorizationTestCase;
 use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
-use TYPO3\CMS\Core\Http\NormalizedParams;
-use TYPO3\CMS\Core\Http\ServerRequest;
 
 /**
  * Authorization coverage of the accessibility-scan AJAX endpoints
@@ -67,38 +64,6 @@ final class ScanAjaxControllerTest extends AbstractAuthorizationTestCase
     private function controller(): ScanAjaxController
     {
         return $this->get(ScanAjaxController::class);
-    }
-
-    /**
-     * INFRA NOTE: overrides AbstractAuthorizationTestCase::createJsonRequest().
-     * That method opens its body stream from the plain string 'php://temp',
-     * which TYPO3\CMS\Core\Http\Stream's constructor opens via
-     * fopen($stream, 'r') (read-only is the Stream class's default $mode)
-     * whenever $stream is a string rather than a resource — so the base
-     * method's own `$request->getBody()->write(...)` call unconditionally
-     * throws RuntimeException("Error writing to stream") for every caller,
-     * verified with a standalone repro against the exact vendor classes.
-     * This affects every suite that calls createJsonRequest() for a POST
-     * body, not just this one. Not fixable here (HARD RULE: never edit the
-     * base class) — reimplemented byte-for-byte identically except the body
-     * is a resource opened read-write, which Stream's constructor accepts
-     * as-is (the is_resource() branch ignores $mode entirely).
-     *
-     * @param array<string, mixed> $payload
-     */
-    protected function createJsonRequest(array $payload, string $method = 'POST'): ServerRequestInterface
-    {
-        $request = new ServerRequest(
-            'https://typo3-testing.local/typo3/ajax/mindfula11y',
-            $method,
-            fopen('php://temp', 'rb+'),
-            ['Content-Type' => 'application/json'],
-            ['HTTP_HOST' => 'typo3-testing.local', 'HTTPS' => 'on', 'REQUEST_URI' => '/typo3/ajax/mindfula11y'],
-        );
-        $request->getBody()->write(json_encode($payload, JSON_THROW_ON_ERROR));
-        $request->getBody()->rewind();
-
-        return $request->withAttribute('normalizedParams', NormalizedParams::createFromRequest($request));
     }
 
     /**

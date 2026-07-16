@@ -19,12 +19,6 @@ use MindfulMarkup\MindfulA11y\Domain\Model\GenerateAltTextDemand;
 use MindfulMarkup\MindfulA11y\Service\ModuleLabelService;
 use MindfulMarkup\MindfulA11y\Tests\Functional\AbstractAuthorizationTestCase;
 use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
-use TYPO3\CMS\Core\Core\SystemEnvironmentBuilder;
-use TYPO3\CMS\Core\Http\NormalizedParams;
-use TYPO3\CMS\Core\Http\ServerRequest;
-use TYPO3\CMS\Core\Http\Stream;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
  * Authorization coverage of the alt-text-generation AJAX endpoint
@@ -41,16 +35,10 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
  *
  * File-mount enforcement is only active when the storage is permission-aware,
  * which TYPO3's StoragePermissionsAspect applies solely for a backend-typed
- * $GLOBALS['TYPO3_REQUEST'] and a non-admin user. setUp() installs a backend
- * request global and creates the two physical fixture files so
- * ResourceFactory/driver checks resolve against real files.
- *
- * NOTE ON THE REQUEST BUILDER: this suite does not use the base class'
- * createJsonRequest(), whose body stream is opened read-only ('php://temp' with
- * the default mode 'r', which is not writable in this environment). It builds
- * the request from a writable body stream instead (see {@see jsonRequest()});
- * the resulting ServerRequest is byte-for-byte equivalent to what the endpoint
- * receives in production.
+ * $GLOBALS['TYPO3_REQUEST'] and a non-admin user. The base class provides both
+ * prerequisites: logInBackendUser() publishes such a request and setUp()
+ * creates the physical fixture files ResourceFactory/driver checks resolve
+ * against.
  *
  * Uses the shared AuthorizationScenario.csv fixture (users 2 full editor,
  * 3 no module, 4 no tt_content modify, 5 no exclude fields, 6 default-language
@@ -61,54 +49,9 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
  */
 final class AltTextAjaxControllerTest extends AbstractAuthorizationTestCase
 {
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        // StoragePermissionsAspect only evaluates file-mount boundaries when the
-        // current request is a backend request; without this the storage stays
-        // permission-blind (evaluatePermissions=false) and every file-mount
-        // denial below would false-pass. Set before any storage is created.
-        $GLOBALS['TYPO3_REQUEST'] = (new ServerRequest('https://typo3-testing.local/typo3', 'GET'))
-            ->withAttribute('applicationType', SystemEnvironmentBuilder::REQUESTTYPE_BE);
-
-        // Physical fixture files so the Local driver's existence / getContents()
-        // checks resolve. sys_file 1 is inside the only file mount (1:/allowed/),
-        // sys_file 2 outside it (/restricted/).
-        $fileadmin = $this->instancePath . '/fileadmin';
-        GeneralUtility::mkdir_deep($fileadmin . '/allowed');
-        GeneralUtility::mkdir_deep($fileadmin . '/restricted');
-        file_put_contents($fileadmin . '/allowed/image.jpg', 'fake-jpeg-bytes');
-        file_put_contents($fileadmin . '/restricted/secret.jpg', 'fake-jpeg-bytes');
-    }
-
     private function controller(): AltTextAjaxController
     {
         return $this->get(AltTextAjaxController::class);
-    }
-
-    /**
-     * Build a backend AJAX POST request carrying $payload as a JSON body on a
-     * writable stream, with the normalizedParams attribute core middleware
-     * would provide.
-     *
-     * @param array<string, mixed> $payload
-     */
-    private function jsonRequest(array $payload): ServerRequestInterface
-    {
-        $body = new Stream('php://temp', 'wb+');
-        $body->write(json_encode($payload, JSON_THROW_ON_ERROR));
-        $body->rewind();
-
-        $request = new ServerRequest(
-            'https://typo3-testing.local/typo3/ajax/mindfula11y',
-            'POST',
-            $body,
-            ['Content-Type' => 'application/json'],
-            ['HTTP_HOST' => 'typo3-testing.local', 'HTTPS' => 'on', 'REQUEST_URI' => '/typo3/ajax/mindfula11y'],
-        );
-
-        return $request->withAttribute('normalizedParams', NormalizedParams::createFromRequest($request));
     }
 
     /**
@@ -148,7 +91,7 @@ final class AltTextAjaxControllerTest extends AbstractAuthorizationTestCase
      */
     private function generate(array $payload): ResponseInterface
     {
-        return $this->controller()->generateAction($this->jsonRequest($payload));
+        return $this->controller()->generateAction($this->createJsonRequest($payload));
     }
 
     /**

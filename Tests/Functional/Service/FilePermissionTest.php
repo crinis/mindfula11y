@@ -16,9 +16,6 @@ namespace MindfulMarkup\MindfulA11y\Tests\Functional\Service;
 
 use MindfulMarkup\MindfulA11y\Service\PermissionService;
 use MindfulMarkup\MindfulA11y\Tests\Functional\AbstractAuthorizationTestCase;
-use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
-use TYPO3\CMS\Core\Core\SystemEnvironmentBuilder;
-use TYPO3\CMS\Core\Http\ServerRequest;
 use TYPO3\CMS\Core\Resource\File;
 use TYPO3\CMS\Core\Resource\ResourceFactory;
 
@@ -90,28 +87,6 @@ final class FilePermissionTest extends AbstractAuthorizationTestCase
         return $this->get(PermissionService::class);
     }
 
-    /**
-     * TYPO3\CMS\Core\Resource\Security\StoragePermissionsAspect - the event
-     * listener that injects the logged-in user's file mounts/permissions
-     * into a storage - only fires when $GLOBALS['TYPO3_REQUEST'] is a
-     * ServerRequestInterface whose ApplicationType resolves to backend. A
-     * bare functional test never populates that global (there is no real
-     * RequestHandler run), so without this, ResourceStorage::
-     * $evaluatePermissions stays false for every user and every
-     * checkFileActionPermission() call short-circuits to true - silently
-     * turning every assertion in this suite vacuous. Log in through this
-     * helper, not AbstractAuthorizationTestCase::logInBackendUser()
-     * directly, for every test in this file.
-     */
-    private function logInBackendUserForFileAccess(int $userUid): BackendUserAuthentication
-    {
-        $backendUser = $this->logInBackendUser($userUid);
-        $GLOBALS['TYPO3_REQUEST'] = (new ServerRequest())
-            ->withAttribute('applicationType', SystemEnvironmentBuilder::REQUESTTYPE_BE);
-
-        return $backendUser;
-    }
-
     private function file(int $uid): File
     {
         return $this->get(ResourceFactory::class)->getFileObject($uid);
@@ -119,7 +94,7 @@ final class FilePermissionTest extends AbstractAuthorizationTestCase
 
     public function testAdminBypassesFileMountAndFilePermissionChecks(): void
     {
-        $this->logInBackendUserForFileAccess(1);
+        $this->logInBackendUser(1);
         $permissionService = $this->permissionService();
 
         self::assertTrue($permissionService->checkFileReadAccess($this->file(1)), 'admin read: inside mount');
@@ -130,7 +105,7 @@ final class FilePermissionTest extends AbstractAuthorizationTestCase
 
     public function testEditorWithFullFileMountAndPermissionsIsBoundedByTheMount(): void
     {
-        $this->logInBackendUserForFileAccess(2);
+        $this->logInBackendUser(2);
         $permissionService = $this->permissionService();
 
         self::assertTrue($permissionService->checkFileReadAccess($this->file(1)), 'editor read: inside mount 1');
@@ -141,7 +116,7 @@ final class FilePermissionTest extends AbstractAuthorizationTestCase
 
     public function testEditorWithoutAnyFileMountIsDeniedEverywhere(): void
     {
-        $this->logInBackendUserForFileAccess(9);
+        $this->logInBackendUser(9);
         $permissionService = $this->permissionService();
 
         // Allowed baseline for this exact file is established by
@@ -154,7 +129,7 @@ final class FilePermissionTest extends AbstractAuthorizationTestCase
 
     public function testEditorWithReadOnlyFilePermissionsCanStillEditMetaOfAWritableMountFile(): void
     {
-        $this->logInBackendUserForFileAccess(12);
+        $this->logInBackendUser(12);
         $permissionService = $this->permissionService();
 
         self::assertTrue($permissionService->checkFileReadAccess($this->file(1)), 'read-only-permissions editor read: inside mount 1');
@@ -192,7 +167,7 @@ final class FilePermissionTest extends AbstractAuthorizationTestCase
         // PermissionService::checkFileReadAccess()'s docblock and matches
         // core's own FileMetadataPermissionsAspect - not a weakened gate
         // introduced by this extension.
-        $this->logInBackendUserForFileAccess(9);
+        $this->logInBackendUser(9);
         $permissionService = $this->permissionService();
 
         self::assertTrue($permissionService->checkFileReadAccess($this->file(300)), 'fallback storage read: no mount evaluation at all');
@@ -201,7 +176,7 @@ final class FilePermissionTest extends AbstractAuthorizationTestCase
 
     public function testReadOnlyFileMountAllowsReadButDeniesMetaEdit(): void
     {
-        $this->logInBackendUserForFileAccess(300);
+        $this->logInBackendUser(300);
         $permissionService = $this->permissionService();
 
         // Same physical file as the writable-mount baseline in
