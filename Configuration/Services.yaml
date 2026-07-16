@@ -6,7 +6,13 @@ services:
 
   MindfulMarkup\MindfulA11y\:
     resource: "../Classes/*"
-    exclude: "../Classes/Domain/Model/*"
+    # Value types (models, enums, exceptions, the per-request ModuleContext)
+    # are constructed by hand, never by the container.
+    exclude:
+      - "../Classes/Domain/Model/*"
+      - "../Classes/Backend/ModuleContext.php"
+      - "../Classes/Enum/*"
+      - "../Classes/Exception/*"
 
   # The runtime cache handle is not autowirable by type (FrontendInterface is
   # ambiguous); bind the shared 'runtime' cache explicitly. The remaining
