@@ -24,7 +24,9 @@
         "typo3/cms-install": "^13.4 || ^14.3"
     },
     "require-dev": {
-        "phpunit/phpunit": "^11.5"
+        "phpunit/phpunit": "^11.5",
+        "typo3/testing-framework": "^9.2",
+        "typo3/cms-workspaces": "^13.4 || ^14.3"
     },
     "suggest": {
         "typo3/cms-form": "Adds the localized page-title error prefix after failed server-side EXT:form validation."
@@ -40,7 +42,12 @@
         }
     },
     "scripts": {
-        "test": "phpunit"
+        "test": [
+            "@test:unit",
+            "@test:functional"
+        ],
+        "test:unit": "phpunit",
+        "test:functional": "phpunit -c phpunit.functional.xml.dist"
     },
     "extra": {
         "typo3/cms": {

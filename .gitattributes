@@ -12,6 +12,7 @@
 /Resources/Private/VisualEditorDemo export-ignore
 /Tests export-ignore
 /phpunit.xml.dist export-ignore
+/phpunit.functional.xml.dist export-ignore
 /package.json export-ignore
 /package-lock.json export-ignore
 /tsconfig.json export-ignore

@@ -70,3 +70,8 @@ jobs:
 
       - name: Unit tests
         run: vendor/bin/phpunit
+
+      - name: Functional tests
+        run: vendor/bin/phpunit -c phpunit.functional.xml.dist
+        env:
+          typo3DatabaseDriver: pdo_sqlite

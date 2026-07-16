@@ -1,0 +1,14 @@
+{
+    "name": "mindfulmarkup/a11y-test",
+    "description": "Test fixture extension for mindfula11y functional tests: TCA additions the authorization scenario needs (e.g. authMode on tt_content.CType, which core does not configure by default).",
+    "type": "typo3-cms-extension",
+    "license": ["GPL-2.0-or-later"],
+    "require": {
+        "typo3/cms-core": "^13.4 || ^14.3"
+    },
+    "extra": {
+        "typo3/cms": {
+            "extension-key": "a11y_test"
+        }
+    }
+}

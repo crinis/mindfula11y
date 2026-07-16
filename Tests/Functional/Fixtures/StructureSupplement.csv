@@ -1,0 +1,5 @@
+"pages"
+,"uid","pid","title","doktype","slug","is_siteroot","hidden","editlock","sys_language_uid","l10n_parent","perms_userid","perms_groupid","perms_user","perms_group","perms_everybody","TSconfig"
+,600,1,"No Structure Access",1,"/no-structure-access",0,0,0,0,0,0,0,0,0,19,"mod.mindfula11y_accessibility.headingStructure.enable = 0
+mod.mindfula11y_accessibility.landmarkStructure.enable = 0"
+,601,1,"No Translation",1,"/no-translation",0,0,0,0,0,0,0,0,0,19,""

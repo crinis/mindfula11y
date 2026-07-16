@@ -63,6 +63,7 @@ return [
         'phpstan\.neon',
         'phpunit\.xml',
         'phpunit\.xml\.dist',
+        'phpunit\.functional\.xml\.dist',
         // Frontend toolchain configs and agent instructions.
         'tsconfig\.json',
         'biome\.json',

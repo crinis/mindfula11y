@@ -1,0 +1,15 @@
+"be_groups"
+,"uid","pid","title","file_mountpoints","file_permissions"
+,300,0,"readonly_mount","300","readFolder,readFile,writeFile"
+"be_users"
+,"uid","pid","username","password","admin","usergroup","options","workspace_perms"
+,300,0,"editor_readonly_mount","$argon2i$v=19$m=65536,t=16,p=1$invalid","0","300","3",1
+"sys_filemounts"
+,"uid","pid","title","identifier","read_only"
+,300,0,"Allowed Read Only","1:/allowed/",1
+"sys_file"
+,"uid","pid","storage","type","identifier","identifier_hash","folder_hash","extension","mime_type","name","size"
+,300,0,0,2,"/fallback-file.jpg","b3000000000000000000000000000000000000b3","f3000000000000000000000000000000000000f3","jpg","image/jpeg","fallback-file.jpg",100
+"sys_file_metadata"
+,"uid","pid","file","title","alternative"
+,300,0,300,"",""

@@ -26,3 +26,4 @@ lerna-debug.log*
 *.sw?
 /composer.lock
 /.phpunit.cache
+/.test-root

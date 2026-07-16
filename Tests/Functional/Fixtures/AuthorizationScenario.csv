@@ -1,0 +1,97 @@
+"pages"
+,"uid","pid","title","doktype","slug","is_siteroot","hidden","editlock","sys_language_uid","l10n_parent","perms_userid","perms_groupid","perms_user","perms_group","perms_everybody","TSconfig"
+,1,0,"Site Root",1,"/",1,0,0,0,0,0,0,0,0,1,"mod.mindfula11y_accessibility.scan.enable = 1
+mod.mindfula11y_accessibility.headingStructure.enable = 1
+mod.mindfula11y_accessibility.landmarkStructure.enable = 1
+mod.mindfula11y_accessibility.missingAltText.enable = 1"
+,10,1,"Editable",1,"/editable",0,0,0,0,0,0,0,0,0,19,""
+,11,1,"Show Only",1,"/show-only",0,0,0,0,0,0,0,0,0,1,""
+,12,1,"Edit Locked",1,"/edit-locked",0,0,1,0,0,0,0,0,0,19,""
+,13,1,"Content Only",1,"/content-only",0,0,0,0,0,0,0,0,0,17,""
+,14,1,"No Access",1,"/no-access",0,0,0,0,0,0,0,0,0,0,""
+,15,1,"Hidden Page",1,"/hidden",0,1,0,0,0,0,0,0,0,19,""
+,16,1,"Group Only",1,"/group-only",0,0,0,0,0,0,1,0,19,0,""
+,17,1,"Scan Disabled",1,"/scan-disabled",0,0,0,0,0,0,0,0,0,19,"mod.mindfula11y_accessibility.scan.enable = 0"
+,18,1,"Page Only",1,"/page-only",0,0,0,0,0,0,0,0,0,3,""
+,19,1,"Ai Audit Enabled",1,"/ai-audit",0,0,0,0,0,0,0,0,0,19,"mod.mindfula11y_accessibility.scan.aiAudit.enable = 1"
+,20,0,"Outside Mount Root",1,"/outside",1,0,0,0,0,0,0,0,0,19,"mod.mindfula11y_accessibility.scan.enable = 1
+mod.mindfula11y_accessibility.headingStructure.enable = 1
+mod.mindfula11y_accessibility.landmarkStructure.enable = 1
+mod.mindfula11y_accessibility.missingAltText.enable = 1"
+,30,1,"Editable FR",1,"/fr/editable",0,0,0,1,10,0,0,0,0,19,""
+"be_groups"
+,"uid","pid","title","tables_select","tables_modify","non_exclude_fields","explicit_allowdeny","allowed_languages","db_mountpoints","file_mountpoints","file_permissions","groupMods","pagetypes_select"
+,1,0,"editors_full","pages,tt_content,sys_file,sys_file_reference,sys_file_metadata","pages,tt_content,sys_file_reference,sys_file_metadata","tt_content:tx_mindfula11y_headingtype,tt_content:tx_mindfula11y_landmark,tt_content:tx_mindfula11y_arialabelledby,tt_content:tx_mindfula11y_arialabel,sys_file_reference:tx_mindfula11y_decorative,sys_file_reference:alternative,sys_file_reference:title","tt_content:CType:text,tt_content:CType:textmedia","","1","1","readFolder,readFile,writeFile","mindfula11y_accessibility","1"
+,2,0,"no_module","pages,tt_content,sys_file,sys_file_reference,sys_file_metadata","pages,tt_content,sys_file_reference,sys_file_metadata","tt_content:tx_mindfula11y_headingtype,tt_content:tx_mindfula11y_landmark,tt_content:tx_mindfula11y_arialabelledby,tt_content:tx_mindfula11y_arialabel,sys_file_reference:tx_mindfula11y_decorative,sys_file_reference:alternative,sys_file_reference:title","tt_content:CType:text,tt_content:CType:textmedia","","1","1","readFolder,readFile,writeFile","","1"
+,3,0,"no_content_modify","pages,tt_content,sys_file,sys_file_reference,sys_file_metadata","pages,sys_file_reference,sys_file_metadata","tt_content:tx_mindfula11y_headingtype,tt_content:tx_mindfula11y_landmark,tt_content:tx_mindfula11y_arialabelledby,tt_content:tx_mindfula11y_arialabel,sys_file_reference:tx_mindfula11y_decorative,sys_file_reference:alternative,sys_file_reference:title","tt_content:CType:text,tt_content:CType:textmedia","","1","1","readFolder,readFile,writeFile","mindfula11y_accessibility","1"
+,4,0,"no_exclude_fields","pages,tt_content,sys_file,sys_file_reference,sys_file_metadata","pages,tt_content,sys_file_reference,sys_file_metadata","","tt_content:CType:text,tt_content:CType:textmedia","","1","1","readFolder,readFile,writeFile","mindfula11y_accessibility","1"
+,5,0,"lang_default_only","pages,tt_content,sys_file,sys_file_reference,sys_file_metadata","pages,tt_content,sys_file_reference,sys_file_metadata","tt_content:tx_mindfula11y_headingtype,tt_content:tx_mindfula11y_landmark,tt_content:tx_mindfula11y_arialabelledby,tt_content:tx_mindfula11y_arialabel,sys_file_reference:tx_mindfula11y_decorative,sys_file_reference:alternative,sys_file_reference:title","tt_content:CType:text,tt_content:CType:textmedia","0","1","1","readFolder,readFile,writeFile","mindfula11y_accessibility","1"
+,6,0,"ctype_text_only","pages,tt_content,sys_file,sys_file_reference,sys_file_metadata","pages,tt_content,sys_file_reference,sys_file_metadata","tt_content:tx_mindfula11y_headingtype,tt_content:tx_mindfula11y_landmark,tt_content:tx_mindfula11y_arialabelledby,tt_content:tx_mindfula11y_arialabel,sys_file_reference:tx_mindfula11y_decorative,sys_file_reference:alternative,sys_file_reference:title","tt_content:CType:text","","1","1","readFolder,readFile,writeFile","mindfula11y_accessibility","1"
+,7,0,"no_pages_modify","pages,tt_content,sys_file,sys_file_reference,sys_file_metadata","tt_content,sys_file_reference,sys_file_metadata","tt_content:tx_mindfula11y_headingtype,tt_content:tx_mindfula11y_landmark,tt_content:tx_mindfula11y_arialabelledby,tt_content:tx_mindfula11y_arialabel,sys_file_reference:tx_mindfula11y_decorative,sys_file_reference:alternative,sys_file_reference:title","tt_content:CType:text,tt_content:CType:textmedia","","1","1","readFolder,readFile,writeFile","mindfula11y_accessibility","1"
+,8,0,"no_filemount","pages,tt_content,sys_file,sys_file_reference,sys_file_metadata","pages,tt_content,sys_file_reference,sys_file_metadata","tt_content:tx_mindfula11y_headingtype,tt_content:tx_mindfula11y_landmark,tt_content:tx_mindfula11y_arialabelledby,tt_content:tx_mindfula11y_arialabel,sys_file_reference:tx_mindfula11y_decorative,sys_file_reference:alternative,sys_file_reference:title","tt_content:CType:text,tt_content:CType:textmedia","","1","","readFolder,readFile,writeFile","mindfula11y_accessibility","1"
+,9,0,"lang_translation_only","pages,tt_content,sys_file,sys_file_reference,sys_file_metadata","pages,tt_content,sys_file_reference,sys_file_metadata","tt_content:tx_mindfula11y_headingtype,tt_content:tx_mindfula11y_landmark,tt_content:tx_mindfula11y_arialabelledby,tt_content:tx_mindfula11y_arialabel,sys_file_reference:tx_mindfula11y_decorative,sys_file_reference:alternative,sys_file_reference:title","tt_content:CType:text,tt_content:CType:textmedia","1","1","1","readFolder,readFile,writeFile","mindfula11y_accessibility","1"
+,10,0,"file_read_only","pages,tt_content,sys_file,sys_file_reference,sys_file_metadata","pages,tt_content,sys_file_reference,sys_file_metadata","tt_content:tx_mindfula11y_headingtype,tt_content:tx_mindfula11y_landmark,tt_content:tx_mindfula11y_arialabelledby,tt_content:tx_mindfula11y_arialabel,sys_file_reference:tx_mindfula11y_decorative,sys_file_reference:alternative,sys_file_reference:title","tt_content:CType:text,tt_content:CType:textmedia","","1","1","readFolder,readFile","mindfula11y_accessibility","1"
+"be_users"
+,"uid","pid","username","password","admin","usergroup","options","workspace_perms"
+,1,0,"admin","$argon2i$v=19$m=65536,t=16,p=1$invalid","1","","3",1
+,2,0,"editor","$argon2i$v=19$m=65536,t=16,p=1$invalid","0","1","3",1
+,3,0,"editor_no_module","$argon2i$v=19$m=65536,t=16,p=1$invalid","0","2","3",1
+,4,0,"editor_no_content_modify","$argon2i$v=19$m=65536,t=16,p=1$invalid","0","3","3",1
+,5,0,"editor_no_exclude","$argon2i$v=19$m=65536,t=16,p=1$invalid","0","4","3",1
+,6,0,"editor_lang_default","$argon2i$v=19$m=65536,t=16,p=1$invalid","0","5","3",1
+,7,0,"editor_ctype_limited","$argon2i$v=19$m=65536,t=16,p=1$invalid","0","6","3",1
+,8,0,"editor_no_pages_modify","$argon2i$v=19$m=65536,t=16,p=1$invalid","0","7","3",1
+,9,0,"editor_no_filemount","$argon2i$v=19$m=65536,t=16,p=1$invalid","0","8","3",1
+,10,0,"editor_second","$argon2i$v=19$m=65536,t=16,p=1$invalid","0","1","3",1
+,11,0,"editor_lang_translation","$argon2i$v=19$m=65536,t=16,p=1$invalid","0","9","3",1
+,12,0,"editor_file_read_only","$argon2i$v=19$m=65536,t=16,p=1$invalid","0","10","3",1
+"sys_workspace"
+,"uid","pid","title","adminusers","members"
+,1,0,"Draft","be_users_1","be_users_2,be_users_10"
+"sys_file_storage"
+,"uid","pid","name","driver","configuration","is_online","is_browsable","is_public","is_writable"
+,1,0,"fileadmin","Local","<?xml version=""1.0"" encoding=""utf-8"" standalone=""yes"" ?>
+<T3FlexForms>
+    <data>
+        <sheet index=""sDEF"">
+            <language index=""lDEF"">
+                <field index=""basePath"">
+                    <value index=""vDEF"">fileadmin/</value>
+                </field>
+                <field index=""pathType"">
+                    <value index=""vDEF"">relative</value>
+                </field>
+                <field index=""caseSensitive"">
+                    <value index=""vDEF"">1</value>
+                </field>
+            </language>
+        </sheet>
+    </data>
+</T3FlexForms>",1,1,1,1
+"sys_filemounts"
+,"uid","pid","title","identifier"
+,1,0,"Allowed","1:/allowed/"
+"sys_file"
+,"uid","pid","storage","type","identifier","identifier_hash","folder_hash","extension","mime_type","name","size"
+,1,0,1,2,"/allowed/image.jpg","a1000000000000000000000000000000000000a1","f1000000000000000000000000000000000000f1","jpg","image/jpeg","image.jpg",100
+,2,0,1,2,"/restricted/secret.jpg","a2000000000000000000000000000000000000a2","f2000000000000000000000000000000000000f2","jpg","image/jpeg","secret.jpg",100
+"sys_file_metadata"
+,"uid","pid","file","title","alternative"
+,1,0,1,"",""
+,2,0,2,"",""
+"sys_file_reference"
+,"uid","pid","uid_local","uid_foreign","tablenames","fieldname","sys_language_uid","tx_mindfula11y_decorative","alternative"
+,1,10,1,100,"tt_content","assets",0,0,""
+,2,10,2,100,"tt_content","assets",0,0,""
+"tt_content"
+,"uid","pid","CType","header","sys_language_uid","l18n_parent","editlock","assets"
+,100,10,"textmedia","Editable content",0,0,0,2
+,101,10,"text","Plain text content",0,0,0,0
+,102,10,"textmedia","Translated content",1,100,0,0
+,103,11,"text","On show-only page",0,0,0,0
+,104,12,"text","On edit-locked page",0,0,0,0
+,105,10,"text","Record edit-locked",0,0,1,0
+,106,20,"text","Outside webmount",0,0,0,0
+,107,13,"text","On content-only page",0,0,0,0
+,108,18,"text","On page-only page",0,0,0,0
+,109,14,"text","On no-access page",0,0,0,0
