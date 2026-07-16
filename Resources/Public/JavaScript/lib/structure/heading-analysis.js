@@ -61,7 +61,7 @@ const analyzeHeadings = (doc, options = {}) => {
         errors: [],
         children: []
       };
-      if (container.relationId !== "" && !nodesByRelationId.has(container.relationId)) {
+      if (container.relationId !== "") {
         nodesByRelationId.set(container.relationId, container);
       }
       (parentStack.at(-1)?.children ?? rootNodes).push(container);
@@ -97,7 +97,7 @@ const analyzeHeadings = (doc, options = {}) => {
       errors: [],
       children: []
     };
-    if (relationId !== "" && !nodesByRelationId.has(relationId)) {
+    if (relationId !== "") {
       nodesByRelationId.set(relationId, node);
     }
     if (h1Count > 1 && level === 1) {

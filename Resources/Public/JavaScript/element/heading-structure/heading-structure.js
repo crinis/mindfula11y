@@ -279,19 +279,28 @@ let HeadingStructure = class extends StructureView {
    * their translated label. A currently selected "automatic" option carries the
    * effective level (own level for the level select, own level + 1 for the
    * child-type select), so the level stays visible in the collapsed select.
+   * An effective level past H6 shows as P: HeadingType::increment() overflows
+   * derived levels beyond h6 to a paragraph, so an H6 container's automatic
+   * children must never be promised an "H7".
    */
   levelOptionLabel(type, typeLabel, currentValue, effectiveLevel) {
     if (/^h[1-6]$/.test(type)) {
       return type.toUpperCase();
     }
     if (type === "" && currentValue === "" && effectiveLevel !== null) {
-      return `${typeLabel} (H${effectiveLevel})`;
+      return effectiveLevel > 6 ? `${typeLabel} (P)` : `${typeLabel} (H${effectiveLevel})`;
     }
     return typeLabel;
   }
   handleRelationJump(node) {
     const targetId = node.relation?.targetRelationId ?? "";
-    const target = targetId === "" ? null : this.renderRoot.querySelector(`[data-relation-id="${CSS.escape(targetId)}"]`);
+    const rows = targetId === "" ? [] : Array.from(
+      this.renderRoot.querySelectorAll(`[data-relation-id="${CSS.escape(targetId)}"]`)
+    );
+    const own = this.renderRoot.querySelector(`[data-node-id="${CSS.escape(node.id)}"]`);
+    const target = rows.filter(
+      (row) => own === null || (row.compareDocumentPosition(own) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0
+    ).at(-1) ?? rows.at(0) ?? null;
     if (target === null) {
       Notification.warning(
         lll("mindfula11y.structure.headings.relation.notFound"),

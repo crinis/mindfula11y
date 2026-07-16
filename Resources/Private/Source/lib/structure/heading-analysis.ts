@@ -87,8 +87,11 @@ export const analyzeHeadings = (doc: Document, options: StructureAnalysisOptions
     const collector = createErrorCollector(viewport);
     const rootNodes: HeadingNode[] = [];
     const parentStack: HeadingNode[] = [];
-    // First-wins, mirroring the registry's "ancestor renders before descendant"
-    // ordering: lets a skipping heading resolve its relation target's node kind.
+    // Overwritten as the document-order walk advances, so every lookup sees
+    // the NEAREST PRECEDING publisher of a relation id. That mirrors
+    // HeadingRelationRegistry, where a duplicate id (e.g. the same container
+    // rendered twice via shortcut records) re-registers and descendants
+    // resolve whatever was registered when they rendered.
     const nodesByRelationId = new Map<string, HeadingNode>();
     const h1Count = headings.filter((heading) => heading.tagName === 'H1').length;
 
@@ -116,7 +119,7 @@ export const analyzeHeadings = (doc: Document, options: StructureAnalysisOptions
                 errors: [],
                 children: [],
             };
-            if (container.relationId !== '' && !nodesByRelationId.has(container.relationId)) {
+            if (container.relationId !== '') {
                 nodesByRelationId.set(container.relationId, container);
             }
             // Containers attach to the current heading context but never open
@@ -170,7 +173,7 @@ export const analyzeHeadings = (doc: Document, options: StructureAnalysisOptions
             errors: [],
             children: [],
         };
-        if (relationId !== '' && !nodesByRelationId.has(relationId)) {
+        if (relationId !== '') {
             nodesByRelationId.set(relationId, node);
         }
 

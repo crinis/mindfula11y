@@ -333,4 +333,33 @@ describe('analyzeHeadings', () => {
         expect(child?.skippedLevels).toBe(1);
         expect(child?.errors).toHaveLength(1);
     });
+
+    it('attributes a skip to the nearest preceding publisher of a duplicated relation id', () => {
+        // The same container rendered twice (shortcut records) publishes its
+        // relation id once per occurrence; the registry resolves descendants
+        // against the most recent registration, so the analyzer must attribute
+        // to the SECOND occurrence, not the first.
+        document.body.innerHTML = `
+            <h1>Page</h1>
+            <span hidden data-mindfula11y-container="h2" data-mindfula11y-relation-id="dup" data-mindfula11y-record-uid="1"></span>
+            <h3 data-mindfula11y-ancestor-id="dup">First occurrence child</h3>
+            <span hidden data-mindfula11y-container="h2" data-mindfula11y-relation-id="dup" data-mindfula11y-record-uid="2"></span>
+            <h3 data-mindfula11y-ancestor-id="dup">Second occurrence child</h3>`;
+
+        const analysis = analyzeHeadings(document, { isExposed: () => true });
+
+        const all = flatten(analysis.nodes);
+        const containers = all.filter((node) => node.kind === 'container');
+        expect(containers).toHaveLength(2);
+        // Each occurrence's skipping child attributes to ITS preceding marker;
+        // first-wins would pile both skips onto the first container.
+        expect(containers[0]?.errors.map((error) => error.key)).toEqual([
+            'mindfula11y.structure.headings.error.skippedLevel',
+        ]);
+        expect(containers[1]?.errors.map((error) => error.key)).toEqual([
+            'mindfula11y.structure.headings.error.skippedLevel',
+        ]);
+        const headings = all.filter((node) => node.kind === 'heading');
+        expect(headings.every((node) => node.skippedLevels === 0)).toBe(true);
+    });
 });

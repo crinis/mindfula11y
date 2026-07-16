@@ -353,6 +353,9 @@ export class HeadingStructure extends StructureView<HeadingNode> {
      * their translated label. A currently selected "automatic" option carries the
      * effective level (own level for the level select, own level + 1 for the
      * child-type select), so the level stays visible in the collapsed select.
+     * An effective level past H6 shows as P: HeadingType::increment() overflows
+     * derived levels beyond h6 to a paragraph, so an H6 container's automatic
+     * children must never be promised an "H7".
      */
     private levelOptionLabel(
         type: string,
@@ -364,17 +367,33 @@ export class HeadingStructure extends StructureView<HeadingNode> {
             return type.toUpperCase();
         }
         if (type === '' && currentValue === '' && effectiveLevel !== null) {
-            return `${typeLabel} (H${effectiveLevel})`;
+            return effectiveLevel > 6 ? `${typeLabel} (P)` : `${typeLabel} (H${effectiveLevel})`;
         }
         return typeLabel;
     }
 
     private handleRelationJump(node: HeadingNode): void {
         const targetId = node.relation?.targetRelationId ?? '';
-        const target =
+        const rows =
             targetId === ''
-                ? null
-                : this.renderRoot.querySelector<HTMLElement>(`[data-relation-id="${CSS.escape(targetId)}"]`);
+                ? []
+                : Array.from(
+                      this.renderRoot.querySelectorAll<HTMLElement>(`[data-relation-id="${CSS.escape(targetId)}"]`),
+                  );
+        // A relation resolves to its nearest PRECEDING publisher — duplicate
+        // relation ids re-register (HeadingRelationRegistry semantics, mirrored
+        // by the analyzer) — so land on the last matching row above this
+        // heading's own row, not the first match on the page.
+        const own = this.renderRoot.querySelector(`[data-node-id="${CSS.escape(node.id)}"]`);
+        const target =
+            rows
+                .filter(
+                    (row) =>
+                        own === null || (row.compareDocumentPosition(own) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0,
+                )
+                .at(-1) ??
+            rows.at(0) ??
+            null;
         if (target === null) {
             Notification.warning(
                 lll('mindfula11y.structure.headings.relation.notFound'),
