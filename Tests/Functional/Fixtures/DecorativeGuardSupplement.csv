@@ -2,5 +2,6 @@
 ,"uid","pid","CType","header","sys_language_uid","l18n_parent","editlock","assets"
 ,700,14,"textmedia","On no-access page (guard supplement)",0,0,0,1
 "sys_file_reference"
-,"uid","pid","uid_local","uid_foreign","tablenames","fieldname","sys_language_uid","tx_mindfula11y_decorative","alternative"
-,700,14,1,700,"tt_content","assets",0,0,""
+,"uid","pid","uid_local","uid_foreign","tablenames","fieldname","sys_language_uid","tx_mindfula11y_decorative","alternative","t3ver_oid","t3ver_wsid","t3ver_state"
+,700,14,1,700,"tt_content","assets",0,0,"",0,0,0
+,701,10,1,100,"tt_content","assets",0,1,"",1,1,0

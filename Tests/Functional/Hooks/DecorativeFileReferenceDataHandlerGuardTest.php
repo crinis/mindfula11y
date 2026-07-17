@@ -21,23 +21,28 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
  * Functional coverage of DecorativeFileReferenceDataHandlerGuard, the
- * processDatamap_preProcessFieldArray hook that guards writes to the
- * extension's own tx_mindfula11y_decorative toggle on sys_file_reference.
+ * processDatamap_preProcessFieldArray hook that keeps alternative and title
+ * empty on decorative sys_file_reference rows.
  *
- * Every blocked-write case is paired with an allowed baseline so nothing can
- * pass vacuously. All writes are driven through a real DataHandler run and
- * asserted against the persisted database state (plus the guard's error-log
- * entry on the blocked toggles).
+ * Who may toggle tx_mindfula11y_decorative is deliberately core's business:
+ * reference-table rights, the reference's page permissions, and the field's
+ * exclude grant — the same rules that govern the adjacent alternative/title
+ * columns. The tests pin that model (core denials still deny; reference
+ * access suffices) alongside the hook's own blanking invariant, including
+ * its workspace-overlaid read of the stored decorative state.
+ *
+ * All writes are driven through a real DataHandler run and asserted against
+ * the persisted database state.
  *
  * Fixture context (see AuthorizationScenario.csv + DecorativeGuardSupplement.csv):
  *  - sys_file_reference 1 -> tt_content 100 (assets, page 10 editable), decorative 0
  *  - sys_file_reference 700 -> tt_content 700 (assets, page 14 no-access), decorative 0
- *  - user 2 full editor, user 4 no tt_content modify, user 5 no exclude fields.
+ *  - sys_file_reference 701 = workspace-1 version of reference 1, decorative 1
+ *  - user 2 full editor (workspace 1 member), user 4 no tt_content modify,
+ *    user 5 no exclude fields.
  */
 final class DecorativeFileReferenceDataHandlerGuardTest extends AbstractAuthorizationTestCase
 {
-    private const GUARD_LOG_FRAGMENT = 'without access to its parent record and relation field';
-
     protected function setUp(): void
     {
         parent::setUp();
@@ -45,11 +50,10 @@ final class DecorativeFileReferenceDataHandlerGuardTest extends AbstractAuthoriz
     }
 
     /**
-     * A: full editor sets decorative=1 on an accessible reference. The toggle is
-     * stored, and the guard blanks alternative + title in the SAME write even
-     * though a non-empty alternative was submitted alongside it.
+     * Setting decorative=1 stores the toggle and blanks alternative + title in
+     * the SAME write even though non-empty values were submitted alongside it.
      */
-    public function testAllowedToggleStoresDecorativeAndBlanksAlternativeAndTitle(): void
+    public function testToggleStoresDecorativeAndBlanksAlternativeAndTitle(): void
     {
         $backendUser = $this->logInBackendUser(2);
 
@@ -67,11 +71,11 @@ final class DecorativeFileReferenceDataHandlerGuardTest extends AbstractAuthoriz
         self::assertSame(1, (int)$reference['tx_mindfula11y_decorative'], 'decorative toggle stored');
         self::assertSame('', (string)$reference['alternative'], 'alternative blanked by guard');
         self::assertSame('', (string)$reference['title'], 'title blanked by guard');
-        self::assertSame([], $dataHandler->errorLog, 'no guard denial for an accessible reference');
+        self::assertSame([], $dataHandler->errorLog, 'no denial for an accessible reference');
     }
 
     /**
-     * B: an already-decorative reference receives an UNRELATED save that submits
+     * An already-decorative reference receives an UNRELATED save that submits
      * only a non-empty alternative. The guard re-derives the stored decorative
      * state and forces alternative back to empty.
      */
@@ -94,13 +98,36 @@ final class DecorativeFileReferenceDataHandlerGuardTest extends AbstractAuthoriz
     }
 
     /**
-     * C: full editor flips decorative on a reference whose parent tt_content
-     * sits on a no-access page (14). The guard denies via the stored parent
-     * relation; the toggle stays 0 and the guard log entry is present.
-     * DataHandler may additionally refuse the record for lack of page access —
-     * the assertion is specifically about the toggle value remaining 0.
+     * The stored decorative state must be the WORKSPACE-overlaid one: reference
+     * 1 is non-decorative live but its workspace-1 version (701) is decorative.
+     * A workspace editor saving an alternative on the live uid writes to the
+     * version — so the blanking must follow the version's decorative flag, not
+     * the live row's.
      */
-    public function testBlockedWhenParentPageNotAccessible(): void
+    public function testBlankingFollowsTheWorkspaceVersionsDecorativeState(): void
+    {
+        $backendUser = $this->logInBackendUser(2, 1);
+
+        $this->runDataHandler([
+            'sys_file_reference' => [
+                1 => [
+                    'alternative' => 'sneaky in draft',
+                ],
+            ],
+        ], $backendUser);
+
+        $version = $this->fetchReference(701);
+        self::assertSame(1, (int)$version['tx_mindfula11y_decorative'], 'workspace version stays decorative');
+        self::assertSame('', (string)$version['alternative'], 'alternative forced empty on the decorative workspace version');
+        self::assertSame('', (string)$this->fetchReference(1)['alternative'], 'live row untouched by the workspace save');
+    }
+
+    /**
+     * Core's own authorization still applies: reference 700 lives on the
+     * no-access page 14, so DataHandler itself refuses the write. The
+     * extension adds no parent-relation check on top.
+     */
+    public function testToggleFollowsCorePagePermissions(): void
     {
         $backendUser = $this->logInBackendUser(2);
 
@@ -113,18 +140,17 @@ final class DecorativeFileReferenceDataHandlerGuardTest extends AbstractAuthoriz
         ], $backendUser);
 
         $reference = $this->fetchReference(700);
-        self::assertSame(0, (int)$reference['tx_mindfula11y_decorative'], 'decorative unchanged: no parent page access');
-        self::assertGuardDenialLogged($dataHandler);
+        self::assertSame(0, (int)$reference['tx_mindfula11y_decorative'], 'decorative unchanged: no page access');
+        self::assertNotSame([], $dataHandler->errorLog, 'DataHandler denied the write itself');
     }
 
     /**
-     * D: user 4 lacks tt_content in tables_modify but CAN modify
-     * sys_file_reference itself. Flipping decorative on reference 1 must be
-     * blocked by the guard's parent-relation check (checkRecordEditAccess on the
-     * parent tt_content fails at table write access), not by DataHandler's own
-     * reference-table rights.
+     * The toggle is governed by core's sys_file_reference rules alone — like
+     * the adjacent alternative/title columns. User 4 lacks tt_content in
+     * tables_modify but may modify sys_file_reference on the editable page 10,
+     * so the toggle succeeds; no parent-table access is required.
      */
-    public function testBlockedWhenNoParentTableModifyAccess(): void
+    public function testToggleRequiresOnlyReferenceAccessNotParentTableAccess(): void
     {
         $backendUser = $this->logInBackendUser(4);
 
@@ -137,27 +163,21 @@ final class DecorativeFileReferenceDataHandlerGuardTest extends AbstractAuthoriz
         ], $backendUser);
 
         $reference = $this->fetchReference(1);
-        self::assertSame(0, (int)$reference['tx_mindfula11y_decorative'], 'decorative unchanged: no tt_content modify access');
-        self::assertGuardDenialLogged($dataHandler);
+        self::assertSame(1, (int)$reference['tx_mindfula11y_decorative'], 'decorative stored under core reference rules');
+        self::assertSame('', (string)$reference['alternative'], 'alternative blanked');
+        self::assertSame([], $dataHandler->errorLog, 'no denial without parent-table access');
     }
 
     /**
-     * E: user 5 has no non_exclude_fields grant at all. tx_mindfula11y_decorative
-     * is an exclude field, so it never reaches the stored record.
-     *
-     * OBSERVED MECHANISM: the guard does NOT fire here — user 5 CAN edit the
-     * parent tt_content 100 (tt_content is in tables_modify, page 10 is content-
-     * editable, and 'assets' is not an exclude field), so mayEditParentRelations
-     * returns true and no guard log entry is written. DataHandler's own
-     * exclude-field filtering in fillInFieldArray (DataHandler.php ~line 1112,
-     * which runs AFTER the guard's preProcessFieldArray hook at ~line 708) is
-     * what silently drops the toggle. The observable DB outcome is unchanged.
+     * User 5 has no non_exclude_fields grant at all. tx_mindfula11y_decorative
+     * is an exclude field, so DataHandler's own exclude-field filtering drops
+     * the toggle before it reaches the stored record.
      */
-    public function testBlockedByExcludeFieldFilteringForUserWithoutNonExcludeGrant(): void
+    public function testExcludeFieldFilteringDropsToggleForUserWithoutGrant(): void
     {
         $backendUser = $this->logInBackendUser(5);
 
-        $dataHandler = $this->runDataHandler([
+        $this->runDataHandler([
             'sys_file_reference' => [
                 1 => [
                     'tx_mindfula11y_decorative' => 1,
@@ -167,65 +187,14 @@ final class DecorativeFileReferenceDataHandlerGuardTest extends AbstractAuthoriz
 
         $reference = $this->fetchReference(1);
         self::assertSame(0, (int)$reference['tx_mindfula11y_decorative'], 'decorative dropped for exclude-field-less user');
-        // The guard's parent check passes for user 5, so the drop is DataHandler's,
-        // not the guard's: no guard denial should be logged.
-        self::assertGuardDenialNotLogged($dataHandler);
     }
 
     /**
-     * F (forward): move attack. One datamap flips decorative on reference 1 AND
-     * repoints uid_foreign to the no-access record 700. The submitted (target)
-     * relation is not editable, so the toggle change is rejected even though the
-     * stored relation is editable.
+     * A new tt_content on the editable page 10 with a new IRRE
+     * sys_file_reference child carrying decorative=1: the toggle is stored and
+     * blanking applies to the new child.
      */
-    public function testBlockedWhenSubmittedRelationMovesToInaccessibleParent(): void
-    {
-        $backendUser = $this->logInBackendUser(2);
-
-        $dataHandler = $this->runDataHandler([
-            'sys_file_reference' => [
-                1 => [
-                    'tx_mindfula11y_decorative' => 1,
-                    'uid_foreign' => 700,
-                ],
-            ],
-        ], $backendUser);
-
-        $reference = $this->fetchReference(1);
-        self::assertSame(0, (int)$reference['tx_mindfula11y_decorative'], 'decorative rejected: submitted relation not editable');
-        self::assertGuardDenialLogged($dataHandler);
-    }
-
-    /**
-     * F (reverse): on the no-access reference 700, submit decorative plus a
-     * uid_foreign pointing at the editable record 100. The stored relation
-     * (parent 700, page 14) is not editable, so the guard rejects regardless of
-     * the editable submitted target.
-     */
-    public function testBlockedWhenStoredRelationNotEditableEvenIfSubmittedTargetIs(): void
-    {
-        $backendUser = $this->logInBackendUser(2);
-
-        $dataHandler = $this->runDataHandler([
-            'sys_file_reference' => [
-                700 => [
-                    'tx_mindfula11y_decorative' => 1,
-                    'uid_foreign' => 100,
-                ],
-            ],
-        ], $backendUser);
-
-        $reference = $this->fetchReference(700);
-        self::assertSame(0, (int)$reference['tx_mindfula11y_decorative'], 'decorative rejected: stored relation not editable');
-        self::assertGuardDenialLogged($dataHandler);
-    }
-
-    /**
-     * G (positive): create a new tt_content on the editable page 10 with a new
-     * IRRE sys_file_reference child carrying decorative=1. The guard resolves the
-     * submitted parent relation from the datamap and permits the toggle.
-     */
-    public function testNewIrreChildStoresDecorativeWhenParentAccessible(): void
+    public function testNewIrreChildStoresDecorative(): void
     {
         $backendUser = $this->logInBackendUser(2);
 
@@ -245,6 +214,7 @@ final class DecorativeFileReferenceDataHandlerGuardTest extends AbstractAuthoriz
                     'sys_language_uid' => 0,
                     'uid_local' => 1,
                     'tx_mindfula11y_decorative' => 1,
+                    'alternative' => 'should be discarded',
                 ],
             ],
         ], $backendUser);
@@ -253,15 +223,15 @@ final class DecorativeFileReferenceDataHandlerGuardTest extends AbstractAuthoriz
         self::assertGreaterThan(0, $referenceUid, 'IRRE child reference was created');
         $reference = $this->fetchReference($referenceUid);
         self::assertSame(1, (int)$reference['tx_mindfula11y_decorative'], 'decorative stored on new IRRE child');
-        self::assertGuardDenialNotLogged($dataHandler);
+        self::assertSame('', (string)$reference['alternative'], 'alternative blanked on new IRRE child');
     }
 
     /**
-     * G (negative): same IRRE shape but the new parent sits on the no-access
-     * page 14. The guard resolves the submitted parent and denies the toggle; if
-     * a child reference is created at all it must not carry decorative=1.
+     * Core denies creating records on the no-access page 14 — nothing is
+     * persisted, decorative or otherwise. The extension adds no check of its
+     * own here.
      */
-    public function testNewIrreChildDeniesDecorativeWhenParentNotAccessible(): void
+    public function testNewIrreChildOnInaccessiblePageIsDeniedByCore(): void
     {
         $backendUser = $this->logInBackendUser(2);
 
@@ -285,21 +255,16 @@ final class DecorativeFileReferenceDataHandlerGuardTest extends AbstractAuthoriz
             ],
         ], $backendUser);
 
-        $referenceUid = (int)($dataHandler->substNEWwithIDs['NEW2'] ?? 0);
-        if ($referenceUid > 0) {
-            $reference = $this->fetchReference($referenceUid);
-            self::assertSame(0, (int)$reference['tx_mindfula11y_decorative'], 'decorative not stored on no-access IRRE child');
-        } else {
-            self::assertSame(
-                0,
-                $this->countDecorativeReferences(),
-                'no decorative reference persisted when parent page is inaccessible'
-            );
-        }
+        self::assertArrayNotHasKey('NEW2', $dataHandler->substNEWwithIDs, 'no reference created on no-access page');
+        self::assertSame(
+            1,
+            $this->countDecorativeReferences(),
+            'only the fixture workspace version is decorative — nothing new persisted'
+        );
     }
 
     /**
-     * H: non-goal / deliberate scope. Writing a core field (alternative) on a
+     * Non-goal / deliberate scope: writing a core field (alternative) on a
      * NON-decorative reference is untouched by the guard and stored verbatim.
      */
     public function testCoreFieldWriteOnNonDecorativeReferenceIsUntouched(): void
@@ -364,22 +329,5 @@ final class DecorativeFileReferenceDataHandlerGuardTest extends AbstractAuthoriz
         $this->getConnectionPool()
             ->getConnectionForTable('sys_file_reference')
             ->update('sys_file_reference', ['tx_mindfula11y_decorative' => 1], ['uid' => $uid]);
-    }
-
-    private static function assertGuardDenialLogged(DataHandler $dataHandler): void
-    {
-        foreach ($dataHandler->errorLog as $entry) {
-            if (str_contains($entry, self::GUARD_LOG_FRAGMENT)) {
-                return;
-            }
-        }
-        self::fail('Expected the guard denial log entry, got: ' . var_export($dataHandler->errorLog, true));
-    }
-
-    private static function assertGuardDenialNotLogged(DataHandler $dataHandler): void
-    {
-        foreach ($dataHandler->errorLog as $entry) {
-            self::assertStringNotContainsString(self::GUARD_LOG_FRAGMENT, $entry, 'no guard denial expected');
-        }
     }
 }
