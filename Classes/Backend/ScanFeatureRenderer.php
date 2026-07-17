@@ -22,6 +22,7 @@ declare(strict_types=1);
 
 namespace MindfulMarkup\MindfulA11y\Backend;
 
+use MindfulMarkup\MindfulA11y\Service\DemandSignatureService;
 use MindfulMarkup\MindfulA11y\Service\ModuleSettingsService;
 use MindfulMarkup\MindfulA11y\Service\PagePreviewService;
 use MindfulMarkup\MindfulA11y\Service\ScanApiService;
@@ -52,6 +53,7 @@ final readonly class ScanFeatureRenderer implements FeatureRendererInterface
         private ScanStateService $scanStateService,
         private ScanApiService $scanApiService,
         private ScanDemandFactory $scanDemandFactory,
+        private DemandSignatureService $demandSignatureService,
         private UriBuilder $backendUriBuilder,
         private PageRenderer $pageRenderer,
         private FlashMessageService $flashMessageService,
@@ -146,8 +148,8 @@ final readonly class ScanFeatureRenderer implements FeatureRendererInterface
         $aiAuditAvailable = $canTriggerScan && $this->moduleSettingsService->hasAiAuditAccess($context->pageTsConfig);
         $context->moduleTemplate->assignMultiple([
             'scanId' => $scanId,
-            'createScanDemand' => $createScanDemand,
-            'crawlScanDemand' => $crawlScanDemand,
+            'createScanDemand' => $createScanDemand !== null ? $this->demandSignatureService->serialize($createScanDemand) : null,
+            'crawlScanDemand' => $crawlScanDemand !== null ? $this->demandSignatureService->serialize($crawlScanDemand) : null,
             'autoCreateScan' => $pageLevels === 0 && $this->moduleSettingsService->isAutoCreateScanEnabled($context->pageTsConfig),
             'pageUrlFilter' => $pageUrlFilter,
             'urlList' => $urlList,

@@ -26,6 +26,7 @@ namespace MindfulMarkup\MindfulA11y\ViewHelpers;
 use MindfulMarkup\MindfulA11y\Domain\Model\AltlessFileReference;
 use MindfulMarkup\MindfulA11y\Domain\Model\GenerateAltTextDemand;
 use MindfulMarkup\MindfulA11y\Service\BackendUserProvider;
+use MindfulMarkup\MindfulA11y\Service\DemandSignatureService;
 use MindfulMarkup\MindfulA11y\Service\OpenAIService;
 use MindfulMarkup\MindfulA11y\Service\PermissionService;
 use MindfulMarkup\MindfulA11y\Service\ModuleSettingsService;
@@ -63,6 +64,11 @@ class AltlessFileReferenceViewHelper extends AbstractTagBasedViewHelper
      * Backend user provider instance.
      */
     protected readonly BackendUserProvider $backendUserProvider;
+
+    /**
+     * Demand signature service instance.
+     */
+    protected readonly DemandSignatureService $demandSignatureService;
 
     /**
      * Tag name.
@@ -104,6 +110,14 @@ class AltlessFileReferenceViewHelper extends AbstractTagBasedViewHelper
     public function injectBackendUserProvider(BackendUserProvider $backendUserProvider): void
     {
         $this->backendUserProvider = $backendUserProvider;
+    }
+
+    /**
+     * Inject demand signature service.
+     */
+    public function injectDemandSignatureService(DemandSignatureService $demandSignatureService): void
+    {
+        $this->demandSignatureService = $demandSignatureService;
     }
 
     /**
@@ -159,7 +173,7 @@ class AltlessFileReferenceViewHelper extends AbstractTagBasedViewHelper
             ) {
                 $this->tag->addAttribute(
                     'generate-alt-text-demand',
-                    json_encode($this->getGenerateAltTextDemand($fileReference))
+                    json_encode($this->demandSignatureService->serialize($this->getGenerateAltTextDemand($fileReference)))
                 );
             }
         }

@@ -155,6 +155,23 @@ const buildTs = async (files) => {
         tsconfig: path.join(packageRoot, 'tsconfig.json'),
     });
 
+    // Tripwire: the bundles run outside the backend importmap (the runner
+    // executes in a sandboxed iframe), so a bare-specifier import reaching one
+    // means a window-/lit-coupled module crept into its graph — fail loudly
+    // instead of silently bundling a copy of lit or breaking the runner.
+    const rejectBareImports = {
+        name: 'reject-bare-imports',
+        setup(build) {
+            build.onResolve({ filter: /^[^./]/ }, (args) => ({
+                errors: [
+                    {
+                        text: `Bare import "${args.path}" in the self-contained bundle graph (via ${path.relative(packageRoot, args.importer)}) — bundled entry points may only use relative imports of DOM-pure modules.`,
+                    },
+                ],
+            }));
+        },
+    };
+
     for (const entryPoint of bundledEntryPoints.filter((file) => files.includes(file))) {
         await esbuild.build({
             entryPoints: [entryPoint],
@@ -165,6 +182,7 @@ const buildTs = async (files) => {
             minify: true,
             sourcemap: false,
             tsconfig: path.join(packageRoot, 'tsconfig.json'),
+            plugins: [rejectBareImports],
         });
     }
 };

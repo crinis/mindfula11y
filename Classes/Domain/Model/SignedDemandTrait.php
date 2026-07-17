@@ -22,21 +22,20 @@ declare(strict_types=1);
 
 namespace MindfulMarkup\MindfulA11y\Domain\Model;
 
-use TYPO3\CMS\Core\Crypto\HashService;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
+use MindfulMarkup\MindfulA11y\Service\DemandSignatureService;
 
 /**
- * Lifecycle shared by the session-bound signed demands
+ * Value-object plumbing shared by the session-bound signed demands
  * ({@see CreateScanDemand}, {@see GenerateAltTextDemand}): expiry
- * initialization, HMAC generation over the demand's scope, and the combined
- * expiry-window + signature validation. Centralized so a security-policy
- * change cannot silently apply to one demand type but not the other.
+ * initialization, verbatim signature storage, and the strict request-field
+ * gate. Signing and validation live in {@see DemandSignatureService} — the
+ * demands themselves stay pure value objects.
  *
  * The session-less {@see StructureAnalysisTicket} deliberately does NOT share
  * this lifecycle — its signing lives in StructureAnalysisTicketService.
  *
  * Using classes must declare `public const LIFETIME` (seconds a fresh demand
- * stays redeemable) and implement {@see signedProperties()}.
+ * stays redeemable) and implement {@see SignedDemandInterface::signedProperties()}.
  */
 trait SignedDemandTrait
 {
@@ -44,25 +43,15 @@ trait SignedDemandTrait
     private readonly string $signature;
 
     /**
-     * The ordered HMAC payload segments of this demand type.
-     *
-     * The order and formatting are a wire contract with already-rendered
-     * demands — never reorder or reformat; append only together with a
-     * signing-context change. The list must include (string)$this->expiresAt.
-     *
-     * @return list<string>
-     */
-    abstract private function signedProperties(): array;
-
-    /**
      * Call from the constructor: resolves a fresh expiry when none is given
-     * and signs the demand unless a (client-supplied) signature is replayed
-     * for later validation.
+     * and stores a (client-supplied) signature verbatim for later validation.
+     * Freshly issued demands carry no signature — the authoritative one is
+     * added by DemandSignatureService::serialize() at rendering time.
      */
     private function initializeSignedDemand(int $expiresAt, string $signature): void
     {
         $this->expiresAt = $expiresAt > 0 ? $expiresAt : time() + self::LIFETIME;
-        $this->signature = $signature !== '' ? $signature : $this->createSignature();
+        $this->signature = $signature;
     }
 
     /**
@@ -88,25 +77,18 @@ trait SignedDemandTrait
         return ['userId' => $userId, 'expiresAt' => $expiresAt, 'signature' => $signature];
     }
 
-    private function createSignature(): string
+    public function getExpiresAt(): int
     {
-        $hashService = GeneralUtility::makeInstance(HashService::class);
-        // static::class keeps each demand type's HMAC domain-separated: a
-        // signature for one demand type never validates for another.
-        return $hashService->hmac(implode('|', $this->signedProperties()), static::class);
+        return $this->expiresAt;
     }
 
-    /**
-     * A demand is valid only while unexpired, within its type's maximum
-     * lifetime window (a forged far-future expiry fails even before the
-     * signature comparison), and carrying an intact HMAC over its scope.
-     */
-    public function validateSignature(): bool
+    public function getSignature(): string
     {
-        $expectedHash = $this->createSignature();
-        $now = time();
-        return $this->expiresAt > $now
-            && $this->expiresAt <= $now + static::LIFETIME
-            && hash_equals($expectedHash, $this->signature);
+        return $this->signature;
+    }
+
+    public function maximumLifetime(): int
+    {
+        return self::LIFETIME;
     }
 }

@@ -16,7 +16,7 @@ import { repeat } from "lit/directives/repeat.js";
 import "@typo3/backend/element/icon-element.js";
 import { noticeState, renderSeverityChip, renderViewportBadges } from "../../lib/status-render.js";
 import { StructureErrorSeverity } from "../../lib/structure/types.js";
-import { StructureView } from "../../lib/structure-view.js";
+import { StructureView } from "../structure-view/structure-view.js";
 import componentStyles from "./heading-structure.css.js";
 let HeadingStructure = class extends StructureView {
   constructor() {

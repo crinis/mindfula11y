@@ -27,8 +27,8 @@
 import { lll } from '@typo3/core/lit-helper.js';
 import type { TemplateResult } from 'lit';
 import { html } from 'lit';
-import type { ImpactSeverity } from '../service/scan/types.js';
 import { StructureErrorSeverity, type StructureViewport } from './structure/types.js';
+import type { ImpactSeverity } from './types.js';
 
 /** Visual state of the shared `.notice` pattern (styles/notice.css). */
 export type NoticeState = 'info' | 'success' | 'warning' | 'serious' | 'danger';

@@ -22,7 +22,6 @@ declare(strict_types=1);
 
 namespace MindfulMarkup\MindfulA11y\Domain\Model;
 
-use JsonSerializable;
 
 /**
  * Immutable, signed authorization scope for AI alternative-text generation.
@@ -48,7 +47,7 @@ use JsonSerializable;
  *   signature: string
  * }
  */
-final readonly class GenerateAltTextDemand implements JsonSerializable
+final readonly class GenerateAltTextDemand implements SignedDemandInterface
 {
     use SignedDemandTrait;
 
@@ -65,7 +64,7 @@ final readonly class GenerateAltTextDemand implements JsonSerializable
      * @param int $fileUid File UID to generate alt text for.
      * @param array<string> $recordColumns Affected record columns.
      * @param int $expiresAt Unix timestamp after which this demand must not be redeemed.
-     * @param string $signature Optional pre-computed HMAC signature; generated from the other properties when empty.
+     * @param string $signature Client-supplied HMAC signature carried for validation; empty on a freshly issued demand.
      */
     public function __construct(
         private int $userId,
@@ -176,7 +175,7 @@ final readonly class GenerateAltTextDemand implements JsonSerializable
     }
 
     /** @return list<string> */
-    private function signedProperties(): array
+    public function signedProperties(): array
     {
         return [
             (string)$this->userId,
@@ -208,9 +207,4 @@ final readonly class GenerateAltTextDemand implements JsonSerializable
         ];
     }
 
-    /** @return SerializedGenerateAltTextDemand */
-    public function jsonSerialize(): array
-    {
-        return $this->toArray();
-    }
 }

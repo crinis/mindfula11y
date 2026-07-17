@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 /*
  * Mindful A11y extension for TYPO3 integrating accessibility tools into the backend.
- * Copyright (C) 2026  Mindful Markup, Felix Spittel
+ * Copyright (C) 2025  Mindful Markup, Felix Spittel
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,19 +18,14 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * Value-object shape of the alt-text demand: request-data gate, wire
+ * round-trip and expiry defaulting. Signature creation and validation live in
+ * DemandSignatureService and are covered by DemandSignatureServiceTest.
+ */
 final class GenerateAltTextDemandTest extends TestCase
 {
-    protected function setUp(): void
-    {
-        $GLOBALS['TYPO3_CONF_VARS']['SYS']['encryptionKey'] = str_repeat('a1b2c3d4', 12);
-    }
-
-    protected function tearDown(): void
-    {
-        unset($GLOBALS['TYPO3_CONF_VARS']);
-    }
-
-    private function createDemand(): GenerateAltTextDemand
+    private function createDemand(int $expiresAt = 0, string $signature = ''): GenerateAltTextDemand
     {
         return new GenerateAltTextDemand(
             userId: 3,
@@ -41,23 +36,34 @@ final class GenerateAltTextDemandTest extends TestCase
             recordUid: 7,
             fileUid: 9,
             recordColumns: ['alternative'],
+            expiresAt: $expiresAt,
+            signature: $signature,
         );
     }
 
     #[Test]
-    public function freshDemandCarriesValidSignature(): void
+    public function freshDemandCarriesNoSignatureAndALifetimeExpiry(): void
     {
-        self::assertTrue($this->createDemand()->validateSignature());
+        $now = time();
+        $demand = $this->createDemand();
+
+        self::assertSame('', $demand->getSignature());
+        self::assertGreaterThan($now, $demand->getExpiresAt());
+        self::assertLessThanOrEqual($now + GenerateAltTextDemand::LIFETIME, $demand->getExpiresAt());
+        self::assertSame(GenerateAltTextDemand::LIFETIME, $demand->maximumLifetime());
     }
 
     #[Test]
     public function demandSurvivesSerializationRoundTrip(): void
     {
-        $data = json_decode(json_encode($this->createDemand(), JSON_THROW_ON_ERROR), true, flags: JSON_THROW_ON_ERROR);
+        $data = json_decode(
+            json_encode($this->createDemand(expiresAt: 2000000000, signature: 'abc')->toArray(), JSON_THROW_ON_ERROR),
+            true,
+            flags: JSON_THROW_ON_ERROR
+        );
         $demand = GenerateAltTextDemand::fromRequestData($data);
 
         self::assertNotNull($demand);
-        self::assertTrue($demand->validateSignature());
         self::assertSame(3, $demand->getUserId());
         self::assertSame(42, $demand->getPageUid());
         self::assertSame(1, $demand->getLanguageUid());
@@ -66,69 +72,8 @@ final class GenerateAltTextDemandTest extends TestCase
         self::assertSame(7, $demand->getRecordUid());
         self::assertSame(9, $demand->getFileUid());
         self::assertSame(['alternative'], $demand->getRecordColumns());
-    }
-
-    /** @return iterable<string, array{string, int|string|array<string>}> */
-    public static function tamperedFieldProvider(): iterable
-    {
-        yield 'userId' => ['userId', 4];
-        yield 'pageUid' => ['pageUid', 43];
-        yield 'languageUid' => ['languageUid', 0];
-        yield 'workspaceId' => ['workspaceId', 0];
-        yield 'recordTable' => ['recordTable', 'be_users'];
-        yield 'recordUid' => ['recordUid', 8];
-        yield 'fileUid' => ['fileUid', 10];
-        yield 'recordColumns' => ['recordColumns', ['alternative', 'password']];
-        yield 'expiresAt (extended)' => ['expiresAt', PHP_INT_MAX - 1];
-    }
-
-    /** @param int|string|array<string> $value */
-    #[Test]
-    #[DataProvider('tamperedFieldProvider')]
-    public function tamperedFieldInvalidatesSignature(string $field, int|string|array $value): void
-    {
-        $data = $this->createDemand()->toArray();
-        $data[$field] = $value;
-        $demand = GenerateAltTextDemand::fromRequestData($data);
-
-        self::assertNotNull($demand);
-        self::assertFalse($demand->validateSignature());
-    }
-
-    #[Test]
-    public function expiredDemandIsRejectedDespiteValidSignature(): void
-    {
-        $demand = new GenerateAltTextDemand(
-            userId: 3,
-            pageUid: 42,
-            languageUid: 0,
-            workspaceId: 0,
-            recordTable: 'tt_content',
-            recordUid: 7,
-            fileUid: 9,
-            recordColumns: ['alternative'],
-            expiresAt: time() - 1,
-        );
-
-        self::assertFalse($demand->validateSignature());
-    }
-
-    #[Test]
-    public function expiryBeyondLifetimeWindowIsRejected(): void
-    {
-        $demand = new GenerateAltTextDemand(
-            userId: 3,
-            pageUid: 42,
-            languageUid: 0,
-            workspaceId: 0,
-            recordTable: 'tt_content',
-            recordUid: 7,
-            fileUid: 9,
-            recordColumns: ['alternative'],
-            expiresAt: time() + GenerateAltTextDemand::LIFETIME + 60,
-        );
-
-        self::assertFalse($demand->validateSignature());
+        self::assertSame(2000000000, $demand->getExpiresAt());
+        self::assertSame('abc', $demand->getSignature());
     }
 
     /** @return iterable<string, array{array<string, mixed>}> */

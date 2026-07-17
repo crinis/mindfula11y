@@ -15,7 +15,7 @@ import {
     extractChildTypeRecord,
     extractRecord,
     indexStructureNodes,
-} from '../../../Resources/Private/Source/lib/dom.js';
+} from '../../../../Resources/Private/Source/lib/structure/annotations.js';
 
 const makeElement = (record?: { tableName: string; columnName: string; uid: number | string }): HTMLElement => {
     const element = document.createElement('div');

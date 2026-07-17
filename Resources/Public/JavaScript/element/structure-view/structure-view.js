@@ -15,14 +15,14 @@ import { property, state } from "lit/decorators.js";
 import { live } from "lit/directives/live.js";
 import "@typo3/backend/element/icon-element.js";
 import "@typo3/backend/element/spinner-element.js";
-import { RecordService } from "../service/record-service.js";
-import { baseStyles } from "../styles/base-styles.js";
-import noticeStyles from "../styles/notice.css.js";
-import structureViewStyles from "../styles/structure-view.css.js";
-import viewportStyles from "../styles/viewport.css.js";
-import { scrollIntoViewCentered } from "./dom.js";
-import { noticeState, renderSeverityChip, renderViewportBadges } from "./status-render.js";
-import { dispatch } from "./types.js";
+import { scrollIntoViewCentered } from "../../lib/dom.js";
+import { noticeState, renderSeverityChip, renderViewportBadges } from "../../lib/status-render.js";
+import { dispatch } from "../../lib/types.js";
+import { RecordService } from "../../service/record-service.js";
+import { baseStyles } from "../../styles/base-styles.js";
+import noticeStyles from "../../styles/notice.css.js";
+import structureViewStyles from "../../styles/structure-view.css.js";
+import viewportStyles from "../../styles/viewport.css.js";
 class StructureView extends LitElement {
   constructor() {
     super(...arguments);

@@ -26,6 +26,7 @@ namespace MindfulMarkup\MindfulA11y\Form\FieldControl;
 use Exception;
 use MindfulMarkup\MindfulA11y\Domain\Model\GenerateAltTextDemand;
 use MindfulMarkup\MindfulA11y\Service\BackendUserProvider;
+use MindfulMarkup\MindfulA11y\Service\DemandSignatureService;
 use MindfulMarkup\MindfulA11y\Service\OpenAIService;
 use MindfulMarkup\MindfulA11y\Service\PermissionService;
 use TYPO3\CMS\Backend\Form\AbstractNode;
@@ -55,6 +56,7 @@ class GenerateAltTextControl extends AbstractNode
         protected readonly PageRenderer $pageRenderer,
         protected readonly PermissionService $permissionService,
         protected readonly BackendUserProvider $backendUserProvider,
+        protected readonly DemandSignatureService $demandSignatureService,
     ) {
     }
 
@@ -112,7 +114,7 @@ class GenerateAltTextControl extends AbstractNode
             'javaScriptModules' => [
                 JavaScriptModuleInstruction::create(
                     '@mindfulmarkup/mindfula11y/service/generate-alt-text-control.js'
-                )->instance('#' . $id, $generateAltTextDemand->toArray()),
+                )->instance('#' . $id, $this->demandSignatureService->serialize($generateAltTextDemand)),
             ],
         ];
     }

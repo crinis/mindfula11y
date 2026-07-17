@@ -1,5 +1,5 @@
-import { extractRecord, indexStructureNodes } from "../dom.js";
 import { createErrorCollector, groupBy } from "./analysis.js";
+import { extractRecord, indexStructureNodes } from "./annotations.js";
 import { resolveExposure } from "./element-exposure.js";
 import { StructureErrorSeverity } from "./types.js";
 const ERROR_KEYS = {

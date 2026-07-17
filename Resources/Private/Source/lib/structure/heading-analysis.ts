@@ -23,8 +23,8 @@
  * requests and returns plain serializable nodes — no element references leak out.
  */
 
-import { extractChildTypeRecord, extractRecord, indexStructureNodes } from '../dom.js';
 import { createErrorCollector } from './analysis.js';
+import { extractChildTypeRecord, extractRecord, indexStructureNodes } from './annotations.js';
 import { isElementExposed, resolveExposure } from './element-exposure.js';
 import type { HeadingAnalysis, HeadingNode, HeadingRelation, StructureAnalysisOptions } from './types.js';
 import { StructureErrorSeverity } from './types.js';

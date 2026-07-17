@@ -26,6 +26,7 @@ namespace MindfulMarkup\MindfulA11y\Controller;
 use MindfulMarkup\MindfulA11y\Domain\Model\CreateScanDemand;
 use MindfulMarkup\MindfulA11y\Exception\ScanApiRequestException;
 use MindfulMarkup\MindfulA11y\Exception\ScanCreationException;
+use MindfulMarkup\MindfulA11y\Service\DemandSignatureService;
 use MindfulMarkup\MindfulA11y\Service\ScanApiService;
 use MindfulMarkup\MindfulA11y\Service\BackendUserProvider;
 use MindfulMarkup\MindfulA11y\Service\ModuleSettingsService;
@@ -54,6 +55,7 @@ final readonly class ScanAjaxController
 
     public function __construct(
         private ScanApiService $scanApiService,
+        private DemandSignatureService $demandSignatureService,
         private ModuleSettingsService $moduleSettingsService,
         private PagePreviewService $pagePreviewService,
         private ScanStateService $scanStateService,
@@ -143,7 +145,7 @@ final readonly class ScanAjaxController
             return $this->errorResponse('error.invalidRequest', 400);
         }
 
-        if (!$demand->validateSignature()) {
+        if (!$this->demandSignatureService->isValid($demand)) {
             return $this->errorResponse('module.error.invalidSignature', 400);
         }
 

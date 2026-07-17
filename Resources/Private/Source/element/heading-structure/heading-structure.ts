@@ -27,7 +27,7 @@ import '@typo3/backend/element/icon-element.js';
 import { noticeState, renderSeverityChip, renderViewportBadges } from '../../lib/status-render.js';
 import type { HeadingNode, StructureError } from '../../lib/structure/types.js';
 import { StructureErrorSeverity } from '../../lib/structure/types.js';
-import { StructureView } from '../../lib/structure-view.js';
+import { StructureView } from '../structure-view/structure-view.js';
 import componentStyles from './heading-structure.css.js';
 
 /**

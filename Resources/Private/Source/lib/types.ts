@@ -28,6 +28,13 @@
 export type GenerateAltTextDemand = Record<string, unknown>;
 
 /** Database coordinates of the record behind a heading/landmark. */
+/**
+ * axe-core impact scale; agent findings reuse it as their severity. Lives in
+ * lib because the shared status renderers key off it; the scan wire types
+ * re-export it for locality.
+ */
+export type ImpactSeverity = 'critical' | 'serious' | 'moderate' | 'minor';
+
 export interface RecordReference {
     tableName: string;
     columnName: string;

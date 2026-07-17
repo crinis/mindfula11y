@@ -25,6 +25,7 @@ namespace MindfulMarkup\MindfulA11y\Controller;
 
 use MindfulMarkup\MindfulA11y\Domain\Model\GenerateAltTextDemand;
 use MindfulMarkup\MindfulA11y\Service\AltTextGeneratorService;
+use MindfulMarkup\MindfulA11y\Service\DemandSignatureService;
 use MindfulMarkup\MindfulA11y\Service\BackendUserProvider;
 use MindfulMarkup\MindfulA11y\Service\PermissionService;
 use MindfulMarkup\MindfulA11y\Service\SiteLanguageService;
@@ -52,6 +53,7 @@ final readonly class AltTextAjaxController
 
     public function __construct(
         private AltTextGeneratorService $altTextGeneratorService,
+        private DemandSignatureService $demandSignatureService,
         private SiteLanguageService $siteLanguageService,
         private ResourceFactory $resourceFactory,
         private PermissionService $permissionService,
@@ -92,7 +94,7 @@ final readonly class AltTextAjaxController
             return $this->errorResponse('error.invalidRequest', 400);
         }
 
-        if (!$demand->validateSignature()) {
+        if (!$this->demandSignatureService->isValid($demand)) {
             return $this->errorResponse('module.error.invalidSignature', 400);
         }
 

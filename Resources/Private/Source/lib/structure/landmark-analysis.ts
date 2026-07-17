@@ -23,8 +23,8 @@
  * requests and returns plain serializable nodes — no element references leak out.
  */
 
-import { extractRecord, indexStructureNodes } from '../dom.js';
 import { createErrorCollector, groupBy } from './analysis.js';
+import { extractRecord, indexStructureNodes } from './annotations.js';
 import type { ElementExposurePredicate } from './element-exposure.js';
 import { resolveExposure } from './element-exposure.js';
 import type { LandmarkAnalysis, LandmarkNode, StructureAnalysisOptions } from './types.js';

@@ -19,6 +19,8 @@
 
 /** Wire types of the accessibility-scan endpoints. */
 
+import type { ImpactSeverity } from '../../lib/types.js';
+
 /** Server-side scan lifecycle status; `analyzing` covers the AI-audit phase. */
 export enum ScanStatus {
     Pending = 'pending',
@@ -59,7 +61,7 @@ export enum AiAuditStatus {
 export type AiAuditSkill = string;
 
 /** axe-core impact scale; agent findings reuse it as their severity. */
-export type ImpactSeverity = 'critical' | 'serious' | 'moderate' | 'minor';
+export type { ImpactSeverity };
 
 /** Rule metadata of a violation group. */
 export interface RuleDto {

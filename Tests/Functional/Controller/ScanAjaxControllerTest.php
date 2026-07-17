@@ -16,6 +16,7 @@ namespace MindfulMarkup\MindfulA11y\Tests\Functional\Controller;
 
 use MindfulMarkup\MindfulA11y\Controller\ScanAjaxController;
 use MindfulMarkup\MindfulA11y\Domain\Model\CreateScanDemand;
+use MindfulMarkup\MindfulA11y\Service\DemandSignatureService;
 use MindfulMarkup\MindfulA11y\Service\ModuleLabelService;
 use MindfulMarkup\MindfulA11y\Service\ScanStateService;
 use MindfulMarkup\MindfulA11y\Tests\Functional\AbstractAuthorizationTestCase;
@@ -79,7 +80,7 @@ final class ScanAjaxControllerTest extends AbstractAuthorizationTestCase
         bool $crawl = false,
         int $expiresAt = 0,
     ): array {
-        return (new CreateScanDemand(
+        return $this->get(DemandSignatureService::class)->serialize(new CreateScanDemand(
             userId: $userId,
             pageId: $pageId,
             previewUrl: $previewUrl,
@@ -88,7 +89,7 @@ final class ScanAjaxControllerTest extends AbstractAuthorizationTestCase
             pageLevels: $pageLevels,
             crawl: $crawl,
             expiresAt: $expiresAt,
-        ))->toArray();
+        ));
     }
 
     /**
@@ -166,7 +167,7 @@ final class ScanAjaxControllerTest extends AbstractAuthorizationTestCase
         $this->logInBackendUser(2);
         // A demand signed with an already-past expiresAt: the signature
         // itself is intact (computed over that past timestamp), but
-        // validateSignature()'s expiry window check fails first — same
+        // DemandSignatureService::isValid()'s expiry window check fails first — same
         // error label as a tampered signature, single code path.
         $payload = $this->signedCreateDemandPayload(2, 10, expiresAt: time() - 100);
 

@@ -24,6 +24,7 @@ namespace MindfulMarkup\MindfulA11y\Backend;
 
 use MindfulMarkup\MindfulA11y\Enum\Feature;
 use MindfulMarkup\MindfulA11y\Service\AltTextFinderService;
+use MindfulMarkup\MindfulA11y\Service\DemandSignatureService;
 use MindfulMarkup\MindfulA11y\Service\ModuleSettingsService;
 use MindfulMarkup\MindfulA11y\Service\PagePreviewService;
 use MindfulMarkup\MindfulA11y\Service\ScanApiService;
@@ -50,6 +51,7 @@ final readonly class OverviewViewStateFactory
         private PagePreviewService $pagePreviewService,
         private ScanStateService $scanStateService,
         private ScanDemandFactory $scanDemandFactory,
+        private DemandSignatureService $demandSignatureService,
         private AltTextFinderService $altTextFinderService,
         private ScanApiService $scanApiService,
         private StructureAnalysisFramingService $framingService,
@@ -123,7 +125,7 @@ final readonly class OverviewViewStateFactory
             'hasScanAccess' => $hasScanAccess,
             'scanId' => $scanId,
             'scanUri' => $scanUri,
-            'createScanDemand' => $createScanDemand,
+            'createScanDemand' => $createScanDemand !== null ? $this->demandSignatureService->serialize($createScanDemand) : null,
             'autoCreateScan' => $this->moduleSettingsService->isAutoCreateScanEnabled($pageTsConfig),
             'pageUrlFilter' => $previewUri !== null ? [(string)$previewUri] : [],
         ];

@@ -16,6 +16,7 @@ namespace MindfulMarkup\MindfulA11y\Tests\Functional\Controller;
 
 use MindfulMarkup\MindfulA11y\Controller\AltTextAjaxController;
 use MindfulMarkup\MindfulA11y\Domain\Model\GenerateAltTextDemand;
+use MindfulMarkup\MindfulA11y\Service\DemandSignatureService;
 use MindfulMarkup\MindfulA11y\Service\ModuleLabelService;
 use MindfulMarkup\MindfulA11y\Tests\Functional\AbstractAuthorizationTestCase;
 use Psr\Http\Message\ResponseInterface;
@@ -73,7 +74,7 @@ final class AltTextAjaxControllerTest extends AbstractAuthorizationTestCase
         int $workspaceId = 0,
         int $expiresAt = 0,
     ): array {
-        return (new GenerateAltTextDemand(
+        return $this->get(DemandSignatureService::class)->serialize(new GenerateAltTextDemand(
             userId: $userId,
             pageUid: $pageUid,
             languageUid: $languageUid,
@@ -83,7 +84,7 @@ final class AltTextAjaxControllerTest extends AbstractAuthorizationTestCase
             fileUid: $fileUid,
             recordColumns: $recordColumns,
             expiresAt: $expiresAt,
-        ))->toArray();
+        ));
     }
 
     /**
@@ -177,7 +178,7 @@ final class AltTextAjaxControllerTest extends AbstractAuthorizationTestCase
     {
         $this->logInBackendUser(2);
         // Signature is intact (computed over the past expiresAt), but
-        // validateSignature()'s "expiresAt > now" check fails first.
+        // DemandSignatureService::isValid()'s "expiresAt > now" check fails first.
         $payload = $this->demandPayload(2, expiresAt: time() - 10);
 
         $response = $this->generate($payload);

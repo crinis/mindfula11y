@@ -22,7 +22,6 @@ declare(strict_types=1);
 
 namespace MindfulMarkup\MindfulA11y\Domain\Model;
 
-use JsonSerializable;
 
 /**
  * Immutable, signed authorization scope for creating an accessibility scan.
@@ -48,7 +47,7 @@ use JsonSerializable;
  *   signature: string
  * }
  */
-final readonly class CreateScanDemand implements JsonSerializable
+final readonly class CreateScanDemand implements SignedDemandInterface
 {
     use SignedDemandTrait;
 
@@ -64,7 +63,7 @@ final readonly class CreateScanDemand implements JsonSerializable
      * @param int $pageLevels Page levels for tree scanning (0 = current page only).
      * @param bool $crawl Whether this demand creates a crawl scan (only valid for site root pages).
      * @param int $expiresAt Unix timestamp after which this demand must not be redeemed.
-     * @param string $signature Optional pre-computed HMAC signature; generated from the other properties when empty.
+     * @param string $signature Client-supplied HMAC signature carried for validation; empty on a freshly issued demand.
      */
     public function __construct(
         private int $userId,
@@ -164,7 +163,7 @@ final readonly class CreateScanDemand implements JsonSerializable
     }
 
     /** @return list<string> */
-    private function signedProperties(): array
+    public function signedProperties(): array
     {
         return [
             (string)$this->userId,
@@ -194,9 +193,4 @@ final readonly class CreateScanDemand implements JsonSerializable
         ];
     }
 
-    /** @return SerializedCreateScanDemand */
-    public function jsonSerialize(): array
-    {
-        return $this->toArray();
-    }
 }

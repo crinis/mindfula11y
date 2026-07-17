@@ -25,7 +25,7 @@ import { repeat } from 'lit/directives/repeat.js';
 import '@typo3/backend/element/icon-element.js';
 import { renderViewportBadges } from '../../lib/status-render.js';
 import type { LandmarkNode } from '../../lib/structure/types.js';
-import { StructureView } from '../../lib/structure-view.js';
+import { StructureView } from '../structure-view/structure-view.js';
 import componentStyles from './landmark-structure.css.js';
 
 /**
