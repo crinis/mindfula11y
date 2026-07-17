@@ -232,11 +232,34 @@ final readonly class PermissionService
             return false;
         }
 
+        BackendUtility::workspaceOL($tableName, $row);
+
+        // workspaceOL() may replace the row by the current workspace version.
+        // Keep these structural checks ahead of the admin shortcut: neither
+        // FormEngine nor DataHandler may edit delete placeholders or a version
+        // owned by a workspace other than the one active in the session.
+        if (!is_array($row)) {
+            return false;
+        }
+        if ($this->isTableWorkspaceAware($tableName)) {
+            if (!array_key_exists('t3ver_wsid', $row) || !array_key_exists('t3ver_state', $row)) {
+                return false;
+            }
+            if (VersionState::tryFrom((int)$row['t3ver_state']) === VersionState::DELETE_PLACEHOLDER) {
+                return false;
+            }
+            $recordWorkspace = (int)$row['t3ver_wsid'];
+            if ($recordWorkspace > 0
+                && ($backendUser->workspace !== $recordWorkspace
+                    || !$backendUser->workspaceCheckStageForCurrent(0))
+            ) {
+                return false;
+            }
+        }
+
         if ($backendUser->isAdmin()) {
             return true;
         }
-
-        BackendUtility::workspaceOL($tableName, $row);
 
         // Record-level edit lock (e.g. tt_content.editlock): DataHandler denies
         // such writes via recordEditAccessInternals(), so honoring it here keeps
@@ -286,6 +309,16 @@ final readonly class PermissionService
             $pagePerms = new Permission($backendUser->calcPerms($pageRow));
 
             if (!$pagePerms->editPagePermissionIsGranted() || !empty($pageRow[$GLOBALS['TCA']['pages']['ctrl']['editlock']] ?? false)) {
+                return false;
+            }
+
+            // FormEngine parity (DatabaseUserPermissionCheck): editing a page
+            // record also requires the pagetypes_select grant for its doktype.
+            // DataHandler only enforces the grant when doktype itself is
+            // written, so this check cannot be left to the save.
+            $typeField = (string)($GLOBALS['TCA']['pages']['ctrl']['type'] ?? 'doktype');
+            $pageType = (string)($row[$typeField] ?? $pageRow[$typeField] ?? '');
+            if (!$backendUser->check('pagetypes_select', $pageType)) {
                 return false;
             }
         } else {

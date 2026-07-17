@@ -18,6 +18,7 @@ use MindfulMarkup\MindfulA11y\Service\PermissionService;
 use MindfulMarkup\MindfulA11y\Tests\Functional\AbstractAuthorizationTestCase;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Schema\TcaSchemaFactory;
+use TYPO3\CMS\Core\Versioning\VersionState;
 
 /**
  * Functional tests for MindfulMarkup\MindfulA11y\Service\PermissionService.
@@ -428,6 +429,60 @@ final class PermissionServiceTest extends AbstractAuthorizationTestCase
         self::assertFalse($this->permissionService()->checkRecordEditAccess('tt_content', $row));
     }
 
+    public function testCheckRecordEditAccessRejectsForeignWorkspaceVersionForEditorAndAdmin(): void
+    {
+        $row = array_replace($this->record('tt_content', 100), [
+            'uid' => 900,
+            't3ver_oid' => 100,
+            't3ver_wsid' => 1,
+            't3ver_state' => VersionState::DEFAULT_STATE->value,
+            't3ver_stage' => 0,
+        ]);
+        $permissionService = $this->permissionService();
+
+        $this->logInBackendUser(2);
+        self::assertFalse(
+            $permissionService->checkRecordEditAccess('tt_content', $row),
+            'a live-workspace editor must not receive controls for a version owned by workspace 1'
+        );
+
+        $this->logInBackendUser(1);
+        self::assertFalse(
+            $permissionService->checkRecordEditAccess('tt_content', $row),
+            'admin table privileges must not bypass the active-workspace boundary'
+        );
+
+        $this->logInBackendUser(2, 1);
+        self::assertTrue(
+            $permissionService->checkRecordEditAccess('tt_content', $row),
+            'the same editable version must be accepted in its owning workspace'
+        );
+    }
+
+    public function testCheckRecordEditAccessRejectsWorkspaceDeletePlaceholderForEditorAndAdmin(): void
+    {
+        $row = array_replace($this->record('tt_content', 100), [
+            'uid' => 900,
+            't3ver_oid' => 100,
+            't3ver_wsid' => 1,
+            't3ver_state' => VersionState::DELETE_PLACEHOLDER->value,
+            't3ver_stage' => 0,
+        ]);
+        $permissionService = $this->permissionService();
+
+        $this->logInBackendUser(2, 1);
+        self::assertFalse(
+            $permissionService->checkRecordEditAccess('tt_content', $row),
+            'DataHandler and FormEngine do not permit editing delete placeholders'
+        );
+
+        $this->logInBackendUser(1, 1);
+        self::assertFalse(
+            $permissionService->checkRecordEditAccess('tt_content', $row),
+            'admin privileges must not turn a delete placeholder into an editable record'
+        );
+    }
+
     public function testCheckRecordEditAccessTtContentAdminBypassesEveryDimension(): void
     {
         $permissionService = $this->permissionService();
@@ -451,6 +506,25 @@ final class PermissionServiceTest extends AbstractAuthorizationTestCase
         self::assertTrue(
             $this->permissionService()->checkRecordEditAccess('pages', $this->record('pages', 10)),
             'page 10 grants perms_everybody=19, which includes the PAGE_EDIT bit'
+        );
+    }
+
+    /**
+     * FormEngine parity (DatabaseUserPermissionCheck): editing a page record
+     * requires the pagetypes_select grant for the page's own doktype.
+     * DataHandler only enforces the grant when doktype itself is written, so
+     * without this check the module would authorize page writes (e.g. scan
+     * state) for users FormEngine refuses the record entirely.
+     * Fixture user 810 (PagetypesSupplement.csv) mirrors the full editor but
+     * grants only doktype 3 — page 10 is a standard page (doktype 1).
+     */
+    public function testCheckRecordEditAccessPagesDeniedWithoutPagetypesSelectGrant(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/PagetypesSupplement.csv');
+        $this->logInBackendUser(810);
+        self::assertFalse(
+            $this->permissionService()->checkRecordEditAccess('pages', $this->record('pages', 10)),
+            'user 810 may only use doktype 3 - editing the doktype-1 page 10 must be denied'
         );
     }
 

@@ -1,0 +1,6 @@
+"be_groups"
+,"uid","pid","title","tables_select","tables_modify","non_exclude_fields","explicit_allowdeny","allowed_languages","db_mountpoints","file_mountpoints","file_permissions","groupMods","pagetypes_select"
+,810,0,"doktype_restricted","pages,tt_content,sys_file,sys_file_reference,sys_file_metadata","pages,tt_content,sys_file_reference,sys_file_metadata","tt_content:tx_mindfula11y_headingtype,tt_content:tx_mindfula11y_landmark,tt_content:tx_mindfula11y_arialabelledby,tt_content:tx_mindfula11y_arialabel,sys_file_reference:tx_mindfula11y_decorative,sys_file_reference:alternative,sys_file_reference:title","tt_content:CType:text,tt_content:CType:textmedia","","1","1","readFolder,readFile,writeFile","mindfula11y_accessibility","3"
+"be_users"
+,"uid","pid","username","password","admin","usergroup","options","workspace_perms"
+,810,0,"editor_doktype_restricted","$argon2i$v=19$m=65536,t=16,p=1$invalid","0","810","3",1
