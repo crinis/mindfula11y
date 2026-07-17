@@ -1,0 +1,8 @@
+"sys_file_reference"
+,"uid","pid","uid_local","uid_foreign","tablenames","fieldname","sys_language_uid","tx_mindfula11y_decorative","alternative","t3ver_oid","t3ver_wsid","t3ver_state"
+,400,10,1,100,"tt_content","assets",0,0,"",0,0,0
+,401,10,1,100,"tt_content","assets",0,0,"",400,1,0
+,402,10,1,100,"tt_content","assets",0,0,"Live alt text",0,0,0
+,403,10,1,100,"tt_content","assets",0,0,"",402,1,0
+,404,10,1,100,"tt_content","assets",0,0,"",0,0,0
+,405,10,1,100,"tt_content","assets",0,0,"Alt added in draft",404,1,0

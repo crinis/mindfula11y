@@ -25,6 +25,7 @@ namespace MindfulMarkup\MindfulA11y\Domain\Repository;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
+use TYPO3\CMS\Core\Database\Query\Restriction\LimitToTablesRestrictionContainer;
 use TYPO3\CMS\Core\Database\Query\Restriction\WorkspaceRestriction;
 use TYPO3\CMS\Core\DataHandling\PlainDataResolver;
 use TYPO3\CMS\Core\Resource\ResourceFactory;
@@ -107,7 +108,7 @@ final readonly class AltlessFileReferenceRepository
 
         return $this->dataMapper->map(
             AltlessFileReference::class,
-            $this->fetchReferenceRowsForReferenceUids($tables, $languageId, $workspaceId, $filterFileMetaData, $selectedReferenceUids)
+            $this->fetchReferenceRowsForReferenceUids($selectedReferenceUids)
         );
     }
 
@@ -144,6 +145,13 @@ final readonly class AltlessFileReferenceRepository
      * Consumers that stop iterating early (e.g. once a page is filled) abandon the generator,
      * so no further chunks are fetched.
      *
+     * Workspace-mutable state (the reference's alternative text and decorative
+     * flag, the metadata fallback) must be judged on the row the editor's
+     * workspace actually renders. The chunk query therefore applies only
+     * structural filters to the live/new candidate rows; each chunk is then
+     * resolved to its effective workspace rows, and the mutable filters run on
+     * those. Yielded UIDs are the effective (possibly version) row UIDs.
+     *
      * @param array<AltlessFileReferenceTable> $tables
      * @param callable(\TYPO3\CMS\Core\Resource\FileInterface): bool $fileFilter
      * @return \Generator<int>
@@ -158,7 +166,7 @@ final readonly class AltlessFileReferenceRepository
         $lastReferenceUid = 0;
 
         do {
-            $referenceUids = $this->fetchReferenceUidChunk($tables, $languageId, $workspaceId, $filterFileMetaData, $lastReferenceUid);
+            $referenceUids = $this->fetchCandidateReferenceUidChunk($tables, $languageId, $workspaceId, $lastReferenceUid);
             if (empty($referenceUids)) {
                 break;
             }
@@ -169,7 +177,7 @@ final readonly class AltlessFileReferenceRepository
                 continue;
             }
 
-            foreach ($this->fetchFileRowsForReferenceUids($tables, $languageId, $workspaceId, $filterFileMetaData, $resolvedReferenceUids) as $fileRow) {
+            foreach ($this->fetchAltlessFileRowsForReferenceUids($workspaceId, $filterFileMetaData, $resolvedReferenceUids) as $fileRow) {
                 $referenceUid = (int)$fileRow['reference_uid'];
                 unset($fileRow['reference_uid']);
 
@@ -181,17 +189,20 @@ final readonly class AltlessFileReferenceRepository
     }
 
     /**
+     * Fetch one keyset chunk of candidate reference UIDs: live rows plus
+     * workspace-new rows, filtered only by workspace-immutable structure
+     * (parent table/field/page coordinates, language, image extension).
+     *
      * @param array<AltlessFileReferenceTable> $tables
      * @return array<int>
      */
-    private function fetchReferenceUidChunk(
+    private function fetchCandidateReferenceUidChunk(
         array $tables,
         int $languageId,
         int $workspaceId,
-        bool $filterFileMetaData,
         int $lastReferenceUid
     ): array {
-        $queryBuilder = $this->createFilteredQueryBuilder($tables, $languageId, $workspaceId, $filterFileMetaData);
+        $queryBuilder = $this->createCandidateQueryBuilder($tables, $languageId, $workspaceId);
 
         return array_map(
             'intval',
@@ -221,71 +232,100 @@ final readonly class AltlessFileReferenceRepository
     }
 
     /**
-     * @param array<AltlessFileReferenceTable> $tables
+     * Apply the workspace-mutable filters to already-resolved effective rows
+     * and fetch their file rows for the FAL permission filter.
+     *
+     * The given UIDs are the exact rows the workspace renders (version rows
+     * included), so the query must NOT carry a WorkspaceRestriction on
+     * sys_file_reference — the default restriction admits only t3ver_oid=0
+     * rows and would silently drop every plain workspace version. The
+     * metadata join keeps its workspace scoping so at most the one live/new
+     * metadata row per file and language matches.
+     *
      * @param array<int> $referenceUids
      * @return array<array<string, mixed>>
      */
-    private function fetchFileRowsForReferenceUids(
-        array $tables,
-        int $languageId,
+    private function fetchAltlessFileRowsForReferenceUids(
         int $workspaceId,
         bool $filterFileMetaData,
         array $referenceUids
     ): array {
-        $queryBuilder = $this->createFilteredQueryBuilder($tables, $languageId, $workspaceId, $filterFileMetaData);
+        $queryBuilder = $this->connectionPool->getQueryBuilderForTable('sys_file_reference');
+        $queryBuilder->getRestrictions()
+            ->removeAll()
+            ->add(GeneralUtility::makeInstance(DeletedRestriction::class));
 
-        return $queryBuilder
+        $queryBuilder
             ->select('mindfula11y_sys_file.*')
             ->addSelect('sys_file_reference.uid AS reference_uid')
-            ->andWhere($queryBuilder->expr()->in('sys_file_reference.uid', $queryBuilder->createNamedParameter($referenceUids, Connection::PARAM_INT_ARRAY)))
+            ->from('sys_file_reference')
+            ->innerJoin(
+                'sys_file_reference',
+                'sys_file',
+                'mindfula11y_sys_file',
+                $queryBuilder->expr()->eq('sys_file_reference.uid_local', $queryBuilder->quoteIdentifier('mindfula11y_sys_file.uid'))
+            )->where(
+                $queryBuilder->expr()->or(
+                    $queryBuilder->expr()->isNull('sys_file_reference.alternative'),
+                    $queryBuilder->expr()->eq('sys_file_reference.alternative', $queryBuilder->createNamedParameter('', Connection::PARAM_STR))
+                ),
+                $queryBuilder->expr()->eq(
+                    'sys_file_reference.tx_mindfula11y_decorative',
+                    $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)
+                ),
+                $queryBuilder->expr()->in('sys_file_reference.uid', $queryBuilder->createNamedParameter($referenceUids, Connection::PARAM_INT_ARRAY))
+            );
+
+        if ($filterFileMetaData) {
+            $this->addFilterByFileMetaDataClauses($queryBuilder);
+            $queryBuilder->getRestrictions()->add(
+                GeneralUtility::makeInstance(LimitToTablesRestrictionContainer::class)
+                    ->addForTables(
+                        GeneralUtility::makeInstance(WorkspaceRestriction::class, $workspaceId),
+                        ['mindfula11y_sys_file_metadata']
+                    )
+            );
+        }
+
+        return $queryBuilder
             ->orderBy('sys_file_reference.uid', 'ASC')
             ->executeQuery()
             ->fetchAllAssociative();
     }
 
     /**
-     * @param array<AltlessFileReferenceTable> $tables
+     * Fetch the reference rows for UIDs that already passed every filter —
+     * effective workspace rows included, hence only the deleted restriction.
+     *
      * @param array<int> $referenceUids
      * @return array<array<string, mixed>>
      */
-    private function fetchReferenceRowsForReferenceUids(
-        array $tables,
-        int $languageId,
-        int $workspaceId,
-        bool $filterFileMetaData,
-        array $referenceUids
-    ): array {
-        $queryBuilder = $this->createFilteredQueryBuilder($tables, $languageId, $workspaceId, $filterFileMetaData);
+    private function fetchReferenceRowsForReferenceUids(array $referenceUids): array
+    {
+        $queryBuilder = $this->connectionPool->getQueryBuilderForTable('sys_file_reference');
+        $queryBuilder->getRestrictions()
+            ->removeAll()
+            ->add(GeneralUtility::makeInstance(DeletedRestriction::class));
 
         return $queryBuilder
-            ->andWhere($queryBuilder->expr()->in('sys_file_reference.uid', $queryBuilder->createNamedParameter($referenceUids, Connection::PARAM_INT_ARRAY)))
-            ->orderBy('sys_file_reference.uid', 'ASC')
+            ->select('*')
+            ->from('sys_file_reference')
+            ->where($queryBuilder->expr()->in('uid', $queryBuilder->createNamedParameter($referenceUids, Connection::PARAM_INT_ARRAY)))
+            ->orderBy('uid', 'ASC')
             ->executeQuery()
             ->fetchAllAssociative();
     }
 
     /**
-     * Create the base query builder and optionally apply the file-metadata filter.
+     * Create the candidate query builder: live/new reference rows matching the
+     * workspace-immutable filters only.
      *
-     * @param array<AltlessFileReferenceTable> $tables
-     * @return QueryBuilder
-     */
-    private function createFilteredQueryBuilder(
-        array $tables,
-        int $languageId,
-        int $workspaceId,
-        bool $filterFileMetaData
-    ): QueryBuilder {
-        $queryBuilder = $this->createQueryBuilderForTables($tables, $languageId, $workspaceId);
-        if ($filterFileMetaData) {
-            $this->addFilterByFileMetaDataClauses($queryBuilder);
-        }
-
-        return $queryBuilder;
-    }
-
-    /**
-     * Create query builder instance to list file references for a given table.
+     * The alternative-text and decorative filters deliberately do NOT run
+     * here: they are workspace-mutable and are applied to the resolved
+     * effective rows in fetchAltlessFileRowsForReferenceUids(). The parent
+     * authMode conditions do run here and thus judge the live parent row — a
+     * parent whose restricting column changed only in the workspace keeps its
+     * live visibility, matching what the module's other permission checks see.
      *
      * @param array<AltlessFileReferenceTable> $tables Array of table configurations to select file references by.
      * @param int $languageId The language UID to select file references for.
@@ -293,10 +333,10 @@ final readonly class AltlessFileReferenceRepository
      *
      * @return QueryBuilder QueryBuilder instance used as a base for the query.
      */
-    private function createQueryBuilderForTables(
+    private function createCandidateQueryBuilder(
         array $tables,
         int $languageId,
-        int $workspaceId = 0
+        int $workspaceId
     ): QueryBuilder {
         $queryBuilder = $this->connectionPool->getQueryBuilderForTable('sys_file_reference');
 
@@ -315,14 +355,6 @@ final readonly class AltlessFileReferenceRepository
                 'mindfula11y_sys_file',
                 $queryBuilder->expr()->eq('sys_file_reference.uid_local', $queryBuilder->quoteIdentifier('mindfula11y_sys_file.uid'))
             )->where(
-                $queryBuilder->expr()->or(
-                    $queryBuilder->expr()->isNull('sys_file_reference.alternative'),
-                    $queryBuilder->expr()->eq('sys_file_reference.alternative', $queryBuilder->createNamedParameter('', Connection::PARAM_STR))
-                ),
-                $queryBuilder->expr()->eq(
-                    'sys_file_reference.tx_mindfula11y_decorative',
-                    $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)
-                ),
                 $queryBuilder->expr()->in('mindfula11y_sys_file.extension', $queryBuilder->createNamedParameter($this->getImageFileExtensions(), Connection::PARAM_STR_ARRAY)),
                 $queryBuilder->expr()->eq(
                     'sys_file_reference.' . $this->getLanguageField('sys_file_reference'),
