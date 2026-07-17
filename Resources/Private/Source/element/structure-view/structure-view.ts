@@ -239,7 +239,8 @@ export abstract class StructureView<T extends StructureViewNode<T>> extends LitE
         opts: {
             id: string;
             className: string;
-            ariaLabel: string;
+            ariaLabel?: string;
+            ariaLabelledby?: string;
             currentValue: string;
             options: Record<string, string>;
             /** Save target when the select edits a column other than `node.record` (e.g. a container's child-type column). */
@@ -252,7 +253,8 @@ export abstract class StructureView<T extends StructureViewNode<T>> extends LitE
             id=${opts.id}
             class=${opts.className}
             data-control=${opts.className}
-            aria-label=${opts.ariaLabel}
+            aria-label=${opts.ariaLabel ?? nothing}
+            aria-labelledby=${opts.ariaLabelledby ?? nothing}
             aria-describedby=${opts.describedby ?? this.describedby(node)}
             .value=${live(opts.currentValue)}
             @change=${(event: Event): void => {

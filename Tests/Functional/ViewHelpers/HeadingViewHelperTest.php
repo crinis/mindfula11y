@@ -15,6 +15,8 @@ declare(strict_types=1);
 namespace MindfulMarkup\MindfulA11y\Tests\Functional\ViewHelpers;
 
 use MindfulMarkup\MindfulA11y\Domain\Model\StructureAnalysisTicket;
+use MindfulMarkup\MindfulA11y\Enum\HeadingType;
+use MindfulMarkup\MindfulA11y\Tca\HeadingTypeItemsProcessor;
 use PHPUnit\Framework\Attributes\Test;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Core\Http\ServerRequest;
@@ -108,6 +110,46 @@ final class HeadingViewHelperTest extends FunctionalTestCase
         );
 
         self::assertStringContainsString('<h1>Child</h1>', $output);
+    }
+
+    #[Test]
+    public function descendantUsesNonHeadingChildTypesVerbatim(): void
+    {
+        $output = $this->render(
+            '<mindfula11y:heading type="h2" childType="p" relationId="paragraph">Parent</mindfula11y:heading>'
+            . '<mindfula11y:heading.descendant ancestorId="paragraph">Paragraph child</mindfula11y:heading.descendant>'
+            . '<mindfula11y:heading type="h2" childType="div" relationId="division">Parent</mindfula11y:heading>'
+            . '<mindfula11y:heading.descendant ancestorId="division">Div child</mindfula11y:heading.descendant>'
+        );
+
+        self::assertStringContainsString('<p>Paragraph child</p>', $output);
+        self::assertStringContainsString('<div>Div child</div>', $output);
+    }
+
+    #[Test]
+    public function defaultEditorSelectorsOmitGenericDivButRenderingStillSupportsIt(): void
+    {
+        $editorValues = array_map(
+            static fn(HeadingType $type): string => $type->value,
+            array_filter(
+                HeadingType::cases(),
+                static fn(HeadingType $type): bool => $type !== HeadingType::DIV,
+            ),
+        );
+        $headingItems = $GLOBALS['TCA']['tt_content']['columns']['tx_mindfula11y_headingtype']['config']['items'];
+        $childItems = $GLOBALS['TCA']['tt_content']['columns']['tx_mindfula11y_childheadingtype']['config']['items'];
+
+        self::assertSame($editorValues, array_column($headingItems, 'value'));
+        self::assertSame(['', ...$editorValues], array_column($childItems, 'value'));
+        self::assertSame(HeadingType::DIV, HeadingType::tryFrom('div'));
+
+        $parameters = [
+            'field' => 'tx_mindfula11y_headingtype',
+            'row' => ['tx_mindfula11y_headingtype' => HeadingType::DIV->value],
+            'items' => $headingItems,
+        ];
+        (new HeadingTypeItemsProcessor())->addStoredDivItem($parameters);
+        self::assertSame(HeadingType::DIV->value, $parameters['items'][array_key_last($parameters['items'])]['value']);
     }
 
     #[Test]

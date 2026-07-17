@@ -385,13 +385,13 @@
                 <source>Hidden container element</source>
             </trans-unit>
             <trans-unit id="structure.headings.type" resname="structure.headings.type">
-                <source>Heading type</source>
+                <source>Heading level</source>
             </trans-unit>
             <trans-unit id="structure.headings.childType" resname="structure.headings.childType">
-                <source>Child heading type</source>
+                <source>Headings inside</source>
             </trans-unit>
             <trans-unit id="structure.headings.childType.applies" resname="structure.headings.childType.applies">
-                <source>Applies to all child headings deriving from this element.</source>
+                <source>Sets the heading level for all content elements inside this element. Automatic uses the next level.</source>
             </trans-unit>
             <trans-unit id="structure.headings.relation.descendant" resname="structure.headings.relation.descendant">
                 <source>Related to parent heading</source>

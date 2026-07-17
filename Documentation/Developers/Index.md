@@ -69,13 +69,15 @@ Edge cases:
 - If `type` is not set, the ViewHelper resolves the heading type from the configured record field.
 - If neither is available, it falls back to `h2`.
 - Use `relationId` if you want to reference this heading from descendant/sibling headings.
-- `childType` explicitly configures the level of descendant headings (see below). Pass it from
+- `childType` explicitly configures the type of descendant headings (see below). Pass it from
   template data as shown to save a database query; when the argument is omitted entirely, the
   record's `tx_mindfula11y_childheadingtype` column (override with `childTypeColumnName`) is
   consulted — but only when that column is defined in the record table's TCA. Custom tables
   without the column simply resolve to "automatic"; they need no child-type column of their own.
-  An empty value means "automatic": descendants use this heading's own level plus one.
-  In the heading structure module, the child heading type is edited on the **container
+  An empty value means "automatic": descendants use this heading's own level plus one. Explicit
+  values support `h1`–`h6`, `p`, and `div`. The default editor selectors intentionally expose
+  only `h1`–`h6` and `p`; `div` remains available to templates and project-specific TCA.
+  In the heading structure module, the headings-inside setting is edited on the **container
   element's row**. A container that renders no heading of its own (empty header,
   `renderTag="false"`) still appears as a "Hidden container element" row during analysis —
   the ViewHelper emits a hidden marker for validated structure-analysis requests only; normal
@@ -116,10 +118,10 @@ Edge cases:
 - If the referenced heading is not available yet, set `type` directly or provide record arguments.
 - If level increment would exceed `h6`, output becomes `p`.
 - When the ancestor carries a configured **child heading type** (its `childType` argument or
-  `tx_mindfula11y_childheadingtype` column), the descendant uses that level *verbatim* with the
+  `tx_mindfula11y_childheadingtype` column), the descendant uses that type *verbatim* with the
   default `levels` of 1 — this is the only way a descendant can render as `h1`, since plain
-  incrementing always starts at `h2`. Deeper `levels` continue from it
-  (`childType + levels − 1`).
+  incrementing always starts at `h2`. Deeper `levels` continue from configured heading levels
+  (`childType + levels − 1`); configured `p` and `div` types remain unchanged.
 - Give a descendant its own `relationId` to let *its* descendants derive from it — each nesting
   level steps down one further level automatically:
 
@@ -133,12 +135,12 @@ Edge cases:
 </mindfula11y:heading.descendant>
 ```
 
-### Container elements: configuring child heading levels
+### Container elements: configuring headings inside
 
 The optional tt_content column `tx_mindfula11y_childheadingtype` lets editors set the heading
-level for all children of a container element (including `h1`), or leave it on "Automatic"
-(one level below the container's own heading). The column ships **unassigned** — add it to your
-container CTypes:
+level for all children of a container element (`h1`–`h6` or `p`), or leave it on
+"Automatic — next level" (one level below the container's own heading). The column ships **unassigned** —
+add it to your container CTypes:
 
 ```php
 \TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addToAllTCAtypes(
@@ -147,6 +149,22 @@ container CTypes:
     'my_container_ctype',
     'after:header'
 );
+```
+
+The ViewHelpers and `HeadingType` enum continue to support `div` for existing data and specialist
+integrations, but the neutral container is deliberately absent from the default editor selectors.
+If a project has a documented need for it, add the option to one or both fields in a project TCA
+override:
+
+```php
+use MindfulMarkup\MindfulA11y\Enum\HeadingType;
+
+$divItem = [
+    'label' => HeadingType::DIV->getLabelKey(),
+    'value' => HeadingType::DIV->value,
+];
+$GLOBALS['TCA']['tt_content']['columns']['tx_mindfula11y_headingtype']['config']['items'][] = $divItem;
+$GLOBALS['TCA']['tt_content']['columns']['tx_mindfula11y_childheadingtype']['config']['items'][] = $divItem;
 ```
 
 The field **must be part of the CType's showitem** (as above): FormEngine only shows fields from
@@ -167,12 +185,12 @@ A container template renders its heading unconditionally with `relationId` and `
 
 Because the container registers even when it renders no heading (empty header or
 `renderTag="false"`), a headingless container still anchors its children: with a configured
-child type they render exactly that level; on "Automatic" a headingless container registers no
+child type they render exactly that level; on "Automatic — next level" a headingless container registers no
 own level either, and children fall back to their own heading-type field.
 
 In the heading-structure backend module, the child-type select lives on the **container's own
 row**, not on the derived children: one change writes the shared column, so **all** children of
-that container shift together, and their own descendants (linked via `relationId`/"Automatic")
+that container shift together, and their own descendants (linked via `relationId`/automatic derivation)
 re-derive with them. A container that renders no heading of its own still gets a row — labeled
 "Hidden container element" — so the field stays reachable and its children keep a jump target;
 this row is a module-only construct built from the hidden marker `renderContainerMarker()` emits

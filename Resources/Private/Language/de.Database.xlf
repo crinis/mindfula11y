@@ -16,64 +16,56 @@
 			</trans-unit>
 			<!-- Corrected mindfulA11y -> mindfula11y in ids/resnames for heading type entries -->
 			<trans-unit id="ttContent.columns.mindfula11y.headingType" resname="ttContent.columns.mindfula11y.headingType">
-				<source>Heading Type</source>
-				<target>Überschriftentyp</target>
+				<source>Heading level</source>
+				<target>Überschriftenebene</target>
 			</trans-unit>
 			<trans-unit id="ttContent.columns.mindfula11y.headingType.description" resname="ttContent.columns.mindfula11y.headingType.description">
-				<source>
-					A heading type defines the structure of the document. It is especially
-					important for users of assistive technology
-					to efficiently navigate through the content.
-				</source>
-				<target>
-					Ein Überschriftentyp definiert die Struktur des Dokuments. Er ist besonders
-					wichtig für Nutzer assistiver Technologien,
-					um effizient durch den Inhalt zu navigieren.
-				</target>
+				<source>Choose this heading's place in the page structure, not its visual size. Use level 1 for the page heading, level 2 for main sections, and increase one level at a time. Choose "Paragraph — not a heading" only when the text does not introduce a section.</source>
+				<target>Wählen Sie die Position dieser Überschrift in der Seitenstruktur, nicht ihre visuelle Größe. Verwenden Sie Ebene 1 für die Seitenüberschrift, Ebene 2 für Hauptabschnitte und erhöhen Sie jeweils um eine Ebene. Wählen Sie „Absatz — keine Überschrift“ nur, wenn der Text keinen Abschnitt einleitet.</target>
 			</trans-unit>
 			<trans-unit id="ttContent.columns.mindfula11y.headingType.items.h1" resname="ttContent.columns.mindfula11y.headingType.items.h1">
-				<source>H1</source>
-				<target>H1</target>
+				<source>Level 1 (H1) — page heading</source>
+				<target>Ebene 1 (H1) — Seitenüberschrift</target>
 			</trans-unit>
 			<trans-unit id="ttContent.columns.mindfula11y.headingType.items.h2" resname="ttContent.columns.mindfula11y.headingType.items.h2">
-				<source>H2</source>
-				<target>H2</target>
+				<source>Level 2 (H2)</source>
+				<target>Ebene 2 (H2)</target>
 			</trans-unit>
 			<trans-unit id="ttContent.columns.mindfula11y.headingType.items.h3" resname="ttContent.columns.mindfula11y.headingType.items.h3">
-				<source>H3</source>
-				<target>H3</target>
+				<source>Level 3 (H3)</source>
+				<target>Ebene 3 (H3)</target>
 			</trans-unit>
 			<trans-unit id="ttContent.columns.mindfula11y.headingType.items.h4" resname="ttContent.columns.mindfula11y.headingType.items.h4">
-				<source>H4</source>
-				<target>H4</target>
+				<source>Level 4 (H4)</source>
+				<target>Ebene 4 (H4)</target>
 			</trans-unit>
 			<trans-unit id="ttContent.columns.mindfula11y.headingType.items.h5" resname="ttContent.columns.mindfula11y.headingType.items.h5">
-				<source>H5</source>
-				<target>H5</target>
+				<source>Level 5 (H5)</source>
+				<target>Ebene 5 (H5)</target>
 			</trans-unit>
 			<trans-unit id="ttContent.columns.mindfula11y.headingType.items.h6" resname="ttContent.columns.mindfula11y.headingType.items.h6">
-				<source>H6</source>
-				<target>H6</target>
+				<source>Level 6 (H6)</source>
+				<target>Ebene 6 (H6)</target>
 			</trans-unit>
 			<trans-unit id="ttContent.columns.mindfula11y.headingType.items.p" resname="ttContent.columns.mindfula11y.headingType.items.p">
-				<source>Paragraph (p)</source>
-				<target>Absatz (p)</target>
+				<source>Paragraph — not a heading</source>
+				<target>Absatz — keine Überschrift</target>
 			</trans-unit>
 			<trans-unit id="ttContent.columns.mindfula11y.headingType.items.div" resname="ttContent.columns.mindfula11y.headingType.items.div">
-				<source>Generic div (div)</source>
-				<target>Generic div (div)</target>
+				<source>Neutral container — no heading meaning (div)</source>
+				<target>Neutraler Container — keine Überschriftenbedeutung (div)</target>
 			</trans-unit>
 			<trans-unit id="ttContent.columns.mindfula11y.childHeadingType" resname="ttContent.columns.mindfula11y.childHeadingType">
-				<source>Child heading type</source>
-				<target>Überschriftentyp für Unterelemente</target>
+				<source>Headings inside this element</source>
+				<target>Überschriften innerhalb dieses Elements</target>
 			</trans-unit>
 			<trans-unit id="ttContent.columns.mindfula11y.childHeadingType.description" resname="ttContent.columns.mindfula11y.childHeadingType.description">
-				<source>Heading level for content elements placed inside this element. "Automatic" uses one level below this element's own heading type.</source>
-				<target>Überschriftenebene für Inhaltselemente innerhalb dieses Elements. "Automatisch" verwendet eine Ebene unterhalb des eigenen Überschriftentyps dieses Elements.</target>
+				<source>Choose the level used for headings in content elements inside this element. "Automatic — next level" follows the page structure by using one level below this element's heading. Change it only when the heading preview shows an incorrect level.</source>
+				<target>Wählen Sie die Ebene für Überschriften in Inhaltselementen innerhalb dieses Elements. „Automatisch — nächste Ebene“ folgt der Seitenstruktur und verwendet eine Ebene unterhalb der Überschrift dieses Elements. Ändern Sie die Einstellung nur, wenn die Überschriftenvorschau eine falsche Ebene zeigt.</target>
 			</trans-unit>
 			<trans-unit id="ttContent.columns.mindfula11y.childHeadingType.items.automatic" resname="ttContent.columns.mindfula11y.childHeadingType.items.automatic">
-				<source>Automatic</source>
-				<target>Automatisch</target>
+				<source>Automatic — next level</source>
+				<target>Automatisch — nächste Ebene</target>
 			</trans-unit>
 
 			<!-- Accessibility Tab -->

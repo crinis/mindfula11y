@@ -112,10 +112,12 @@ let HeadingStructure = class extends StructureView {
             style=${`--mindfula11y-heading-structure-indent: ${missingLevel - 1}`}
         >
             <div class="row">
-                <span class="level" data-missing>H${missingLevel}</span>
-                <span class="text" id=${missingLevel === node.level - 1 ? `skip-${node.id}` : nothing}
-                    >${lll("mindfula11y.structure.headings.error.skippedLevel.inline", missingLevel)}</span
-                >
+                <div class="heading">
+                    <span class="level" data-missing>${this.headingLevelLabel(missingLevel)}</span>
+                    <span class="text" id=${missingLevel === node.level - 1 ? `skip-${node.id}` : nothing}
+                        >${lll("mindfula11y.structure.headings.error.skippedLevel.inline", missingLevel)}</span
+                    >
+                </div>
             </div>
         </li>`;
   }
@@ -155,6 +157,7 @@ let HeadingStructure = class extends StructureView {
       isContainer ? "mindfula11y.structure.headings.container" : "mindfula11y.structure.headings.unlabeled"
     );
     const editable = node.record !== null && node.record.editLink !== "";
+    const hasChildControl = this.hasChildLevelControl(node);
     const inRowErrors = this.inRowErrors(node);
     const hasErrorSeverity = inRowErrors.some((error) => error.severity === StructureErrorSeverity.Error);
     return html`<div
@@ -162,23 +165,30 @@ let HeadingStructure = class extends StructureView {
             data-node-id=${node.id}
             data-relation-id=${node.relationId}
             ?data-container=${isContainer}
+            ?data-child-control=${hasChildControl}
             ?data-error=${hasErrorSeverity}
             ?data-warning=${inRowErrors.length > 0 && !hasErrorSeverity}
         >
-            ${this.renderLevelControl(node, label, editable)}
-            ${isContainer ? html`<span class="text">
-                          <span class="container-badge">
-                              <typo3-backend-icon identifier="overlay-hidden" size="small"></typo3-backend-icon>
-                              ${label}
-                          </span>
-                      </span>` : html`<span class="text" ?data-empty=${node.label === ""}>${label}</span>`}
+            <div class="heading">
+                ${this.renderLevelControl(node, label, editable)}
+                ${isContainer ? html`<span class="text">
+                              <span class="container-badge">
+                                  <typo3-backend-icon identifier="overlay-hidden" size="small"></typo3-backend-icon>
+                                  ${label}
+                              </span>
+                          </span>` : html`<span class="text" ?data-empty=${node.label === ""}>${label}</span>`}
+            </div>
             ${this.renderChildLevelControl(node, label)}
+            <div class="meta" ?data-child-control=${hasChildControl}>
+                ${renderViewportBadges(node.viewports)}
+                <span class="actions">
+                    ${editable && this.hasRecord(node) ? this.renderEditLink(node, label) : nothing}
+                    ${this.renderBusySpinner(node)}
+                </span>
+            </div>
             ${inRowErrors.length > 0 ? html`<span class="row-issues" id="issue-${node.id}"
                           >${inRowErrors.map((error) => this.renderRowIssue(node, error))}</span
                       >` : nothing}
-            ${renderViewportBadges(node.viewports)}
-            ${editable && this.hasRecord(node) ? this.renderEditLink(node, label) : nothing}
-            ${this.renderBusySpinner(node)}
         </div>`;
   }
   /**
@@ -206,10 +216,11 @@ let HeadingStructure = class extends StructureView {
       });
     }
     if (node.relation !== null) {
+      const levelLabel = this.headingLevelLabel(node.level);
       const relationLabel = node.relation.kind === "ancestor" ? lll("mindfula11y.structure.headings.relation.descendant") : lll("mindfula11y.structure.headings.relation.sibling");
       if (!this.relationTargetExists(node)) {
         return html`<span class="level" data-relation>
-                    H${node.level}
+                    ${levelLabel}
                     <typo3-backend-icon identifier="actions-link" size="small"></typo3-backend-icon>
                     <span class="sr-only">${relationLabel}</span>
                 </span>`;
@@ -219,16 +230,16 @@ let HeadingStructure = class extends StructureView {
                 class="level"
                 data-relation
                 data-control="level"
-                aria-label="H${node.level} — ${relationLabel}. ${lll("mindfula11y.structure.headings.relation.jump")}"
+                aria-label="${levelLabel} — ${relationLabel}. ${lll("mindfula11y.structure.headings.relation.jump")}"
                 aria-describedby=${this.describedby(node)}
                 @click=${() => this.handleRelationJump(node)}
             >
-                H${node.level}
+                ${levelLabel}
                 <typo3-backend-icon identifier="actions-link" size="small"></typo3-backend-icon>
             </button>`;
     }
     return html`<span class="level" data-locked>
-            ${this.renderLockedChip(node.level > 0 ? `H${node.level}` : "\u2014")}
+            ${this.renderLockedChip(node.level > 0 ? this.headingLevelLabel(node.level) : "\u2014")}
         </span>`;
   }
   /**
@@ -239,18 +250,24 @@ let HeadingStructure = class extends StructureView {
    * record type's showitem, custom table without the column).
    */
   renderChildLevelControl(node, label) {
+    if (!this.hasChildLevelControl(node)) {
+      return nothing;
+    }
     const record = node.childTypeRecord;
-    if (record === null || record.editLink === "" || Object.keys(node.availableChildTypes).length === 0) {
+    if (record === null) {
       return nothing;
     }
     const currentValue = record.storedValue ?? "";
     const childLevel = node.level > 0 ? node.level + 1 : null;
     return html`<span class="child-control">
-            <span class="child-label" aria-hidden="true">${lll("mindfula11y.structure.headings.childType")}</span>
+            <label id="child-level-label-${node.id}" class="child-label" for="child-level-${node.id}"
+                >${lll("mindfula11y.structure.headings.childType")}</label
+            >
+            <span id="child-level-context-${node.id}" class="sr-only">: ${label}</span>
             ${this.renderValueSelect(node, {
       id: `child-level-${node.id}`,
       className: "child-level",
-      ariaLabel: `${lll("mindfula11y.structure.headings.childType")}: ${label}`,
+      ariaLabelledby: `child-level-label-${node.id} child-level-context-${node.id}`,
       currentValue,
       options: this.buildLevelOptions(node.availableChildTypes, currentValue, childLevel),
       record,
@@ -260,6 +277,13 @@ let HeadingStructure = class extends StructureView {
                 >${lll("mindfula11y.structure.headings.childType.applies")}</span
             >
         </span>`;
+  }
+  hasChildLevelControl(node) {
+    return node.childTypeRecord !== null && node.childTypeRecord.editLink !== "" && Object.keys(node.availableChildTypes).length > 0;
+  }
+  /** Same localized level label used by FormEngine options and every module badge. */
+  headingLevelLabel(level) {
+    return lll(`mindfula11y.structure.headings.level.h${level}`);
   }
   /**
    * Maps a level/child-type option map to display labels via levelOptionLabel(),
@@ -275,20 +299,18 @@ let HeadingStructure = class extends StructureView {
     );
   }
   /**
-   * Select option labels: h1-h6 as compact uppercase levels; other values keep
-   * their translated label. A currently selected "automatic" option carries the
+   * Select option labels use the intent-based, translated TCA labels. A currently
+   * selected "automatic" option carries the
    * effective level (own level for the level select, own level + 1 for the
    * child-type select), so the level stays visible in the collapsed select.
-   * An effective level past H6 shows as P: HeadingType::increment() overflows
+   * An effective level past H6 shows the paragraph label: HeadingType::increment() overflows
    * derived levels beyond h6 to a paragraph, so an H6 container's automatic
    * children must never be promised an "H7".
    */
   levelOptionLabel(type, typeLabel, currentValue, effectiveLevel) {
-    if (/^h[1-6]$/.test(type)) {
-      return type.toUpperCase();
-    }
     if (type === "" && currentValue === "" && effectiveLevel !== null) {
-      return effectiveLevel > 6 ? `${typeLabel} (P)` : `${typeLabel} (H${effectiveLevel})`;
+      const effectiveLabel = effectiveLevel > 6 ? lll("mindfula11y.structure.headings.level.p") : this.headingLevelLabel(effectiveLevel);
+      return `${typeLabel}: ${effectiveLabel}`;
     }
     return typeLabel;
   }

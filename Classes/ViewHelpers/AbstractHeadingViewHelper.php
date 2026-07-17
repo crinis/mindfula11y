@@ -156,17 +156,17 @@ abstract class AbstractHeadingViewHelper extends AbstractTagBasedViewHelper
      */
     protected function registerChildTypeArguments(): void
     {
-        $this->registerArgument('childType', 'string', 'Heading type (h1-h6) that descendant headings referencing this heading via ancestorId use verbatim. An empty value means automatic (one level below this heading). If the argument is omitted entirely, the value is fetched from the record column named by childTypeColumnName — but only when that column exists in the record table\'s TCA (tables without it, e.g. custom tables, resolve to automatic). Pass it from template data to save the database query.', false, null);
+        $this->registerArgument('childType', 'string', 'Heading type (h1-h6, p or div) that descendant headings referencing this heading via ancestorId use verbatim. An empty value means automatic (one level below this heading). If the argument is omitted entirely, the value is fetched from the record column named by childTypeColumnName — but only when that column exists in the record table\'s TCA (tables without it, e.g. custom tables, resolve to automatic). Pass it from template data to save the database query.', false, null);
         $this->registerArgument('childTypeColumnName', 'string', 'Name of the DB column that stores the child heading type on the record given by recordUid/recordTableName. Only consulted when the column is defined in that table\'s TCA. (Defaults to tx_mindfula11y_childheadingtype)', false, 'tx_mindfula11y_childheadingtype');
     }
 
     /**
-     * Resolves the explicitly configured child heading type, restricted to real heading
-     * levels (h1-h6): a provided `childType` argument wins — an empty string counts as
-     * provided and means "automatic" WITHOUT falling through to the database (this is how
-     * templates pass an empty record field) — otherwise the record's child-type column is
-     * consulted, provided the record's table actually defines it (see
-     * resolveChildTypeColumnName()). Returns null for "automatic".
+     * Resolves the explicitly configured child heading type: a provided `childType`
+     * argument wins — an empty string counts as provided and means "automatic" WITHOUT
+     * falling through to the database (this is how templates pass an empty record field) —
+     * otherwise the record's child-type column is consulted, provided the record's table
+     * actually defines it (see resolveChildTypeColumnName()). Returns null for
+     * "automatic"; h1-h6, p and div are returned verbatim.
      *
      * @return HeadingType|null
      */
@@ -178,16 +178,16 @@ abstract class AbstractHeadingViewHelper extends AbstractTagBasedViewHelper
         }
 
         if ($this->hasArgument('childType')) {
-            return $this->restrictToHeadingLevel(HeadingType::tryFrom((string)$this->arguments['childType']));
+            return HeadingType::tryFrom((string)$this->arguments['childType']);
         }
 
         $childTypeColumnName = $this->resolveChildTypeColumnName();
         if ($this->hasRecordInformation() && $childTypeColumnName !== null) {
-            return $this->restrictToHeadingLevel($this->resolveRecordHeadingType(
+            return $this->resolveRecordHeadingType(
                 $this->arguments['recordUid'],
                 $this->arguments['recordTableName'],
                 $childTypeColumnName,
-            ));
+            );
         }
 
         return null;
@@ -254,14 +254,6 @@ abstract class AbstractHeadingViewHelper extends AbstractTagBasedViewHelper
         $tag->addAttribute('data-mindfula11y-childtype-column-name', $childTypeColumnName);
         $tag->addAttribute('data-mindfula11y-childtype-uid', (string)$this->arguments['recordUid']);
         $tag->addAttribute('data-mindfula11y-childtype-value', $this->resolveChildType()?->value ?? '');
-    }
-
-    /**
-     * Restricts a heading type to real heading levels: p/div (and null) become null.
-     */
-    private function restrictToHeadingLevel(?HeadingType $type): ?HeadingType
-    {
-        return ($type !== null && $type->getNumericLevel() !== null) ? $type : null;
     }
 
     /**

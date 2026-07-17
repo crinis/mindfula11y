@@ -23,8 +23,20 @@ declare(strict_types=1);
 use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 use MindfulMarkup\MindfulA11y\Enum\AriaLandmark;
 use MindfulMarkup\MindfulA11y\Enum\HeadingType;
+use MindfulMarkup\MindfulA11y\Tca\HeadingTypeItemsProcessor;
 
 defined('TYPO3') or die();
+
+$mindfula11yHeadingTypeItems = array_map(
+    static fn(HeadingType $type): array => [
+        'label' => $type->getLabelKey(),
+        'value' => $type->value,
+    ],
+    array_filter(
+        HeadingType::cases(),
+        static fn(HeadingType $type): bool => $type !== HeadingType::DIV,
+    ),
+);
 
 ExtensionManagementUtility::addTCAcolumns(
     'tt_content',
@@ -32,44 +44,13 @@ ExtensionManagementUtility::addTCAcolumns(
         'tx_mindfula11y_headingtype' => [
             'exclude' => true,
             'label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.headingType',
+            'description' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.headingType.description',
             'config' => [
                 'type' => 'select',
                 'renderType' => 'selectSingle',
                 'default' => HeadingType::H2->value,
-                'items' => [
-                    [
-                        'label' => HeadingType::H1->getLabelKey(),
-                        'value' => HeadingType::H1->value,
-                    ],
-                    [
-                        'label' => HeadingType::H2->getLabelKey(),
-                        'value' => HeadingType::H2->value,
-                    ],
-                    [
-                        'label' => HeadingType::H3->getLabelKey(),
-                        'value' => HeadingType::H3->value,
-                    ],
-                    [
-                        'label' => HeadingType::H4->getLabelKey(),
-                        'value' => HeadingType::H4->value,
-                    ],
-                    [
-                        'label' => HeadingType::H5->getLabelKey(),
-                        'value' => HeadingType::H5->value,
-                    ],
-                    [
-                        'label' => HeadingType::H6->getLabelKey(),
-                        'value' => HeadingType::H6->value,
-                    ],
-                    [
-                        'label' => HeadingType::P->getLabelKey(),
-                        'value' => HeadingType::P->value,
-                    ],
-                    [
-                        'label' => HeadingType::DIV->getLabelKey(),
-                        'value' => HeadingType::DIV->value,
-                    ]
-                ],
+                'items' => $mindfula11yHeadingTypeItems,
+                'itemsProcFunc' => HeadingTypeItemsProcessor::class . '->addStoredDivItem',
             ],
         ],
         // Intentionally not added to any palette/showitem: only meaningful on container-like
@@ -84,36 +65,16 @@ ExtensionManagementUtility::addTCAcolumns(
                 'type' => 'select',
                 'renderType' => 'selectSingle',
                 'default' => '',
-                'items' => [
+                'items' => array_merge(
                     [
-                        'label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.childHeadingType.items.automatic',
-                        'value' => '',
+                        [
+                            'label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.childHeadingType.items.automatic',
+                            'value' => '',
+                        ],
                     ],
-                    [
-                        'label' => HeadingType::H1->getLabelKey(),
-                        'value' => HeadingType::H1->value,
-                    ],
-                    [
-                        'label' => HeadingType::H2->getLabelKey(),
-                        'value' => HeadingType::H2->value,
-                    ],
-                    [
-                        'label' => HeadingType::H3->getLabelKey(),
-                        'value' => HeadingType::H3->value,
-                    ],
-                    [
-                        'label' => HeadingType::H4->getLabelKey(),
-                        'value' => HeadingType::H4->value,
-                    ],
-                    [
-                        'label' => HeadingType::H5->getLabelKey(),
-                        'value' => HeadingType::H5->value,
-                    ],
-                    [
-                        'label' => HeadingType::H6->getLabelKey(),
-                        'value' => HeadingType::H6->value,
-                    ],
-                ],
+                    $mindfula11yHeadingTypeItems,
+                ),
+                'itemsProcFunc' => HeadingTypeItemsProcessor::class . '->addStoredDivItem',
             ],
         ],
         'tx_mindfula11y_landmark' => [

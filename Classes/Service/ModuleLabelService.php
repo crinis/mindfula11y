@@ -34,6 +34,9 @@ use TYPO3\CMS\Core\Localization\LanguageService;
 final readonly class ModuleLabelService
 {
     public const LANGUAGE_FILE = 'LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:';
+    private const DATABASE_LANGUAGE_FILE = 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:';
+
+    private const HEADING_TYPE_LABEL_IDS = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p'];
 
     private const LABEL_IDS = [
         'structureErrors',
@@ -215,6 +218,11 @@ final readonly class ModuleLabelService
         $labels = [];
         foreach (self::LABEL_IDS as $labelId) {
             $labels['mindfula11y.' . $labelId] = $languageService->sL(self::LANGUAGE_FILE . $labelId);
+        }
+        foreach (self::HEADING_TYPE_LABEL_IDS as $type) {
+            $labels['mindfula11y.structure.headings.level.' . $type] = $languageService->sL(
+                self::DATABASE_LANGUAGE_FILE . 'ttContent.columns.mindfula11y.headingType.items.' . $type,
+            );
         }
 
         return $labels;

@@ -180,7 +180,8 @@ class StructureView extends LitElement {
             id=${opts.id}
             class=${opts.className}
             data-control=${opts.className}
-            aria-label=${opts.ariaLabel}
+            aria-label=${opts.ariaLabel ?? nothing}
+            aria-labelledby=${opts.ariaLabelledby ?? nothing}
             aria-describedby=${opts.describedby ?? this.describedby(node)}
             .value=${live(opts.currentValue)}
             @change=${(event) => {

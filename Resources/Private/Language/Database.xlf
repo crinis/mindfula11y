@@ -16,51 +16,55 @@
 			</trans-unit>
 			<trans-unit id="ttContent.columns.mindfula11y.headingType"
 				resname="ttContent.columns.mindfula11y.headingType">
-				<source>Heading Type</source>
+				<source>Heading level</source>
+			</trans-unit>
+			<trans-unit id="ttContent.columns.mindfula11y.headingType.description"
+				resname="ttContent.columns.mindfula11y.headingType.description">
+				<source>Choose this heading's place in the page structure, not its visual size. Use level 1 for the page heading, level 2 for main sections, and increase one level at a time. Choose "Paragraph — not a heading" only when the text does not introduce a section.</source>
 			</trans-unit>
 			<trans-unit id="ttContent.columns.mindfula11y.headingType.items.h1"
 				resname="ttContent.columns.mindfula11y.headingType.items.h1">
-				<source>H1</source>
+				<source>Level 1 (H1) — page heading</source>
 			</trans-unit>
 			<trans-unit id="ttContent.columns.mindfula11y.headingType.items.h2"
 				resname="ttContent.columns.mindfula11y.headingType.items.h2">
-				<source>H2</source>
+				<source>Level 2 (H2)</source>
 			</trans-unit>
 			<trans-unit id="ttContent.columns.mindfula11y.headingType.items.h3"
 				resname="ttContent.columns.mindfula11y.headingType.items.h3">
-				<source>H3</source>
+				<source>Level 3 (H3)</source>
 			</trans-unit>
 			<trans-unit id="ttContent.columns.mindfula11y.headingType.items.h4"
 				resname="ttContent.columns.mindfula11y.headingType.items.h4">
-				<source>H4</source>
+				<source>Level 4 (H4)</source>
 			</trans-unit>
 			<trans-unit id="ttContent.columns.mindfula11y.headingType.items.h5"
 				resname="ttContent.columns.mindfula11y.headingType.items.h5">
-				<source>H5</source>
+				<source>Level 5 (H5)</source>
 			</trans-unit>
 			<trans-unit id="ttContent.columns.mindfula11y.headingType.items.h6"
 				resname="ttContent.columns.mindfula11y.headingType.items.h6">
-				<source>H6</source>
+				<source>Level 6 (H6)</source>
 			</trans-unit>
 			<trans-unit id="ttContent.columns.mindfula11y.headingType.items.p"
 				resname="ttContent.columns.mindfula11y.headingType.items.p">
-				<source>Paragraph (p)</source>
+				<source>Paragraph — not a heading</source>
 			</trans-unit>
 			<trans-unit id="ttContent.columns.mindfula11y.headingType.items.div"
 				resname="ttContent.columns.mindfula11y.headingType.items.div">
-				<source>Generic div (div)</source>
+				<source>Neutral container — no heading meaning (div)</source>
 			</trans-unit>
 			<trans-unit id="ttContent.columns.mindfula11y.childHeadingType"
 				resname="ttContent.columns.mindfula11y.childHeadingType">
-				<source>Child heading type</source>
+				<source>Headings inside this element</source>
 			</trans-unit>
 			<trans-unit id="ttContent.columns.mindfula11y.childHeadingType.description"
 				resname="ttContent.columns.mindfula11y.childHeadingType.description">
-				<source>Heading level for content elements placed inside this element. "Automatic" uses one level below this element's own heading type.</source>
+				<source>Choose the level used for headings in content elements inside this element. "Automatic — next level" follows the page structure by using one level below this element's heading. Change it only when the heading preview shows an incorrect level.</source>
 			</trans-unit>
 			<trans-unit id="ttContent.columns.mindfula11y.childHeadingType.items.automatic"
 				resname="ttContent.columns.mindfula11y.childHeadingType.items.automatic">
-				<source>Automatic</source>
+				<source>Automatic — next level</source>
 			</trans-unit>
 
 			<!-- Accessibility Tab -->

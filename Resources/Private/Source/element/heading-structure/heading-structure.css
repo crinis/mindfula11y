@@ -37,17 +37,32 @@
     }
 
     .node {
-        padding-inline-start: calc(var(--mindfula11y-heading-structure-indent, 0) * var(--mindfula11y-space-s));
+        padding-inline-start: calc(var(--mindfula11y-heading-structure-indent, 0) * var(--mindfula11y-space-fixed-3xs));
+
+        @container (inline-size >= 36rem) {
+            padding-inline-start: calc(
+                var(--mindfula11y-heading-structure-indent, 0) *
+                var(--mindfula11y-space-fixed-2xs)
+            );
+        }
+
+        @container (inline-size >= 56rem) {
+            padding-inline-start: calc(
+                var(--mindfula11y-heading-structure-indent, 0) *
+                var(--mindfula11y-space-fixed-s)
+            );
+        }
     }
 
     .row {
-        display: flex;
-        flex-wrap: wrap;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
         gap: var(--mindfula11y-space-2xs);
-        align-items: center;
-        padding-block: var(--mindfula11y-space-3xs);
-        padding-inline: var(--mindfula11y-space-2xs);
-        border-radius: var(--mindfula11y-input-radius);
+        align-items: start;
+        padding: var(--mindfula11y-space-fixed-2xs);
+        background-color: var(--mindfula11y-component-bg);
+        border: 1px solid var(--mindfula11y-border);
+        border-radius: var(--mindfula11y-radius);
 
         /* :where() keeps the hover at the base specificity so the later
            shared control-chip recipe doesn't rank as descending. */
@@ -58,31 +73,32 @@
         /* A row carrying its findings inline (no separate issue row beneath
            it) is marked as the error/warning surface itself. */
         &[data-error] {
-            border: 1px solid var(--mindfula11y-state-danger-border);
+            border-color: var(--mindfula11y-state-danger-border);
         }
 
         &[data-warning] {
-            border: 1px solid var(--mindfula11y-state-warning-border);
+            border-color: var(--mindfula11y-state-warning-border);
+        }
+
+        @container (inline-size >= 36rem) {
+            grid-template-columns: minmax(0, 1fr) auto;
+            align-items: center;
+        }
+
+        @container (inline-size >= 56rem) {
+            &[data-child-control] {
+                grid-template-columns: minmax(0, 1fr) minmax(14ch, auto) auto;
+            }
         }
     }
 
-    /*
-     * Container rows carry a badge (crossed-eye icon + label) instead of
-     * heading text: TYPO3's established "hidden record" visual, in the tree's
-     * dashed not-rendered-here language. The badge is non-interactive; its
-     * label is real text, the icon decorative.
-     */
-    .container-badge {
-        display: inline-flex;
-        gap: var(--mindfula11y-space-3xs);
+    /* The primary reading unit always leads the row: level then title. */
+    .heading {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--mindfula11y-space-2xs);
         align-items: center;
-        padding-block: var(--mindfula11y-space-3xs);
-        padding-inline: var(--mindfula11y-space-2xs);
-        font-size: var(--mindfula11y-font-size-xs);
-        font-weight: 600;
-        color: var(--mindfula11y-text-subtle);
-        border: 1px dashed var(--mindfula11y-border);
-        border-radius: var(--mindfula11y-input-radius);
+        min-inline-size: 0;
     }
 
     /*
@@ -116,10 +132,12 @@
      * relation jump button) so the tree scans as an aligned column.
      */
     .level {
+        flex: 0 0 auto;
         justify-content: center;
         min-inline-size: 3.5em;
         font-weight: 700;
         text-align: center;
+        white-space: nowrap;
 
         /* Dashed = derived; only the jump-button variant (carrying data-control)
            is interactive — the plain variant marks a heading derived from a
@@ -155,13 +173,11 @@
     }
 
     /*
-     * The label is the row's one flexible column: it grows so controls and
-     * meta (badges, edit link, findings) gather visibly separated at the row
-     * end, and its minimum measure decides when trailing items wrap onto the
-     * next line instead of squeezing the text away.
+     * The label is the heading group's flexible column. Its minimum measure
+     * moves the whole label below a crowded specifier; long words still wrap.
      */
     .text {
-        flex: 1 1 auto;
+        flex: 1 1 16ch;
         min-inline-size: min(100%, 16ch);
         overflow-wrap: anywhere;
 
@@ -171,17 +187,91 @@
         }
     }
 
-    /* Label + select + note wrap as one unit, never separating mid-group. */
-    .child-control {
+    /*
+     * Container rows carry a badge (crossed-eye icon + label) instead of
+     * heading text: TYPO3's established "hidden record" visual, in the tree's
+     * dashed not-rendered-here language. The badge is non-interactive; its
+     * label is real text, the icon decorative.
+     */
+    .container-badge {
         display: inline-flex;
-        flex-wrap: wrap;
         gap: var(--mindfula11y-space-3xs);
         align-items: center;
+        padding-block: var(--mindfula11y-space-3xs);
+        padding-inline: var(--mindfula11y-space-2xs);
+        font-size: var(--mindfula11y-font-size-xs);
+        font-weight: 600;
+        color: var(--mindfula11y-text-subtle);
+        border: 1px dashed var(--mindfula11y-border);
+        border-radius: var(--mindfula11y-input-radius);
+    }
+
+    /* The child-type field is deliberately its own inset group on mobile,
+       making its wider select easy to identify without competing with the
+       heading title. Wider rows place its label and select side by side. */
+    .child-control {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: var(--mindfula11y-space-3xs);
+        align-items: start;
+        min-inline-size: 0;
+        padding: var(--mindfula11y-space-fixed-2xs);
+        background-color: var(--mindfula11y-surface-high);
+        border-radius: var(--mindfula11y-input-radius);
+
+        @container (inline-size >= 36rem) {
+            grid-template-columns: max-content minmax(12ch, 1fr);
+            grid-column: 1 / -1;
+            align-items: center;
+        }
+
+        @container (inline-size >= 56rem) {
+            grid-column: auto;
+        }
     }
 
     .child-label {
         font-size: var(--mindfula11y-font-size-xs);
+        font-weight: 600;
         color: var(--mindfula11y-text-subtle);
+    }
+
+    .child-level {
+        inline-size: 100%;
+        min-inline-size: 0;
+    }
+
+    /* Secondary metadata trails the reading content without stealing its
+       width on mobile. Viewport badges wrap while row actions stay together. */
+    .meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--mindfula11y-space-3xs);
+        align-items: center;
+        min-inline-size: 0;
+
+        @container (inline-size >= 36rem) {
+            justify-content: end;
+        }
+
+        &[data-child-control] {
+            @container (inline-size >= 36rem) {
+                grid-column: 1 / -1;
+                justify-content: start;
+            }
+
+            @container (inline-size >= 56rem) {
+                grid-column: auto;
+                justify-content: end;
+            }
+        }
+    }
+
+    .actions {
+        display: inline-flex;
+        gap: var(--mindfula11y-space-3xs);
+        align-items: center;
+        margin-inline-start: auto;
     }
 
     /* In-row finding cues: flow with the row's controls and never exceed the
@@ -189,16 +279,9 @@
     .row-issues {
         display: inline-flex;
         flex-wrap: wrap;
+        grid-column: 1 / -1;
         gap: var(--mindfula11y-space-3xs);
         align-items: center;
         max-inline-size: 100%;
-    }
-
-    .issues {
-        display: flex;
-        flex-direction: column;
-        gap: var(--mindfula11y-space-3xs);
-        margin-block-start: var(--mindfula11y-space-3xs);
-        margin-inline-start: var(--mindfula11y-space-2xs);
     }
 }

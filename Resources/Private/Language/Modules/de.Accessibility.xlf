@@ -461,16 +461,16 @@
                 <target>Verstecktes Container-Element</target>
             </trans-unit>
             <trans-unit id="structure.headings.type" resname="structure.headings.type">
-                <source>Heading type</source>
-                <target>Überschriftentyp</target>
+                <source>Heading level</source>
+				<target>Überschriftenebene</target>
             </trans-unit>
             <trans-unit id="structure.headings.childType" resname="structure.headings.childType">
-                <source>Child heading type</source>
-                <target>Typ der untergeordneten Überschriften</target>
+                <source>Headings inside</source>
+				<target>Überschriften innerhalb</target>
             </trans-unit>
             <trans-unit id="structure.headings.childType.applies" resname="structure.headings.childType.applies">
-                <source>Applies to all child headings deriving from this element.</source>
-                <target>Gilt für alle untergeordneten Überschriften dieses Elements.</target>
+                <source>Sets the heading level for all content elements inside this element. Automatic uses the next level.</source>
+				<target>Legt die Überschriftenebene für alle Inhaltselemente innerhalb dieses Elements fest. Automatisch verwendet die nächste Ebene.</target>
             </trans-unit>
             <trans-unit id="structure.headings.relation.descendant" resname="structure.headings.relation.descendant">
                 <source>Related to parent heading</source>
