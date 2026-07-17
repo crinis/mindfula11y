@@ -22,6 +22,7 @@ use MindfulMarkup\MindfulA11y\Service\StructureAnalysisTicketService;
 use MindfulMarkup\MindfulA11y\Tests\Functional\AbstractAuthorizationTestCase;
 use TYPO3\CMS\Core\Cache\CacheManager;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Core\Versioning\VersionState;
 
 /**
  * Authorization coverage for structure-analysis ticket issuance
@@ -61,6 +62,22 @@ final class StructureAnalysisAuthorizationTest extends AbstractAuthorizationTest
     private function authorizationService(): StructureAnalysisAuthorizationService
     {
         return $this->get(StructureAnalysisAuthorizationService::class);
+    }
+
+    /** @param array<string, mixed> $overrides */
+    private function insertContentWorkspaceVersion(int $liveUid, int $versionUid, array $overrides = []): void
+    {
+        $connection = $this->getConnectionPool()->getConnectionForTable('tt_content');
+        $liveRecord = $connection->select(['*'], 'tt_content', ['uid' => $liveUid])->fetchAssociative();
+        self::assertIsArray($liveRecord);
+
+        $connection->insert('tt_content', array_replace($liveRecord, [
+            'uid' => $versionUid,
+            't3ver_oid' => $liveUid,
+            't3ver_wsid' => 1,
+            't3ver_state' => VersionState::DEFAULT_STATE->value,
+            't3ver_stage' => 0,
+        ], $overrides));
     }
 
     private function buildTicket(
@@ -501,6 +518,58 @@ final class StructureAnalysisAuthorizationTest extends AbstractAuthorizationTest
         self::assertSame('tt_content', $body['records'][0]['tableName']);
         self::assertSame('tx_mindfula11y_headingtype', $body['records'][0]['columnName']);
         self::assertSame(101, $body['records'][0]['uid']);
+    }
+
+    public function testEnrichActionCompilesSelectItemsFromCurrentWorkspaceVersion(): void
+    {
+        // Live uid 100 is textmedia; its workspace version is text. Different
+        // columnsOverrides make the FormEngine row used by enrichment visible
+        // in the response without coupling this test to a private method.
+        $this->insertContentWorkspaceVersion(100, 900, ['CType' => 'text']);
+        $originalTextType = $GLOBALS['TCA']['tt_content']['types']['text'];
+        $originalTextmediaType = $GLOBALS['TCA']['tt_content']['types']['textmedia'];
+        try {
+            $GLOBALS['TCA']['tt_content']['types']['text']['columnsOverrides']['tx_mindfula11y_headingtype']['config']['items'] = [
+                ['label' => 'Draft-only option', 'value' => 'draft-only'],
+            ];
+            $GLOBALS['TCA']['tt_content']['types']['textmedia']['columnsOverrides']['tx_mindfula11y_headingtype']['config']['items'] = [
+                ['label' => 'Live-only option', 'value' => 'live-only'],
+            ];
+
+            $this->logInBackendUser(2, 1);
+            $response = $this->enrichmentController()->enrichAction($this->createJsonRequest(['records' => [
+                ['tableName' => 'tt_content', 'columnName' => 'tx_mindfula11y_headingtype', 'uid' => 100],
+            ]]));
+
+            self::assertSame(200, $response->getStatusCode());
+            $body = $this->decodeJsonResponse($response);
+            self::assertCount(1, $body['records']);
+            self::assertSame(100, $body['records'][0]['uid'], 'the response key stays at the annotated live uid');
+            self::assertSame(
+                'Draft-only option',
+                $body['records'][0]['availableValues']['draft-only'] ?? null,
+                'FormEngine metadata must be compiled from workspace uid 900 rather than live uid 100'
+            );
+            self::assertArrayNotHasKey('live-only', $body['records'][0]['availableValues']);
+        } finally {
+            $GLOBALS['TCA']['tt_content']['types']['text'] = $originalTextType;
+            $GLOBALS['TCA']['tt_content']['types']['textmedia'] = $originalTextmediaType;
+        }
+    }
+
+    public function testEnrichActionFiltersWorkspaceDeletePlaceholder(): void
+    {
+        $this->insertContentWorkspaceVersion(101, 901, [
+            't3ver_state' => VersionState::DELETE_PLACEHOLDER->value,
+        ]);
+        $this->logInBackendUser(2, 1);
+
+        $response = $this->enrichmentController()->enrichAction($this->createJsonRequest(['records' => [
+            ['tableName' => 'tt_content', 'columnName' => 'tx_mindfula11y_headingtype', 'uid' => 101],
+        ]]));
+
+        self::assertSame(200, $response->getStatusCode());
+        self::assertSame([], $this->decodeJsonResponse($response)['records']);
     }
 
     /**

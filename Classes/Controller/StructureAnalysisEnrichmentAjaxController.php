@@ -68,8 +68,12 @@ final readonly class StructureAnalysisEnrichmentAjaxController
         foreach ($this->groupColumnsByRecord($references) as $recordKey => $columnNames) {
             [$tableName, $uid] = explode(':', $recordKey, 2);
             $uid = (int)$uid;
-            $record = BackendUtility::getRecord($tableName, $uid);
-            if (!is_array($record) || $this->isEditRestrictedByBackendLayout($tableName, $record)) {
+            // The frontend annotation intentionally carries the live uid for an
+            // existing workspace version. Resolve that coordinate into the row
+            // currently rendered in the editor's workspace before applying any
+            // layout or record-level permission checks.
+            $record = BackendUtility::getRecordWSOL($tableName, $uid);
+            if (!is_array($record)) {
                 continue;
             }
             // Kept per column: checkRecordEditAccess() ANDs the non-exclude
@@ -83,7 +87,17 @@ final readonly class StructureAnalysisEnrichmentAjaxController
                     [$columnName],
                 ),
             ));
-            if ($columnNames === []) {
+            if ($columnNames === [] || $this->isEditRestrictedByBackendLayout($tableName, $record)) {
+                continue;
+            }
+
+            // workspaceOL() keeps `uid` at the live coordinate and exposes the
+            // physical workspace-version uid as `_ORIG_uid`. FormDataCompiler
+            // does no workspace overlay of its own, so it must receive the
+            // physical uid to process the draft's CType, columnsOverrides and
+            // dynamic select items. New workspace placeholders keep their uid.
+            $formEngineUid = (int)($record['_ORIG_uid'] ?? $record['uid'] ?? 0);
+            if ($formEngineUid <= 0) {
                 continue;
             }
 
@@ -94,7 +108,7 @@ final readonly class StructureAnalysisEnrichmentAjaxController
                 $formData = $this->formDataCompiler->compile([
                     'request' => $request,
                     'tableName' => $tableName,
-                    'vanillaUid' => $uid,
+                    'vanillaUid' => $formEngineUid,
                     'command' => 'edit',
                     // Only processedTca[columns][…][config][items] is read below.
                     // Left at core's default, TcaInline runs a full nested compile

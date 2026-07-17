@@ -38,6 +38,7 @@ the `Publish to TER` workflow uses the release body as the TER upload comment.
 
 ### Fixed
 
+- Structure-analysis editing controls now target the rendered translation and current workspace draft. Landmark changes no longer update the default-language record from a translated preview, draft-specific content types and select options are respected, and stale controls for deleted or foreign-workspace records are withheld.
 - Outstanding AI alt-text, scan-creation, and structure-preview authorizations now fail closed when their issued target becomes stale. Each authorization pins the complete persisted workspace/language record revision; alt-text demands additionally pin the exact file and file-reference revisions. Moving, translating, editing, replacing or reattaching a target, changing its preview URL, or disabling both structure features requires the editor to reload and obtain a fresh signed request.
 - Two screen-reader announcements in quick succession (for example a save confirmation followed by a completed re-analysis) no longer swallow the first message: announcements are now serialized through the live region instead of interleaving their clear/write renders.
 - Failed AI alt-text generations are now logged (warning level, with the model name), so silently returning no text is diagnosable; the scan report endpoint additionally answers with a clean "no scan id" error instead of an internal error when the scanId parameter is not a string, and the streamed report carries `Cache-Control: private, no-store`.

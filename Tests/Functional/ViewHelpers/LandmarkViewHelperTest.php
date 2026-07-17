@@ -14,7 +14,10 @@ declare(strict_types=1);
 
 namespace MindfulMarkup\MindfulA11y\Tests\Functional\ViewHelpers;
 
+use MindfulMarkup\MindfulA11y\Domain\Model\StructureAnalysisTicket;
 use PHPUnit\Framework\Attributes\Test;
+use Psr\Http\Message\ServerRequestInterface;
+use TYPO3\CMS\Core\Http\ServerRequest;
 use TYPO3\CMS\Fluid\Core\Rendering\RenderingContextFactory;
 use TYPO3\TestingFramework\Core\Functional\FunctionalTestCase;
 use TYPO3Fluid\Fluid\View\TemplateView;
@@ -32,9 +35,9 @@ final class LandmarkViewHelperTest extends FunctionalTestCase
         'mindfulmarkup/mindfula11y',
     ];
 
-    private function render(string $source): string
+    private function render(string $source, ?ServerRequestInterface $request = null): string
     {
-        $context = $this->get(RenderingContextFactory::class)->create();
+        $context = $this->get(RenderingContextFactory::class)->create([], $request);
         $context->getTemplatePaths()->setTemplateSource(
             '<html xmlns:mindfula11y="http://typo3.org/ns/MindfulMarkup/MindfulA11y/ViewHelpers" data-namespace-typo3-fluid="true">'
             . $source
@@ -42,6 +45,25 @@ final class LandmarkViewHelperTest extends FunctionalTestCase
         );
 
         return trim((new TemplateView($context))->render());
+    }
+
+    private function structureAnalysisRequest(): ServerRequestInterface
+    {
+        $ticket = new StructureAnalysisTicket(
+            requestId: str_repeat('ab', 16),
+            pageId: 1,
+            languageId: 1,
+            workspaceId: 0,
+            pageRecordSnapshot: str_repeat('a', 64),
+            backendUserId: 1,
+            backendOrigin: 'https://backend.example',
+            frontendOrigin: 'https://frontend.example',
+            target: '/fr/',
+            expiresAt: PHP_INT_MAX,
+        );
+
+        return (new ServerRequest('https://frontend.example/fr/'))
+            ->withAttribute(StructureAnalysisTicket::REQUEST_ATTRIBUTE, $ticket);
     }
 
     #[Test]
@@ -76,5 +98,41 @@ final class LandmarkViewHelperTest extends FunctionalTestCase
         $output = $this->render('<mindfula11y:landmark role="navigation" tagName="div">Links</mindfula11y:landmark>');
 
         self::assertStringContainsString('<div role="navigation">Links</div>', $output);
+    }
+
+    #[Test]
+    public function defaultLayoutAnnotatesTranslatedLandmarkWithLocalizedRecordUid(): void
+    {
+        $context = $this->get(RenderingContextFactory::class)->create([], $this->structureAnalysisRequest());
+        $context->getTemplatePaths()->setLayoutRootPaths([
+            10 => __DIR__ . '/../../../Resources/Private/Layouts/',
+        ]);
+        $context->getTemplatePaths()->setTemplateSource(
+            '<html xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers" data-namespace-typo3-fluid="true">'
+            . '<f:layout name="Default" />'
+            . '<f:section name="Before"></f:section>'
+            . '<f:section name="Header"></f:section>'
+            . '<f:section name="Main">Body</f:section>'
+            . '<f:section name="Footer"></f:section>'
+            . '<f:section name="After"></f:section>'
+            . '</html>'
+        );
+        $view = new TemplateView($context);
+        $view->assign('data', [
+            'uid' => 100,
+            '_LOCALIZED_UID' => 102,
+            'frame_class' => 'none',
+            'tx_mindfula11y_landmark' => 'navigation',
+            'tx_mindfula11y_arialabelledby' => 0,
+            'tx_mindfula11y_arialabel' => '',
+            'header' => '',
+            'space_before_class' => '',
+            'space_after_class' => '',
+        ]);
+
+        $output = trim($view->render());
+
+        self::assertStringContainsString('data-mindfula11y-record-uid="102"', $output);
+        self::assertStringNotContainsString('data-mindfula11y-record-uid="100"', $output);
     }
 }
