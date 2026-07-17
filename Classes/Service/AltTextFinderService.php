@@ -74,8 +74,16 @@ final readonly class AltTextFinderService
         bool $filterFileMetaData = true,
         ?string $tableName = null,
     ): array {
+        $tables = $this->buildTables($tableName, $pageId, $pageLevels, $pageTsConfig);
+        // Fail closed: the table configurations carry every parent-table,
+        // field, page-id and authMode predicate. Querying without them would
+        // silently drop the whole scope instead of narrowing it.
+        if ([] === $tables) {
+            return [];
+        }
+
         return $this->altlessFileReferenceRepository->findForTables(
-            $this->buildTables($tableName, $pageId, $pageLevels, $pageTsConfig),
+            $tables,
             $languageId,
             $this->backendUserProvider->get()->workspace,
             $this->permissionService->checkFileReadAccess(...),
@@ -110,8 +118,14 @@ final readonly class AltTextFinderService
         bool $filterFileMetaData = true,
         ?string $tableName = null,
     ): int {
+        $tables = $this->buildTables($tableName, $pageId, $pageLevels, $pageTsConfig);
+        // Fail closed — see getAltlessFileReferences().
+        if ([] === $tables) {
+            return 0;
+        }
+
         return $this->altlessFileReferenceRepository->countForTables(
-            $this->buildTables($tableName, $pageId, $pageLevels, $pageTsConfig),
+            $tables,
             $languageId,
             $this->backendUserProvider->get()->workspace,
             $this->permissionService->checkFileReadAccess(...),

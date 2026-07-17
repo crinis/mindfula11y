@@ -394,6 +394,11 @@ final readonly class AltlessFileReferenceRepository
             $queryBuilder->andWhere(
                 $queryBuilder->expr()->or(...$tableClauses)
             );
+        } else {
+            // Defense in depth: the table clauses ARE the authorization scope
+            // (parent table, field, page ids, authMode). Without any, nothing
+            // may match — never fall through to an unscoped query.
+            $queryBuilder->andWhere('1 = 0');
         }
 
         return $queryBuilder;

@@ -1,0 +1,9 @@
+"be_groups"
+,"uid","pid","title","tables_select","tables_modify","non_exclude_fields","explicit_allowdeny","allowed_languages","db_mountpoints","file_mountpoints","file_permissions","groupMods","pagetypes_select"
+,800,0,"file_tables_only","sys_file,sys_file_reference,sys_file_metadata","sys_file_reference","sys_file_reference:tx_mindfula11y_decorative,sys_file_reference:alternative,sys_file_reference:title","","","1","1","readFolder,readFile,writeFile","mindfula11y_accessibility","1"
+"be_users"
+,"uid","pid","username","password","admin","usergroup","options","workspace_perms"
+,800,0,"editor_file_tables_only","$argon2i$v=19$m=65536,t=16,p=1$invalid","0","800","3",1
+"sys_file_reference"
+,"uid","pid","uid_local","uid_foreign","tablenames","fieldname","sys_language_uid","tx_mindfula11y_decorative","alternative"
+,801,20,1,106,"tt_content","assets",0,0,""
