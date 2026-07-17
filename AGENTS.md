@@ -346,14 +346,28 @@ strictness, remove lint rules, or add per-file overrides to make a finding go aw
 
 **Changelog (applies to PHP changes too, despite this file's frontend scope):** every
 user-facing change — new features, behavior changes, bug fixes, removals/renames, requirement
-changes — gets an entry in the `[Unreleased]` section of `CHANGELOG.md` **in the same change
+changes — is reflected in the `[Unreleased]` section of `CHANGELOG.md` **in the same change
 set**, under the matching Keep a Changelog category (`Added`/`Changed`/`Fixed`/`Removed`/
-`Documentation`). Write for editors and integrators, not as a commit log: name the observable
-behavior and the option that controls it (TSconfig path, TCA field, ViewHelper argument), and
-give a migration hint for anything removed or renamed. Purely internal work (refactors without
-behavior change, build tooling, CI, dev-only assets) needs no entry — when unsure, add one.
-The section becomes the GitHub release notes and the TER upload comment at release time, so
-every entry must read correctly in that context.
+`Deprecated`/`Security`/`Documentation`).
+
+An entry documents the noteworthy difference to the **latest release**, not the development
+history (Keep a Changelog: "the noteworthy difference, often across multiple commits" — a
+changelog is not a commit log). Concretely: before adding an entry, check whether the behavior
+you are amending was itself introduced in `[Unreleased]`. If so, **update that existing entry**
+(or leave it untouched when it already describes the final behavior) instead of adding a new
+one — a reader upgrading from the last release never saw the intermediate state, so a separate
+entry for it is noise. `Fixed`/`Changed` entries therefore always describe a difference to a
+*released* version. Closely related changes are consolidated into one entry rather than
+appended one by one.
+
+Write for editors and integrators: name the observable behavior and the option that controls
+it (TSconfig path, TCA field, ViewHelper argument), and give a migration hint for anything
+removed or renamed. Lead with the observable behavior in the first sentence; details a reader
+doesn't need to decide about upgrading belong in the commit, not the entry. Purely internal
+work (refactors without behavior change, build tooling, CI, dev-only assets) needs no entry —
+when unsure, add one. The section becomes the GitHub release notes and the TER upload comment
+at release time, so every entry must read correctly in that context: as the diff from the
+previous release.
 
 **Definition of Done for any frontend change:**
 
