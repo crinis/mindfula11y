@@ -475,6 +475,26 @@ final class ScanAjaxControllerTest extends AbstractAuthorizationTestCase
         $this->assertErrorResponse($response, 403, 'error.forbidden');
     }
 
+    public function testGetActionNonStringScanIdIsRejectedCleanly(): void
+    {
+        // ?scanId[]=x passes an empty() check but must not reach the
+        // string-typed page-access helper as an array (TypeError/500).
+        $this->logInBackendUser(2);
+
+        $response = $this->controller()->getAction($this->createGetRequest(['scanId' => ['x']]));
+
+        $this->assertErrorResponse($response, 404, 'scan.error.noScanId');
+    }
+
+    public function testReportActionNonStringScanIdIsRejectedCleanly(): void
+    {
+        $this->logInBackendUser(2);
+
+        $response = $this->controller()->reportAction($this->createGetRequest(['scanId' => ['x'], 'format' => 'html']));
+
+        $this->assertErrorResponse($response, 404, 'scan.error.noScanId');
+    }
+
     public function testReportActionModuleGateDeniesUserWithoutModuleAccess(): void
     {
         $this->logInBackendUser(3);

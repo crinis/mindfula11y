@@ -30,12 +30,30 @@ import { html } from 'lit';
 export class LiveAnnouncer {
     private readonly host: ReactiveControllerHost;
     private message: string = '';
+    /** Tail of the announcement chain — never rejects (see announce()). */
+    private pending: Promise<void> = Promise.resolve();
 
     constructor(host: ReactiveControllerHost) {
         this.host = host;
     }
 
-    async announce(message: string, signal?: AbortSignal): Promise<void> {
+    /**
+     * Announcements are serialized: an overlapping call waits for the previous
+     * clear/set double-render to complete, otherwise it would wipe the earlier
+     * message before assistive technology picks it up.
+     */
+    announce(message: string, signal?: AbortSignal): Promise<void> {
+        const run = this.pending.then(() => this.performAnnounce(message, signal));
+        // The chain must survive an aborted predecessor; only the caller's own
+        // returned promise rejects.
+        this.pending = run.then(
+            () => undefined,
+            () => undefined,
+        );
+        return run;
+    }
+
+    private async performAnnounce(message: string, signal?: AbortSignal): Promise<void> {
         signal?.throwIfAborted();
         this.message = '';
         this.host.requestUpdate();

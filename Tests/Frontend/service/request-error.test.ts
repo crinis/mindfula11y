@@ -9,12 +9,25 @@
  */
 
 import { describe, expect, it, vi } from 'vitest';
-import { errorView, RequestError } from '../../../Resources/Private/Source/service/request-error.js';
+import { errorView, RequestError, toRequestError } from '../../../Resources/Private/Source/service/request-error.js';
 
 vi.mock('@typo3/core/lit-helper.js', () => ({
     lll: (key: string, ...args: Array<string | number>): string =>
         args.length > 0 ? `${key}(${args.join(',')})` : key,
 }));
+
+describe('toRequestError', () => {
+    it('passes null and undefined rejection values through unchanged', async () => {
+        // AjaxRequest can reject with a bare value; the converter must not
+        // replace the original error with its own TypeError.
+        await expect(toRequestError(null)).resolves.toBeNull();
+        await expect(toRequestError(undefined)).resolves.toBeUndefined();
+    });
+
+    it('passes a primitive rejection value through unchanged', async () => {
+        await expect(toRequestError('boom')).resolves.toBe('boom');
+    });
+});
 
 describe('errorView', () => {
     it('reads title and description straight off a RequestError', () => {

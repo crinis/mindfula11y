@@ -1,4 +1,5 @@
 import { lll } from "@typo3/core/lit-helper.js";
+import { isObject } from "../lib/guards.js";
 class RequestError extends Error {
   constructor(message, description = "", status = 0) {
     super(message);
@@ -8,7 +9,7 @@ class RequestError extends Error {
   }
 }
 const toRequestError = async (error) => {
-  const response = error.response;
+  const response = isObject(error) && error.response instanceof Response ? error.response : void 0;
   if (response === void 0) {
     return error;
   }

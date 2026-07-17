@@ -18,6 +18,7 @@
  */
 
 import { lll } from '@typo3/core/lit-helper.js';
+import { isObject } from '../lib/guards.js';
 
 /** Error the backend reports as a structured `{ error: { title, description } }` body. */
 export class RequestError extends Error {
@@ -38,7 +39,9 @@ export class RequestError extends Error {
  * structured error body; otherwise returns the original error unchanged.
  */
 export const toRequestError = async (error: unknown): Promise<unknown> => {
-    const response = (error as { response?: Response }).response;
+    // The rejection value may be anything (including null) — never let this
+    // converter's own property access replace the original error.
+    const response = isObject(error) && error.response instanceof Response ? error.response : undefined;
     if (response === undefined) {
         return error;
     }

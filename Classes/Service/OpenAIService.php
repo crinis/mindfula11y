@@ -25,6 +25,7 @@ namespace MindfulMarkup\MindfulA11y\Service;
 
 use TYPO3\CMS\Core\Http\RequestFactory;
 use Psr\Http\Message\ResponseInterface;
+use Psr\Log\LoggerInterface;
 use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
 use RuntimeException;
 
@@ -44,6 +45,7 @@ final readonly class OpenAIService
     public function __construct(
         private ExtensionConfiguration $extensionConfiguration,
         private RequestFactory $requestFactory,
+        private LoggerInterface $logger,
     ) {}
 
     /**
@@ -84,7 +86,13 @@ final readonly class OpenAIService
             /** @var ResponseInterface $response */
             $response = $this->requestFactory->request($url, 'POST', $options);
             $responseBody = $response->getBody()->getContents();
-        } catch (\Exception) {
+        } catch (\Exception $exception) {
+            // A failed generation is a paid API call that produced nothing —
+            // leave a trail so support cases are diagnosable.
+            $this->logger->warning('OpenAI request failed', [
+                'model' => $model,
+                'exception' => $exception->getMessage(),
+            ]);
             return null;
         }
 

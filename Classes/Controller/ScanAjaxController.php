@@ -81,7 +81,7 @@ final readonly class ScanAjaxController
         $scanId = $queryParams['scanId'] ?? '';
         $format = $queryParams['format'] ?? '';
 
-        if (empty($scanId)) {
+        if (!is_string($scanId) || $scanId === '') {
             return $this->errorResponse('scan.error.noScanId', 404);
         }
 
@@ -111,7 +111,10 @@ final readonly class ScanAjaxController
             ->withHeader('X-Content-Type-Options', 'nosniff')
             // The report URL carries the route token and scanId — subresource
             // requests from inside the report must not leak it via Referer.
-            ->withHeader('Referrer-Policy', 'no-referrer');
+            ->withHeader('Referrer-Policy', 'no-referrer')
+            // Privileged content: keep the report out of any shared cache,
+            // matching StructureAnalysisResponseHardener's discipline.
+            ->withHeader('Cache-Control', 'private, no-store');
 
         // Prevent scripts in HTML reports from running at the TYPO3 backend
         // origin. form-action/base-uri/frame-ancestors do NOT fall back to
@@ -235,7 +238,7 @@ final readonly class ScanAjaxController
         $queryParams = $request->getQueryParams();
         $scanId = $queryParams['scanId'] ?? '';
 
-        if (empty($scanId)) {
+        if (!is_string($scanId) || $scanId === '') {
             return $this->errorResponse('scan.error.noScanId', 404);
         }
 

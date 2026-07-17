@@ -18,9 +18,15 @@ import { LiveAnnouncer } from '../../../Resources/Private/Source/lib/live-announ
 class LiveAnnouncerHost extends LitElement {
     readonly announcer: LiveAnnouncer = new LiveAnnouncer(this);
     updateCount: number = 0;
+    /** Every non-empty message that actually reached a completed render. */
+    renderedMessages: string[] = [];
 
     protected override updated(): void {
         this.updateCount += 1;
+        const text = this.shadowRoot?.querySelector('[role="status"]')?.textContent ?? '';
+        if (text !== '') {
+            this.renderedMessages.push(text);
+        }
     }
 
     override render(): TemplateResult {
@@ -48,6 +54,22 @@ describe('LiveAnnouncer', () => {
         await host.announcer.announce('Analysis completed');
 
         expect(status?.textContent).toBe('Analysis completed');
+    });
+
+    it('serializes overlapping announcements so every message reaches a render', async () => {
+        // Two rapid announcements must not interleave their clear/set
+        // double-render — the first message would be wiped before assistive
+        // technology picks it up.
+        const host = document.createElement('mindfula11y-test-live-announcer') as LiveAnnouncerHost;
+        document.body.append(host);
+        await host.updateComplete;
+
+        const first = host.announcer.announce('First message');
+        const second = host.announcer.announce('Second message');
+        await Promise.all([first, second]);
+        await host.updateComplete;
+
+        expect(host.renderedMessages).toEqual(['First message', 'Second message']);
     });
 
     it('clears and repopulates the region so identical messages produce two updates', async () => {
