@@ -364,6 +364,19 @@ final class ScanAjaxControllerTest extends AbstractAuthorizationTestCase
         $this->assertErrorResponse($response, 403, 'error.noPageAccess');
     }
 
+    public function testCreateActionRechecksReadAccessBeforeUsingIssuedDemand(): void
+    {
+        // Page 14 grants no PAGE_SHOW access. The explicit read check keeps the
+        // redemption policy visible even though TYPO3's edit check currently
+        // also fails indirectly while resolving the permitted web-mount rootline.
+        $this->logInBackendUser(2);
+        $payload = $this->signedCreateDemandPayload(2, 14, previewUrl: 'https://example.com/no-access');
+
+        $response = $this->controller()->createAction($this->createJsonRequest($payload));
+
+        $this->assertErrorResponse($response, 403, 'error.noPageAccess');
+    }
+
     public function testCreateActionEditLockedPageDeniesEditAccess(): void
     {
         // Page 12: full edit perms but pages.editlock = 1.
@@ -463,7 +476,7 @@ final class ScanAjaxControllerTest extends AbstractAuthorizationTestCase
     }
 
     // ---------------------------------------------------------------
-    // getAction / reportAction / cancelAction (requireScanPageAccess)
+    // getAction / reportAction / cancelAction (existing-scan authorization)
     // ---------------------------------------------------------------
 
     public function testGetActionModuleGateDeniesUserWithoutModuleAccess(): void
@@ -546,7 +559,7 @@ final class ScanAjaxControllerTest extends AbstractAuthorizationTestCase
     {
         $this->logInBackendUser(2);
 
-        // Format is validated before requireScanPageAccess() runs, so an
+        // Format is validated before existing-scan authorization runs, so an
         // unseeded/unknown scanId does not change the outcome here.
         $response = $this->controller()->reportAction($this->createGetRequest(['scanId' => 'unknown-scan-id', 'format' => 'bogus']));
 
@@ -605,9 +618,8 @@ final class ScanAjaxControllerTest extends AbstractAuthorizationTestCase
 
     public function testCancelActionShowOnlyPageDeniesEditGateAfterReadPasses(): void
     {
-        // Page 11: PAGE_SHOW only — requireScanPageAccess()'s read check
-        // passes, so cancelAction()'s own checkRecordEditAccess() call is
-        // what denies here.
+        // Page 11: PAGE_SHOW only — the shared read check passes, so the
+        // existing-scan mutation policy's edit check is what denies here.
         $this->seedScanId(11, 'scan-page-11');
         $this->logInBackendUser(2);
 

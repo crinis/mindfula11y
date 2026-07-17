@@ -25,16 +25,17 @@ namespace MindfulMarkup\MindfulA11y\Controller;
 
 use MindfulMarkup\MindfulA11y\Domain\Model\CreateScanDemand;
 use MindfulMarkup\MindfulA11y\Exception\ScanApiRequestException;
+use MindfulMarkup\MindfulA11y\Exception\ScanAuthorizationException;
 use MindfulMarkup\MindfulA11y\Exception\ScanCreationException;
 use MindfulMarkup\MindfulA11y\Service\BackendUserProvider;
 use MindfulMarkup\MindfulA11y\Service\DemandSignatureService;
+use MindfulMarkup\MindfulA11y\Service\ExistingScanAuthorizationService;
 use MindfulMarkup\MindfulA11y\Service\ModuleSettingsService;
 use MindfulMarkup\MindfulA11y\Service\PagePreviewService;
 use MindfulMarkup\MindfulA11y\Service\PermissionService;
 use MindfulMarkup\MindfulA11y\Service\ScanApiService;
 use MindfulMarkup\MindfulA11y\Service\ScanCreationService;
 use MindfulMarkup\MindfulA11y\Service\ScanDemandFactory;
-use MindfulMarkup\MindfulA11y\Service\ScanStateService;
 use MindfulMarkup\MindfulA11y\Service\SiteLanguageService;
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
@@ -59,7 +60,7 @@ final readonly class ScanAjaxController
         private DemandSignatureService $demandSignatureService,
         private ModuleSettingsService $moduleSettingsService,
         private PagePreviewService $pagePreviewService,
-        private ScanStateService $scanStateService,
+        private ExistingScanAuthorizationService $existingScanAuthorizationService,
         private PermissionService $permissionService,
         private SiteLanguageService $siteLanguageService,
         private ScanCreationService $scanCreationService,
@@ -89,7 +90,7 @@ final readonly class ScanAjaxController
             return $this->errorResponse('scan.error.reportFormat', 400);
         }
 
-        $pageRecord = $this->requireScanPageAccess($scanId);
+        $pageRecord = $this->requireExistingScanAccess($scanId);
         if ($pageRecord instanceof ResponseInterface) {
             return $pageRecord;
         }
@@ -200,7 +201,14 @@ final readonly class ScanAjaxController
             }
         }
 
-        // Verify the current backend user actually has access to the page
+        // Recheck current read access at redemption. The demand was only issued
+        // from an authorized module view, but its one-hour lifetime must not let
+        // a later PAGE_SHOW revocation survive until the next reload.
+        if (!$this->permissionService->checkPageReadAccess($page)) {
+            return $this->errorResponse('error.noPageAccess', 403);
+        }
+
+        // Verify the current backend user may mutate the page scan state.
         if (!$this->permissionService->checkRecordEditAccess('pages', $page)) {
             return $this->errorResponse('error.noPageAccess', 403);
         }
@@ -242,7 +250,7 @@ final readonly class ScanAjaxController
             return $this->errorResponse('scan.error.noScanId', 404);
         }
 
-        $pageRecord = $this->requireScanPageAccess($scanId);
+        $pageRecord = $this->requireExistingScanAccess($scanId);
         if ($pageRecord instanceof ResponseInterface) {
             return $pageRecord;
         }
@@ -290,13 +298,9 @@ final readonly class ScanAjaxController
             return $this->errorResponse('scan.error.noScanId', 404);
         }
 
-        $pageRecord = $this->requireScanPageAccess($scanId);
+        $pageRecord = $this->requireExistingScanAccess($scanId, true);
         if ($pageRecord instanceof ResponseInterface) {
             return $pageRecord;
-        }
-
-        if (!$this->permissionService->checkRecordEditAccess('pages', $pageRecord)) {
-            return $this->errorResponse('error.noPageAccess', 403);
         }
 
         try {
@@ -365,29 +369,20 @@ final readonly class ScanAjaxController
     }
 
     /**
-     * Verifies that a scan ID maps to a page the current user may access, and that TSConfig
-     * allows scan access for that page. Returns the page record on success, or a
-     * ResponseInterface error response on failure.
+     * Map the existing-scan authorization service's domain failure to the AJAX
+     * layer's uniform localized response.
      *
      * @return array<string, mixed>|ResponseInterface Page record array on success, error response on failure.
      */
-    private function requireScanPageAccess(string $scanId): array|ResponseInterface
+    private function requireExistingScanAccess(string $scanId, bool $mutation = false): array|ResponseInterface
     {
-        $pageRecord = $this->scanStateService->getPageRecordByScanId($scanId);
-        if (null === $pageRecord) {
-            return $this->errorResponse('scan.error.notFound', 404);
+        try {
+            return $mutation
+                ? $this->existingScanAuthorizationService->authorizeMutation($scanId)
+                : $this->existingScanAuthorizationService->authorizeRead($scanId);
+        } catch (ScanAuthorizationException $exception) {
+            return $this->errorResponse($exception->labelKey, $exception->statusCode);
         }
-
-        if (!$this->permissionService->checkPageReadAccess($pageRecord)) {
-            return $this->errorResponse('scan.error.accessDenied', 403);
-        }
-
-        $pageTsConfig = $this->moduleSettingsService->getConvertedPageTsConfig((int)$pageRecord['uid']);
-        if (!$this->moduleSettingsService->hasScanAccess($pageTsConfig)) {
-            return $this->errorResponse('scan.noAccess', 403);
-        }
-
-        return $pageRecord;
     }
 
 }
