@@ -60,7 +60,10 @@ final readonly class PermissionService
      */
     public function checkModuleAccess(): bool
     {
-        return $this->moduleProvider->accessGranted(self::MODULE_NAME, $this->backendUserProvider->get());
+        $backendUser = $this->backendUserProvider->getAuthenticated();
+
+        return $backendUser !== null
+            && $this->moduleProvider->accessGranted(self::MODULE_NAME, $backendUser);
     }
 
     /**
@@ -90,9 +93,9 @@ final readonly class PermissionService
      */
     public function getAllowedAuthModeValues(string $tableName): array
     {
-        $backendUser = $this->backendUserProvider->get();
+        $backendUser = $this->backendUserProvider->getAuthenticated();
 
-        if (!isset($GLOBALS['TCA'][$tableName])) {
+        if ($backendUser === null || !isset($GLOBALS['TCA'][$tableName])) {
             return [];
         }
 
@@ -133,9 +136,9 @@ final readonly class PermissionService
      */
     public function checkTableReadAccess(string $tableName): bool
     {
-        $backendUser = $this->backendUserProvider->get();
+        $backendUser = $this->backendUserProvider->getAuthenticated();
 
-        if (!isset($GLOBALS['TCA'][$tableName])) {
+        if ($backendUser === null || !isset($GLOBALS['TCA'][$tableName])) {
             return false;
         }
 
@@ -162,9 +165,12 @@ final readonly class PermissionService
      */
     public function checkTableWriteAccess(string $tableName): bool
     {
-        $backendUser = $this->backendUserProvider->get();
+        $backendUser = $this->backendUserProvider->getAuthenticated();
 
-        if (!isset($GLOBALS['TCA'][$tableName]) || ($GLOBALS['TCA'][$tableName]['ctrl']['readOnly'] ?? false)) {
+        if ($backendUser === null
+            || !isset($GLOBALS['TCA'][$tableName])
+            || ($GLOBALS['TCA'][$tableName]['ctrl']['readOnly'] ?? false)
+        ) {
             return false;
         }
 
@@ -211,7 +217,11 @@ final readonly class PermissionService
             return false;
         }
 
-        $backendUser = $this->backendUserProvider->get();
+        $backendUser = $this->backendUserProvider->getAuthenticated();
+
+        if ($backendUser === null) {
+            return false;
+        }
 
         if ($backendUser->isAdmin()) {
             return true;
@@ -308,7 +318,11 @@ final readonly class PermissionService
      */
     public function checkNonExcludeFields(string $tableName, array $columnNames): bool
     {
-        $backendUser = $this->backendUserProvider->get();
+        $backendUser = $this->backendUserProvider->getAuthenticated();
+
+        if ($backendUser === null) {
+            return false;
+        }
 
         if ($backendUser->isAdmin()) {
             return true;
@@ -341,7 +355,11 @@ final readonly class PermissionService
      */
     public function checkPageReadAccess(array $pageRecord): bool
     {
-        $backendUser = $this->backendUserProvider->get();
+        $backendUser = $this->backendUserProvider->getAuthenticated();
+
+        if ($backendUser === null) {
+            return false;
+        }
 
         if ($backendUser->isAdmin()) {
             return true;
@@ -397,7 +415,11 @@ final readonly class PermissionService
      */
     public function checkLanguageAccess(int $languageId): bool
     {
-        $backendUser = $this->backendUserProvider->get();
+        $backendUser = $this->backendUserProvider->getAuthenticated();
+
+        if ($backendUser === null) {
+            return false;
+        }
 
         // Admins always have access
         if ($backendUser->isAdmin()) {
@@ -416,6 +438,10 @@ final readonly class PermissionService
      */
     public function checkFileReadAccess(FileInterface $file): bool
     {
+        if ($this->backendUserProvider->getAuthenticated() === null) {
+            return false;
+        }
+
         // Files in the fallback storage (uid 0) pass for every backend user:
         // core's StoragePermissionsAspect deliberately skips permission
         // evaluation there (!$storage->isFallbackStorage()), and core's own
@@ -436,6 +462,10 @@ final readonly class PermissionService
      */
     public function checkFileMetaEditAccess(FileInterface $file): bool
     {
+        if ($this->backendUserProvider->getAuthenticated() === null) {
+            return false;
+        }
+
         return $file->getStorage()->checkFileActionPermission('editMeta', $file);
     }
 }

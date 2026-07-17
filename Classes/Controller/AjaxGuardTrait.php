@@ -76,9 +76,9 @@ trait AjaxGuardTrait
      */
     private function requireDemandSession(int $userId, int $workspaceId, int $languageId): ?ResponseInterface
     {
-        $backendUser = $this->backendUserProvider->get();
+        $backendUser = $this->backendUserProvider->getAuthenticated();
 
-        if ((int)($backendUser->user['uid'] ?? 0) !== $userId) {
+        if ($backendUser === null || (int)($backendUser->user['uid'] ?? 0) !== $userId) {
             return $this->errorResponse('error.invalidUser', 403);
         }
 

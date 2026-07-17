@@ -31,12 +31,12 @@ use MindfulMarkup\MindfulA11y\Backend\ModuleNoticeTrait;
 use MindfulMarkup\MindfulA11y\Backend\OverviewFeatureRenderer;
 use MindfulMarkup\MindfulA11y\Backend\ScanFeatureRenderer;
 use MindfulMarkup\MindfulA11y\Enum\Feature;
+use MindfulMarkup\MindfulA11y\Service\BackendPageLanguageService;
 use MindfulMarkup\MindfulA11y\Service\BackendUserProvider;
 use MindfulMarkup\MindfulA11y\Service\ModuleLabelService;
 use MindfulMarkup\MindfulA11y\Service\ModuleSettingsService;
 use MindfulMarkup\MindfulA11y\Service\PagePreviewService;
 use MindfulMarkup\MindfulA11y\Service\PermissionService;
-use MindfulMarkup\MindfulA11y\Service\SiteLanguageService;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Backend\Attribute\AsController;
@@ -49,7 +49,7 @@ use TYPO3\CMS\Core\Http\Error\MethodNotAllowedException;
 use TYPO3\CMS\Core\Http\RedirectResponse;
 use TYPO3\CMS\Core\Messaging\FlashMessageService;
 use TYPO3\CMS\Core\Page\PageRenderer;
-use TYPO3\CMS\Core\Site\Entity\SiteLanguage;
+use TYPO3\CMS\Core\Site\Entity\SiteInterface;
 use TYPO3\CMS\Core\Type\Bitmask\Permission;
 use TYPO3\CMS\Core\Type\ContextualFeedbackSeverity;
 
@@ -80,7 +80,7 @@ final readonly class AccessibilityModuleController
         private MissingAltTextFeatureRenderer $missingAltTextFeatureRenderer,
         private ScanFeatureRenderer $scanFeatureRenderer,
         private BackendUserProvider $backendUserProvider,
-        private SiteLanguageService $siteLanguageService,
+        private BackendPageLanguageService $backendPageLanguageService,
     ) {}
 
     /**
@@ -126,7 +126,11 @@ final readonly class AccessibilityModuleController
         // language). Only the preview record falls back to the default language.
         if (!$this->permissionService->checkLanguageAccess($languageId)) {
             // Try to find the first available language that the user has access to
-            $availableLanguageId = $this->getFirstAvailableLanguageId($request, $pageId);
+            $site = $request->getAttribute('site');
+            $availableLanguageId = $this->backendPageLanguageService->getFirstSelectableLanguageId(
+                $site instanceof SiteInterface ? $site : null,
+                $pageId,
+            );
             if (null !== $availableLanguageId) {
                 // Redirect to the first available language
                 $uri = $this->backendUriBuilder->buildUriFromRoute(
@@ -202,21 +206,17 @@ final readonly class AccessibilityModuleController
      */
     private function buildLanguageMenu(ModuleContext $context): ?DropDownButton
     {
-        $allowedLanguages = $this->getAllowedSiteLanguages($context->request, $context->pageId);
-
-        if (empty($allowedLanguages) || 0 === $context->pageId) {
+        $site = $context->request->getAttribute('site');
+        $selectableLanguages = $this->backendPageLanguageService->getSelectableLanguages(
+            $site instanceof SiteInterface ? $site : null,
+            $context->pageId,
+        );
+        if ($selectableLanguages === []) {
             return null;
         }
 
-        $availableLanguageIds = $this->getAvailableLanguageIds($context->pageId);
-
         $items = [];
-        foreach ($allowedLanguages as $language) {
-            // Only show languages where the page is actually translated
-            if (0 !== $language->getLanguageId() && !in_array($language->getLanguageId(), $availableLanguageIds, true)) {
-                continue;
-            }
-
+        foreach ($selectableLanguages as $language) {
             $items[] = [
                 'title' => $language->getTitle(),
                 'href' => $this->menuBuilder->buildMenuItemUri($context, [
@@ -230,57 +230,5 @@ final readonly class AccessibilityModuleController
             $this->getLanguageService()->sL(self::MODULE_LANGUAGE_FILE . 'module.menu.language'),
             $items
         );
-    }
-
-    /**
-     * Get allowed site languages for the backend user.
-     *
-     * @return list<SiteLanguage>
-     */
-    private function getAllowedSiteLanguages(ServerRequestInterface $request, int $pageId): array
-    {
-        $site = $request->getAttribute('site', null);
-        if (null === $site) {
-            return [];
-        }
-
-        return $site->getAvailableLanguages($this->backendUserProvider->get(), false, $pageId);
-    }
-
-    /**
-     * Get available language IDs for the current page (including default language).
-     *
-     * @return array<int>
-     */
-    private function getAvailableLanguageIds(int $pageId): array
-    {
-        return $this->siteLanguageService->getTranslatedLanguageIds(
-            $pageId,
-            $this->backendUserProvider->get()->workspace
-        );
-    }
-
-    /**
-     * Get the first available language ID that the user has access to and the page is translated to.
-     */
-    private function getFirstAvailableLanguageId(ServerRequestInterface $request, int $pageId): ?int
-    {
-        $allowedLanguages = $this->getAllowedSiteLanguages($request, $pageId);
-
-        if (empty($allowedLanguages)) {
-            return null;
-        }
-
-        $availableLanguageIds = $this->getAvailableLanguageIds($pageId);
-
-        foreach ($allowedLanguages as $language) {
-            $languageId = $language->getLanguageId();
-            // User access is already checked by getAllowedSiteLanguages(), just check if page is translated
-            if (in_array($languageId, $availableLanguageIds, true)) {
-                return $languageId;
-            }
-        }
-
-        return null;
     }
 }

@@ -34,23 +34,26 @@ use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 final readonly class BackendUserProvider
 {
     /**
-     * The current backend user.
+     * The current authenticated backend user.
      *
-     * Backend-scoped code may assume presence; in scopes without a backend
-     * user (frontend, CLI) calling this is a programming error and surfaces
-     * as a TypeError here instead of a null propagated into permission checks.
+     * Backend-scoped code may assume authentication. In scopes without an
+     * authenticated backend account (frontend, CLI, public backend routes),
+     * calling this is a programming error and surfaces here instead of letting
+     * TYPO3's unauthenticated placeholder enter permission checks.
      */
     public function get(): BackendUserAuthentication
     {
-        return $GLOBALS['BE_USER'];
+        return $this->getAuthenticated()
+            ?? throw new \LogicException('No authenticated backend user is available.');
     }
 
     /**
      * The current backend user, only when it is an authenticated account.
      *
-     * Returns null when no backend user exists or it carries no logged-in
-     * user row. Use on surfaces reachable without a valid backend session
-     * (e.g. ticketed frontend requests carrying a stale cookie).
+     * Nullable counterpart to get() for authorization boundaries that must
+     * reject the request instead of treating a missing account as a programming
+     * error. TYPO3 initializes the backend-user object before authenticating the
+     * session, so object presence alone does not establish authentication.
      */
     public function getAuthenticated(): ?BackendUserAuthentication
     {
