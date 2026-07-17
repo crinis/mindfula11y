@@ -20,12 +20,9 @@
 
 use MindfulMarkup\MindfulA11y\Form\FieldControl\GenerateAltTextControl;
 use MindfulMarkup\MindfulA11y\Form\ValidationErrorDetector;
-use MindfulMarkup\MindfulA11y\Form\FormDataProvider\MetadataAlternativePlaceholderAccessGuard;
 use MindfulMarkup\MindfulA11y\Hooks\DecorativeFileReferenceDataHandlerGuard;
 use MindfulMarkup\MindfulA11y\Hooks\ScanStateDataHandlerGuard;
 use MindfulMarkup\MindfulA11y\Service\StructureAnalysisTicketService;
-use TYPO3\CMS\Backend\Form\FormDataProvider\TcaColumnsRemoveUnused;
-use TYPO3\CMS\Backend\Form\FormDataProvider\TcaInputPlaceholders;
 
 defined('TYPO3') or die();
 
@@ -45,12 +42,6 @@ defined('TYPO3') or die();
         = ScanStateDataHandlerGuard::class;
     $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['t3lib/class.t3lib_tcemain.php']['processDatamapClass'][DecorativeFileReferenceDataHandlerGuard::class]
         = DecorativeFileReferenceDataHandlerGuard::class;
-
-    $formDataProviders = &$GLOBALS['TYPO3_CONF_VARS']['SYS']['formEngine']['formDataGroup']['tcaDatabaseRecord'];
-    $formDataProviders[MetadataAlternativePlaceholderAccessGuard::class] = [
-        'depends' => [TcaColumnsRemoveUnused::class],
-    ];
-    $formDataProviders[TcaInputPlaceholders::class]['depends'][] = MetadataAlternativePlaceholderAccessGuard::class;
 
     // TYPO3 13 EXT:form hook. TYPO3 14 provides the equivalent PSR-14 event,
     // registered in Services.yaml. Guarding both classes keeps EXT:form optional.
