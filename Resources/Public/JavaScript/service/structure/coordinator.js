@@ -28,6 +28,7 @@ class StructureAnalysisCoordinator {
     const requests = collectRecordRequests(analysis);
     const metadata = await this.backend.fetchRecordMetadata(requests, signal);
     applyRecordMetadata(analysis, metadata);
+    signal.throwIfAborted();
     return analysis;
   }
   /** Merges one domain's viewport pair, or yields null when that domain is disabled. */

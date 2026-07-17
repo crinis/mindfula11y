@@ -87,6 +87,10 @@ const isRecord = (value: unknown): boolean => {
         typeof value.uid === 'number' &&
         Number.isInteger(value.uid) &&
         value.uid > 0 &&
+        // storedValue is a column value ('', 'h1'…'h6', 'p', 'div'); bound it
+        // like every other wire string so a hostile frame cannot deliver an
+        // oversized or non-string payload member.
+        (value.storedValue === undefined || isBoundedString(value.storedValue, 128)) &&
         // The runner never resolves edit links; they are supplied only by the
         // authenticated backend enrichment endpoint. Rejecting any non-empty
         // wire value keeps a forged frame from injecting a clickable link.
@@ -116,10 +120,15 @@ const isHeadingNode = (value: unknown, depth: number, counter: { value: number }
     }
     if (
         !hasValidNodeBase(value, value.availableTypes) ||
+        (value.kind !== 'heading' && value.kind !== 'container') ||
         typeof value.level !== 'number' ||
         !Number.isInteger(value.level) ||
-        value.level < 1 ||
+        // Containers report level 0 when their own type is not h1-h6
+        // (see heading-analysis.ts); real headings are always 1-6.
+        value.level < (value.kind === 'container' ? 0 : 1) ||
         value.level > 6 ||
+        !isRecord(value.childTypeRecord) ||
+        !isStringMap(value.availableChildTypes) ||
         !isBoundedString(value.relationId, 512) ||
         typeof value.skippedLevels !== 'number' ||
         !Number.isInteger(value.skippedLevels)

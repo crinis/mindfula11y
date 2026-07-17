@@ -146,10 +146,10 @@ final readonly class PermissionService
             return true;
         }
 
-        if (
-            !$backendUser->check('tables_select', $tableName)
-            || ($this->isTableWorkspaceAware($tableName) && !$backendUser->workspaceAllowsLiveEditingInTable($tableName))
-        ) {
+        // Reading is workspace-legal for everyone: versioned rows are handled
+        // by the workspace overlay, so unlike checkTableWriteAccess() there is
+        // no live-edit/versioning dimension to a read.
+        if (!$backendUser->check('tables_select', $tableName)) {
             return false;
         }
 

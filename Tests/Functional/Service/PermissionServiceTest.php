@@ -107,25 +107,21 @@ final class PermissionServiceTest extends AbstractAuthorizationTestCase
     }
 
     /**
-     * SECURITY NOTE (behavioural, not a fix): tt_content is workspace-aware
-     * (ctrl.versioningWS = true). In an offline workspace without the
-     * workspace's live_edit flag, workspaceAllowsLiveEditingInTable() returns
-     * false, and checkTableReadAccess() denies *reading* the table entirely -
-     * not just writing to it. This means an editor with full tables_select
-     * grants and workspace membership cannot list/read tt_content records at
-     * all while switched into workspace 1, even though nothing about reading
-     * (as opposed to editing) actually requires a workspace version to exist.
-     * This is current PermissionService behaviour, asserted here as-is; it is
-     * worth a maintainer's attention but is not fixed by this test suite.
+     * Reading never requires a workspace version to exist: tt_content is
+     * workspace-aware (ctrl.versioningWS = true), and an editor with a
+     * tables_select grant who is switched into an offline workspace without
+     * the live_edit flag must still be able to list/read the table - the
+     * workspace overlay handles versioned rows, and only *writes* need the
+     * live-edit/versioning distinction (covered by checkTableWriteAccess()).
      */
-    public function testCheckTableReadAccessWorkspaceAwareTableDeniedInOfflineWorkspaceEvenForReading(): void
+    public function testCheckTableReadAccessWorkspaceAwareTableReadableInOfflineWorkspace(): void
     {
         // Users 2 and 10 are members of sys_workspace 1 ("Draft"), which has
         // no live_edit flag set (defaults to false in the fixture).
         $this->logInBackendUser(2, 1);
-        self::assertFalse(
+        self::assertTrue(
             $this->permissionService()->checkTableReadAccess('tt_content'),
-            'workspace-aware table read access is denied in an offline workspace without live_edit'
+            'workspace-aware table read access must not depend on the workspace live_edit flag'
         );
     }
 

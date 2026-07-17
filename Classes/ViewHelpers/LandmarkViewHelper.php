@@ -135,5 +135,13 @@ class LandmarkViewHelper extends AbstractTagBasedViewHelper
 
         $landmarkType = AriaLandmark::tryFrom($role);
         $this->tag->setTagName($landmarkType?->element() ?? 'div');
+
+        // header/footer expose banner/contentinfo only when NOT nested inside
+        // sectioning content, and content elements typically render inside
+        // main/section — make these two roles explicit so the editor-selected
+        // landmark reaches assistive technology regardless of nesting.
+        if ($landmarkType === AriaLandmark::BANNER || $landmarkType === AriaLandmark::CONTENTINFO) {
+            $this->tag->addAttribute('role', $landmarkType->value);
+        }
     }
 }

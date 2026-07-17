@@ -75,6 +75,40 @@ describe('StructureAnalysisCoordinator', () => {
         expect(backend.fetchRecordMetadata).toHaveBeenCalledWith([], signal);
     });
 
+    it('rejects instead of resolving when the signal aborts before the result is ready', async () => {
+        // A superseded run (the host re-analyzes and aborts the old signal)
+        // must never hand its stale analysis to the caller.
+        let resolveMetadata!: (metadata: Map<string, never>) => void;
+        const loader = {
+            load: vi.fn(async (viewport: StructureViewport) => ({
+                headings: { nodes: [heading(viewport)], errors: [] },
+                landmarks: null,
+            })),
+        };
+        const backend = {
+            fetchRecordMetadata: vi.fn(
+                () =>
+                    new Promise<Map<string, never>>((resolve) => {
+                        resolveMetadata = resolve;
+                    }),
+            ),
+        };
+        const coordinator = new StructureAnalysisCoordinator(backend, loader);
+        const controller = new AbortController();
+
+        const analyzing = coordinator.analyze(
+            { pageId: 42, languageId: 0, headings: true, landmarks: false },
+            document,
+            controller.signal,
+        );
+        await vi.waitFor(() => expect(backend.fetchRecordMetadata).toHaveBeenCalled());
+
+        controller.abort();
+        resolveMetadata(new Map<string, never>());
+
+        await expect(analyzing).rejects.toMatchObject({ name: 'AbortError' });
+    });
+
     it('rejects an enabled domain when either viewport omits its analysis', async () => {
         const loader = {
             load: vi.fn(async (viewport: StructureViewport) => ({

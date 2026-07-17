@@ -52,10 +52,218 @@ describe('structure-analysis-protocol guards', () => {
         ).toBe(false);
     });
 
+    it('accepts a container node whose own type is not a heading (level 0)', () => {
+        // Mirrors heading-analysis.ts: a data-mindfula11y-container="p|div"
+        // element is reported as kind 'container' with level 0.
+        const containerNode = {
+            id: 'container',
+            documentOrder: 0,
+            kind: 'container',
+            level: 0,
+            label: '',
+            availableTypes: {},
+            availableChildTypes: {},
+            record: null,
+            childTypeRecord: null,
+            relationId: 'rel-container',
+            relation: null,
+            skippedLevels: 0,
+            viewports: ['mobile'],
+            errors: [],
+            children: [],
+        };
+
+        expect(
+            isStructureAnalysisResultMessage(
+                {
+                    protocol: STRUCTURE_ANALYSIS_PROTOCOL,
+                    type: 'result',
+                    requestId: REQUEST_ID,
+                    viewport: 'mobile',
+                    headings: { nodes: [containerNode], errors: [] },
+                    landmarks: null,
+                },
+                REQUEST_ID,
+                'mobile',
+            ),
+        ).toBe(true);
+    });
+
+    it('rejects a level-0 node that claims to be a heading rather than a container', () => {
+        const headingNode = {
+            id: 'heading',
+            documentOrder: 0,
+            kind: 'heading',
+            level: 0,
+            label: 'Heading',
+            availableTypes: {},
+            availableChildTypes: {},
+            record: null,
+            childTypeRecord: null,
+            relationId: '',
+            relation: null,
+            skippedLevels: 0,
+            viewports: ['mobile'],
+            errors: [],
+            children: [],
+        };
+
+        expect(
+            isStructureAnalysisResultMessage(
+                {
+                    protocol: STRUCTURE_ANALYSIS_PROTOCOL,
+                    type: 'result',
+                    requestId: REQUEST_ID,
+                    viewport: 'mobile',
+                    headings: { nodes: [headingNode], errors: [] },
+                    landmarks: null,
+                },
+                REQUEST_ID,
+                'mobile',
+            ),
+        ).toBe(false);
+    });
+
+    it('rejects a node smuggling a malformed childTypeRecord past the validator', () => {
+        // childTypeRecord flows into the enrichment POST body; a hostile frame
+        // must not get arbitrary objects past the record shape check.
+        const node = {
+            id: 'container',
+            documentOrder: 0,
+            kind: 'container',
+            level: 0,
+            label: '',
+            availableTypes: {},
+            availableChildTypes: {},
+            record: null,
+            childTypeRecord: {
+                tableName: 'tt_content',
+                columnName: 'header',
+                uid: 1,
+                editLink: 'https://evil.example/',
+            },
+            relationId: 'rel-container',
+            relation: null,
+            skippedLevels: 0,
+            viewports: ['mobile'],
+            errors: [],
+            children: [],
+        };
+
+        expect(
+            isStructureAnalysisResultMessage(
+                {
+                    protocol: STRUCTURE_ANALYSIS_PROTOCOL,
+                    type: 'result',
+                    requestId: REQUEST_ID,
+                    viewport: 'mobile',
+                    headings: { nodes: [node], errors: [] },
+                    landmarks: null,
+                },
+                REQUEST_ID,
+                'mobile',
+            ),
+        ).toBe(false);
+    });
+
+    it('rejects a record whose storedValue exceeds the wire bound', () => {
+        const node = {
+            id: 'container',
+            documentOrder: 0,
+            kind: 'container',
+            level: 0,
+            label: '',
+            availableTypes: {},
+            availableChildTypes: {},
+            record: null,
+            childTypeRecord: {
+                tableName: 'tt_content',
+                columnName: 'header',
+                uid: 1,
+                editLink: '',
+                storedValue: 'x'.repeat(129),
+            },
+            relationId: 'rel-container',
+            relation: null,
+            skippedLevels: 0,
+            viewports: ['mobile'],
+            errors: [],
+            children: [],
+        };
+
+        expect(
+            isStructureAnalysisResultMessage(
+                {
+                    protocol: STRUCTURE_ANALYSIS_PROTOCOL,
+                    type: 'result',
+                    requestId: REQUEST_ID,
+                    viewport: 'mobile',
+                    headings: { nodes: [node], errors: [] },
+                    landmarks: null,
+                },
+                REQUEST_ID,
+                'mobile',
+            ),
+        ).toBe(false);
+
+        // The same record with a bounded storedValue passes.
+        node.childTypeRecord.storedValue = 'h2';
+        expect(
+            isStructureAnalysisResultMessage(
+                {
+                    protocol: STRUCTURE_ANALYSIS_PROTOCOL,
+                    type: 'result',
+                    requestId: REQUEST_ID,
+                    viewport: 'mobile',
+                    headings: { nodes: [node], errors: [] },
+                    landmarks: null,
+                },
+                REQUEST_ID,
+                'mobile',
+            ),
+        ).toBe(true);
+    });
+
+    it('rejects a node whose availableChildTypes is not a bounded string map', () => {
+        const node = {
+            id: 'heading',
+            documentOrder: 0,
+            kind: 'heading',
+            level: 2,
+            label: 'Heading',
+            availableTypes: {},
+            availableChildTypes: { h3: 42 },
+            record: null,
+            childTypeRecord: null,
+            relationId: '',
+            relation: null,
+            skippedLevels: 0,
+            viewports: ['mobile'],
+            errors: [],
+            children: [],
+        };
+
+        expect(
+            isStructureAnalysisResultMessage(
+                {
+                    protocol: STRUCTURE_ANALYSIS_PROTOCOL,
+                    type: 'result',
+                    requestId: REQUEST_ID,
+                    viewport: 'mobile',
+                    headings: { nodes: [node], errors: [] },
+                    landmarks: null,
+                },
+                REQUEST_ID,
+                'mobile',
+            ),
+        ).toBe(false);
+    });
+
     it('rejects analysis payloads that exceed the global node limit', () => {
         const node = {
             id: 'heading',
             documentOrder: 0,
+            kind: 'heading',
             level: 1,
             label: 'Heading',
             availableTypes: {},
