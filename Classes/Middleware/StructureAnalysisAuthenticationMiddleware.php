@@ -106,11 +106,11 @@ final readonly class StructureAnalysisAuthenticationMiddleware implements Middle
         $simulatedTime = (int)($queryParams['ADMCMD_simTime'] ?? 0);
         $simulatedGroupId = (int)($queryParams['ADMCMD_simUser'] ?? 0);
 
-        // With a simulated time, keep the scheduled-record constraints active so
-        // the simulated access time below governs starttime/endtime visibility
-        // exactly as the issued preview link requested. Without one, scheduled
-        // records are included broadly, like hidden ones.
-        $this->context->setAspect('visibility', new VisibilityAspect(true, true, false, $simulatedTime === 0));
+        // Mirror a logged-in core frontend preview: the exact authorized page may
+        // be hidden, but hidden content remains excluded and start/end-time
+        // restrictions stay active. ADMCMD_simTime changes the time at which
+        // those restrictions are evaluated; it does not disable them.
+        $this->context->setAspect('visibility', new VisibilityAspect(true, false, false, false));
         if ($simulatedTime > 0) {
             $GLOBALS['SIM_EXEC_TIME'] = $simulatedTime;
             $GLOBALS['SIM_ACCESS_TIME'] = $simulatedTime - $simulatedTime % 60;
