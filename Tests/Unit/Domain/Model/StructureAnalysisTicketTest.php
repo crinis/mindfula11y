@@ -33,6 +33,7 @@ final class StructureAnalysisTicketTest extends TestCase
             'pageId' => 42,
             'languageId' => 1,
             'workspaceId' => 2,
+            'pageRecordSnapshot' => str_repeat('a', 64),
             'backendUserId' => 3,
             'backendOrigin' => 'https://backend.example',
             'frontendOrigin' => 'https://frontend.example',
@@ -51,6 +52,7 @@ final class StructureAnalysisTicketTest extends TestCase
         self::assertSame(42, $ticket->pageId);
         self::assertSame(1, $ticket->languageId);
         self::assertSame(2, $ticket->workspaceId);
+        self::assertSame(str_repeat('a', 64), $ticket->pageRecordSnapshot);
         self::assertSame(3, $ticket->backendUserId);
         self::assertSame('https://backend.example', $ticket->backendOrigin);
         self::assertSame('https://frontend.example', $ticket->frontendOrigin);
@@ -81,6 +83,7 @@ final class StructureAnalysisTicketTest extends TestCase
         yield 'pageId as string' => [['pageId' => '42'] + $valid];
         yield 'negative languageId' => [['languageId' => -1] + $valid];
         yield 'negative workspaceId' => [['workspaceId' => -1] + $valid];
+        yield 'invalid page snapshot' => [['pageRecordSnapshot' => 'not-a-hash'] + $valid];
         yield 'backendUserId zero' => [['backendUserId' => 0] + $valid];
         yield 'missing backendOrigin' => [array_diff_key($valid, ['backendOrigin' => ''])];
         yield 'non-string frontendOrigin' => [['frontendOrigin' => 42] + $valid];

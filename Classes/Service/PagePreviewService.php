@@ -30,6 +30,7 @@ use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
 use TYPO3\CMS\Core\Database\Query\Restriction\WorkspaceRestriction;
 use TYPO3\CMS\Core\Domain\Repository\PageRepository;
+use TYPO3\CMS\Core\Site\SiteFinder;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\RootlineUtility;
 
@@ -49,6 +50,7 @@ final readonly class PagePreviewService
         private BackendUserProvider $backendUserProvider,
         private PageTreeIdResolver $pageTreeIdResolver,
         private Context $context,
+        private SiteFinder $siteFinder,
     ) {}
 
     /**
@@ -188,6 +190,41 @@ final readonly class PagePreviewService
             BackendUtility::workspaceOL('pages', $overlayRecord, $this->backendUserProvider->get()->workspace);
         }
         return is_array($overlayRecord) ? $overlayRecord : null;
+    }
+
+    /**
+     * Build the current preview URL for one authorized page/language scope.
+     *
+     * @param array<string, mixed> $page Workspace-overlaid default-language page.
+     */
+    public function buildPreviewUrl(array $page, int $pageId, int $languageId): ?string
+    {
+        try {
+            $site = $this->siteFinder->getSiteByPageId($pageId);
+            $site->getLanguageById($languageId);
+            $previewPage = $this->getPreviewPageRecord($page, $pageId, $languageId);
+            if (!is_array($previewPage)) {
+                return null;
+            }
+            $previewUri = PreviewUriBuilder::create($previewPage)->buildUri();
+        } catch (\Throwable) {
+            return null;
+        }
+
+        return $previewUri === null ? null : (string)$previewUri;
+    }
+
+    /**
+     * Resolve the complete record from which a page/language preview is built.
+     *
+     * @param array<string, mixed> $page Workspace-overlaid default-language page.
+     * @return array<string, mixed>|null
+     */
+    public function getPreviewPageRecord(array $page, int $pageId, int $languageId): ?array
+    {
+        return $languageId > 0
+            ? $this->getLocalizedPageRecord($pageId, $languageId)
+            : $page;
     }
 
     /**

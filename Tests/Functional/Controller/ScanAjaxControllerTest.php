@@ -18,9 +18,13 @@ use MindfulMarkup\MindfulA11y\Controller\ScanAjaxController;
 use MindfulMarkup\MindfulA11y\Domain\Model\CreateScanDemand;
 use MindfulMarkup\MindfulA11y\Service\DemandSignatureService;
 use MindfulMarkup\MindfulA11y\Service\ModuleLabelService;
+use MindfulMarkup\MindfulA11y\Service\PagePreviewService;
+use MindfulMarkup\MindfulA11y\Service\RecordSnapshotService;
 use MindfulMarkup\MindfulA11y\Service\ScanStateService;
 use MindfulMarkup\MindfulA11y\Tests\Functional\AbstractAuthorizationTestCase;
 use Psr\Http\Message\ResponseInterface;
+use TYPO3\CMS\Backend\Routing\PreviewUriBuilder;
+use TYPO3\CMS\Backend\Utility\BackendUtility;
 
 /**
  * Authorization coverage of the accessibility-scan AJAX endpoints
@@ -67,6 +71,18 @@ final class ScanAjaxControllerTest extends AbstractAuthorizationTestCase
         return $this->get(ScanAjaxController::class);
     }
 
+    private function currentPreviewUrl(int $pageId, int $languageId = 0): string
+    {
+        $page = $languageId > 0
+            ? $this->get(PagePreviewService::class)->getLocalizedPageRecord($pageId, $languageId)
+            : BackendUtility::getRecordWSOL('pages', $pageId);
+        self::assertIsArray($page);
+        $uri = PreviewUriBuilder::create($page)->buildUri();
+        self::assertNotNull($uri);
+
+        return (string)$uri;
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -80,12 +96,18 @@ final class ScanAjaxControllerTest extends AbstractAuthorizationTestCase
         bool $crawl = false,
         int $expiresAt = 0,
     ): array {
+        $page = $languageId > 0
+            ? $this->get(PagePreviewService::class)->getLocalizedPageRecord($pageId, $languageId)
+            : BackendUtility::getRecordWSOL('pages', $pageId);
         return $this->get(DemandSignatureService::class)->serialize(new CreateScanDemand(
             userId: $userId,
             pageId: $pageId,
             previewUrl: $previewUrl,
             languageId: $languageId,
             workspaceId: $workspaceId,
+            pageRecordSnapshot: is_array($page)
+                ? $this->get(RecordSnapshotService::class)->fingerprint('pages', $page)
+                : str_repeat('0', 64),
             pageLevels: $pageLevels,
             crawl: $crawl,
             expiresAt: $expiresAt,
@@ -304,11 +326,31 @@ final class ScanAjaxControllerTest extends AbstractAuthorizationTestCase
         // translation lookup succeeds, so this must NOT 404; it proceeds all
         // the way to the scan-API failure branch.
         $this->logInBackendUser(2);
-        $payload = $this->signedCreateDemandPayload(2, 10, previewUrl: 'https://example.com/fr/editable', languageId: 1);
+        $payload = $this->signedCreateDemandPayload(2, 10, previewUrl: $this->currentPreviewUrl(10, 1), languageId: 1);
 
         $response = $this->controller()->createAction($this->createJsonRequest($payload));
 
         $this->assertErrorResponse($response, 500, 'scan.error.notConfigured');
+    }
+
+    public function testCreateActionTranslatedPageChangeInvalidatesDemand(): void
+    {
+        $this->logInBackendUser(2);
+        $payload = $this->signedCreateDemandPayload(
+            2,
+            10,
+            previewUrl: $this->currentPreviewUrl(10, 1),
+            languageId: 1,
+        );
+        $this->getConnectionPool()->getConnectionForTable('pages')->update(
+            'pages',
+            ['title' => 'Changed translation after demand issuance'],
+            ['uid' => 30],
+        );
+
+        $response = $this->controller()->createAction($this->createJsonRequest($payload));
+
+        $this->assertErrorResponse($response, 400, 'module.error.invalidSignature');
     }
 
     public function testCreateActionShowOnlyPageDeniesEditAccess(): void
@@ -388,6 +430,36 @@ final class ScanAjaxControllerTest extends AbstractAuthorizationTestCase
         $response = $this->controller()->createAction($this->createJsonRequest($payload));
 
         $this->assertErrorResponse($response, 500, 'scan.error.notConfigured');
+    }
+
+    public function testCreateActionPreviewUrlChangeInvalidatesDemand(): void
+    {
+        $this->logInBackendUser(2);
+        $payload = $this->signedCreateDemandPayload(2, 10);
+        $this->getConnectionPool()->getConnectionForTable('pages')->update(
+            'pages',
+            ['slug' => '/renamed'],
+            ['uid' => 10],
+        );
+
+        $response = $this->controller()->createAction($this->createJsonRequest($payload));
+
+        $this->assertErrorResponse($response, 400, 'module.error.invalidSignature');
+    }
+
+    public function testCreateActionPageContentChangeInvalidatesDemand(): void
+    {
+        $this->logInBackendUser(2);
+        $payload = $this->signedCreateDemandPayload(2, 10);
+        $this->getConnectionPool()->getConnectionForTable('pages')->update(
+            'pages',
+            ['title' => 'Changed after demand issuance'],
+            ['uid' => 10],
+        );
+
+        $response = $this->controller()->createAction($this->createJsonRequest($payload));
+
+        $this->assertErrorResponse($response, 400, 'module.error.invalidSignature');
     }
 
     // ---------------------------------------------------------------

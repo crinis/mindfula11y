@@ -29,7 +29,9 @@ use MindfulMarkup\MindfulA11y\Service\BackendUserProvider;
 use MindfulMarkup\MindfulA11y\Service\DemandSignatureService;
 use MindfulMarkup\MindfulA11y\Service\OpenAIService;
 use MindfulMarkup\MindfulA11y\Service\PermissionService;
+use MindfulMarkup\MindfulA11y\Service\RecordSnapshotService;
 use TYPO3\CMS\Backend\Form\AbstractNode;
+use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Page\JavaScriptModuleInstruction;
 use TYPO3\CMS\Core\Page\PageRenderer;
@@ -57,6 +59,7 @@ class GenerateAltTextControl extends AbstractNode
         protected readonly PermissionService $permissionService,
         protected readonly BackendUserProvider $backendUserProvider,
         protected readonly DemandSignatureService $demandSignatureService,
+        protected readonly RecordSnapshotService $recordSnapshotService,
     ) {
     }
 
@@ -82,14 +85,31 @@ class GenerateAltTextControl extends AbstractNode
         $languageService = $this->getLanguageService();
         $itemName = (string)$this->data['parameterArray']['itemFormElName'];
         $backendUser = $this->backendUserProvider->get();
+        $recordUid = (int)$this->data['databaseRow']['uid'];
+        $record = BackendUtility::getRecordWSOL($table, $recordUid);
+        if (!is_array($record)) {
+            return [];
+        }
+        $recordSnapshot = $this->recordSnapshotService->fingerprint($table, $record);
+        $fileRecord = BackendUtility::getRecordWSOL('sys_file', $file->getUid());
+        if (!is_array($fileRecord)) {
+            return [];
+        }
+        $fileReferenceSnapshot = $table === 'sys_file_reference'
+            ? $this->recordSnapshotService->fingerprint('sys_file_reference', $record)
+            : '';
         $generateAltTextDemand = new GenerateAltTextDemand(
             $backendUser->user['uid'],
             (int)$this->data['effectivePid'],
             $this->resolveLanguageUid(),
             $backendUser->workspace,
             $table,
-            (int)$this->data['databaseRow']['uid'],
+            $recordUid,
             $file->getUid(),
+            $table === 'sys_file_reference' ? $recordUid : 0,
+            $this->recordSnapshotService->fingerprint('sys_file', $fileRecord),
+            $recordSnapshot,
+            $fileReferenceSnapshot,
             [$this->data['fieldName']],
         );
 

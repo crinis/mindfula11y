@@ -406,6 +406,28 @@ final class PermissionServiceTest extends AbstractAuthorizationTestCase
         self::assertFalse($this->permissionService()->checkRecordEditAccess('tt_content', $row));
     }
 
+    public function testCheckRecordEditAccessAllowsLegitimateRootLevelRecord(): void
+    {
+        $this->logInBackendUser(2);
+
+        self::assertTrue(
+            $this->permissionService()->checkRecordEditAccess(
+                'sys_file_metadata',
+                $this->record('sys_file_metadata', 1),
+                ['alternative'],
+            ),
+        );
+    }
+
+    public function testCheckRecordEditAccessDoesNotTreatArbitraryPidZeroRecordAsRootLevel(): void
+    {
+        $row = $this->record('tt_content', 100);
+        $row['pid'] = 0;
+        $this->logInBackendUser(2);
+
+        self::assertFalse($this->permissionService()->checkRecordEditAccess('tt_content', $row));
+    }
+
     public function testCheckRecordEditAccessTtContentAdminBypassesEveryDimension(): void
     {
         $permissionService = $this->permissionService();

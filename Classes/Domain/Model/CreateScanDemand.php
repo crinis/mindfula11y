@@ -41,6 +41,7 @@ namespace MindfulMarkup\MindfulA11y\Domain\Model;
  *   previewUrl: string,
  *   languageId: int,
  *   workspaceId: int,
+ *   pageRecordSnapshot: string,
  *   pageLevels: int,
  *   crawl: bool,
  *   expiresAt: int,
@@ -60,6 +61,7 @@ final readonly class CreateScanDemand implements SignedDemandInterface
      * @param string $previewUrl Preview URL for the page.
      * @param int $languageId Language ID.
      * @param int $workspaceId Current workspace ID.
+     * @param string $pageRecordSnapshot SHA-256 fingerprint of the complete localized/default page record.
      * @param int $pageLevels Page levels for tree scanning (0 = current page only).
      * @param bool $crawl Whether this demand creates a crawl scan (only valid for site root pages).
      * @param int $expiresAt Unix timestamp after which this demand must not be redeemed.
@@ -71,6 +73,7 @@ final readonly class CreateScanDemand implements SignedDemandInterface
         private string $previewUrl,
         private int $languageId,
         private int $workspaceId,
+        private string $pageRecordSnapshot,
         private int $pageLevels = 0,
         private bool $crawl = false,
         int $expiresAt = 0,
@@ -84,11 +87,20 @@ final readonly class CreateScanDemand implements SignedDemandInterface
     {
         $required = self::extractRequiredRequestFields($data);
         $previewUrl = $data['previewUrl'] ?? null;
+        $pageRecordSnapshot = $data['pageRecordSnapshot'] ?? null;
         $pageId = (int)($data['pageId'] ?? 0);
+        $languageId = (int)($data['languageId'] ?? 0);
+        $workspaceId = (int)($data['workspaceId'] ?? 0);
+        $pageLevels = (int)($data['pageLevels'] ?? 0);
         if ($required === null
             || $pageId <= 0
+            || $languageId < 0
+            || $workspaceId < 0
+            || $pageLevels < 0
             || !is_string($previewUrl)
             || $previewUrl === ''
+            || !is_string($pageRecordSnapshot)
+            || preg_match('/^[a-f0-9]{64}$/', $pageRecordSnapshot) !== 1
         ) {
             return null;
         }
@@ -97,9 +109,10 @@ final readonly class CreateScanDemand implements SignedDemandInterface
             userId: $required['userId'],
             pageId: $pageId,
             previewUrl: $previewUrl,
-            languageId: (int)($data['languageId'] ?? 0),
-            workspaceId: (int)($data['workspaceId'] ?? 0),
-            pageLevels: (int)($data['pageLevels'] ?? 0),
+            languageId: $languageId,
+            workspaceId: $workspaceId,
+            pageRecordSnapshot: $pageRecordSnapshot,
+            pageLevels: $pageLevels,
             crawl: (bool)($data['crawl'] ?? false),
             expiresAt: $required['expiresAt'],
             signature: $required['signature'],
@@ -146,6 +159,11 @@ final readonly class CreateScanDemand implements SignedDemandInterface
         return $this->workspaceId;
     }
 
+    public function getPageRecordSnapshot(): string
+    {
+        return $this->pageRecordSnapshot;
+    }
+
     /**
      * Get the page levels.
      */
@@ -171,6 +189,7 @@ final readonly class CreateScanDemand implements SignedDemandInterface
             $this->previewUrl,
             (string)$this->languageId,
             (string)$this->workspaceId,
+            $this->pageRecordSnapshot,
             (string)$this->pageLevels,
             (string)(int)$this->crawl,
             (string)$this->expiresAt,
@@ -186,6 +205,7 @@ final readonly class CreateScanDemand implements SignedDemandInterface
             'previewUrl' => $this->previewUrl,
             'languageId' => $this->languageId,
             'workspaceId' => $this->workspaceId,
+            'pageRecordSnapshot' => $this->pageRecordSnapshot,
             'pageLevels' => $this->pageLevels,
             'crawl' => $this->crawl,
             'expiresAt' => $this->expiresAt,

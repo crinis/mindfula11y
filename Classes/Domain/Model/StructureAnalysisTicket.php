@@ -32,13 +32,14 @@ final readonly class StructureAnalysisTicket implements JsonSerializable
     /** Request attribute carrying the validated ticket on a frontend analysis request. */
     public const REQUEST_ATTRIBUTE = 'mindfula11y.structure-analysis';
 
-    public const VERSION = 2;
+    public const VERSION = 3;
 
     public function __construct(
         public string $requestId,
         public int $pageId,
         public int $languageId,
         public int $workspaceId,
+        public string $pageRecordSnapshot,
         public int $backendUserId,
         public string $backendOrigin,
         public string $frontendOrigin,
@@ -69,6 +70,8 @@ final readonly class StructureAnalysisTicket implements JsonSerializable
             || $claims['languageId'] < 0
             || !is_int($claims['workspaceId'] ?? null)
             || $claims['workspaceId'] < 0
+            || !is_string($claims['pageRecordSnapshot'] ?? null)
+            || preg_match('/^[a-f0-9]{64}$/', $claims['pageRecordSnapshot']) !== 1
             || !is_int($claims['backendUserId'] ?? null)
             || $claims['backendUserId'] <= 0
             || !is_string($claims['backendOrigin'] ?? null)
@@ -86,6 +89,7 @@ final readonly class StructureAnalysisTicket implements JsonSerializable
             pageId: $claims['pageId'],
             languageId: $claims['languageId'],
             workspaceId: $claims['workspaceId'],
+            pageRecordSnapshot: $claims['pageRecordSnapshot'],
             backendUserId: $claims['backendUserId'],
             backendOrigin: $claims['backendOrigin'],
             frontendOrigin: $claims['frontendOrigin'],
@@ -106,6 +110,7 @@ final readonly class StructureAnalysisTicket implements JsonSerializable
      *   pageId: int,
      *   languageId: int,
      *   workspaceId: int,
+     *   pageRecordSnapshot: string,
      *   backendUserId: int,
      *   backendOrigin: string,
      *   frontendOrigin: string,
@@ -121,6 +126,7 @@ final readonly class StructureAnalysisTicket implements JsonSerializable
             'pageId' => $this->pageId,
             'languageId' => $this->languageId,
             'workspaceId' => $this->workspaceId,
+            'pageRecordSnapshot' => $this->pageRecordSnapshot,
             'backendUserId' => $this->backendUserId,
             'backendOrigin' => $this->backendOrigin,
             'frontendOrigin' => $this->frontendOrigin,

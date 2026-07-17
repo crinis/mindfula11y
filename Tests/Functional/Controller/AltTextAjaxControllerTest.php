@@ -18,8 +18,10 @@ use MindfulMarkup\MindfulA11y\Controller\AltTextAjaxController;
 use MindfulMarkup\MindfulA11y\Domain\Model\GenerateAltTextDemand;
 use MindfulMarkup\MindfulA11y\Service\DemandSignatureService;
 use MindfulMarkup\MindfulA11y\Service\ModuleLabelService;
+use MindfulMarkup\MindfulA11y\Service\RecordSnapshotService;
 use MindfulMarkup\MindfulA11y\Tests\Functional\AbstractAuthorizationTestCase;
 use Psr\Http\Message\ResponseInterface;
+use TYPO3\CMS\Backend\Utility\BackendUtility;
 
 /**
  * Authorization coverage of the alt-text-generation AJAX endpoint
@@ -68,12 +70,20 @@ final class AltTextAjaxControllerTest extends AbstractAuthorizationTestCase
         string $recordTable = 'tt_content',
         int $recordUid = 100,
         int $fileUid = 1,
+        ?int $fileReferenceUid = null,
         array $recordColumns = ['assets'],
         int $pageUid = 10,
         int $languageUid = 0,
         int $workspaceId = 0,
         int $expiresAt = 0,
     ): array {
+        $fileReferenceUid ??= $recordTable === 'sys_file_metadata' ? 0 : $fileUid;
+        $record = BackendUtility::getRecordWSOL($recordTable, $recordUid);
+        $fileRecord = BackendUtility::getRecordWSOL('sys_file', $fileUid);
+        $reference = $fileReferenceUid > 0
+            ? BackendUtility::getRecordWSOL('sys_file_reference', $fileReferenceUid)
+            : null;
+        $snapshotService = $this->get(RecordSnapshotService::class);
         return $this->get(DemandSignatureService::class)->serialize(new GenerateAltTextDemand(
             userId: $userId,
             pageUid: $pageUid,
@@ -82,6 +92,16 @@ final class AltTextAjaxControllerTest extends AbstractAuthorizationTestCase
             recordTable: $recordTable,
             recordUid: $recordUid,
             fileUid: $fileUid,
+            fileReferenceUid: $fileReferenceUid,
+            fileSnapshot: is_array($fileRecord)
+                ? $snapshotService->fingerprint('sys_file', $fileRecord)
+                : str_repeat('0', 64),
+            recordSnapshot: is_array($record)
+                ? $snapshotService->fingerprint($recordTable, $record)
+                : str_repeat('0', 64),
+            fileReferenceSnapshot: is_array($reference)
+                ? $snapshotService->fingerprint('sys_file_reference', $reference)
+                : '',
             recordColumns: $recordColumns,
             expiresAt: $expiresAt,
         ));
@@ -277,16 +297,15 @@ final class AltTextAjaxControllerTest extends AbstractAuthorizationTestCase
         $this->assertErrorResponse($response, 403, 'error.noPageAccess');
     }
 
-    public function testRootPageUidWithNonExemptTableDeniesPageAccess(): void
+    public function testRootPageUidThatNoLongerMatchesRecordInvalidatesDemand(): void
     {
-        // pageUid 0 with tt_content: tt_content does NOT ignore the root-level
-        // restriction, so it is not root-level exempt. readPageAccess(0) returns
-        // false for a non-admin, so the page gate denies.
+        // The signed page is part of the snapshot. tt_content 100 still has
+        // pid=10, so a demand carrying pageUid=0 is stale before permissions.
         $this->logInBackendUser(2);
 
         $response = $this->generate($this->demandPayload(2, pageUid: 0));
 
-        $this->assertErrorResponse($response, 403, 'error.noPageAccess');
+        $this->assertErrorResponse($response, 403, 'error.invalidRecordAccess');
     }
 
     // ---------------------------------------------------------------
@@ -321,7 +340,7 @@ final class AltTextAjaxControllerTest extends AbstractAuthorizationTestCase
         // tt_content 105 carries editlock=1 on an otherwise editable page.
         $this->logInBackendUser(2);
 
-        $response = $this->generate($this->demandPayload(2, recordUid: 105, recordColumns: []));
+        $response = $this->generate($this->demandPayload(2, recordUid: 105, recordColumns: ['assets']));
 
         $this->assertErrorResponse($response, 403, 'error.invalidRecordAccess');
     }
@@ -337,7 +356,101 @@ final class AltTextAjaxControllerTest extends AbstractAuthorizationTestCase
     }
 
     // ---------------------------------------------------------------
-    // G. File access
+    // G. Signed snapshot freshness
+    // ---------------------------------------------------------------
+
+    public function testMovedRecordInvalidatesDemand(): void
+    {
+        $this->logInBackendUser(2);
+        $payload = $this->demandPayload(2);
+        $this->getConnectionPool()->getConnectionForTable('tt_content')->update(
+            'tt_content',
+            ['pid' => 13],
+            ['uid' => 100],
+        );
+
+        $response = $this->generate($payload);
+
+        $this->assertErrorResponse($response, 403, 'error.invalidRecordAccess');
+    }
+
+    public function testRecordLanguageChangeInvalidatesDemand(): void
+    {
+        $this->logInBackendUser(2);
+        $payload = $this->demandPayload(2);
+        $this->getConnectionPool()->getConnectionForTable('tt_content')->update(
+            'tt_content',
+            ['sys_language_uid' => 1],
+            ['uid' => 100],
+        );
+
+        $response = $this->generate($payload);
+
+        $this->assertErrorResponse($response, 403, 'error.invalidRecordAccess');
+    }
+
+    public function testMainRecordContentChangeInvalidatesDemand(): void
+    {
+        $this->logInBackendUser(2);
+        $payload = $this->demandPayload(2);
+        $this->getConnectionPool()->getConnectionForTable('tt_content')->update(
+            'tt_content',
+            ['header' => 'Changed after demand issuance'],
+            ['uid' => 100],
+        );
+
+        $response = $this->generate($payload);
+
+        $this->assertErrorResponse($response, 403, 'error.invalidRecordAccess');
+    }
+
+    public function testReferenceFileChangeInvalidatesDemand(): void
+    {
+        $this->logInBackendUser(2);
+        $payload = $this->demandPayload(2);
+        $this->getConnectionPool()->getConnectionForTable('sys_file_reference')->update(
+            'sys_file_reference',
+            ['uid_local' => 2],
+            ['uid' => 1],
+        );
+
+        $response = $this->generate($payload);
+
+        $this->assertErrorResponse($response, 403, 'error.invalidRecordAccess');
+    }
+
+    public function testReferenceReattachmentInvalidatesDemand(): void
+    {
+        $this->logInBackendUser(2);
+        $payload = $this->demandPayload(2);
+        $this->getConnectionPool()->getConnectionForTable('sys_file_reference')->update(
+            'sys_file_reference',
+            ['uid_foreign' => 101],
+            ['uid' => 1],
+        );
+
+        $response = $this->generate($payload);
+
+        $this->assertErrorResponse($response, 403, 'error.invalidRecordAccess');
+    }
+
+    public function testReferenceContentChangeInvalidatesDemand(): void
+    {
+        $this->logInBackendUser(2);
+        $payload = $this->demandPayload(2);
+        $this->getConnectionPool()->getConnectionForTable('sys_file_reference')->update(
+            'sys_file_reference',
+            ['alternative' => 'Changed after demand issuance'],
+            ['uid' => 1],
+        );
+
+        $response = $this->generate($payload);
+
+        $this->assertErrorResponse($response, 403, 'error.invalidRecordAccess');
+    }
+
+    // ---------------------------------------------------------------
+    // H. File access
     // ---------------------------------------------------------------
 
     public function testFileOutsideMountDeniesFileAccess(): void
@@ -363,19 +476,72 @@ final class AltTextAjaxControllerTest extends AbstractAuthorizationTestCase
         $this->assertErrorResponse($response, 403, 'error.noFileMountAccess');
     }
 
-    public function testNonexistentFileReturnsFileNotFound(): void
+    public function testFileThatNoLongerMatchesReferenceInvalidatesDemand(): void
     {
-        // Reached only after page + record authorization pass (user 2, record
-        // 100): getFileObject() throws FileDoesNotExistException -> 404.
+        // Reference 1 still points to file 1, so an otherwise intact demand
+        // claiming file 999 is stale rather than a free-standing file lookup.
         $this->logInBackendUser(2);
 
         $response = $this->generate($this->demandPayload(2, recordUid: 100, fileUid: 999999));
 
-        $this->assertErrorResponse($response, 404, 'error.fileNotFound');
+        $this->assertErrorResponse($response, 403, 'error.invalidRecordAccess');
+    }
+
+    public function testFileRecordChangeInvalidatesDemand(): void
+    {
+        $this->logInBackendUser(2);
+        $payload = $this->demandPayload(2);
+        $this->getConnectionPool()->getConnectionForTable('sys_file')->update(
+            'sys_file',
+            ['name' => 'renamed-after-demand.jpg'],
+            ['uid' => 1],
+        );
+
+        $response = $this->generate($payload);
+
+        $this->assertErrorResponse($response, 403, 'error.invalidRecordAccess');
     }
 
     // ---------------------------------------------------------------
-    // H. sys_file_metadata path (root-level exempt)
+    // I. Direct sys_file_reference path
+    // ---------------------------------------------------------------
+
+    public function testFileReferencePathFullyAuthorizedEndsInOpenAiFailure(): void
+    {
+        // FormEngine issues this shape when the edited record itself is the
+        // reference. The signed reference UID must identify that exact row.
+        $this->logInBackendUser(2);
+
+        $response = $this->generate($this->demandPayload(
+            2,
+            recordTable: 'sys_file_reference',
+            recordUid: 1,
+            fileUid: 1,
+            fileReferenceUid: 1,
+            recordColumns: ['alternative'],
+        ));
+
+        $this->assertOpenAiFailure($response);
+    }
+
+    public function testFileReferencePathRejectsDifferentSignedReferenceUid(): void
+    {
+        $this->logInBackendUser(2);
+
+        $response = $this->generate($this->demandPayload(
+            2,
+            recordTable: 'sys_file_reference',
+            recordUid: 1,
+            fileUid: 1,
+            fileReferenceUid: 2,
+            recordColumns: ['alternative'],
+        ));
+
+        $this->assertErrorResponse($response, 403, 'error.invalidRecordAccess');
+    }
+
+    // ---------------------------------------------------------------
+    // J. sys_file_metadata path (root-level exempt)
     // ---------------------------------------------------------------
 
     public function testMetadataPathFullyAuthorizedEndsInOpenAiFailure(): void
@@ -447,7 +613,7 @@ final class AltTextAjaxControllerTest extends AbstractAuthorizationTestCase
     }
 
     // ---------------------------------------------------------------
-    // I. Positive baseline (tt_content path)
+    // K. Positive baseline (tt_content path)
     // ---------------------------------------------------------------
 
     public function testFullyAuthorizedRequestEndsInOpenAiFailure(): void

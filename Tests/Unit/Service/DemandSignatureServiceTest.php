@@ -52,6 +52,7 @@ final class DemandSignatureServiceTest extends TestCase
             previewUrl: 'https://example.com/page?type=0',
             languageId: 1,
             workspaceId: 2,
+            pageRecordSnapshot: str_repeat('a', 64),
             pageLevels: 5,
             crawl: false,
             expiresAt: $expiresAt,
@@ -74,13 +75,18 @@ final class DemandSignatureServiceTest extends TestCase
     }
 
     #[Test]
-    public function signatureIsByteCompatibleWithTheRenderedWireContract(): void
+    public function signaturePinsTheRenderedWireContract(): void
     {
-        // Payload order and the FQCN HMAC domain must never change silently:
-        // demands rendered into still-open backend markup validate against them.
+        // Payload encoding, segment order and the FQCN HMAC domain must never
+        // change silently: demands rendered into still-open backend markup
+        // validate against them. Changing any of it is a signing-context bump
+        // that fails all previously rendered demands closed.
         $demand = $this->createDemand(expiresAt: 2000000000);
         $expected = (new HashService())->hmac(
-            implode('|', ['3', '42', 'https://example.com/page?type=0', '1', '2', '5', '0', '2000000000']),
+            json_encode(
+                ['3', '42', 'https://example.com/page?type=0', '1', '2', str_repeat('a', 64), '5', '0', '2000000000'],
+                JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES
+            ),
             CreateScanDemand::class
         );
 
@@ -115,6 +121,7 @@ final class DemandSignatureServiceTest extends TestCase
         yield 'previewUrl' => ['previewUrl', 'https://evil.example/page'];
         yield 'languageId' => ['languageId', 0];
         yield 'workspaceId' => ['workspaceId', 0];
+        yield 'pageRecordSnapshot' => ['pageRecordSnapshot', str_repeat('b', 64)];
         yield 'pageLevels' => ['pageLevels', 99];
         yield 'crawl' => ['crawl', true];
         yield 'expiresAt (extended)' => ['expiresAt', PHP_INT_MAX - 1];
@@ -162,6 +169,10 @@ final class DemandSignatureServiceTest extends TestCase
         yield 'recordTable' => ['recordTable', 'be_users'];
         yield 'recordUid' => ['recordUid', 8];
         yield 'fileUid' => ['fileUid', 10];
+        yield 'fileReferenceUid' => ['fileReferenceUid', 6];
+        yield 'fileSnapshot' => ['fileSnapshot', str_repeat('e', 64)];
+        yield 'recordSnapshot' => ['recordSnapshot', str_repeat('c', 64)];
+        yield 'fileReferenceSnapshot' => ['fileReferenceSnapshot', str_repeat('d', 64)];
         yield 'recordColumns' => ['recordColumns', ['alternative', 'password']];
     }
 
@@ -179,6 +190,10 @@ final class DemandSignatureServiceTest extends TestCase
             recordTable: 'tt_content',
             recordUid: 7,
             fileUid: 9,
+            fileReferenceUid: 5,
+            fileSnapshot: str_repeat('c', 64),
+            recordSnapshot: str_repeat('a', 64),
+            fileReferenceSnapshot: str_repeat('b', 64),
             recordColumns: ['alternative'],
         ));
         $data[$field] = $value;
@@ -202,6 +217,10 @@ final class DemandSignatureServiceTest extends TestCase
             recordTable: 'tt_content',
             recordUid: 7,
             fileUid: 9,
+            fileReferenceUid: 5,
+            fileSnapshot: str_repeat('c', 64),
+            recordSnapshot: str_repeat('a', 64),
+            fileReferenceSnapshot: str_repeat('b', 64),
             recordColumns: ['image'],
             expiresAt: 2000000000,
         );
@@ -209,6 +228,32 @@ final class DemandSignatureServiceTest extends TestCase
         self::assertNotSame(
             $service->serialize($this->createDemand(expiresAt: 2000000000))['signature'],
             $service->serialize($altTextDemand)['signature']
+        );
+    }
+
+    #[Test]
+    public function structuredColumnScopesCannotCollideThroughDelimiters(): void
+    {
+        $service = $this->demandSignatureService();
+        $create = static fn(array $columns): GenerateAltTextDemand => new GenerateAltTextDemand(
+            userId: 3,
+            pageUid: 42,
+            languageUid: 1,
+            workspaceId: 2,
+            recordTable: 'tt_content',
+            recordUid: 7,
+            fileUid: 9,
+            fileReferenceUid: 5,
+            fileSnapshot: str_repeat('c', 64),
+            recordSnapshot: str_repeat('a', 64),
+            fileReferenceSnapshot: str_repeat('b', 64),
+            recordColumns: $columns,
+            expiresAt: 2000000000,
+        );
+
+        self::assertNotSame(
+            $service->serialize($create(['assets,media']))['signature'],
+            $service->serialize($create(['assets', 'media']))['signature'],
         );
     }
 }

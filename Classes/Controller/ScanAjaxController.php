@@ -26,21 +26,22 @@ namespace MindfulMarkup\MindfulA11y\Controller;
 use MindfulMarkup\MindfulA11y\Domain\Model\CreateScanDemand;
 use MindfulMarkup\MindfulA11y\Exception\ScanApiRequestException;
 use MindfulMarkup\MindfulA11y\Exception\ScanCreationException;
-use MindfulMarkup\MindfulA11y\Service\DemandSignatureService;
-use MindfulMarkup\MindfulA11y\Service\ScanApiService;
 use MindfulMarkup\MindfulA11y\Service\BackendUserProvider;
+use MindfulMarkup\MindfulA11y\Service\DemandSignatureService;
 use MindfulMarkup\MindfulA11y\Service\ModuleSettingsService;
 use MindfulMarkup\MindfulA11y\Service\PagePreviewService;
 use MindfulMarkup\MindfulA11y\Service\PermissionService;
+use MindfulMarkup\MindfulA11y\Service\ScanApiService;
 use MindfulMarkup\MindfulA11y\Service\ScanCreationService;
+use MindfulMarkup\MindfulA11y\Service\ScanDemandFactory;
 use MindfulMarkup\MindfulA11y\Service\ScanStateService;
+use MindfulMarkup\MindfulA11y\Service\SiteLanguageService;
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Http\JsonResponse;
 use TYPO3\CMS\Core\Versioning\VersionState;
-use MindfulMarkup\MindfulA11y\Service\SiteLanguageService;
 
 /**
  * Handles the AJAX endpoints of the accessibility-scanner feature.
@@ -62,6 +63,7 @@ final readonly class ScanAjaxController
         private PermissionService $permissionService,
         private SiteLanguageService $siteLanguageService,
         private ScanCreationService $scanCreationService,
+        private ScanDemandFactory $scanDemandFactory,
         private ResponseFactoryInterface $responseFactory,
         private BackendUserProvider $backendUserProvider,
     ) {}
@@ -203,6 +205,13 @@ final readonly class ScanAjaxController
         // Check if page is visible (not hidden and within start/end time)
         if (!$this->pagePreviewService->isPageVisible($page)) {
             return $this->errorResponse('scan.error.pageVisible', 403);
+        }
+
+        // The HMAC authenticates the issued preview URL and page/language
+        // coordinates; this comparison makes it a snapshot. A move, slug/site
+        // change or translation replacement invalidates the outstanding demand.
+        if (!$this->scanDemandFactory->matchesCurrentSnapshot($demand, $page)) {
+            return $this->errorResponse('module.error.invalidSignature', 400);
         }
 
         try {

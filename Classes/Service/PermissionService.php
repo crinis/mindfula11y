@@ -81,6 +81,15 @@ final readonly class PermissionService
                 ->hasCapability(TcaSchemaCapability::Workspace);
     }
 
+    /** Whether records of this table may legitimately be stored at pid=0. */
+    private function tableIgnoresRootLevelRestriction(string $tableName): bool
+    {
+        return $this->tcaSchemaFactory->has($tableName)
+            && $this->tcaSchemaFactory->get($tableName)
+                ->getCapability(TcaSchemaCapability::RestrictionRootLevel)
+                ->shallIgnoreRootLevelRestriction();
+    }
+
     /**
      * Get allowed values for each authMode column of a table.
      * 
@@ -280,6 +289,18 @@ final readonly class PermissionService
                 return false;
             }
         } else {
+            if (!array_key_exists('pid', $row)) {
+                return false;
+            }
+
+            // Tables such as sys_file_metadata deliberately keep editable
+            // records at pid=0. Their table, field, language, authMode and
+            // edit-lock checks above still apply, but there is no parent page
+            // against which page permissions could be evaluated.
+            if ((int)$row['pid'] === 0 && $this->tableIgnoresRootLevelRestriction($tableName)) {
+                return true;
+            }
+
             $pageRow = BackendUtility::getRecordWSOL('pages', (int)$row['pid']);
 
             if (!is_array($pageRow) || VersionState::tryFrom((int)($pageRow['t3ver_state'] ?? 0)) === VersionState::DELETE_PLACEHOLDER) {

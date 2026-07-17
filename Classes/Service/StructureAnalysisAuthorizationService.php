@@ -34,6 +34,10 @@ final readonly class StructureAnalysisAuthorizationService
     public function __construct(
         private ModuleProvider $moduleProvider,
         private ConnectionPool $connectionPool,
+        private ModuleSettingsService $moduleSettingsService,
+        private PagePreviewService $pagePreviewService,
+        private RecordSnapshotService $recordSnapshotService,
+        private StructureAnalysisTicketService $ticketService,
     ) {}
 
     /**
@@ -56,11 +60,19 @@ final readonly class StructureAnalysisAuthorizationService
                 return false;
             }
             $backendUser->fetchGroupData();
+            // Reconstruct the exact signed workspace without persisting it as
+            // the user's new backend preference. Revoked membership therefore
+            // invalidates the ticket before any workspace overlay is resolved.
+            if (!$backendUser->setTemporaryWorkspace($ticket->workspaceId)) {
+                return false;
+            }
         } catch (\Throwable) {
             return false;
         }
 
-        return $this->authorizePage($backendUser, $ticket->pageId, $ticket->languageId, $ticket->workspaceId) !== null;
+        $page = $this->authorizePage($backendUser, $ticket->pageId, $ticket->languageId, $ticket->workspaceId);
+
+        return $page !== null && $this->matchesCurrentScope($backendUser, $ticket, $page);
     }
 
     /**
@@ -154,5 +166,60 @@ final readonly class StructureAnalysisAuthorizationService
         BackendUtility::workspaceOL('pages', $translation, $workspaceId);
         return is_array($translation)
             && VersionState::tryFrom((int)($translation['t3ver_state'] ?? 0)) !== VersionState::DELETE_PLACEHOLDER;
+    }
+
+    /**
+     * Re-evaluate the mutable issuance-time TSconfig and preview URL scope.
+     *
+     * @param array<string, mixed> $page
+     */
+    private function matchesCurrentScope(
+        BackendUserAuthentication $backendUser,
+        StructureAnalysisTicket $ticket,
+        array $page,
+    ): bool
+    {
+        // BackendUtility's TSconfig lookup and PagePreviewService's localized
+        // workspace lookup use the current backend user. Ticket redemption has
+        // no backend session, so expose the already rebuilt ticket holder only
+        // for these lookups and restore the frontend global afterwards.
+        $hadBackendUser = array_key_exists('BE_USER', $GLOBALS);
+        $previousBackendUser = $GLOBALS['BE_USER'] ?? null;
+        $GLOBALS['BE_USER'] = $backendUser;
+        try {
+            $pageTsConfig = $this->moduleSettingsService->getConvertedPageTsConfig($ticket->pageId);
+            if (!$this->moduleSettingsService->hasHeadingStructureAccess($pageTsConfig)
+                && !$this->moduleSettingsService->hasLandmarkStructureAccess($pageTsConfig)
+            ) {
+                return false;
+            }
+
+            $previewUrl = $this->pagePreviewService->buildPreviewUrl($page, $ticket->pageId, $ticket->languageId);
+            $previewPage = $this->pagePreviewService->getPreviewPageRecord(
+                $page,
+                $ticket->pageId,
+                $ticket->languageId,
+            );
+            if ($previewUrl === null
+                || $previewPage === null
+                || !hash_equals(
+                    $ticket->pageRecordSnapshot,
+                    $this->recordSnapshotService->fingerprint('pages', $previewPage),
+                )
+            ) {
+                return false;
+            }
+
+            return hash_equals($ticket->frontendOrigin, $this->ticketService->originFromUrl($previewUrl))
+                && hash_equals($ticket->target, $this->ticketService->normalizeTarget($previewUrl));
+        } catch (\Throwable) {
+            return false;
+        } finally {
+            if ($hadBackendUser) {
+                $GLOBALS['BE_USER'] = $previousBackendUser;
+            } else {
+                unset($GLOBALS['BE_USER']);
+            }
+        }
     }
 }

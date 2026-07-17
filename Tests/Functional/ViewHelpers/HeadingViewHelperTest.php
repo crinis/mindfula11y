@@ -63,6 +63,7 @@ final class HeadingViewHelperTest extends FunctionalTestCase
             pageId: 1,
             languageId: 0,
             workspaceId: 0,
+            pageRecordSnapshot: str_repeat('a', 64),
             backendUserId: 1,
             backendOrigin: 'https://backend.example',
             frontendOrigin: 'https://frontend.example',

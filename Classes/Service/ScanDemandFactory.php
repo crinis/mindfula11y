@@ -23,6 +23,7 @@ declare(strict_types=1);
 namespace MindfulMarkup\MindfulA11y\Service;
 
 use MindfulMarkup\MindfulA11y\Domain\Model\CreateScanDemand;
+use TYPO3\CMS\Backend\Routing\PreviewUriBuilder;
 
 /**
  * The single issuance point for signed scan-creation demands.
@@ -36,6 +37,7 @@ final readonly class ScanDemandFactory
     public function __construct(
         private PermissionService $permissionService,
         private BackendUserProvider $backendUserProvider,
+        private RecordSnapshotService $recordSnapshotService,
     ) {}
 
     /**
@@ -83,8 +85,34 @@ final readonly class ScanDemandFactory
             previewUrl: $previewUrl,
             languageId: $languageId,
             workspaceId: $backendUser->workspace,
+            pageRecordSnapshot: $this->recordSnapshotService->fingerprint('pages', $pageRecord),
             pageLevels: $pageLevels,
             crawl: $crawl,
         );
+    }
+
+    /**
+     * Whether the mutable page state still produces the exact signed scan scope.
+     *
+     * @param array<string, mixed> $pageRecord Current default-language or localized page record.
+     */
+    public function matchesCurrentSnapshot(CreateScanDemand $demand, array $pageRecord): bool
+    {
+        $languageField = (string)($GLOBALS['TCA']['pages']['ctrl']['languageField'] ?? 'sys_language_uid');
+        $translationParentField = (string)($GLOBALS['TCA']['pages']['ctrl']['transOrigPointerField'] ?? 'l10n_parent');
+        $currentPageId = (int)($pageRecord[$translationParentField] ?? 0) ?: (int)($pageRecord['uid'] ?? 0);
+        if ($currentPageId !== $demand->getPageId()
+            || (int)($pageRecord[$languageField] ?? 0) !== $demand->getLanguageId()
+            || !hash_equals(
+                $demand->getPageRecordSnapshot(),
+                $this->recordSnapshotService->fingerprint('pages', $pageRecord),
+            )
+        ) {
+            return false;
+        }
+
+        $previewUri = PreviewUriBuilder::create($pageRecord)->buildUri();
+
+        return $previewUri !== null && hash_equals($demand->getPreviewUrl(), (string)$previewUri);
     }
 }

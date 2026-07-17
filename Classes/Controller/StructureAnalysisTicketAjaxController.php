@@ -25,14 +25,13 @@ namespace MindfulMarkup\MindfulA11y\Controller;
 use MindfulMarkup\MindfulA11y\Service\BackendUserProvider;
 use MindfulMarkup\MindfulA11y\Service\ModuleSettingsService;
 use MindfulMarkup\MindfulA11y\Service\PagePreviewService;
+use MindfulMarkup\MindfulA11y\Service\RecordSnapshotService;
 use MindfulMarkup\MindfulA11y\Service\StructureAnalysisAuthorizationService;
 use MindfulMarkup\MindfulA11y\Service\StructureAnalysisTicketService;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
-use TYPO3\CMS\Backend\Routing\PreviewUriBuilder;
 use TYPO3\CMS\Core\Http\JsonResponse;
 use TYPO3\CMS\Core\Http\NormalizedParams;
-use TYPO3\CMS\Core\Site\SiteFinder;
 
 /** Issues signed tickets for rendering a frontend preview in the structure analyzer. */
 final readonly class StructureAnalysisTicketAjaxController
@@ -45,7 +44,7 @@ final readonly class StructureAnalysisTicketAjaxController
         private StructureAnalysisAuthorizationService $authorizationService,
         private ModuleSettingsService $moduleSettingsService,
         private PagePreviewService $pagePreviewService,
-        private SiteFinder $siteFinder,
+        private RecordSnapshotService $recordSnapshotService,
         private BackendUserProvider $backendUserProvider,
     ) {}
 
@@ -65,8 +64,9 @@ final readonly class StructureAnalysisTicketAjaxController
         if ($page === null || !$this->isStructureAnalysisEnabled($pageId)) {
             return $this->unavailableResponse();
         }
-        $previewUrl = $this->buildPreviewUrl($page, $pageId, $languageId);
-        if ($previewUrl === null) {
+        $previewUrl = $this->pagePreviewService->buildPreviewUrl($page, $pageId, $languageId);
+        $previewPage = $this->pagePreviewService->getPreviewPageRecord($page, $pageId, $languageId);
+        if ($previewUrl === null || $previewPage === null) {
             return $this->unavailableResponse();
         }
 
@@ -81,6 +81,7 @@ final readonly class StructureAnalysisTicketAjaxController
                 $pageId,
                 $languageId,
                 $workspaceId,
+                $this->recordSnapshotService->fingerprint('pages', $previewPage),
                 (int)($backendUser->user['uid'] ?? 0),
                 $backendOrigin,
             );
@@ -98,35 +99,16 @@ final readonly class StructureAnalysisTicketAjaxController
      * The module renders the structure views (and their ticket requests) only
      * where Page TSconfig enables at least one structure feature, so a ticket
      * request for a page with both features disabled can only be a direct POST
-     * around that page-tree restriction. The gate is enforced here at issuance,
-     * where the session user's own TSconfig overrides apply; redemption keeps
-     * relying on the signed, page-pinned ticket within its short lifetime.
+     * around that page-tree restriction. The gate is enforced here at issuance
+     * and re-evaluated for the reconstructed ticket holder at redemption, so a
+     * TSconfig or current preview-URL change invalidates an outstanding ticket
+     * immediately.
      */
     private function isStructureAnalysisEnabled(int $pageId): bool
     {
         $pageTsConfig = $this->moduleSettingsService->getConvertedPageTsConfig($pageId);
         return $this->moduleSettingsService->hasHeadingStructureAccess($pageTsConfig)
             || $this->moduleSettingsService->hasLandmarkStructureAccess($pageTsConfig);
-    }
-
-    /** @param array<string, mixed> $page */
-    private function buildPreviewUrl(array $page, int $pageId, int $languageId): ?string
-    {
-        try {
-            $site = $this->siteFinder->getSiteByPageId($pageId);
-            $site->getLanguageById($languageId);
-            $previewPage = $languageId > 0
-                ? $this->pagePreviewService->getLocalizedPageRecord($pageId, $languageId)
-                : $page;
-            if (!is_array($previewPage)) {
-                return null;
-            }
-            $previewUri = PreviewUriBuilder::create($previewPage)->buildUri();
-        } catch (\Throwable) {
-            return null;
-        }
-
-        return $previewUri === null ? null : (string)$previewUri;
     }
 
     /**

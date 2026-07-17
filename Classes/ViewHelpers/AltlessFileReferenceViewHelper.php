@@ -29,6 +29,7 @@ use MindfulMarkup\MindfulA11y\Service\BackendUserProvider;
 use MindfulMarkup\MindfulA11y\Service\DemandSignatureService;
 use MindfulMarkup\MindfulA11y\Service\OpenAIService;
 use MindfulMarkup\MindfulA11y\Service\PermissionService;
+use MindfulMarkup\MindfulA11y\Service\RecordSnapshotService;
 use MindfulMarkup\MindfulA11y\Service\ModuleSettingsService;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
@@ -69,6 +70,8 @@ class AltlessFileReferenceViewHelper extends AbstractTagBasedViewHelper
      * Demand signature service instance.
      */
     protected readonly DemandSignatureService $demandSignatureService;
+
+    protected readonly RecordSnapshotService $recordSnapshotService;
 
     /**
      * Tag name.
@@ -118,6 +121,11 @@ class AltlessFileReferenceViewHelper extends AbstractTagBasedViewHelper
     public function injectDemandSignatureService(DemandSignatureService $demandSignatureService): void
     {
         $this->demandSignatureService = $demandSignatureService;
+    }
+
+    public function injectRecordSnapshotService(RecordSnapshotService $recordSnapshotService): void
+    {
+        $this->recordSnapshotService = $recordSnapshotService;
     }
 
     /**
@@ -171,10 +179,13 @@ class AltlessFileReferenceViewHelper extends AbstractTagBasedViewHelper
             if (
                 $this->openAIService->isEnabledAndConfigured()
             ) {
-                $this->tag->addAttribute(
-                    'generate-alt-text-demand',
-                    json_encode($this->demandSignatureService->serialize($this->getGenerateAltTextDemand($fileReference)))
-                );
+                $demand = $this->getGenerateAltTextDemand($fileReference, $record);
+                if ($demand !== null) {
+                    $this->tag->addAttribute(
+                        'generate-alt-text-demand',
+                        json_encode($this->demandSignatureService->serialize($demand))
+                    );
+                }
             }
         }
 
@@ -220,11 +231,17 @@ class AltlessFileReferenceViewHelper extends AbstractTagBasedViewHelper
      * Get alt text demand used for generating the alt text.
      */
     protected function getGenerateAltTextDemand(
-        AltlessFileReference $fileReference
-    ): GenerateAltTextDemand {
+        AltlessFileReference $fileReference,
+        array $record,
+    ): ?GenerateAltTextDemand {
         $backendUser = $this->backendUserProvider->get();
         [$recordTableName, $recordColumnName, $recordUid] = $this->getRecordCoordinates($fileReference);
         $fileUid = $fileReference->getOriginalResource()->getOriginalFile()->getUid();
+        $reference = BackendUtility::getRecordWSOL('sys_file_reference', $fileReference->getUid());
+        $fileRecord = BackendUtility::getRecordWSOL('sys_file', $fileUid);
+        if (!is_array($reference) || !is_array($fileRecord)) {
+            return null;
+        }
         return new GenerateAltTextDemand(
             (int)$backendUser->user['uid'],
             $fileReference->getPid(),
@@ -233,6 +250,10 @@ class AltlessFileReferenceViewHelper extends AbstractTagBasedViewHelper
             $recordTableName,
             $recordUid,
             $fileUid,
+            $fileReference->getUid(),
+            $this->recordSnapshotService->fingerprint('sys_file', $fileRecord),
+            $this->recordSnapshotService->fingerprint($recordTableName, $record),
+            $this->recordSnapshotService->fingerprint('sys_file_reference', $reference),
             [$recordColumnName],
         );
     }

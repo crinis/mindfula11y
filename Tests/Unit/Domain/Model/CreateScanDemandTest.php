@@ -33,6 +33,7 @@ final class CreateScanDemandTest extends TestCase
             previewUrl: 'https://example.com/page?type=0',
             languageId: 1,
             workspaceId: 2,
+            pageRecordSnapshot: str_repeat('a', 64),
             pageLevels: 5,
             crawl: false,
             expiresAt: $expiresAt,
@@ -68,6 +69,7 @@ final class CreateScanDemandTest extends TestCase
         self::assertSame('https://example.com/page?type=0', $demand->getPreviewUrl());
         self::assertSame(1, $demand->getLanguageId());
         self::assertSame(2, $demand->getWorkspaceId());
+        self::assertSame(str_repeat('a', 64), $demand->getPageRecordSnapshot());
         self::assertSame(5, $demand->getPageLevels());
         self::assertFalse($demand->getCrawl());
         self::assertSame(2000000000, $demand->getExpiresAt());
@@ -81,6 +83,7 @@ final class CreateScanDemandTest extends TestCase
             'userId' => 3,
             'pageId' => 42,
             'previewUrl' => 'https://example.com/page',
+            'pageRecordSnapshot' => str_repeat('a', 64),
             'expiresAt' => 2000000000,
             'signature' => 'abc',
         ];
@@ -90,8 +93,12 @@ final class CreateScanDemandTest extends TestCase
         yield 'missing previewUrl' => [array_diff_key($valid, ['previewUrl' => ''])];
         yield 'non-string previewUrl' => [['previewUrl' => 42] + $valid];
         yield 'empty previewUrl' => [['previewUrl' => ''] + $valid];
+        yield 'invalid page snapshot' => [['pageRecordSnapshot' => 'invalid'] + $valid];
         yield 'zero userId' => [['userId' => 0] + $valid];
         yield 'zero pageId' => [['pageId' => 0] + $valid];
+        yield 'negative languageId' => [['languageId' => -1] + $valid];
+        yield 'negative workspaceId' => [['workspaceId' => -1] + $valid];
+        yield 'negative pageLevels' => [['pageLevels' => -1] + $valid];
         yield 'missing expiresAt' => [array_diff_key($valid, ['expiresAt' => ''])];
     }
 

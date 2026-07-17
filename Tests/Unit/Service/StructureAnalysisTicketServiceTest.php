@@ -41,7 +41,15 @@ final class StructureAnalysisTicketServiceTest extends TestCase
 
     private function issueToken(string $targetUrl = 'https://frontend.example/page?b=2&a=1'): string
     {
-        $result = $this->subject->issueAnalysisUrl($targetUrl, 42, 1, 2, 3, 'https://backend.example');
+        $result = $this->subject->issueAnalysisUrl(
+            $targetUrl,
+            42,
+            1,
+            2,
+            str_repeat('a', 64),
+            3,
+            'https://backend.example',
+        );
         parse_str((string)(new Uri($result['url']))->getQuery(), $query);
         $token = $query[StructureAnalysisTicketService::TICKET_QUERY_PARAMETER] ?? '';
         self::assertIsString($token);
@@ -58,6 +66,7 @@ final class StructureAnalysisTicketServiceTest extends TestCase
         self::assertSame(42, $ticket->pageId);
         self::assertSame(1, $ticket->languageId);
         self::assertSame(2, $ticket->workspaceId);
+        self::assertSame(str_repeat('a', 64), $ticket->pageRecordSnapshot);
         self::assertSame(3, $ticket->backendUserId);
         self::assertSame('https://backend.example', $ticket->backendOrigin);
         self::assertSame('https://frontend.example', $ticket->frontendOrigin);
@@ -69,7 +78,15 @@ final class StructureAnalysisTicketServiceTest extends TestCase
     #[Test]
     public function issuedUrlKeepsExistingQueryAndAppendsTicket(): void
     {
-        $result = $this->subject->issueAnalysisUrl('https://frontend.example/page?b=2&a=1', 42, 0, 0, 3, 'https://backend.example');
+        $result = $this->subject->issueAnalysisUrl(
+            'https://frontend.example/page?b=2&a=1',
+            42,
+            0,
+            0,
+            str_repeat('a', 64),
+            3,
+            'https://backend.example',
+        );
         parse_str((string)(new Uri($result['url']))->getQuery(), $query);
 
         self::assertSame('1', $query['a'] ?? null);
@@ -127,6 +144,7 @@ final class StructureAnalysisTicketServiceTest extends TestCase
             'pageId' => 42,
             'languageId' => 0,
             'workspaceId' => 0,
+            'pageRecordSnapshot' => str_repeat('a', 64),
             'backendUserId' => 3,
             'backendOrigin' => 'https://backend.example',
             'frontendOrigin' => 'https://frontend.example',
@@ -146,7 +164,15 @@ final class StructureAnalysisTicketServiceTest extends TestCase
     public function invalidAuthorizationScopeIsRejectedAtIssuance(): void
     {
         $this->expectException(\InvalidArgumentException::class);
-        $this->subject->issueAnalysisUrl('https://frontend.example/page', 0, 0, 0, 3, 'https://backend.example');
+        $this->subject->issueAnalysisUrl(
+            'https://frontend.example/page',
+            0,
+            0,
+            0,
+            str_repeat('a', 64),
+            3,
+            'https://backend.example',
+        );
     }
 
     /** @return iterable<string, array{string, string}> */

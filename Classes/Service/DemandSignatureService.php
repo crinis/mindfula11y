@@ -47,7 +47,12 @@ final readonly class DemandSignatureService
      */
     public function sign(SignedDemandInterface $demand): string
     {
-        return $this->hashService->hmac(implode('|', $demand->signedProperties()), $demand::class);
+        // JSON preserves property boundaries and array structure. A delimiter-
+        // joined payload would make distinct scopes such as ["a|b", "c"] and
+        // ["a", "b|c"] indistinguishable to the HMAC.
+        $payload = json_encode($demand->signedProperties(), JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
+
+        return $this->hashService->hmac($payload, $demand::class);
     }
 
     /**

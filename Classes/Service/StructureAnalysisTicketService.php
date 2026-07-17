@@ -41,11 +41,17 @@ final readonly class StructureAnalysisTicketService
         int $pageId,
         int $languageId,
         int $workspaceId,
+        string $pageRecordSnapshot,
         int $backendUserId,
         string $backendOrigin,
     ): array {
         // Defense in depth: each trust boundary re-validates scope independently; do not deduplicate.
-        if ($pageId <= 0 || $languageId < 0 || $workspaceId < 0 || $backendUserId <= 0) {
+        if ($pageId <= 0
+            || $languageId < 0
+            || $workspaceId < 0
+            || preg_match('/^[a-f0-9]{64}$/', $pageRecordSnapshot) !== 1
+            || $backendUserId <= 0
+        ) {
             throw new \InvalidArgumentException('Invalid structure analysis authorization scope.', 1760000004);
         }
         $requestId = bin2hex(random_bytes(16));
@@ -55,6 +61,7 @@ final readonly class StructureAnalysisTicketService
             pageId: $pageId,
             languageId: $languageId,
             workspaceId: $workspaceId,
+            pageRecordSnapshot: $pageRecordSnapshot,
             backendUserId: $backendUserId,
             backendOrigin: $this->normalizeOrigin($backendOrigin),
             frontendOrigin: $this->originFromUrl($targetUrl),
@@ -81,10 +88,19 @@ final readonly class StructureAnalysisTicketService
         int $pageId,
         int $languageId,
         int $workspaceId,
+        string $pageRecordSnapshot,
         int $backendUserId,
         string $backendOrigin,
     ): array {
-        $ticket = $this->issue($targetUrl, $pageId, $languageId, $workspaceId, $backendUserId, $backendOrigin);
+        $ticket = $this->issue(
+            $targetUrl,
+            $pageId,
+            $languageId,
+            $workspaceId,
+            $pageRecordSnapshot,
+            $backendUserId,
+            $backendOrigin,
+        );
         $uri = new Uri($targetUrl);
         parse_str($uri->getQuery(), $query);
         $query[self::TICKET_QUERY_PARAMETER] = $ticket['token'];

@@ -18,7 +18,10 @@ use MindfulMarkup\MindfulA11y\Controller\StructureAnalysisEnrichmentAjaxControll
 use MindfulMarkup\MindfulA11y\Controller\StructureAnalysisTicketAjaxController;
 use MindfulMarkup\MindfulA11y\Domain\Model\StructureAnalysisTicket;
 use MindfulMarkup\MindfulA11y\Service\StructureAnalysisAuthorizationService;
+use MindfulMarkup\MindfulA11y\Service\StructureAnalysisTicketService;
 use MindfulMarkup\MindfulA11y\Tests\Functional\AbstractAuthorizationTestCase;
+use TYPO3\CMS\Core\Cache\CacheManager;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
  * Authorization coverage for structure-analysis ticket issuance
@@ -66,11 +69,29 @@ final class StructureAnalysisAuthorizationTest extends AbstractAuthorizationTest
         int $languageId = 0,
         int $workspaceId = 0,
     ): StructureAnalysisTicket {
+        if ($backendUserId === 2) {
+            $this->logInBackendUser($backendUserId, $workspaceId);
+            $response = $this->ticketController()->ticketAction(
+                $this->createJsonRequest(['pageId' => $pageId, 'languageId' => $languageId])
+            );
+            self::assertSame(200, $response->getStatusCode());
+            $body = $this->decodeJsonResponse($response);
+            $query = [];
+            parse_str((string)parse_url((string)($body['url'] ?? ''), PHP_URL_QUERY), $query);
+            $ticket = $this->get(StructureAnalysisTicketService::class)->validate(
+                (string)($query[StructureAnalysisTicketService::TICKET_QUERY_PARAMETER] ?? '')
+            );
+            self::assertInstanceOf(StructureAnalysisTicket::class, $ticket);
+
+            return $ticket;
+        }
+
         return new StructureAnalysisTicket(
             requestId: bin2hex(random_bytes(16)),
             pageId: $pageId,
             languageId: $languageId,
             workspaceId: $workspaceId,
+            pageRecordSnapshot: str_repeat('a', 64),
             backendUserId: $backendUserId,
             backendOrigin: 'https://typo3-testing.local',
             frontendOrigin: 'https://example.com',
@@ -313,6 +334,45 @@ final class StructureAnalysisAuthorizationTest extends AbstractAuthorizationTest
         self::assertTrue($this->authorizationService()->isTicketHolderAuthorized($ticket));
     }
 
+    public function testTicketHolderIsAuthorizedForExactTranslatedRecord(): void
+    {
+        $ticket = $this->buildTicket(backendUserId: 2, languageId: 1);
+
+        self::assertTrue($this->authorizationService()->isTicketHolderAuthorized($ticket));
+    }
+
+    public function testTicketHolderIsDeniedWhenTranslatedRecordChanges(): void
+    {
+        $ticket = $this->buildTicket(backendUserId: 2, languageId: 1);
+        $this->getConnectionPool()->getConnectionForTable('pages')->update(
+            'pages',
+            ['title' => 'Changed translation after ticket issuance'],
+            ['uid' => 30],
+        );
+        GeneralUtility::makeInstance(CacheManager::class)->getCache('runtime')->flush();
+
+        self::assertFalse($this->authorizationService()->isTicketHolderAuthorized($ticket));
+    }
+
+    public function testTicketHolderIsAuthorizedInExactSignedWorkspace(): void
+    {
+        $ticket = $this->buildTicket(backendUserId: 2, workspaceId: 1);
+
+        self::assertTrue($this->authorizationService()->isTicketHolderAuthorized($ticket));
+    }
+
+    public function testTicketHolderIsDeniedWhenWorkspaceMembershipIsRevoked(): void
+    {
+        $ticket = $this->buildTicket(backendUserId: 2, workspaceId: 1);
+        $this->getConnectionPool()->getConnectionForTable('sys_workspace')->update(
+            'sys_workspace',
+            ['members' => ''],
+            ['uid' => 1],
+        );
+
+        self::assertFalse($this->authorizationService()->isTicketHolderAuthorized($ticket));
+    }
+
     /**
      * setBeUserByUid() applies TYPO3's enable-fields restrictions (disabled/
      * deleted/start/end-time), so a user disabled after the ticket was issued
@@ -350,6 +410,7 @@ final class StructureAnalysisAuthorizationTest extends AbstractAuthorizationTest
             pageId: 10,
             languageId: 0,
             workspaceId: 0,
+            pageRecordSnapshot: str_repeat('a', 64),
             backendUserId: 0,
             backendOrigin: 'https://typo3-testing.local',
             frontendOrigin: 'https://example.com',
@@ -370,6 +431,45 @@ final class StructureAnalysisAuthorizationTest extends AbstractAuthorizationTest
         $ticket = $this->buildTicket(backendUserId: 2);
         $this->getConnectionPool()->getConnectionForTable('be_groups')
             ->update('be_groups', ['groupMods' => ''], ['uid' => 1]);
+
+        self::assertFalse($this->authorizationService()->isTicketHolderAuthorized($ticket));
+    }
+
+    public function testTicketHolderIsDeniedWhenStructureFeaturesAreDisabledAfterIssuance(): void
+    {
+        $ticket = $this->buildTicket(backendUserId: 2);
+        $this->getConnectionPool()->getConnectionForTable('pages')->update(
+            'pages',
+            ['TSconfig' => "mod.mindfula11y_accessibility.headingStructure.enable = 0\nmod.mindfula11y_accessibility.landmarkStructure.enable = 0"],
+            ['uid' => 10],
+        );
+        GeneralUtility::makeInstance(CacheManager::class)->getCache('runtime')->flush();
+
+        self::assertFalse($this->authorizationService()->isTicketHolderAuthorized($ticket));
+    }
+
+    public function testTicketHolderIsDeniedWhenPreviewUrlChangesAfterIssuance(): void
+    {
+        $ticket = $this->buildTicket(backendUserId: 2);
+        $this->getConnectionPool()->getConnectionForTable('pages')->update(
+            'pages',
+            ['slug' => '/changed-after-ticket-issuance'],
+            ['uid' => 10],
+        );
+        GeneralUtility::makeInstance(CacheManager::class)->getCache('runtime')->flush();
+
+        self::assertFalse($this->authorizationService()->isTicketHolderAuthorized($ticket));
+    }
+
+    public function testTicketHolderIsDeniedWhenPageContentChangesAfterIssuance(): void
+    {
+        $ticket = $this->buildTicket(backendUserId: 2);
+        $this->getConnectionPool()->getConnectionForTable('pages')->update(
+            'pages',
+            ['title' => 'Changed after ticket issuance'],
+            ['uid' => 10],
+        );
+        GeneralUtility::makeInstance(CacheManager::class)->getCache('runtime')->flush();
 
         self::assertFalse($this->authorizationService()->isTicketHolderAuthorized($ticket));
     }
