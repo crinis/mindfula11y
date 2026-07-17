@@ -21,6 +21,7 @@ import "../notice/notice.js";
 import { LiveAnnouncer } from "../../lib/live-announcer.js";
 import {
   noticeState,
+  renderCountBadge,
   renderLoadingPlaceholder,
   renderNoticeBody,
   renderSeverityChip,
@@ -43,6 +44,7 @@ import placeholderStyles from "../../styles/placeholder.css.js";
 import tabsStyles from "../../styles/tabs.css.js";
 import viewportStyles from "../../styles/viewport.css.js";
 import componentStyles from "./structure.css.js";
+const FALLBACK_HEADING_TAG = literal`h2`;
 const HEADING_TAGS = {
   1: literal`h1`,
   2: literal`h2`,
@@ -161,14 +163,14 @@ let Structure = class extends LitElement {
   }
   renderTabBadge(counts) {
     if (counts.errors > 0) {
-      return html`<span class="notice count" data-state="danger" data-variant="pill"
-                >${counts.errors}<span class="sr-only"> ${lll("mindfula11y.severity.error")}</span></span
-            >`;
+      return renderCountBadge("danger", counts.errors, `${counts.errors} ${lll("mindfula11y.severity.error")}`);
     }
     if (counts.warnings > 0) {
-      return html`<span class="notice count" data-state="warning" data-variant="pill"
-                >${counts.warnings}<span class="sr-only"> ${lll("mindfula11y.severity.warning")}</span></span
-            >`;
+      return renderCountBadge(
+        "warning",
+        counts.warnings,
+        `${counts.warnings} ${lll("mindfula11y.severity.warning")}`
+      );
     }
     return nothing;
   }
@@ -242,7 +244,7 @@ let Structure = class extends LitElement {
         </section>`;
   }
   renderHeading(content) {
-    const tag = HEADING_TAGS[this.headingLevel] ?? HEADING_TAGS[2];
+    const tag = HEADING_TAGS[this.headingLevel] ?? FALLBACK_HEADING_TAG;
     return staticHtml`<${tag} class="title">${content}</${tag}>`;
   }
   tabLabel(tab) {

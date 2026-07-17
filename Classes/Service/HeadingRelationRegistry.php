@@ -34,8 +34,10 @@ use MindfulMarkup\MindfulA11y\Domain\Model\HeadingRelation;
  * suppressed (empty content or `renderTag="false"`), so a headingless container still
  * anchors its descendants — and `<mindfula11y:heading.descendant>` via its own
  * `relationId`, which lets nested descendants derive from each other. Each entry is a
- * {@see HeadingRelation} carrying the publisher's own logical level, an optional explicit
- * child type, and the child-type column's record coordinates.
+ * {@see HeadingRelation} carrying the publisher's own logical level and an optional
+ * explicit child type; the child-type column's record coordinates deliberately do NOT
+ * travel through the registry (see the HeadingRelation docblock) — they are published
+ * as markup data attributes instead.
  *
  * Ordering constraint: a relation must be `register()`-ed before a
  * `<mindfula11y:heading.sibling>` or `<mindfula11y:heading.descendant>` referencing that

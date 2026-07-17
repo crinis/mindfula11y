@@ -213,7 +213,7 @@ function renderActions(
         return nothing;
     }
 
-    // Fix (a): a flat template string replaces the former nested ternary; all
+    // A flat template string keeps the key legible; all
     // four resulting keys (scan.start/refresh, scan.crawl.start/refresh) exist in the XLF.
     const triggerKey = `mindfula11y.scan.${tab === 'crawl' ? 'crawl.' : ''}${result !== null ? 'refresh' : 'start'}`;
 

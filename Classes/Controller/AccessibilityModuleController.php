@@ -97,7 +97,7 @@ final readonly class AccessibilityModuleController
         $moduleTemplate->setTitle($languageService->sL(self::MODULE_LANGUAGE_FILE . 'mlang_tabs_tab'));
 
         $backendUser = $this->backendUserProvider->get();
-        $pageId = (int)($request->getParsedBody()['id'] ?? $request->getQueryParams()['id'] ?? 0);
+        $pageId = (int)($request->getQueryParams()['id'] ?? 0);
 
         if (0 === $pageId) {
             return $this->noticeResponse($moduleTemplate, 'module.noPageSelected', ContextualFeedbackSeverity::INFO);

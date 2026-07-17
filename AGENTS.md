@@ -53,19 +53,18 @@ with every source change (CI fails on stale output).
 | `Resources/Private/Build/types/`             | Ambient decls: `typo3.d.ts` (@typo3/* modules), `css-modules.d.ts` |
 | `Resources/Private/Build/stylelint/`         | Vendored Stylelint plugins (from mbase) + `token-prefix`       |
 | `Resources/Private/Build/skills/`            | Agent skills — canonical `css-review` (symlinked into the dev project's `.claude/skills/`) |
-| `Resources/Public/JavaScript/`               | Build output (+ legacy flat `.js` files until rewritten)       |
+| `Resources/Public/JavaScript/`               | Build output (committed, rebuilt on every source change)       |
 
 Development files never reach dist artefacts: Composer/Packagist installs are trimmed by the
 `export-ignore` list in `.gitattributes`, TER uploads by `.github/ExcludeFromPackaging.php`
 (tailor). When adding a root-level tool config or a new dev directory, add it to **both** lists.
 
-**Transition rule:** the flat legacy files in `Resources/Public/JavaScript/*.js` stay untouched
-until each is rewritten. New root-level source files must not emit an output name that collides
-with a legacy file (this is why shared types live in `lib/`, not at the Source root). When a
-legacy module is rewritten, the **same change** must switch every PHP `loadJavaScriptModule()`
-call (and Fluid attribute names) to the new module and delete the legacy file — two loaded
-modules must never define the same custom-element tag. The build prunes stale output inside the
-directories it owns (`element/`, `lib/`, `service/`, `styles/`); the legacy flat files are safe.
+**History note:** the flat legacy `.js` files that once lived at the top of
+`Resources/Public/JavaScript/` are fully migrated — every loaded module now comes from the
+built `element/ lib/ service/ styles/` trees. The build prunes stale output inside the
+directories it owns (`element/`, `lib/`, `service/`, `styles/`), so a renamed or deleted
+source never leaves a stale twin behind; two loaded modules must never define the same
+custom-element tag.
 
 New modules need no PHP registration — `Configuration/JavaScriptModules.php` maps the whole
 namespace as a directory. Load entry modules from PHP via
@@ -153,6 +152,11 @@ What you get for free inside a shadow root (never re-implement):
 AJAX-backed rendering uses `Task` from `@lit/task` — no hand-rolled `_isFetching`/`_status` flag
 machinery. Render through `task.render({ pending, complete, error })`. For polling, re-run the
 task on a timer and clear the timer in `disconnectedCallback()` (see the reference component).
+Sanctioned exception: `service/scan/session-controller.ts` (`ScanSessionController`) is a
+hand-written reactive controller — its create/poll/forget scan lifecycle spans multiple
+requests and outlives any single `Task` run, which `@lit/task` cannot model. Don't add a
+second exception without the same justification. Its `scanId()`/`demand()` options are read
+lazily at first load and are init-only — changing the host's attributes later is inert.
 
 ### D. Core module reuse
 
@@ -360,8 +364,7 @@ every entry must read correctly in that context.
    `types/typo3.d.ts`.
 5. Component verified in the TYPO3 14 backend in **both color schemes** (User Settings →
    Appearance, or set `data-color-scheme` on the document element) and keyboard-navigated once.
-6. No new light-DOM component without a justification comment; no name collision with the
-   remaining legacy flat files in `Resources/Public/JavaScript/`.
+6. No new light-DOM component without a justification comment.
 7. Stylesheet changes were reviewed with the `css-review` skill
    (`Resources/Private/Build/skills/css-review/`) and its findings addressed.
 8. User-facing changes have a `CHANGELOG.md` entry under `[Unreleased]` (see the changelog

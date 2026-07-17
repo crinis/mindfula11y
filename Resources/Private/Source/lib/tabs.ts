@@ -30,8 +30,8 @@ import { html, nothing } from 'lit';
  */
 
 /** One tab's static description; the badge is rendered by the caller (result-dependent). */
-export interface TabDescriptor {
-    id: string;
+export interface TabDescriptor<T extends string = string> {
+    id: T;
     label: string;
     badge?: TemplateResult | typeof nothing;
     /** Optional: structure.ts disables tabs while the first analysis is still pending. */
@@ -39,11 +39,11 @@ export interface TabDescriptor {
 }
 
 /** Renders the `role="tablist"` wrapper and its `role="tab"` buttons. */
-export const renderTablist = (opts: {
+export const renderTablist = <T extends string>(opts: {
     ariaLabel: string;
-    tabs: TabDescriptor[];
+    tabs: TabDescriptor<T>[];
     activeTab: string;
-    onSelect: (id: string) => void;
+    onSelect: (id: T) => void;
     onKeydown: (event: KeyboardEvent) => void;
 }): TemplateResult => {
     const { ariaLabel, tabs, activeTab, onSelect, onKeydown } = opts;
@@ -185,11 +185,11 @@ export class TabsController<T extends string> implements ReactiveController {
     }
 
     /** Renders the tablist for the host-built descriptors of the current tab set. */
-    renderTablist(opts: { ariaLabel: string; tabs: TabDescriptor[] }): TemplateResult {
-        return renderTablist({
+    renderTablist(opts: { ariaLabel: string; tabs: TabDescriptor<T>[] }): TemplateResult {
+        return renderTablist<T>({
             ...opts,
             activeTab: this.active,
-            onSelect: (id: string): void => this.select(id as T),
+            onSelect: (id: T): void => this.select(id),
             onKeydown: this.handleKeydown,
         });
     }

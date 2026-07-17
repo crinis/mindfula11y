@@ -58,6 +58,13 @@ export function noticeState(severity: StructureErrorSeverity): NoticeState {
     return severity === StructureErrorSeverity.Error ? 'danger' : 'warning';
 }
 
+/** Compact issue-count pill for tab labels: visible count, full text for AT. */
+export function renderCountBadge(state: NoticeState, count: number, srText: string): TemplateResult {
+    return html`<span class="notice count" data-state=${state} data-variant="pill"
+        ><span aria-hidden="true">${count}</span><span class="sr-only">${srText}</span></span
+    >`;
+}
+
 /**
  * Inline-label key naming a severity for assistive technology — the state
  * icons are aria-hidden (core hardcodes that in Icon::render()), so text

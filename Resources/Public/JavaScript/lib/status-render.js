@@ -14,6 +14,11 @@ function impactState(impact) {
 function noticeState(severity) {
   return severity === StructureErrorSeverity.Error ? "danger" : "warning";
 }
+function renderCountBadge(state, count, srText) {
+  return html`<span class="notice count" data-state=${state} data-variant="pill"
+        ><span aria-hidden="true">${count}</span><span class="sr-only">${srText}</span></span
+    >`;
+}
 function severityLabelKey(severity) {
   return severity === StructureErrorSeverity.Error ? "mindfula11y.severity.error" : "mindfula11y.severity.warning";
 }
@@ -53,6 +58,7 @@ export {
   impactState,
   noticeState,
   noticeStateIcon,
+  renderCountBadge,
   renderLoadingPlaceholder,
   renderNoticeBody,
   renderSeverityChip,

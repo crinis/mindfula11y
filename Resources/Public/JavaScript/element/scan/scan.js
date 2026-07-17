@@ -12,7 +12,7 @@ import { lll } from "@typo3/core/lit-helper.js";
 import { html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { LiveAnnouncer } from "../../lib/live-announcer.js";
-import { IMPACT_ORDER, impactState } from "../../lib/status-render.js";
+import { IMPACT_ORDER, impactState, renderCountBadge } from "../../lib/status-render.js";
 import { TabsController } from "../../lib/tabs.js";
 import { dispatch } from "../../lib/types.js";
 import { errorView, RequestError } from "../../service/request-error.js";
@@ -115,15 +115,14 @@ let Scan = class extends LitElement {
       return nothing;
     }
     const worst = IMPACT_ORDER.find((impact) => result.violations.some((violation) => violation.impact === impact));
-    return html`<span class="notice count" data-state=${impactState(worst ?? "minor")} data-variant="pill"
-            ><span aria-hidden="true">${result.totalIssueCount}</span
-            ><span class="sr-only"
-                >${lll(
-      result.totalIssueCount === 1 ? "mindfula11y.scan.issueCount" : "mindfula11y.scan.issuesCount",
-      result.totalIssueCount
-    )}</span
-            ></span
-        >`;
+    return renderCountBadge(
+      impactState(worst ?? "minor"),
+      result.totalIssueCount,
+      lll(
+        result.totalIssueCount === 1 ? "mindfula11y.scan.issueCount" : "mindfula11y.scan.issuesCount",
+        result.totalIssueCount
+      )
+    );
   }
   renderPanel(tab, withTabs) {
     const busy = this.actionBusy || this.controller.state === "loading" && this.tabResult(tab) === null;

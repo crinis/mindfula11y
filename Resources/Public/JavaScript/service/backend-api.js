@@ -34,10 +34,7 @@ const getJson = async (ajaxUrlKey, params, options) => {
 const postJson = async (ajaxUrlKey, body, options) => {
   const url = resolveAjaxUrl(ajaxUrlKey);
   try {
-    const response = await new AjaxRequest(url).post(
-      body,
-      requestInit(options?.signal, JSON_CONTENT_TYPE_HEADERS)
-    );
+    const response = await new AjaxRequest(url).post(body, requestInit(options?.signal, JSON_CONTENT_TYPE_HEADERS));
     return await response.resolve();
   } catch (error) {
     throw await toRequestError(error);

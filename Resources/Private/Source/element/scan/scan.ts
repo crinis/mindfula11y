@@ -22,7 +22,7 @@ import type { CSSResult, TemplateResult } from 'lit';
 import { html, LitElement, nothing } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { LiveAnnouncer } from '../../lib/live-announcer.js';
-import { IMPACT_ORDER, impactState } from '../../lib/status-render.js';
+import { IMPACT_ORDER, impactState, renderCountBadge } from '../../lib/status-render.js';
 import { type TabDescriptor, TabsController } from '../../lib/tabs.js';
 import { dispatch } from '../../lib/types.js';
 import { type ErrorView, errorView, RequestError } from '../../service/request-error.js';
@@ -134,7 +134,7 @@ export class Scan extends LitElement {
         return this.aiAuditChecked ?? this.aiAuditDefault;
     }
 
-    private tabDescriptor(tab: ScanTab): TabDescriptor {
+    private tabDescriptor(tab: ScanTab): TabDescriptor<ScanTab> {
         return {
             id: tab,
             label: lll(`mindfula11y.scan.tab.${tab}`),
@@ -148,19 +148,18 @@ export class Scan extends LitElement {
             return nothing;
         }
         const worst = IMPACT_ORDER.find((impact) => result.violations.some((violation) => violation.impact === impact));
-        return html`<span class="notice count" data-state=${impactState(worst ?? 'minor')} data-variant="pill"
-            ><span aria-hidden="true">${result.totalIssueCount}</span
-            ><span class="sr-only"
-                >${lll(
-                    result.totalIssueCount === 1 ? 'mindfula11y.scan.issueCount' : 'mindfula11y.scan.issuesCount',
-                    result.totalIssueCount,
-                )}</span
-            ></span
-        >`;
+        return renderCountBadge(
+            impactState(worst ?? 'minor'),
+            result.totalIssueCount,
+            lll(
+                result.totalIssueCount === 1 ? 'mindfula11y.scan.issueCount' : 'mindfula11y.scan.issuesCount',
+                result.totalIssueCount,
+            ),
+        );
     }
 
     private renderPanel(tab: ScanTab, withTabs: boolean): TemplateResult {
-        // Fix (b): gate on an explicit action or the *first* load — a
+        // Gate on an explicit action or the *first* load — a
         // background poll re-running with a result already in hand must not
         // flicker aria-busy on every tick.
         const busy = this.actionBusy || (this.controller.state === 'loading' && this.tabResult(tab) === null);

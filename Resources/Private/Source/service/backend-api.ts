@@ -87,15 +87,12 @@ export const getJson = async <T>(
  */
 export const postJson = async <T>(
     ajaxUrlKey: string,
-    body: unknown,
+    body: Record<string, unknown> | BodyInit | null,
     options?: { signal?: AbortSignal | undefined },
 ): Promise<T> => {
     const url = resolveAjaxUrl(ajaxUrlKey);
     try {
-        const response = await new AjaxRequest(url).post(
-            body as Record<string, unknown> | BodyInit | null,
-            requestInit(options?.signal, JSON_CONTENT_TYPE_HEADERS),
-        );
+        const response = await new AjaxRequest(url).post(body, requestInit(options?.signal, JSON_CONTENT_TYPE_HEADERS));
         return await response.resolve<T>();
     } catch (error) {
         throw await toRequestError(error);
