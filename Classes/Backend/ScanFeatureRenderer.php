@@ -113,18 +113,23 @@ final readonly class ScanFeatureRenderer implements FeatureRendererInterface
         $crawlScanDemand = null;
         $urlList = [];
         if ($canTriggerScan) {
+            // The demand signs the language of $finalPageInfo (the selected
+            // language, or 0 when that translation does not exist) — generate
+            // the expected URL list for the same language, since redemption
+            // rebuilds it from the signed demand.
+            $languageField = (string)($GLOBALS['TCA']['pages']['ctrl']['languageField'] ?? 'sys_language_uid');
+            $previewLanguageId = (int)($finalPageInfo[$languageField] ?? 0);
             // Compute the expected URL list for the current pageLevels setting.
             // Used by the frontend to detect when an existing scan was created with a different
             // set of URLs and needs to be restarted (autoCreate + url_list mode mismatch).
             $urlList = $pageLevels > 0
-                ? $this->pagePreviewService->generatePageUrls($context->pageId, $context->languageId, $pageLevels, (string)$previewUri)
+                ? $this->pagePreviewService->generatePageUrls($context->pageId, $previewLanguageId, $pageLevels, (string)$previewUri)
                 : [(string)$previewUri];
 
             $createScanDemand = $this->scanDemandFactory->create(
                 $finalPageInfo,
                 $context->pageId,
                 (string)$previewUri,
-                $context->languageId,
                 pageLevels: $pageLevels,
             );
             // Crawl mode is only available for site root pages (check default-language record)
@@ -133,7 +138,6 @@ final readonly class ScanFeatureRenderer implements FeatureRendererInterface
                     $finalPageInfo,
                     $context->pageId,
                     (string)$previewUri,
-                    $context->languageId,
                     crawl: true,
                 );
             }

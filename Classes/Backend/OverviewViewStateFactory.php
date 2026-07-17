@@ -103,7 +103,9 @@ final readonly class OverviewViewStateFactory
             $scanId = $this->scanStateService->resolveEffectiveScanId($finalPageInfo, (int)($pageInfo['SYS_LASTCHANGED'] ?? 0));
 
             if (null !== $previewUri) {
-                $createScanDemand = $this->scanDemandFactory->create($finalPageInfo, $pageId, (string)$previewUri, $languageId);
+                // The factory signs the language of $finalPageInfo — language 0
+                // when the selected language has no translation of this page.
+                $createScanDemand = $this->scanDemandFactory->create($finalPageInfo, $pageId, (string)$previewUri);
             }
 
             $scanUri = $this->buildFeatureUri(Feature::SCAN, $pageId, $languageId);

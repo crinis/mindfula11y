@@ -69,7 +69,6 @@ final readonly class ScanDemandFactory
         array $pageRecord,
         int $pageId,
         string $previewUrl,
-        int $languageId,
         int $pageLevels = 0,
         bool $crawl = false,
     ): ?CreateScanDemand {
@@ -78,12 +77,18 @@ final readonly class ScanDemandFactory
         }
 
         $backendUser = $this->backendUserProvider->get();
+        $languageField = (string)($GLOBALS['TCA']['pages']['ctrl']['languageField'] ?? 'sys_language_uid');
 
         return new CreateScanDemand(
             userId: (int)$backendUser->user['uid'],
             pageId: $pageId,
             previewUrl: $previewUrl,
-            languageId: $languageId,
+            // Sign the language of the record the preview is actually built
+            // from — not the module's selected language. When the selection has
+            // no page translation the caller falls back to the default-language
+            // record, and a demand signed with the untranslated selection could
+            // never be redeemed (no localized record, snapshot mismatch).
+            languageId: (int)($pageRecord[$languageField] ?? 0),
             workspaceId: $backendUser->workspace,
             pageRecordSnapshot: $this->recordSnapshotService->fingerprint('pages', $pageRecord),
             pageLevels: $pageLevels,
