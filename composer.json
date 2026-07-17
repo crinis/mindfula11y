@@ -16,17 +16,17 @@
     },
     "require": {
         "php": ">=8.2 <8.5",
-        "typo3/cms-core": "^13.4 || ^14.3",
-        "typo3/cms-backend": "^13.4 || ^14.3",
-        "typo3/cms-fluid": "^13.4 || ^14.3",
-        "typo3/cms-frontend": "^13.4 || ^14.3",
-        "typo3/cms-extbase": "^13.4 || ^14.3",
-        "typo3/cms-install": "^13.4 || ^14.3"
+        "typo3/cms-core": "~13.4.18 || ^14.3",
+        "typo3/cms-backend": "~13.4.18 || ^14.3",
+        "typo3/cms-fluid": "~13.4.18 || ^14.3",
+        "typo3/cms-frontend": "~13.4.18 || ^14.3",
+        "typo3/cms-extbase": "~13.4.18 || ^14.3",
+        "typo3/cms-install": "~13.4.18 || ^14.3"
     },
     "require-dev": {
         "phpunit/phpunit": "^11.5",
         "typo3/testing-framework": "^9.2",
-        "typo3/cms-workspaces": "^13.4 || ^14.3"
+        "typo3/cms-workspaces": "~13.4.18 || ^14.3"
     },
     "suggest": {
         "typo3/cms-form": "Adds the localized page-title error prefix after failed server-side EXT:form validation."

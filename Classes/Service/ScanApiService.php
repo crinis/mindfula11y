@@ -101,41 +101,6 @@ final readonly class ScanApiService
     }
 
     /**
-     * Check if the external scanner API is reachable via its public,
-     * unauthenticated health endpoint. Any HTTP response (a degraded 503
-     * included) counts as reachable; only network-level failures (connection
-     * refused, DNS failure, timeout) return false.
-     *
-     * @return bool True if the API responds, false if a connection error occurs.
-     */
-    public function checkStatus(): bool
-    {
-        if (!$this->isConfigured()) {
-            return false;
-        }
-
-        try {
-            $this->requestFactory->request(
-                $this->getApiUrl() . '/health',
-                'GET',
-                [
-                    'headers' => ['Accept' => 'application/json'],
-                    'timeout' => 5,
-                    'http_errors' => false,
-                ]
-            );
-
-            // Any HTTP response (even 4xx/5xx) means the server is reachable.
-            return true;
-        } catch (\Exception $e) {
-            $this->logger->warning('Accessibility scanner API is not reachable', [
-                'exception' => $e->getMessage(),
-            ]);
-            return false;
-        }
-    }
-
-    /**
      * Decode the RFC 9457 problem details of an error response.
      *
      * @return array{title: string, detail: string, errors: array} Empty strings/array when the body is not problem+json.

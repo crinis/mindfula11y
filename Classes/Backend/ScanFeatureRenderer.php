@@ -70,10 +70,10 @@ final readonly class ScanFeatureRenderer implements FeatureRendererInterface
             return $this->noticeResponse($context->moduleTemplate, 'scan.notConfigured', ContextualFeedbackSeverity::INFO);
         }
 
-        if (!$this->scanApiService->checkStatus()) {
-            return $this->noticeResponse($context->moduleTemplate, 'scan.error.apiNotReachable', ContextualFeedbackSeverity::WARNING);
-        }
-        $this->addLocalizedFlashMessage('scan.status.apiReachable', ContextualFeedbackSeverity::OK);
+        // Deliberately NO synchronous health check here: it blocked every
+        // module render on a third-party round-trip (5s timeout). The scan
+        // frontend reports unreachability through its localized error notices
+        // when a scan is actually created or loaded.
 
         // Get localized page info for preview URL generation
         $finalPageInfo = $context->getPreviewPageInfo();

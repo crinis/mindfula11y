@@ -31,7 +31,7 @@ use TYPO3\CMS\Backend\Template\Components\Buttons\DropDown\DropDownToggle;
 use TYPO3\CMS\Backend\Template\Components\Buttons\DropDownButton;
 use TYPO3\CMS\Core\Messaging\FlashMessageService;
 use TYPO3\CMS\Core\Page\PageRenderer;
-use TYPO3\CMS\Core\Pagination\ArrayPaginator;
+use MindfulMarkup\MindfulA11y\Pagination\SlicePaginator;
 use TYPO3\CMS\Core\Pagination\SimplePagination;
 use TYPO3\CMS\Core\Type\ContextualFeedbackSeverity;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -65,8 +65,8 @@ final readonly class MissingAltTextFeatureRenderer implements FeatureRendererInt
             return $this->noticeResponse($context->moduleTemplate, 'altText.noAccess', ContextualFeedbackSeverity::ERROR, 403);
         }
 
-        // Module data is GET-writable: clamp the page (ArrayPaginator throws
-        // on < 1) and only accept the page-levels values the menu offers.
+        // Module data is GET-writable: clamp the page (it feeds the query
+        // OFFSET) and only accept the page-levels values the menu offers.
         $currentPage = max(1, (int)$context->moduleData->get('currentPage', 1));
         $pageLevels = (int)$context->moduleData->get('pageLevels', 1);
         if (!in_array($pageLevels, self::PAGE_LEVELS_OPTIONS, true)) {
@@ -129,13 +129,10 @@ final readonly class MissingAltTextFeatureRenderer implements FeatureRendererInt
             $tableFilter
         );
 
-        // Not using extbase queries: fill with null, then insert fileReferences at the correct offset
-        $paginatorItems = array_fill(0, $fileReferenceCount, null);
-        foreach ($fileReferences as $idx => $fileReference) {
-            $paginatorItems[$offset + $idx] = $fileReference;
-        }
-
-        $paginator = new ArrayPaginator($paginatorItems, $currentPage, self::ITEMS_PER_PAGE);
+        // The service already fetched exactly the current page (LIMIT/OFFSET);
+        // paginate over that slice plus the count instead of null-padding an
+        // array with one slot per matching record in the whole page tree.
+        $paginator = new SlicePaginator($fileReferences, $fileReferenceCount, $currentPage, self::ITEMS_PER_PAGE);
         $pagination = new SimplePagination($paginator);
 
         $context->moduleTemplate->assignMultiple([
