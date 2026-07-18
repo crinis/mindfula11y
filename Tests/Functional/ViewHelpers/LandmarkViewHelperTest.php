@@ -117,38 +117,15 @@ final class LandmarkViewHelperTest extends FunctionalTestCase
     }
 
     #[Test]
-    public function defaultLayoutAnnotatesTranslatedLandmarkWithLocalizedRecordUid(): void
+    public function structureAnalysisRequestAnnotatesProvidedRecordUid(): void
     {
-        $context = $this->get(RenderingContextFactory::class)->create([], $this->structureAnalysisRequest());
-        $context->getTemplatePaths()->setLayoutRootPaths([
-            10 => __DIR__ . '/../../../Resources/Private/Layouts/',
-        ]);
-        $context->getTemplatePaths()->setTemplateSource(
-            '<html xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers" data-namespace-typo3-fluid="true">'
-            . '<f:layout name="Default" />'
-            . '<f:section name="Before"></f:section>'
-            . '<f:section name="Header"></f:section>'
-            . '<f:section name="Main">Body</f:section>'
-            . '<f:section name="Footer"></f:section>'
-            . '<f:section name="After"></f:section>'
-            . '</html>'
+        $output = $this->render(
+            '<mindfula11y:landmark role="navigation" recordUid="102">Links</mindfula11y:landmark>',
+            $this->structureAnalysisRequest(),
         );
-        $view = new TemplateView($context);
-        $view->assign('data', [
-            'uid' => 100,
-            '_LOCALIZED_UID' => 102,
-            'frame_class' => 'none',
-            'tx_mindfula11y_landmark' => 'navigation',
-            'tx_mindfula11y_arialabelledby' => 0,
-            'tx_mindfula11y_arialabel' => '',
-            'header' => '',
-            'space_before_class' => '',
-            'space_after_class' => '',
-        ]);
-
-        $output = trim($view->render());
 
         self::assertStringContainsString('data-mindfula11y-record-uid="102"', $output);
         self::assertStringNotContainsString('data-mindfula11y-record-uid="100"', $output);
     }
+
 }

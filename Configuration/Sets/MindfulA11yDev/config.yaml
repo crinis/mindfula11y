@@ -1,4 +1,0 @@
-name: mindfulmarkup/mindfula11y-dev
-label: "Mindful A11Y Development"
-dependencies:
-  - typo3/fluid-styled-content

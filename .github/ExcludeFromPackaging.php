@@ -36,15 +36,6 @@ return [
         'Tests',
         'tools',
         'vendor',
-        // Development-only site sets and their Fluid resources — the dev set
-        // configures the DDEV install, the demo set exists only to exercise
-        // visual_editor coexistence on the development site.
-        'Configuration\/Sets\/MindfulA11yDev',
-        'Configuration\/Sets\/MindfulA11yVisualEditorDemo',
-        'Resources\/Private\/VisualEditorDemo',
-        // Development-only container CType backing the dev set's Container
-        // Heading Lab; matches the export-ignore in .gitattributes.
-        'Configuration\/TCA\/Overrides\/tt_content_dev_fixtures\.php',
         // Rendered on docs.typo3.org from the git repository; matches the
         // export-ignore in .gitattributes.
         'Documentation',

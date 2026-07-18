@@ -4,13 +4,9 @@
 /.github export-ignore
 /.gitignore export-ignore
 /.gitattributes export-ignore
-/Configuration/Sets/MindfulA11yDev export-ignore
-/Configuration/Sets/MindfulA11yVisualEditorDemo export-ignore
-/Configuration/TCA/Overrides/tt_content_dev_fixtures.php export-ignore
 /Documentation export-ignore
 /Resources/Private/Build export-ignore
 /Resources/Private/Source export-ignore
-/Resources/Private/VisualEditorDemo export-ignore
 /Tests export-ignore
 /phpunit.xml.dist export-ignore
 /phpunit.functional.xml.dist export-ignore
