@@ -176,6 +176,17 @@ class AltlessFileReferenceViewHelper extends AbstractTagBasedViewHelper
         }
 
         $this->tag->addAttribute('uid', $fileReference->getUid());
+        if ((bool)$fileReference->getOriginalResource()->getReferenceProperty('tx_mindfula11y_decorative')) {
+            $this->tag->addAttribute('decorative', true);
+        }
+        $alternative = $fileReference->getOriginalResource()->getReferenceProperty('alternative');
+        if (
+            $this->moduleSettingsService->canReadFileReferenceAlternative()
+            && is_string($alternative)
+            && $alternative !== ''
+        ) {
+            $this->tag->addAttribute('alternative', $alternative);
+        }
 
         if ($this->moduleSettingsService->canReadFileMetadataAlternative()) {
             $fallbackAlternative = $fileReference->getOriginalResource()->getOriginalFile()->getProperty('alternative');

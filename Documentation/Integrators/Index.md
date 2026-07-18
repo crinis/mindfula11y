@@ -117,7 +117,7 @@ TCEFORM.tt_content.tx_mindfula11y_landmark {
 | --- | --- |
 | `mod.mindfula11y_accessibility.missingAltText.enable` | Shows/hides Missing alternative text feature. |
 | `mod.mindfula11y_accessibility.missingAltText.ignoreColumns` | Excludes specific file fields from missing-alt checks, per table: `ignoreColumns { <table> = <column>,<column> }`. |
-| `mod.mindfula11y_accessibility.missingAltText.ignoreFileMetadata` | With `0` (default), file metadata alternative text counts as sufficient, matching TYPO3's rendered `FileReference`; editors can use the filter toggle to show covered references anyway. Set `1` to require alternative text directly on every file reference. |
+| `mod.mindfula11y_accessibility.missingAltText.ignoreFileMetadata` | With `0` (default), editors can filter out references covered by file metadata alternative text, matching TYPO3's rendered `FileReference`. Set `1` to ignore metadata and require alternative text directly on every file reference. |
 | `mod.mindfula11y_accessibility.headingStructure.enable` | Enables heading structure checks in module. |
 | `mod.mindfula11y_accessibility.landmarkStructure.enable` | Enables landmark structure checks in module. |
 | `mod.mindfula11y_accessibility.scan.enable` | Enables scanner feature in module. |

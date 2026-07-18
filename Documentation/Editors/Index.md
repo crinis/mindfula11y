@@ -44,6 +44,7 @@ Open feature **Missing alternative text** to review file references that miss al
 You can:
 
 - filter by record type
+- use the Filter menu to include decorative images, hide records covered by inherited alternative text, or list all references
 - keep the default scope on the current page or include direct, multiple, or all subpages
 - switch language
 - edit alt text inline
@@ -56,6 +57,15 @@ Use **Decorative image** directly on the affected module card only when an image
 reference's alternative text and title, hides both fields, and removes the reference from the
 missing-alt check. A visible caption can still be entered in the description field. Turn the
 option off before entering alternative text or a title again.
+
+Decorative references stay out of this view by default. Enable **Show decorative images**
+in the Filter menu to review whether images were marked decorative correctly. If **Hide
+records with inherited alternative text** is also enabled, that filter continues to apply.
+Enable **Show all references** to include references that already have their own alternative
+text. The stored text remains visible when you may read but not edit it. The decorative and
+inherited-metadata filters continue to apply independently. All
+references covered by inherited alternative text are hidden by default; the two inclusion
+filters are off.
 
 ![Missing alternative text feature listing file references with image preview, editable alt text field, generate action, and save action](../Images/editors-missing-alt-text.png)
 

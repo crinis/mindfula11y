@@ -34,11 +34,12 @@ let AltlessFileReference = class extends LitElement {
     this.recordEditLink = "";
     this.recordEditLinkLabel = "";
     this.decorativeEditable = false;
+    this.decorative = false;
+    this.alternative = "";
     this.generateAltTextDemand = null;
     this.fallbackAlternative = "";
     this.value = "";
     this.lastSavedValue = "";
-    this.decorative = false;
     this.lastSavedDecorative = false;
     this.busy = "idle";
     this.actionError = null;
@@ -46,6 +47,17 @@ let AltlessFileReference = class extends LitElement {
     this.altTextApi = new AltTextApi();
     this.recordApi = new RecordApi();
     this.announcer = new LiveAnnouncer(this);
+  }
+  willUpdate(changedProperties) {
+    if (!this.hasUpdated) {
+      if (changedProperties.has("decorative")) {
+        this.lastSavedDecorative = this.decorative;
+      }
+      if (changedProperties.has("alternative")) {
+        this.value = this.alternative;
+        this.lastSavedValue = this.alternative;
+      }
+    }
   }
   render() {
     return html`<div class="card">
@@ -77,7 +89,10 @@ let AltlessFileReference = class extends LitElement {
   }
   renderEditor() {
     if (this.recordEditLink === "") {
-      return nothing;
+      return this.renderReadOnlyState();
+    }
+    if (this.decorative && !this.decorativeEditable) {
+      return this.renderReadOnlyState();
     }
     return html`<div class="editor">
             ${this.decorativeEditable ? html`<div class="decorative-option">
@@ -137,6 +152,18 @@ let AltlessFileReference = class extends LitElement {
                             </mindfula11y-notice>` : nothing}
             </div>
         </div>`;
+  }
+  renderReadOnlyState() {
+    if (this.decorative) {
+      return html`<p class="decorative-state">${lll("mindfula11y.altText.decorative.label")}</p>`;
+    }
+    if (this.value === "") {
+      return nothing;
+    }
+    return html`<dl class="alternative-readonly">
+            <dt class="label">${lll("mindfula11y.altText.altLabel")}</dt>
+            <dd>${this.value}</dd>
+        </dl>`;
   }
   renderFallback() {
     if (this.fallbackAlternative === "") {
@@ -222,6 +249,12 @@ __decorateClass([
   property({ attribute: "decorative-editable", type: Boolean })
 ], AltlessFileReference.prototype, "decorativeEditable", 2);
 __decorateClass([
+  property({ type: Boolean })
+], AltlessFileReference.prototype, "decorative", 2);
+__decorateClass([
+  property()
+], AltlessFileReference.prototype, "alternative", 2);
+__decorateClass([
   property({ attribute: "generate-alt-text-demand", type: Object })
 ], AltlessFileReference.prototype, "generateAltTextDemand", 2);
 __decorateClass([
@@ -233,9 +266,6 @@ __decorateClass([
 __decorateClass([
   state()
 ], AltlessFileReference.prototype, "lastSavedValue", 2);
-__decorateClass([
-  state()
-], AltlessFileReference.prototype, "decorative", 2);
 __decorateClass([
   state()
 ], AltlessFileReference.prototype, "lastSavedDecorative", 2);

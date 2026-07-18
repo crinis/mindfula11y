@@ -73,6 +73,8 @@ final readonly class AltlessFileReferenceRepository
      * @param int $firstResult The offset for the query.
      * @param int|null $maxResults The maximum number of results to return, or null for no limit.
      * @param bool $filterFileMetaData If true, filter rows if they have alternative text in the file metadata.
+     * @param bool $includeDecorative If true, include references marked as decorative.
+     * @param bool $includeAllReferences If true, include references that already have reference-level alternative text.
      * 
      * @return array<AltlessFileReference> An array of file reference rows.
      * 
@@ -87,12 +89,14 @@ final readonly class AltlessFileReferenceRepository
         callable $fileFilter,
         int $firstResult = 0,
         ?int $maxResults = 100,
-        bool $filterFileMetaData = true
+        bool $filterFileMetaData = true,
+        bool $includeDecorative = false,
+        bool $includeAllReferences = false,
     ): array {
         $selectedReferenceUids = [];
         $accessibleOffset = 0;
 
-        foreach ($this->streamAccessibleReferenceUids($tables, $languageId, $workspaceId, $filterFileMetaData, $fileFilter) as $referenceUid) {
+        foreach ($this->streamAccessibleReferenceUids($tables, $languageId, $workspaceId, $filterFileMetaData, $includeDecorative, $includeAllReferences, $fileFilter) as $referenceUid) {
             if ($accessibleOffset++ < $firstResult) {
                 continue;
             }
@@ -123,6 +127,8 @@ final readonly class AltlessFileReferenceRepository
      * @param int $workspaceId The workspace ID to select file references for.
      * @param callable(\TYPO3\CMS\Core\Resource\FileInterface): bool $fileFilter File-access filter applied before counting.
      * @param bool $filterFileMetaData If true, filter rows if they have alternative text in the file metadata.
+     * @param bool $includeDecorative If true, include references marked as decorative.
+     * @param bool $includeAllReferences If true, include references that already have reference-level alternative text.
      * 
      * @return int The count of file references without alternative text.
      */
@@ -131,10 +137,12 @@ final readonly class AltlessFileReferenceRepository
         int $languageId,
         int $workspaceId,
         callable $fileFilter,
-        bool $filterFileMetaData = true
+        bool $filterFileMetaData = true,
+        bool $includeDecorative = false,
+        bool $includeAllReferences = false,
     ): int {
         return iterator_count(
-            $this->streamAccessibleReferenceUids($tables, $languageId, $workspaceId, $filterFileMetaData, $fileFilter)
+            $this->streamAccessibleReferenceUids($tables, $languageId, $workspaceId, $filterFileMetaData, $includeDecorative, $includeAllReferences, $fileFilter)
         );
     }
 
@@ -162,6 +170,8 @@ final readonly class AltlessFileReferenceRepository
         int $languageId,
         int $workspaceId,
         bool $filterFileMetaData,
+        bool $includeDecorative,
+        bool $includeAllReferences,
         callable $fileFilter
     ): \Generator {
         $lastReferenceUid = 0;
@@ -178,7 +188,7 @@ final readonly class AltlessFileReferenceRepository
                 continue;
             }
 
-            foreach ($this->fetchAltlessFileRowsForReferenceUids($workspaceId, $filterFileMetaData, $resolvedReferenceUids) as $fileRow) {
+            foreach ($this->fetchFileRowsForReferenceUids($workspaceId, $filterFileMetaData, $includeDecorative, $includeAllReferences, $resolvedReferenceUids) as $fileRow) {
                 $referenceUid = (int)$fileRow['reference_uid'];
                 unset($fileRow['reference_uid']);
 
@@ -246,15 +256,33 @@ final readonly class AltlessFileReferenceRepository
      * @param array<int> $referenceUids
      * @return array<array<string, mixed>>
      */
-    private function fetchAltlessFileRowsForReferenceUids(
+    private function fetchFileRowsForReferenceUids(
         int $workspaceId,
         bool $filterFileMetaData,
+        bool $includeDecorative,
+        bool $includeAllReferences,
         array $referenceUids
     ): array {
         $queryBuilder = $this->connectionPool->getQueryBuilderForTable('sys_file_reference');
         $queryBuilder->getRestrictions()
             ->removeAll()
             ->add(GeneralUtility::makeInstance(DeletedRestriction::class));
+
+        $mutableClauses = [
+            $queryBuilder->expr()->in('sys_file_reference.uid', $queryBuilder->createNamedParameter($referenceUids, Connection::PARAM_INT_ARRAY)),
+        ];
+        if (!$includeAllReferences) {
+            $mutableClauses[] = $queryBuilder->expr()->or(
+                $queryBuilder->expr()->isNull('sys_file_reference.alternative'),
+                $queryBuilder->expr()->eq('sys_file_reference.alternative', $queryBuilder->createNamedParameter('', Connection::PARAM_STR))
+            );
+        }
+        if (!$includeDecorative) {
+            $mutableClauses[] = $queryBuilder->expr()->eq(
+                'sys_file_reference.tx_mindfula11y_decorative',
+                $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)
+            );
+        }
 
         $queryBuilder
             ->select('mindfula11y_sys_file.*')
@@ -265,17 +293,7 @@ final readonly class AltlessFileReferenceRepository
                 'sys_file',
                 'mindfula11y_sys_file',
                 $queryBuilder->expr()->eq('sys_file_reference.uid_local', $queryBuilder->quoteIdentifier('mindfula11y_sys_file.uid'))
-            )->where(
-                $queryBuilder->expr()->or(
-                    $queryBuilder->expr()->isNull('sys_file_reference.alternative'),
-                    $queryBuilder->expr()->eq('sys_file_reference.alternative', $queryBuilder->createNamedParameter('', Connection::PARAM_STR))
-                ),
-                $queryBuilder->expr()->eq(
-                    'sys_file_reference.tx_mindfula11y_decorative',
-                    $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)
-                ),
-                $queryBuilder->expr()->in('sys_file_reference.uid', $queryBuilder->createNamedParameter($referenceUids, Connection::PARAM_INT_ARRAY))
-            );
+            )->where(...$mutableClauses);
 
         if ($filterFileMetaData) {
             $this->addFilterByFileMetaDataClauses($queryBuilder);
@@ -323,7 +341,7 @@ final readonly class AltlessFileReferenceRepository
      *
      * The alternative-text and decorative filters deliberately do NOT run
      * here: they are workspace-mutable and are applied to the resolved
-     * effective rows in fetchAltlessFileRowsForReferenceUids(). The parent
+     * effective rows in fetchFileRowsForReferenceUids(). The parent
      * authMode conditions do run here and thus judge the live parent row — a
      * parent whose restricting column changed only in the workspace keeps its
      * live visibility, matching what the module's other permission checks see.

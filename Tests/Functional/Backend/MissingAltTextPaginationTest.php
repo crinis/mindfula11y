@@ -52,6 +52,8 @@ final class MissingAltTextPaginationTest extends AbstractAuthorizationTestCase
                 'pageLevels' => 0,
                 'tableName' => '',
                 'filterFileMetaData' => true,
+                'showDecorative' => true,
+                'showAllReferences' => true,
                 'currentPage' => 2,
             ],
         ]);
@@ -61,6 +63,8 @@ final class MissingAltTextPaginationTest extends AbstractAuthorizationTestCase
         self::assertStringNotContainsString('mindfula11y_missingalttext', $html);
         self::assertStringContainsString('feature=missingAltText', $html);
         self::assertStringContainsString('id=10', $html);
+        self::assertStringContainsString('showDecorative=1', $html);
+        self::assertStringContainsString('showAllReferences=1', $html);
         self::assertStringContainsString('currentPage=3', $html); // the next-page link
     }
 }

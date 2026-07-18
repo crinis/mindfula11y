@@ -206,6 +206,14 @@
                 </source>
                 <target>Datensätze mit geerbtem Alternativtext ausblenden</target>
             </trans-unit>
+            <trans-unit id="module.menu.filter.decorative" resname="module.menu.filter.decorative">
+                <source>Show decorative images</source>
+                <target>Dekorative Bilder anzeigen</target>
+            </trans-unit>
+            <trans-unit id="module.menu.filter.allReferences" resname="module.menu.filter.allReferences">
+                <source>Show all references</source>
+                <target>Alle Referenzen anzeigen</target>
+            </trans-unit>
 
             <trans-unit id="module.menu.features" resname="module.menu.features">
                 <source>Feature</source>

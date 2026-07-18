@@ -7,9 +7,8 @@ mod {
             # ignoreColumns {
             #     tx_myext_domain_model_hero = background_image
             # }
-            # 0 = treat metadata alt text as sufficient (matching TYPO3's rendered output);
-            # 1 = require alt text directly on every file reference. With 0, editors can
-            # use the module filter to show metadata-covered references when needed.
+            # 0 = let editors filter out references covered by metadata alt text (matching
+            # TYPO3's rendered output); 1 = ignore metadata and require reference-level alt.
             ignoreFileMetadata = 0
         }
         headingStructure {

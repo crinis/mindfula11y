@@ -18,7 +18,7 @@
  */
 
 import { lll } from '@typo3/core/lit-helper.js';
-import type { CSSResult, TemplateResult } from 'lit';
+import type { CSSResult, PropertyValues, TemplateResult } from 'lit';
 import { html, LitElement, nothing } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { live } from 'lit/directives/live.js';
@@ -39,8 +39,8 @@ import componentStyles from './altless-file-reference.css.js';
 const DECORATIVE_FIELD = 'tx_mindfula11y_decorative';
 
 /**
- * One image file reference lacking alternative text in the "Missing alt text"
- * module: preview, editable alt-text field with optional AI generation, a
+ * One image file reference in the "Missing alt text" module: preview,
+ * editable alt-text field with optional AI generation, a
  * per-reference decorative toggle, and a save action using the core DataHandler.
  *
  * Feedback renders inline (notices + pre-rendered live region) instead of
@@ -59,13 +59,14 @@ export class AltlessFileReference extends LitElement {
     @property({ attribute: 'record-edit-link' }) recordEditLink: string = '';
     @property({ attribute: 'record-edit-link-label' }) recordEditLinkLabel: string = '';
     @property({ attribute: 'decorative-editable', type: Boolean }) decorativeEditable: boolean = false;
+    @property({ type: Boolean }) decorative: boolean = false;
+    @property() alternative: string = '';
     @property({ attribute: 'generate-alt-text-demand', type: Object })
     generateAltTextDemand: GenerateAltTextDemand | null = null;
     @property({ attribute: 'fallback-alternative' }) fallbackAlternative: string = '';
 
     @state() private value: string = '';
     @state() private lastSavedValue: string = '';
-    @state() private decorative: boolean = false;
     @state() private lastSavedDecorative: boolean = false;
     @state() private busy: 'idle' | 'generating' | 'saving' = 'idle';
     @state() private actionError: ErrorView | null = null;
@@ -74,6 +75,18 @@ export class AltlessFileReference extends LitElement {
     private readonly altTextApi = new AltTextApi();
     private readonly recordApi = new RecordApi();
     private readonly announcer: LiveAnnouncer = new LiveAnnouncer(this);
+
+    protected override willUpdate(changedProperties: PropertyValues<this>): void {
+        if (!this.hasUpdated) {
+            if (changedProperties.has('decorative')) {
+                this.lastSavedDecorative = this.decorative;
+            }
+            if (changedProperties.has('alternative')) {
+                this.value = this.alternative;
+                this.lastSavedValue = this.alternative;
+            }
+        }
+    }
 
     override render(): TemplateResult {
         return html`<div class="card">
@@ -111,7 +124,10 @@ export class AltlessFileReference extends LitElement {
 
     private renderEditor(): TemplateResult | typeof nothing {
         if (this.recordEditLink === '') {
-            return nothing;
+            return this.renderReadOnlyState();
+        }
+        if (this.decorative && !this.decorativeEditable) {
+            return this.renderReadOnlyState();
         }
         return html`<div class="editor">
             ${
@@ -202,6 +218,19 @@ export class AltlessFileReference extends LitElement {
                 }
             </div>
         </div>`;
+    }
+
+    private renderReadOnlyState(): TemplateResult | typeof nothing {
+        if (this.decorative) {
+            return html`<p class="decorative-state">${lll('mindfula11y.altText.decorative.label')}</p>`;
+        }
+        if (this.value === '') {
+            return nothing;
+        }
+        return html`<dl class="alternative-readonly">
+            <dt class="label">${lll('mindfula11y.altText.altLabel')}</dt>
+            <dd>${this.value}</dd>
+        </dl>`;
     }
 
     private renderFallback(): TemplateResult | typeof nothing {

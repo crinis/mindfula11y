@@ -73,6 +73,16 @@
         font-weight: 600;
     }
 
+    .decorative-state {
+        font-weight: 600;
+    }
+
+    .alternative-readonly {
+        display: flex;
+        flex-direction: column;
+        gap: var(--mindfula11y-space-fixed-3xs);
+    }
+
     .hint {
         max-inline-size: 70ch;
         color: var(--mindfula11y-text-subtle);

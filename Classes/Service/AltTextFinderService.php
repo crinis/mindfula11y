@@ -59,6 +59,8 @@ final readonly class AltTextFinderService
      * @param int $maxResults The maximum number of results to return.
      * @param bool $filterFileMetaData If true, filter results based on presence of alternative text in file metadata.
      * @param string|null $tableName Restrict to a single table; null queries every table with file columns.
+     * @param bool $includeDecorative If true, include references marked as decorative.
+     * @param bool $includeAllReferences If true, include references that already have reference-level alternative text.
      * 
      * @return array<AltlessFileReference> An array of file reference objects that are missing alternative text.
      * 
@@ -73,6 +75,8 @@ final readonly class AltTextFinderService
         int $maxResults = 100,
         bool $filterFileMetaData = true,
         ?string $tableName = null,
+        bool $includeDecorative = false,
+        bool $includeAllReferences = false,
     ): array {
         $tables = $this->buildTables($tableName, $pageId, $pageLevels, $pageTsConfig);
         // Fail closed: the table configurations carry every parent-table,
@@ -89,7 +93,9 @@ final readonly class AltTextFinderService
             $this->permissionService->checkFileReadAccess(...),
             $firstResult,
             $maxResults,
-            $filterFileMetaData
+            $filterFileMetaData,
+            $includeDecorative,
+            $includeAllReferences
         );
     }
 
@@ -105,6 +111,8 @@ final readonly class AltTextFinderService
      * @param array<string, mixed> $pageTsConfig The Page TSConfig for the current page.
      * @param bool $filterFileMetaData If true, filter results based on presence of alternative text in file metadata.
      * @param string|null $tableName Restrict to a single table; null counts every table with file columns.
+     * @param bool $includeDecorative If true, include references marked as decorative.
+     * @param bool $includeAllReferences If true, include references that already have reference-level alternative text.
      * 
      * @return int The count of file references missing alternative text.
      * 
@@ -117,6 +125,8 @@ final readonly class AltTextFinderService
         array $pageTsConfig,
         bool $filterFileMetaData = true,
         ?string $tableName = null,
+        bool $includeDecorative = false,
+        bool $includeAllReferences = false,
     ): int {
         $tables = $this->buildTables($tableName, $pageId, $pageLevels, $pageTsConfig);
         // Fail closed — see getAltlessFileReferences().
@@ -129,7 +139,9 @@ final readonly class AltTextFinderService
             $languageId,
             $this->backendUserProvider->get()->workspace,
             $this->permissionService->checkFileReadAccess(...),
-            $filterFileMetaData
+            $filterFileMetaData,
+            $includeDecorative,
+            $includeAllReferences
         );
     }
 

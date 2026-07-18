@@ -44,6 +44,8 @@ return [
             'tableName' => '',
             'currentPage' => 1,
             'filterFileMetaData' => true,
+            'showDecorative' => false,
+            'showAllReferences' => false,
             'scanPageLevels' => 0,
             'feature' => Feature::OVERVIEW->value,
         ],

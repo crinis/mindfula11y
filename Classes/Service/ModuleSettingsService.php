@@ -59,9 +59,17 @@ final readonly class ModuleSettingsService
      */
     public function hasMissingAltTextAccess(array $pageTsConfig): bool
     {
-        return $this->permissionService->checkTableReadAccess('sys_file_reference')
-            && $this->permissionService->checkNonExcludeFields('sys_file_reference', ['alternative'])
+        return $this->canReadFileReferenceAlternative()
             && !!($pageTsConfig['mod']['mindfula11y_accessibility']['missingAltText']['enable'] ?? false);
+    }
+
+    /**
+     * Check whether the current backend user may read reference-level alternative text.
+     */
+    public function canReadFileReferenceAlternative(): bool
+    {
+        return $this->permissionService->checkTableReadAccess('sys_file_reference')
+            && $this->permissionService->checkNonExcludeFields('sys_file_reference', ['alternative']);
     }
 
     /**

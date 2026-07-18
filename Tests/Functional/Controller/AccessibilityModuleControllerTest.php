@@ -92,6 +92,9 @@ final class AccessibilityModuleControllerTest extends AbstractAuthorizationTestC
         self::assertNotNull($module);
 
         self::assertSame(0, $module->getDefaultModuleData()['pageLevels'] ?? null);
+        self::assertTrue($module->getDefaultModuleData()['filterFileMetaData'] ?? false);
+        self::assertFalse($module->getDefaultModuleData()['showDecorative'] ?? true);
+        self::assertFalse($module->getDefaultModuleData()['showAllReferences'] ?? true);
     }
 
     public function testPageWithoutShowPermissionRendersForbidden(): void
