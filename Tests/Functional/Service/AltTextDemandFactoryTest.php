@@ -56,6 +56,18 @@ final class AltTextDemandFactoryTest extends AbstractAuthorizationTestCase
         self::assertTrue($signatureService->isValid($redeemed));
     }
 
+    public function testUnsupportedFileTypeFailsClosed(): void
+    {
+        $this->logInBackendUser(2);
+        // sys_file 3 is an SVG — OpenAI vision cannot consume it, so no
+        // surface (FormEngine control, module list) may offer generation.
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/UnsupportedFileTypeSupplement.csv');
+        $record = BackendUtility::getRecordWSOL('tt_content', 100);
+        self::assertIsArray($record);
+
+        self::assertNull($this->subject()->create(10, 0, 'tt_content', 100, $record, 3, 300, ['assets']));
+    }
+
     public function testUnresolvableFileFailsClosed(): void
     {
         $this->logInBackendUser(2);

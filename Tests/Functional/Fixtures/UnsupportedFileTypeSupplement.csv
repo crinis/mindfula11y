@@ -1,0 +1,6 @@
+"sys_file"
+,"uid","pid","storage","type","identifier","identifier_hash","folder_hash","extension","mime_type","name","size"
+,3,0,1,2,"/allowed/diagram.svg","a3000000000000000000000000000000000000a3","f1000000000000000000000000000000000000f1","svg","image/svg+xml","diagram.svg",100
+"sys_file_reference"
+,"uid","pid","uid_local","uid_foreign","tablenames","fieldname","sys_language_uid","tx_mindfula11y_decorative","alternative"
+,300,10,3,100,"tt_content","assets",0,0,""

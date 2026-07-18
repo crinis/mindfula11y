@@ -73,7 +73,6 @@ class GenerateAltTextControl extends AbstractNode
 
         if (
             null === $file
-            || !$this->openAIService->isFileExtSupported($file->getExtension())
             || !$this->openAIService->isEnabledAndConfigured()
             || !$this->permissionService->checkModuleAccess()
         ) {

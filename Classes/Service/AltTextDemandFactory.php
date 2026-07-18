@@ -31,7 +31,12 @@ use TYPO3\CMS\Backend\Utility\BackendUtility;
  * Owns the demand's revision-pinning invariant: every demand fingerprints the
  * exact persisted file, parent-record, and file-reference revisions it was
  * issued for, and fails closed (null) when any of those rows cannot be
- * resolved. Unlike ScanDemandFactory it does NOT own the authorization
+ * resolved. It also owns the supported-file-type precondition: demands are
+ * only issued for raster formats the OpenAI vision input accepts, so every
+ * surface (FormEngine field control, module list) offers or withholds the
+ * generate action consistently — redemption needs no extra gate because any
+ * later file mutation breaks the pinned file fingerprint.
+ * Unlike ScanDemandFactory it does NOT own the authorization
  * decision — its two surfaces render in different authorization contexts
  * (the module ViewHelper proves record edit access itself; the FormEngine
  * field control renders inside an already-authorized edit form), so each
@@ -42,6 +47,7 @@ final readonly class AltTextDemandFactory
 {
     public function __construct(
         private BackendUserProvider $backendUserProvider,
+        private OpenAIService $openAIService,
         private RecordSnapshotService $recordSnapshotService,
     ) {}
 
@@ -61,7 +67,9 @@ final readonly class AltTextDemandFactory
         array $columns,
     ): ?GenerateAltTextDemand {
         $fileRecord = BackendUtility::getRecordWSOL('sys_file', $fileUid);
-        if (!is_array($fileRecord)) {
+        if (!is_array($fileRecord)
+            || !$this->openAIService->isFileExtSupported((string)($fileRecord['extension'] ?? ''))
+        ) {
             return null;
         }
 
