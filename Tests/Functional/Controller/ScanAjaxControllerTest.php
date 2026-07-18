@@ -50,15 +50,16 @@ use TYPO3\CMS\Backend\Utility\BackendUtility;
  * 11 show-only, 12 edit-locked, 14 no-access, 15 hidden, 17 scan-disabled via
  * TSconfig, 19 aiAudit-enabled via TSconfig, 20 outside every db mount, 30 =
  * fr translation of 10; users 2 full editor, 3 no module, 6 default-language
- * only, 8 no pages tables_modify, 10 second full editor) — no supplementary
- * fixture is required because every scenario in the coverage matrix maps
- * onto an existing row.
+ * only, 8 no pages tables_modify, 10 second full editor), plus
+ * ScanSupplement.csv (page 500 = fr translation of the scan-disabled page 17)
+ * for the translation-stored scan-id scenarios.
  */
 final class ScanAjaxControllerTest extends AbstractAuthorizationTestCase
 {
     protected function setUp(): void
     {
         parent::setUp();
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/ScanSupplement.csv');
         // Preview URL / site resolution is exercised by some code paths
         // reached before the scan-API-unconfigured short circuit (e.g.
         // page/language lookups), so the site must exist even though the
@@ -628,6 +629,40 @@ final class ScanAjaxControllerTest extends AbstractAuthorizationTestCase
         $this->assertErrorResponse($response, 403, 'error.noPageAccess');
     }
 
+    /**
+     * A scan on a translated page stores its scan id on the translation
+     * record (createAction resolves the localized row before storing), so
+     * existing-scan authorization receives the translation uid. The TSconfig
+     * gate must evaluate the logical page — here scan is enabled from the
+     * site root — and the request must reach the upstream discriminator.
+     */
+    public function testGetActionTranslationStoredScanIdFullyAuthorizedEndsInUpstreamFailure(): void
+    {
+        $this->seedScanId(30, 'scan-page-30');
+        $this->logInBackendUser(2);
+
+        $response = $this->controller()->getAction($this->createGetRequest(['scanId' => 'scan-page-30']));
+
+        $this->assertErrorResponse($response, 500, 'scan.error.getFailed');
+    }
+
+    /**
+     * TSconfig-gate parity across translations: page 17 disables scans via
+     * its own TSconfig column; page 500 is its fr translation with an empty
+     * TSconfig column (a state DataHandler-independent imports produce). The
+     * gate must resolve TSconfig via the default-language page so the
+     * translation is governed by the same switch as its parent.
+     */
+    public function testGetActionTranslationOfScanDisabledPageIsDeniedLikeItsParent(): void
+    {
+        $this->seedScanId(500, 'scan-page-500');
+        $this->logInBackendUser(2);
+
+        $response = $this->controller()->getAction($this->createGetRequest(['scanId' => 'scan-page-500']));
+
+        $this->assertErrorResponse($response, 403, 'scan.noAccess');
+    }
+
     public function testGetActionFullyAuthorizedEndsInUpstreamFailure(): void
     {
         $this->seedScanId(10, 'scan-page-10-get');
@@ -646,5 +681,23 @@ final class ScanAjaxControllerTest extends AbstractAuthorizationTestCase
         $response = $this->controller()->cancelAction($this->createJsonRequest(['scanId' => 'scan-page-10-cancel']));
 
         $this->assertErrorResponse($response, 500, 'scan.error.cancelFailed');
+    }
+
+    /**
+     * Positive anchor for the reportAction deny tests: a fully authorized
+     * request must pass every gate (module, scan id, format, page read,
+     * TSconfig) and reach the upstream discriminator — the unconfigured scan
+     * API makes getReport() return null.
+     */
+    public function testReportActionFullyAuthorizedEndsInUpstreamFailure(): void
+    {
+        $this->seedScanId(10, 'scan-page-10-report');
+        $this->logInBackendUser(2);
+
+        $response = $this->controller()->reportAction(
+            $this->createGetRequest(['scanId' => 'scan-page-10-report', 'format' => 'html'])
+        );
+
+        $this->assertErrorResponse($response, 500, 'scan.error.reportFailed');
     }
 }

@@ -55,7 +55,12 @@ final readonly class ExistingScanAuthorizationService
             throw new ScanAuthorizationException('scan.error.accessDenied', 403);
         }
 
-        $pageTsConfig = $this->moduleSettingsService->getConvertedPageTsConfig((int)$pageRecord['uid']);
+        // Scans on translated pages store their id on the translation record,
+        // but Page TSconfig belongs to the logical default-language page.
+        $tsConfigPageUid = (int)($pageRecord['sys_language_uid'] ?? 0) > 0
+            ? (int)($pageRecord['l10n_parent'] ?? 0)
+            : (int)$pageRecord['uid'];
+        $pageTsConfig = $this->moduleSettingsService->getConvertedPageTsConfig($tsConfigPageUid);
         if (!$this->moduleSettingsService->hasScanAccess($pageTsConfig)) {
             throw new ScanAuthorizationException('scan.noAccess', 403);
         }
