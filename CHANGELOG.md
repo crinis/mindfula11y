@@ -5,8 +5,12 @@ All notable changes to this extension are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
-When cutting a release, copy the relevant section into the GitHub Release notes —
-the `Publish to TER` workflow uses the release body as the TER upload comment.
+Releases are cut through the `Release` workflow (Actions → Release): rename
+`[Unreleased]` to `[x.y.z] - date`, bump the `ext_emconf.php` version, push,
+then dispatch the workflow with the version. It runs the full CI verification
+BEFORE creating the `vx.y.z` tag (which Packagist publishes immediately), and
+turns this file's version section into the GitHub release notes and the TER
+upload comment. Manual `v*` tags are blocked by a repository ruleset.
 
 ## [Unreleased]
 

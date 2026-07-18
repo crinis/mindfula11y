@@ -1,0 +1,145 @@
+name: Release
+
+# Verifies first, tags last. Packagist publishes a v* tag the moment it
+# exists, unconditionally — so the tag must only come into existence after the
+# full CI verification passed. This workflow is the single source of release
+# tags (a repository ruleset blocks manual v* tag pushes); it validates the
+# release preconditions, runs the complete CI workflow, creates the tag and
+# GitHub release from the version's changelog section, and publishes to TER.
+# If any step before the tag fails, nothing was published anywhere.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (x.y.z — CHANGELOG section and ext_emconf version must already match)'
+        required: true
+        type: string
+
+concurrency:
+  group: release
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate release preconditions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate version, tag, changelog and ext_emconf
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          if ! [[ "$VERSION" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
+            echo "::error::Version '$VERSION' is not a plain x.y.z version."
+            exit 1
+          fi
+          git fetch --tags --quiet
+          if git rev-parse -q --verify "refs/tags/v$VERSION" >/dev/null; then
+            echo "::error::Tag v$VERSION already exists."
+            exit 1
+          fi
+          if ! grep -q "^## \[$VERSION\]" CHANGELOG.md; then
+            echo "::error::CHANGELOG.md has no '## [$VERSION]' section — rename [Unreleased] before releasing."
+            exit 1
+          fi
+          if ! grep -Fq "'version' => '$VERSION'" ext_emconf.php; then
+            echo "::error::ext_emconf.php does not carry version $VERSION — bump it before releasing."
+            exit 1
+          fi
+
+  verify:
+    name: Verify
+    needs: validate
+    uses: ./.github/workflows/ci.yml
+
+  release:
+    name: Tag and create GitHub release
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract the changelog section as release notes
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          awk -v ver="$VERSION" '
+            $0 ~ "^## \\[" ver "\\]" { on = 1; next }
+            on && /^## \[/ { exit }
+            on { print }
+          ' CHANGELOG.md > release-body.md
+          if ! grep -q '[^[:space:]]' release-body.md; then
+            echo "::error::The '## [$VERSION]' changelog section is empty."
+            exit 1
+          fi
+
+      - name: Keep the release notes for the TER publish job
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-body
+          path: release-body.md
+
+      - name: Create tag and GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          gh release create "v$VERSION" \
+            --target "$GITHUB_SHA" \
+            --title "v$VERSION" \
+            --notes-file release-body.md
+
+  publish-ter:
+    name: Publish to TER
+    # Separate from the tag job on purpose: a failed TER upload (expired
+    # token, TER outage) is recovered with "re-run failed jobs" on this run —
+    # the already-published tag and GitHub release stay untouched.
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch the release notes
+        uses: actions/download-artifact@v4
+        with:
+          name: release-body
+
+      - name: Prepare the TER upload comment
+        run: |
+          delimiter="$(openssl rand -hex 8)"
+          {
+            echo "description<<${delimiter}"
+            cat release-body.md
+            echo "${delimiter}"
+          } >> "$GITHUB_ENV"
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: intl, mbstring, json, zip, curl
+          tools: composer:v2
+
+      - name: Install tailor
+        run: composer global require typo3/tailor --prefer-dist --no-progress
+
+      - name: Set extension version
+        env:
+          VERSION: ${{ inputs.version }}
+        run: tailor set-version "$VERSION"
+
+      - name: Publish to TER
+        env:
+          TYPO3_API_TOKEN: ${{ secrets.TYPO3_API_TOKEN }}
+          # Replaces tailor's default packaging excludes so frontend sources,
+          # build tooling and dev configs never ship in the TER artefact.
+          TYPO3_EXCLUDE_FROM_PACKAGING: ${{ github.workspace }}/.github/ExcludeFromPackaging.php
+          VERSION: ${{ inputs.version }}
+          TER_DESCRIPTION: ${{ env.description }}
+        run: tailor ter:publish --comment "$TER_DESCRIPTION" "$VERSION"

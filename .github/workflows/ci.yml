@@ -3,11 +3,11 @@ name: CI
 on:
   push:
     branches: [main]
-    # Tags too: Packagist serves git archives as soon as a tag exists, so a bad
-    # tag must at least turn red immediately (TER is additionally gated by the
-    # verify job in ter-release.yml).
-    tags: ['v*']
   pull_request:
+  # Reused by release.yml: releases verify exactly what CI verifies, and the
+  # release tag is only created after this workflow passed — so no v* tag
+  # (which Packagist publishes immediately) can exist for a broken commit.
+  workflow_call:
 
 jobs:
   frontend:
