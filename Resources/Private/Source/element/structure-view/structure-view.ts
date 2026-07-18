@@ -69,7 +69,7 @@ export abstract class StructureView<T extends StructureViewNode<T>> extends LitE
     @property({ attribute: false }) nodes: T[] = [];
     @property({ attribute: false }) pageErrors: StructureError[] = [];
 
-    @state() protected busyNodeId: string = '';
+    @state() protected busyNodeIds: ReadonlySet<string> = new Set();
 
     private readonly recordService: RecordService = new RecordService();
     private pendingFocusId: string = '';
@@ -205,7 +205,7 @@ export abstract class StructureView<T extends StructureViewNode<T>> extends LitE
      * pre-rendered status region after re-analysis).
      */
     protected renderBusySpinner(node: T): TemplateResult | typeof nothing {
-        return this.busyNodeId === node.id
+        return this.busyNodeIds.has(node.id)
             ? html`<typo3-backend-spinner size="small"></typo3-backend-spinner>
                   <span class="sr-only">${lll('mindfula11y.structure.saving')}</span>`
             : nothing;
@@ -226,7 +226,7 @@ export abstract class StructureView<T extends StructureViewNode<T>> extends LitE
     /**
      * Editable value `<select>` shared by both views: binds `.value=${live(…)}`
      * so a failed save reverts visually through the next re-render (triggered
-     * by `busyNodeId` resetting in `saveNodeValue`'s `finally`) rather than a
+     * by the node leaving `busyNodeIds` in `saveNodeValue`'s `finally`) rather than a
      * manual DOM mutation, which can disagree with the template after
      * unrelated re-renders. The select is deliberately NOT disabled while its
      * save is in flight: disabling the focused element blurs it to the
@@ -277,7 +277,7 @@ export abstract class StructureView<T extends StructureViewNode<T>> extends LitE
      * Persists a control's value via DataHandler and reports the change so the
      * container re-analyzes (focus returns to the node once new nodes arrive).
      * On failure a toast names the error (`<labelPrefix>.error.store` +
-     * `.description`); resetting `busyNodeId` below re-renders the row, and
+     * `.description`); removing the node from `busyNodeIds` below re-renders the row, and
      * `renderValueSelect`'s `live()` binding reverts the select to
      * `currentValue` without a manual `select.value =` mutation.
      */
@@ -289,12 +289,13 @@ export abstract class StructureView<T extends StructureViewNode<T>> extends LitE
     ): Promise<void> {
         const value = select.value;
         // The re-entry guard replaces disabling the select (see
-        // renderValueSelect): a change made while a save is in flight is
-        // dropped and reverted by the live() binding on the next re-render.
-        if (this.busyNodeId !== '' || record === null || value === currentValue) {
+        // renderValueSelect): a repeat change on the SAME row while its save
+        // is in flight is dropped and reverted by the live() binding on the
+        // next re-render. Tracking is per node — edits on other rows proceed.
+        if (this.busyNodeIds.has(node.id) || record === null || value === currentValue) {
             return;
         }
-        this.busyNodeId = node.id;
+        this.busyNodeIds = new Set(this.busyNodeIds).add(node.id);
         try {
             await this.recordService.updateField(record, value);
             this.pendingFocusId = node.id;
@@ -310,7 +311,9 @@ export abstract class StructureView<T extends StructureViewNode<T>> extends LitE
             const errorKey = `${this.labelPrefix}.error.store`;
             Notification.error(lll(errorKey), lll(`${errorKey}.description`));
         } finally {
-            this.busyNodeId = '';
+            const busyNodeIds = new Set(this.busyNodeIds);
+            busyNodeIds.delete(node.id);
+            this.busyNodeIds = busyNodeIds;
         }
     }
 

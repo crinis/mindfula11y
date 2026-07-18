@@ -305,6 +305,38 @@ describe('StructureView', () => {
         expect(view.renderRoot.querySelector('typo3-backend-spinner')).toBeNull();
     });
 
+    it('saves a change on a different row while another row is mid-save', async () => {
+        // The re-entry guard is per node: only the row whose save is in
+        // flight drops repeat changes. A concurrent edit on ANOTHER row must
+        // persist normally instead of being silently reverted.
+        const deferred = deferSave();
+        const nodeA = makeNode('n1');
+        const nodeB = makeNode('n2', { record: makeRecord({ uid: 22 }) });
+        const view = await mount([nodeA, nodeB]);
+        const events = captureChangeEvents(view);
+
+        changeValue(querySelect(view, 'n1'), 'h3');
+        await view.updateComplete;
+
+        updateField.mockResolvedValue(undefined);
+        changeValue(querySelect(view, 'n2'), 'h1');
+        await tick();
+
+        expect(updateField).toHaveBeenCalledTimes(2);
+        expect(updateField).toHaveBeenLastCalledWith(nodeB.record, 'h1');
+
+        deferred.resolve();
+        await tick();
+        await view.updateComplete;
+
+        expect(events).toHaveLength(2);
+        expect(events.map((event) => event.detail.nodeId).sort()).toEqual(['n1', 'n2']);
+        // The select reverts to the (stale) stored node value via live() until
+        // the container delivers refreshed nodes — as it does in production in
+        // response to the change events asserted above.
+        expect(querySelect(view, 'n2').value).toBe('h2');
+    });
+
     it('restores focus to the saved control once the container delivers new nodes', async () => {
         updateField.mockResolvedValue(undefined);
         const view = await mount([makeNode('n1'), makeNode('n2')]);

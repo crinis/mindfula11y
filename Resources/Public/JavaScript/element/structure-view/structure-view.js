@@ -28,7 +28,7 @@ class StructureView extends LitElement {
     super(...arguments);
     this.nodes = [];
     this.pageErrors = [];
-    this.busyNodeId = "";
+    this.busyNodeIds = /* @__PURE__ */ new Set();
     this.recordService = new RecordService();
     this.pendingFocusId = "";
     /** `data-control` value of the just-saved select, so focus returns to that
@@ -150,7 +150,7 @@ class StructureView extends LitElement {
    * pre-rendered status region after re-analysis).
    */
   renderBusySpinner(node) {
-    return this.busyNodeId === node.id ? html`<typo3-backend-spinner size="small"></typo3-backend-spinner>
+    return this.busyNodeIds.has(node.id) ? html`<typo3-backend-spinner size="small"></typo3-backend-spinner>
                   <span class="sr-only">${lll("mindfula11y.structure.saving")}</span>` : nothing;
   }
   /**
@@ -167,7 +167,7 @@ class StructureView extends LitElement {
   /**
    * Editable value `<select>` shared by both views: binds `.value=${live(…)}`
    * so a failed save reverts visually through the next re-render (triggered
-   * by `busyNodeId` resetting in `saveNodeValue`'s `finally`) rather than a
+   * by the node leaving `busyNodeIds` in `saveNodeValue`'s `finally`) rather than a
    * manual DOM mutation, which can disagree with the template after
    * unrelated re-renders. The select is deliberately NOT disabled while its
    * save is in flight: disabling the focused element blurs it to the
@@ -202,16 +202,16 @@ class StructureView extends LitElement {
    * Persists a control's value via DataHandler and reports the change so the
    * container re-analyzes (focus returns to the node once new nodes arrive).
    * On failure a toast names the error (`<labelPrefix>.error.store` +
-   * `.description`); resetting `busyNodeId` below re-renders the row, and
+   * `.description`); removing the node from `busyNodeIds` below re-renders the row, and
    * `renderValueSelect`'s `live()` binding reverts the select to
    * `currentValue` without a manual `select.value =` mutation.
    */
   async saveNodeValue(node, select, currentValue, record = node.record) {
     const value = select.value;
-    if (this.busyNodeId !== "" || record === null || value === currentValue) {
+    if (this.busyNodeIds.has(node.id) || record === null || value === currentValue) {
       return;
     }
-    this.busyNodeId = node.id;
+    this.busyNodeIds = new Set(this.busyNodeIds).add(node.id);
     try {
       await this.recordService.updateField(record, value);
       this.pendingFocusId = node.id;
@@ -227,7 +227,9 @@ class StructureView extends LitElement {
       const errorKey = `${this.labelPrefix}.error.store`;
       Notification.error(lll(errorKey), lll(`${errorKey}.description`));
     } finally {
-      this.busyNodeId = "";
+      const busyNodeIds = new Set(this.busyNodeIds);
+      busyNodeIds.delete(node.id);
+      this.busyNodeIds = busyNodeIds;
     }
   }
   /**
@@ -256,7 +258,7 @@ __decorateClass([
 ], StructureView.prototype, "pageErrors", 2);
 __decorateClass([
   state()
-], StructureView.prototype, "busyNodeId", 2);
+], StructureView.prototype, "busyNodeIds", 2);
 export {
   StructureView
 };
