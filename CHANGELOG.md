@@ -82,6 +82,11 @@ the `Publish to TER` workflow uses the release body as the TER upload comment.
 - On TYPO3 v14, structure-editing metadata now honours backend-layout content-type restrictions (`allowedContentTypes`/`disallowedContentTypes` on backend layout columns): heading and landmark selectors are no longer offered for content elements whose type is not allowed in their column, where saving would have been silently rejected by TYPO3.
 - Composer installation no longer fails on current PHP 8.4 releases: the `php` version constraint read `>=8.2 <=8.4`, which only matched PHP 8.4.0 exactly and rejected every 8.4 patch release. It is now `>=8.2 <8.5`.
 
+### Documentation
+
+- The integrator documentation now shows how to keep `openAIApiKey` and `scannerApiToken` out of the versioned `config/system/settings.php` by overriding them with environment variables in `config/system/additional.php`.
+- The documented default Page TSconfig matches the shipped file again: the landmark `removeItems` default includes `form`, and the shipped `aiAudit` defaults with their TSconfig options are listed.
+
 ## [0.12.0] - 2026-07-12
 
 Frontend platform release. The entire backend frontend is rewritten as

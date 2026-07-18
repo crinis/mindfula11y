@@ -26,6 +26,22 @@ Configure in **Admin Tools > Settings > Extension Configuration**.
 | `scannerApiToken` | Bearer token used to authenticate TYPO3 against the scanner API (if enabled there). |
 | `enableValidationErrorTitlePrefix` | Prefixes the page title with a localized `Error:` after failed server-side EXT:form validation. Enabled by default. |
 
+### Keeping secrets out of settings.php
+
+Values entered in the Settings UI are written in plaintext to `config/system/settings.php`,
+which many projects keep under version control. Keep `openAIApiKey` and `scannerApiToken` out
+of that file by leaving both fields empty in the UI and overriding them from environment
+variables in `config/system/additional.php`:
+
+```php
+$GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS']['mindfula11y']['openAIApiKey'] = getenv('OPENAI_API_KEY') ?: '';
+$GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS']['mindfula11y']['scannerApiToken'] = getenv('MINDFULAPI_TOKEN') ?: '';
+```
+
+`additional.php` is loaded after `settings.php`, so the environment values win at runtime.
+Note that the Settings UI keeps showing and saving the `settings.php` values — it does not
+reflect the override.
+
 ### Validation-error page-title prefix
 
 When a TYPO3 EXT:form submission fails server-side validation, Mindful A11y prefixes the final
@@ -75,6 +91,11 @@ mod {
             autoCreate = 1
             # basicAuthUsername =
             # basicAuthPassword =
+            aiAudit {
+                enable = 0
+                default = 0
+                # skills = image_alt_text,page_title
+            }
         }
     }
 
@@ -86,7 +107,7 @@ mod {
 }
 
 TCEFORM.tt_content.tx_mindfula11y_landmark {
-    removeItems = main,banner,contentinfo
+    removeItems = main,banner,contentinfo,form
 }
 ```
 
@@ -103,6 +124,9 @@ TCEFORM.tt_content.tx_mindfula11y_landmark {
 | `mod.mindfula11y_accessibility.scan.autoCreate` | Auto-starts new scan on module load when content changed. |
 | `mod.mindfula11y_accessibility.scan.basicAuthUsername` | Username used only when target frontend is protected by HTTP Basic Auth. |
 | `mod.mindfula11y_accessibility.scan.basicAuthPassword` | Password used only when target frontend is protected by HTTP Basic Auth. |
+| `mod.mindfula11y_accessibility.scan.aiAudit.enable` | Offers the "Include AI review" toggle in the scan module; requires MindfulAPI's agent feature (see [AI review](#ai-review-agent-audit)). |
+| `mod.mindfula11y_accessibility.scan.aiAudit.default` | Pre-selects the AI review toggle for new scans; editors can still switch it off per scan. |
+| `mod.mindfula11y_accessibility.scan.aiAudit.skills` | Optional comma-separated skill subset. Unset requests every MindfulAPI-enabled skill; an empty value requests none. |
 | `mod.web_layout.mindfula11y.hideInfo` | Hides Mindful A11y info box in page module header area. |
 
 Heading and landmark checks render the real frontend preview in isolated iframes at 375 × 812 and 1280 × 900 CSS pixels. Site roots on another domain are supported without MindfulAPI: the authenticated backend issues a signed, stateless ticket that is valid for 15 seconds and bound to the exact page, language, workspace, frontend URL, backend origin, and backend user. Current module, account, DB-mount, page, workspace, and language permissions are checked again whenever the ticket is redeemed. The ticket is intentionally reusable during its short validity window; it is not stored in a cache or database. HTTPS should be used, and reverse proxies or application monitoring should avoid recording sensitive query strings.
