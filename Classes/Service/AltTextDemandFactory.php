@@ -78,6 +78,10 @@ final readonly class AltTextDemandFactory
 
         $backendUser = $this->backendUserProvider->get();
 
+        // Full-row fingerprints on purpose (unlike the pages-scoped structure
+        // ticket / scan demand): this demand writes alt text back into the
+        // exact revision it was issued for, so any concurrent change — content
+        // included — must force a re-issue rather than a stale write.
         return new GenerateAltTextDemand(
             (int)$backendUser->user['uid'],
             $pageId,

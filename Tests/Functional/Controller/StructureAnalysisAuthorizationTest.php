@@ -358,7 +358,13 @@ final class StructureAnalysisAuthorizationTest extends AbstractAuthorizationTest
         self::assertTrue($this->authorizationService()->isTicketHolderAuthorized($ticket));
     }
 
-    public function testTicketHolderIsDeniedWhenTranslatedRecordChanges(): void
+    /**
+     * The snapshot binds the ticket to the columns redemption consumes for
+     * authorization — content columns are not among them: the preview renders
+     * the live record anyway, so a concurrent title edit must not kill an
+     * in-flight analysis of the translated page.
+     */
+    public function testTicketHolderRemainsAuthorizedWhenTranslatedContentChanges(): void
     {
         $ticket = $this->buildTicket(backendUserId: 2, languageId: 1);
         $this->getConnectionPool()->getConnectionForTable('pages')->update(
@@ -368,7 +374,7 @@ final class StructureAnalysisAuthorizationTest extends AbstractAuthorizationTest
         );
         GeneralUtility::makeInstance(CacheManager::class)->getCache('runtime')->flush();
 
-        self::assertFalse($this->authorizationService()->isTicketHolderAuthorized($ticket));
+        self::assertTrue($this->authorizationService()->isTicketHolderAuthorized($ticket));
     }
 
     public function testTicketHolderIsAuthorizedInExactSignedWorkspace(): void
@@ -478,12 +484,64 @@ final class StructureAnalysisAuthorizationTest extends AbstractAuthorizationTest
         self::assertFalse($this->authorizationService()->isTicketHolderAuthorized($ticket));
     }
 
-    public function testTicketHolderIsDeniedWhenPageContentChangesAfterIssuance(): void
+    public function testTicketHolderRemainsAuthorizedWhenPageContentChangesAfterIssuance(): void
     {
         $ticket = $this->buildTicket(backendUserId: 2);
         $this->getConnectionPool()->getConnectionForTable('pages')->update(
             'pages',
             ['title' => 'Changed after ticket issuance'],
+            ['uid' => 10],
+        );
+        GeneralUtility::makeInstance(CacheManager::class)->getCache('runtime')->flush();
+
+        self::assertTrue($this->authorizationService()->isTicketHolderAuthorized($ticket));
+    }
+
+    /**
+     * The exact race behind "Page structure could not be rendered" on first
+     * module load: the scan auto-create persists its bookkeeping on the pages
+     * row (DataHandler also bumps tstamp) and core frontend rendering updates
+     * SYS_LASTCHANGED — all while the analysis tickets are in flight. None of
+     * these columns is an authorization input, so an outstanding ticket must
+     * survive them.
+     */
+    public function testTicketHolderRemainsAuthorizedAfterScanBookkeepingWrite(): void
+    {
+        $ticket = $this->buildTicket(backendUserId: 2);
+        $this->getConnectionPool()->getConnectionForTable('pages')->update(
+            'pages',
+            [
+                'tx_mindfula11y_scanid' => '186',
+                'tx_mindfula11y_scanupdated' => time(),
+                'tstamp' => time(),
+                'SYS_LASTCHANGED' => time(),
+            ],
+            ['uid' => 10],
+        );
+        GeneralUtility::makeInstance(CacheManager::class)->getCache('runtime')->flush();
+
+        self::assertTrue($this->authorizationService()->isTicketHolderAuthorized($ticket));
+    }
+
+    public function testTicketHolderIsDeniedWhenPageIsHiddenAfterIssuance(): void
+    {
+        $ticket = $this->buildTicket(backendUserId: 2);
+        $this->getConnectionPool()->getConnectionForTable('pages')->update(
+            'pages',
+            ['hidden' => 1],
+            ['uid' => 10],
+        );
+        GeneralUtility::makeInstance(CacheManager::class)->getCache('runtime')->flush();
+
+        self::assertFalse($this->authorizationService()->isTicketHolderAuthorized($ticket));
+    }
+
+    public function testTicketHolderIsDeniedWhenPagePermissionsChangeAfterIssuance(): void
+    {
+        $ticket = $this->buildTicket(backendUserId: 2);
+        $this->getConnectionPool()->getConnectionForTable('pages')->update(
+            'pages',
+            ['perms_everybody' => 0],
             ['uid' => 10],
         );
         GeneralUtility::makeInstance(CacheManager::class)->getCache('runtime')->flush();

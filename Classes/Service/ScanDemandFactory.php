@@ -90,7 +90,11 @@ final readonly class ScanDemandFactory
             // never be redeemed (no localized record, snapshot mismatch).
             languageId: TranslationFields::languageId('pages', $pageRecord),
             workspaceId: $backendUser->workspace,
-            pageRecordSnapshot: $this->recordSnapshotService->fingerprint('pages', $pageRecord),
+            pageRecordSnapshot: $this->recordSnapshotService->fingerprint(
+                'pages',
+                $pageRecord,
+                RecordSnapshotService::PAGES_SCOPE_COLUMNS,
+            ),
             pageLevels: $pageLevels,
             crawl: $crawl,
             expiresAt: time() + CreateScanDemand::LIFETIME,
@@ -107,7 +111,12 @@ final readonly class ScanDemandFactory
         $currentPageId = TranslationFields::translationParentUid('pages', $pageRecord) ?: (int)($pageRecord['uid'] ?? 0);
         if ($currentPageId !== $demand->getPageId()
             || TranslationFields::languageId('pages', $pageRecord) !== $demand->getLanguageId()
-            || !$this->recordSnapshotService->matches($demand->getPageRecordSnapshot(), 'pages', $pageRecord)
+            || !$this->recordSnapshotService->matches(
+                $demand->getPageRecordSnapshot(),
+                'pages',
+                $pageRecord,
+                RecordSnapshotService::PAGES_SCOPE_COLUMNS,
+            )
         ) {
             return false;
         }

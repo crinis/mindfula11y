@@ -81,7 +81,7 @@ final readonly class StructureAnalysisTicketAjaxController
                 $pageId,
                 $languageId,
                 $workspaceId,
-                $this->recordSnapshotService->fingerprint('pages', $previewPage),
+                $this->recordSnapshotService->fingerprint('pages', $previewPage, RecordSnapshotService::PAGES_SCOPE_COLUMNS),
                 (int)($backendUser->user['uid'] ?? 0),
                 $backendOrigin,
             );

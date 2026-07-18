@@ -107,7 +107,8 @@ final class ScanAjaxControllerTest extends AbstractAuthorizationTestCase
             languageId: $languageId,
             workspaceId: $workspaceId,
             pageRecordSnapshot: is_array($page)
-                ? $this->get(RecordSnapshotService::class)->fingerprint('pages', $page)
+                ? $this->get(RecordSnapshotService::class)
+                    ->fingerprint('pages', $page, RecordSnapshotService::PAGES_SCOPE_COLUMNS)
                 : str_repeat('0', 64),
             pageLevels: $pageLevels,
             crawl: $crawl,
@@ -334,7 +335,13 @@ final class ScanAjaxControllerTest extends AbstractAuthorizationTestCase
         $this->assertErrorResponse($response, 500, 'scan.error.notConfigured');
     }
 
-    public function testCreateActionTranslatedPageChangeInvalidatesDemand(): void
+    /**
+     * The snapshot covers only authorization-relevant columns: a concurrent
+     * content edit to the translation must not invalidate the demand, so the
+     * request proceeds to the terminal not-configured error like the
+     * fully-authorized baseline above.
+     */
+    public function testCreateActionTranslatedContentChangeKeepsDemandValid(): void
     {
         $this->logInBackendUser(2);
         $payload = $this->signedCreateDemandPayload(
@@ -351,7 +358,7 @@ final class ScanAjaxControllerTest extends AbstractAuthorizationTestCase
 
         $response = $this->controller()->createAction($this->createJsonRequest($payload));
 
-        $this->assertErrorResponse($response, 400, 'module.error.invalidSignature');
+        $this->assertErrorResponse($response, 500, 'scan.error.notConfigured');
     }
 
     public function testCreateActionShowOnlyPageDeniesEditAccess(): void
@@ -461,7 +468,7 @@ final class ScanAjaxControllerTest extends AbstractAuthorizationTestCase
         $this->assertErrorResponse($response, 400, 'module.error.invalidSignature');
     }
 
-    public function testCreateActionPageContentChangeInvalidatesDemand(): void
+    public function testCreateActionPageContentChangeKeepsDemandValid(): void
     {
         $this->logInBackendUser(2);
         $payload = $this->signedCreateDemandPayload(2, 10);
@@ -473,7 +480,7 @@ final class ScanAjaxControllerTest extends AbstractAuthorizationTestCase
 
         $response = $this->controller()->createAction($this->createJsonRequest($payload));
 
-        $this->assertErrorResponse($response, 400, 'module.error.invalidSignature');
+        $this->assertErrorResponse($response, 500, 'scan.error.notConfigured');
     }
 
     // ---------------------------------------------------------------

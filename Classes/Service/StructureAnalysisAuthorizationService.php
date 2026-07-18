@@ -173,7 +173,12 @@ final readonly class StructureAnalysisAuthorizationService
             );
             if ($previewUrl === null
                 || $previewPage === null
-                || !$this->recordSnapshotService->matches($ticket->pageRecordSnapshot, 'pages', $previewPage)
+                || !$this->recordSnapshotService->matches(
+                    $ticket->pageRecordSnapshot,
+                    'pages',
+                    $previewPage,
+                    RecordSnapshotService::PAGES_SCOPE_COLUMNS,
+                )
             ) {
                 return false;
             }
