@@ -30,6 +30,7 @@ use MindfulMarkup\MindfulA11y\Service\DemandSignatureService;
 use MindfulMarkup\MindfulA11y\Service\OpenAIService;
 use MindfulMarkup\MindfulA11y\Service\PermissionService;
 use MindfulMarkup\MindfulA11y\Service\RecordSnapshotService;
+use MindfulMarkup\MindfulA11y\Tca\TranslationFields;
 use TYPO3\CMS\Backend\Form\AbstractNode;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Localization\LanguageService;
@@ -169,7 +170,7 @@ class GenerateAltTextControl extends AbstractNode
      */
     protected function resolveLanguageUid(): int
     {
-        $languageField = $GLOBALS['TCA'][$this->data['tableName']]['ctrl']['languageField'] ?? '';
+        $languageField = TranslationFields::languageFieldName($this->data['tableName']);
         if ('' === $languageField) {
             return 0;
         }

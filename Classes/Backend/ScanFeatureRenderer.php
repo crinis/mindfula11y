@@ -23,6 +23,7 @@ declare(strict_types=1);
 namespace MindfulMarkup\MindfulA11y\Backend;
 
 use MindfulMarkup\MindfulA11y\Service\DemandSignatureService;
+use MindfulMarkup\MindfulA11y\Tca\TranslationFields;
 use MindfulMarkup\MindfulA11y\Service\ModuleSettingsService;
 use MindfulMarkup\MindfulA11y\Service\PagePreviewService;
 use MindfulMarkup\MindfulA11y\Service\ScanApiService;
@@ -117,8 +118,7 @@ final readonly class ScanFeatureRenderer implements FeatureRendererInterface
             // language, or 0 when that translation does not exist) — generate
             // the expected URL list for the same language, since redemption
             // rebuilds it from the signed demand.
-            $languageField = (string)($GLOBALS['TCA']['pages']['ctrl']['languageField'] ?? 'sys_language_uid');
-            $previewLanguageId = (int)($finalPageInfo[$languageField] ?? 0);
+            $previewLanguageId = TranslationFields::languageId('pages', $finalPageInfo);
             // Compute the expected URL list for the current pageLevels setting.
             // Used by the frontend to detect when an existing scan was created with a different
             // set of URLs and needs to be restarted (autoCreate + url_list mode mismatch).

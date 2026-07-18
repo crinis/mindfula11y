@@ -22,6 +22,7 @@ declare(strict_types=1);
 
 namespace MindfulMarkup\MindfulA11y\Domain\Repository;
 
+use MindfulMarkup\MindfulA11y\Tca\TranslationFields;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
@@ -446,6 +447,6 @@ final readonly class AltlessFileReferenceRepository
      */
     private function getLanguageField(string $tableName): string
     {
-        return $GLOBALS['TCA'][$tableName]['ctrl']['languageField'];
+        return TranslationFields::languageFieldName($tableName);
     }
 }

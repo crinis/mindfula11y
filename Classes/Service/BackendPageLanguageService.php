@@ -22,6 +22,7 @@ declare(strict_types=1);
 
 namespace MindfulMarkup\MindfulA11y\Service;
 
+use MindfulMarkup\MindfulA11y\Tca\TranslationFields;
 use TYPO3\CMS\Backend\Domain\Repository\Localization\LocalizationRepository;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Information\Typo3Version;
@@ -95,10 +96,9 @@ final readonly class BackendPageLanguageService
         } else {
             $pageTranslations = BackendUtility::getExistingPageTranslations($pageId);
             foreach ($pageTranslations as $pageTranslation) {
-                $languageId = $pageTranslation[$GLOBALS['TCA']['pages']['ctrl']['languageField']] ?? null;
-                if ($languageId !== null) {
-                    $translatedLanguageIds[] = (int)$languageId;
-                }
+                // A row missing the language column contributes 0, which the
+                // default-language entry already covers.
+                $translatedLanguageIds[] = TranslationFields::languageId('pages', $pageTranslation);
             }
         }
 

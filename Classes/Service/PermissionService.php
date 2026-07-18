@@ -23,6 +23,7 @@ declare(strict_types=1);
 
 namespace MindfulMarkup\MindfulA11y\Service;
 
+use MindfulMarkup\MindfulA11y\Tca\TranslationFields;
 use TYPO3\CMS\Backend\Module\ModuleProvider;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Resource\FileInterface;
@@ -270,14 +271,15 @@ final readonly class PermissionService
             return false;
         }
 
-        if ($GLOBALS['TCA'][$tableName]['ctrl']['languageField'] ?? false) {
-            if (!isset($row[$GLOBALS['TCA'][$tableName]['ctrl']['languageField']])) {
+        $languageField = TranslationFields::languageFieldName($tableName);
+        if ($languageField !== '') {
+            // Fail closed on partial rows: a localizable record without its
+            // language column cannot prove language access.
+            if (!isset($row[$languageField])) {
                 return false;
-            } else {
-                $languageId = (int)$row[$GLOBALS['TCA'][$tableName]['ctrl']['languageField']];
-                if (!$backendUser->checkLanguageAccess($languageId)) {
-                    return false;
-                }
+            }
+            if (!$backendUser->checkLanguageAccess((int)$row[$languageField])) {
+                return false;
             }
         }
 
@@ -299,7 +301,7 @@ final readonly class PermissionService
         }
         
         if ($tableName === 'pages') {
-            $l10nParent = isset($row[$GLOBALS['TCA'][$tableName]['ctrl']['transOrigPointerField']]) ? (int)$row[$GLOBALS['TCA'][$tableName]['ctrl']['transOrigPointerField']] : 0;
+            $l10nParent = TranslationFields::translationParentUid($tableName, $row);
             $pageRow = $l10nParent > 0 ? BackendUtility::getRecordWSOL($tableName, $l10nParent) : $row;
 
             if (!is_array($pageRow) || VersionState::tryFrom((int)($pageRow['t3ver_state'] ?? 0)) === VersionState::DELETE_PLACEHOLDER) {
@@ -340,7 +342,7 @@ final readonly class PermissionService
                 return false;
             }
 
-            $pageL10nParent = isset($pageRow[$GLOBALS['TCA']['pages']['ctrl']['transOrigPointerField']]) ? (int)$pageRow[$GLOBALS['TCA']['pages']['ctrl']['transOrigPointerField']] : 0;
+            $pageL10nParent = TranslationFields::translationParentUid('pages', $pageRow);
 
             if ($pageL10nParent > 0) {
                 $pageRow = BackendUtility::getRecordWSOL('pages', $pageL10nParent);
@@ -425,11 +427,9 @@ final readonly class PermissionService
         }
 
         // Check language access if it is a translated record
-        $languageField = $GLOBALS['TCA']['pages']['ctrl']['languageField'] ?? 'sys_language_uid';
-        if (isset($pageRecord[$languageField]) && (int)$pageRecord[$languageField] > 0) {
-            if (!$backendUser->checkLanguageAccess((int)$pageRecord[$languageField])) {
-                return false;
-            }
+        $languageId = TranslationFields::languageId('pages', $pageRecord);
+        if ($languageId > 0 && !$backendUser->checkLanguageAccess($languageId)) {
+            return false;
         }
 
         // Check Workspace Access
@@ -441,12 +441,9 @@ final readonly class PermissionService
 
         // Resolve Tree Page ID for permission check
         // If it's a translation (l10n_parent/transOrigPointerField > 0), verify the parent.
-        $transOrigPointerField = $GLOBALS['TCA']['pages']['ctrl']['transOrigPointerField'] ?? 'l10n_parent';
-        if (
-            isset($pageRecord[$transOrigPointerField])
-            && (int)$pageRecord[$transOrigPointerField] > 0
-        ) {
-            $pageRecord = BackendUtility::getRecordWSOL('pages', (int)$pageRecord[$transOrigPointerField]);
+        $translationParentUid = TranslationFields::translationParentUid('pages', $pageRecord);
+        if ($translationParentUid > 0) {
+            $pageRecord = BackendUtility::getRecordWSOL('pages', $translationParentUid);
             
             if (!$pageRecord || VersionState::tryFrom((int)($pageRecord['t3ver_state'] ?? 0)) === VersionState::DELETE_PLACEHOLDER) {
                 return false;

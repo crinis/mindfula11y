@@ -22,6 +22,7 @@ declare(strict_types=1);
 
 namespace MindfulMarkup\MindfulA11y\Service;
 
+use MindfulMarkup\MindfulA11y\Tca\TranslationFields;
 use TYPO3\CMS\Backend\Routing\PreviewUriBuilder;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Context\Context;
@@ -175,11 +176,11 @@ final readonly class PagePreviewService
             ->from('pages')
             ->where(
                 $queryBuilder->expr()->eq(
-                    $GLOBALS['TCA']['pages']['ctrl']['transOrigPointerField'],
+                    TranslationFields::translationParentFieldName('pages'),
                     $queryBuilder->createNamedParameter($pageId, Connection::PARAM_INT)
                 ),
                 $queryBuilder->expr()->eq(
-                    $GLOBALS['TCA']['pages']['ctrl']['languageField'],
+                    TranslationFields::languageFieldName('pages'),
                     $queryBuilder->createNamedParameter($languageId, Connection::PARAM_INT)
                 )
             )
