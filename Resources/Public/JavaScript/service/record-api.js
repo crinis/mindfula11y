@@ -5,7 +5,7 @@ class RecordUpdateError extends Error {
     this.name = "RecordUpdateError";
   }
 }
-class RecordService {
+class RecordApi {
   async updateField(record, value) {
     await this.updateFields(record.tableName, record.uid, { [record.columnName]: value });
   }
@@ -28,6 +28,6 @@ class RecordService {
   }
 }
 export {
-  RecordService,
+  RecordApi,
   RecordUpdateError
 };

@@ -18,7 +18,7 @@ import "@typo3/backend/element/spinner-element.js";
 import { scrollIntoViewCentered } from "../../lib/dom.js";
 import { noticeState, renderSeverityChip, renderViewportBadges } from "../../lib/status-render.js";
 import { dispatch } from "../../lib/types.js";
-import { RecordService } from "../../service/record-service.js";
+import { RecordApi } from "../../service/record-api.js";
 import { baseStyles } from "../../styles/base-styles.js";
 import noticeStyles from "../../styles/notice.css.js";
 import structureViewStyles from "../../styles/structure-view.css.js";
@@ -29,7 +29,7 @@ class StructureView extends LitElement {
     this.nodes = [];
     this.pageErrors = [];
     this.busyNodeIds = /* @__PURE__ */ new Set();
-    this.recordService = new RecordService();
+    this.recordApi = new RecordApi();
     this.pendingFocusId = "";
     /** `data-control` value of the just-saved select, so focus returns to that
      * exact control rather than the row's first `controlSelector` match — a
@@ -213,7 +213,7 @@ class StructureView extends LitElement {
     }
     this.busyNodeIds = new Set(this.busyNodeIds).add(node.id);
     try {
-      await this.recordService.updateField(record, value);
+      await this.recordApi.updateField(record, value);
       this.pendingFocusId = node.id;
       this.pendingFocusControl = select.dataset.control ?? "";
       dispatch(this, "mindfula11y:structure:changed", {

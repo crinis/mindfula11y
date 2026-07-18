@@ -1,5 +1,5 @@
 import { postJson } from "./backend-api.js";
-class AltTextService {
+class AltTextApi {
   /**
    * Generates alternative text for the image described by the signed demand.
    * Throws a RequestError carrying the backend's localized title/description
@@ -14,5 +14,5 @@ class AltTextService {
   }
 }
 export {
-  AltTextService
+  AltTextApi
 };

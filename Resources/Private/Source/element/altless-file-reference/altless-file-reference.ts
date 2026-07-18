@@ -28,8 +28,8 @@ import '../notice/notice.js';
 import { LiveAnnouncer } from '../../lib/live-announcer.js';
 import { renderNoticeBody } from '../../lib/status-render.js';
 import type { GenerateAltTextDemand } from '../../lib/types.js';
-import { AltTextService } from '../../service/alt-text-service.js';
-import { RecordService } from '../../service/record-service.js';
+import { AltTextApi } from '../../service/alt-text-api.js';
+import { RecordApi } from '../../service/record-api.js';
 import { type ErrorView, errorView } from '../../service/request-error.js';
 import { baseStyles } from '../../styles/base-styles.js';
 import buttonStyles from '../../styles/button.css.js';
@@ -71,8 +71,8 @@ export class AltlessFileReference extends LitElement {
     @state() private actionError: ErrorView | null = null;
     @state() private saved: boolean = false;
 
-    private readonly altTextService = new AltTextService();
-    private readonly recordService = new RecordService();
+    private readonly altTextApi = new AltTextApi();
+    private readonly recordApi = new RecordApi();
     private readonly announcer: LiveAnnouncer = new LiveAnnouncer(this);
 
     override render(): TemplateResult {
@@ -237,7 +237,7 @@ export class AltlessFileReference extends LitElement {
         this.saved = false;
         await this.announcer.announce(lll('mindfula11y.altText.generate.loading'));
         try {
-            this.value = await this.altTextService.generateAltText(this.generateAltTextDemand);
+            this.value = await this.altTextApi.generateAltText(this.generateAltTextDemand);
             await this.announcer.announce(lll('mindfula11y.altText.generate.success'));
         } catch (error) {
             this.actionError = errorView(error, 'mindfula11y.altText.generate.error.unknown');
@@ -265,7 +265,7 @@ export class AltlessFileReference extends LitElement {
             if (this.decorativeEditable) {
                 fields[DECORATIVE_FIELD] = this.decorative ? '1' : '0';
             }
-            await this.recordService.updateFields('sys_file_reference', this.uid, fields);
+            await this.recordApi.updateFields('sys_file_reference', this.uid, fields);
             if (this.decorative) {
                 this.value = '';
             }
@@ -273,7 +273,7 @@ export class AltlessFileReference extends LitElement {
             this.lastSavedDecorative = this.decorative;
             this.saved = true;
         } catch (error) {
-            // RecordService throws RecordUpdateError (not a RequestError), so
+            // RecordApi throws RecordUpdateError (not a RequestError), so
             // this resolves to the same fallback title/description pair as before.
             this.actionError = errorView(error, 'mindfula11y.altText.save.error');
         } finally {

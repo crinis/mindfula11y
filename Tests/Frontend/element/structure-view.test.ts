@@ -29,11 +29,11 @@ vi.mock('@typo3/backend/notification.js', () => ({
 // Side-effect element registrations — the templates only render the tags.
 vi.mock('@typo3/backend/element/icon-element.js', () => ({}));
 vi.mock('@typo3/backend/element/spinner-element.js', () => ({}));
-vi.mock('../../../Resources/Private/Source/service/record-service.js', () => {
+vi.mock('../../../Resources/Private/Source/service/record-api.js', () => {
     const module = {};
     Reflect.set(
         module,
-        'RecordService',
+        'RecordApi',
         class {
             updateField = updateField;
         },
@@ -183,7 +183,7 @@ describe('StructureView', () => {
         document.body.replaceChildren();
     });
 
-    it('persists a changed value through RecordService and dispatches mindfula11y:structure:changed', async () => {
+    it('persists a changed value through RecordApi and dispatches mindfula11y:structure:changed', async () => {
         updateField.mockResolvedValue(undefined);
         const node = makeNode('n1');
         const view = await mount([node]);

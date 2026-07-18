@@ -29,7 +29,7 @@ export class RecordUpdateError extends Error {
 }
 
 /** Persists record field updates through TYPO3's DataHandler. */
-export class RecordService {
+export class RecordApi {
     async updateField(record: RecordReference, value: string): Promise<void> {
         await this.updateFields(record.tableName, record.uid, { [record.columnName]: value });
     }

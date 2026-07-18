@@ -30,7 +30,7 @@ import { noticeState, renderSeverityChip, renderViewportBadges } from '../../lib
 import type { StructureError, StructureViewport } from '../../lib/structure/types.js';
 import type { RecordReference } from '../../lib/types.js';
 import { dispatch } from '../../lib/types.js';
-import { RecordService } from '../../service/record-service.js';
+import { RecordApi } from '../../service/record-api.js';
 import { baseStyles } from '../../styles/base-styles.js';
 import noticeStyles from '../../styles/notice.css.js';
 import structureViewStyles from '../../styles/structure-view.css.js';
@@ -71,7 +71,7 @@ export abstract class StructureView<T extends StructureViewNode<T>> extends LitE
 
     @state() protected busyNodeIds: ReadonlySet<string> = new Set();
 
-    private readonly recordService: RecordService = new RecordService();
+    private readonly recordApi: RecordApi = new RecordApi();
     private pendingFocusId: string = '';
     /** `data-control` value of the just-saved select, so focus returns to that
      * exact control rather than the row's first `controlSelector` match — a
@@ -297,7 +297,7 @@ export abstract class StructureView<T extends StructureViewNode<T>> extends LitE
         }
         this.busyNodeIds = new Set(this.busyNodeIds).add(node.id);
         try {
-            await this.recordService.updateField(record, value);
+            await this.recordApi.updateField(record, value);
             this.pendingFocusId = node.id;
             this.pendingFocusControl = select.dataset.control ?? '';
             dispatch(this, 'mindfula11y:structure:changed', {

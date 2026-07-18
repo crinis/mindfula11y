@@ -23,7 +23,7 @@ import RegularEvent from '@typo3/core/event/regular-event.js';
 import { lll } from '@typo3/core/lit-helper.js';
 import '@typo3/backend/element/spinner-element.js';
 import type { GenerateAltTextDemand } from '../lib/types.js';
-import { AltTextService } from './alt-text-service.js';
+import { AltTextApi } from './alt-text-api.js';
 import { errorView } from './request-error.js';
 
 /*
@@ -75,7 +75,7 @@ export class GenerateAltTextControl {
         control.setAttribute('aria-busy', 'true');
         control.replaceChildren(spinner);
         try {
-            const altText = await new AltTextService().generateAltText(demand);
+            const altText = await new AltTextApi().generateAltText(demand);
             input.value = altText;
             input.dispatchEvent(new Event('change', { bubbles: true }));
             Notification.success(

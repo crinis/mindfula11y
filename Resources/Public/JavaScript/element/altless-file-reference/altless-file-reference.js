@@ -17,8 +17,8 @@ import "@typo3/backend/element/spinner-element.js";
 import "../notice/notice.js";
 import { LiveAnnouncer } from "../../lib/live-announcer.js";
 import { renderNoticeBody } from "../../lib/status-render.js";
-import { AltTextService } from "../../service/alt-text-service.js";
-import { RecordService } from "../../service/record-service.js";
+import { AltTextApi } from "../../service/alt-text-api.js";
+import { RecordApi } from "../../service/record-api.js";
 import { errorView } from "../../service/request-error.js";
 import { baseStyles } from "../../styles/base-styles.js";
 import buttonStyles from "../../styles/button.css.js";
@@ -43,8 +43,8 @@ let AltlessFileReference = class extends LitElement {
     this.busy = "idle";
     this.actionError = null;
     this.saved = false;
-    this.altTextService = new AltTextService();
-    this.recordService = new RecordService();
+    this.altTextApi = new AltTextApi();
+    this.recordApi = new RecordApi();
     this.announcer = new LiveAnnouncer(this);
   }
   render() {
@@ -167,7 +167,7 @@ let AltlessFileReference = class extends LitElement {
     this.saved = false;
     await this.announcer.announce(lll("mindfula11y.altText.generate.loading"));
     try {
-      this.value = await this.altTextService.generateAltText(this.generateAltTextDemand);
+      this.value = await this.altTextApi.generateAltText(this.generateAltTextDemand);
       await this.announcer.announce(lll("mindfula11y.altText.generate.success"));
     } catch (error) {
       this.actionError = errorView(error, "mindfula11y.altText.generate.error.unknown");
@@ -188,7 +188,7 @@ let AltlessFileReference = class extends LitElement {
       if (this.decorativeEditable) {
         fields[DECORATIVE_FIELD] = this.decorative ? "1" : "0";
       }
-      await this.recordService.updateFields("sys_file_reference", this.uid, fields);
+      await this.recordApi.updateFields("sys_file_reference", this.uid, fields);
       if (this.decorative) {
         this.value = "";
       }
