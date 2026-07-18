@@ -12,7 +12,7 @@
   >
     <ul class="pagination" role="list">
       <f:if condition="{pagination.previousPageNumber}">
-        <li class="page-item" role="listitem">
+        <li class="page-item">
           <a
             href="{be:moduleLink(route: 'mindfula11y_missingalttext', arguments: {id: moduleData.id, languageId: moduleData.languageId, pageLevels: moduleData.pageLevels, tableName: moduleData.tableName, filterFileMetaData: moduleData.filterFileMetaData, currentPage: pagination.previousPageNumber})}"
             class="page-link"
@@ -24,7 +24,6 @@
       </f:if>
       <f:for each="{pagination.allPageNumbers}" as="pageNumber">
         <li
-          role="listitem"
           class="page-item{f:if(condition: '{pageNumber} == {paginator.currentPageNumber}', then: ' active')}"
         >
           <a
@@ -38,7 +37,7 @@
         </li>
       </f:for>
       <f:if condition="{pagination.nextPageNumber}">
-        <li class="page-item" role="listitem">
+        <li class="page-item">
           <a
             href="{be:moduleLink(route: 'mindfula11y_missingalttext', arguments: {id: moduleData.id, languageId: moduleData.languageId, pageLevels: moduleData.pageLevels, tableName: moduleData.tableName, filterFileMetaData: moduleData.filterFileMetaData, currentPage: pagination.nextPageNumber})}"
             class="page-link"

@@ -121,14 +121,14 @@ function renderActions(data, onTrigger, onCancel) {
   }
   const triggerKey = `mindfula11y.scan.${tab === "crawl" ? "crawl." : ""}${result !== null ? "refresh" : "start"}`;
   return html`<div class="actions">
-        ${demand !== null ? html`<button type="button" class="button" data-action="trigger" ?disabled=${actionBusy || running} @click=${onTrigger}>
+        ${demand !== null ? html`<button type="button" class="button" data-action="trigger" aria-disabled=${actionBusy || running ? "true" : nothing} @click=${onTrigger}>
                       ${actionBusy ? html`<typo3-backend-spinner size="small"></typo3-backend-spinner>` : html`<typo3-backend-icon
                                     identifier=${result !== null ? "actions-refresh" : "actions-search"}
                                     size="small"
                                 ></typo3-backend-icon>`}
                       ${lll(actionBusy ? "mindfula11y.scan.processing" : triggerKey)}
                   </button>` : nothing}
-        ${running && scanId !== "" ? html`<button type="button" class="button" data-action="cancel" ?disabled=${actionBusy} @click=${onCancel}>
+        ${running && scanId !== "" ? html`<button type="button" class="button" data-action="cancel" aria-disabled=${actionBusy ? "true" : nothing} @click=${onCancel}>
                       <typo3-backend-icon identifier="actions-close" size="small"></typo3-backend-icon>
                       ${lll("mindfula11y.scan.cancel")}
                   </button>` : nothing}
@@ -154,7 +154,7 @@ function renderAiToggle(data, onChange) {
         >
     </span>`;
 }
-function renderRequestError(data, onReload) {
+function renderRequestError(data) {
   if (data.actionError !== null) {
     return html`<mindfula11y-notice state="danger">
             ${renderNoticeBody(data.actionError)}
@@ -163,10 +163,15 @@ function renderRequestError(data, onReload) {
   if (data.controllerState === "error") {
     return html`<mindfula11y-notice state="danger">
             ${renderNoticeBody({ title: lll("mindfula11y.scan.error.loading"), description: data.loadErrorDescription })}
-            <button type="button" class="button" @click=${onReload}>${lll("mindfula11y.scan.refresh")}</button>
         </mindfula11y-notice>`;
   }
   return nothing;
+}
+function renderErrorActions(data, onReload) {
+  if (data.controllerState !== "error") {
+    return nothing;
+  }
+  return html`<button type="button" class="button" @click=${onReload}>${lll("mindfula11y.scan.refresh")}</button>`;
 }
 function renderBody(data) {
   if (data.actionError !== null || data.controllerState === "error") {
@@ -189,7 +194,8 @@ function renderPanelContent(data, callbacks) {
         ${renderHints(data)}
         ${renderAiToggle(data, callbacks.onAiToggleChange)}
         ${renderActions(data, () => callbacks.onTrigger(data.tab), callbacks.onCancel)}
-        <div class="status-region" role="status">${renderRequestError(data, callbacks.onReload)}</div>
+        <div class="status-region" role="status">${renderRequestError(data)}</div>
+        ${renderErrorActions(data, callbacks.onReload)}
         ${renderBody(data)}`;
 }
 export {

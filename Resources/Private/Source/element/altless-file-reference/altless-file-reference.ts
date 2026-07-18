@@ -153,7 +153,7 @@ export class AltlessFileReference extends LitElement {
                         ? html`<button
                               type="button"
                               class="button"
-                              ?disabled=${this.busy !== 'idle'}
+                              aria-disabled=${this.busy !== 'idle' ? 'true' : nothing}
                               @click=${this.handleGenerate}
                           >
                               ${
@@ -171,9 +171,11 @@ export class AltlessFileReference extends LitElement {
                 <button
                     type="button"
                     class="button"
-                    ?disabled=${
+                    aria-disabled=${
                         this.busy !== 'idle' ||
                         (this.value === this.lastSavedValue && this.decorative === this.lastSavedDecorative)
+                            ? 'true'
+                            : nothing
                     }
                     @click=${this.handleSave}
                 >
@@ -245,7 +247,13 @@ export class AltlessFileReference extends LitElement {
     }
 
     private async handleSave(): Promise<void> {
-        if (this.busy !== 'idle') {
+        // Mirrors the button's aria-disabled condition: the control stays
+        // focusable (a real `disabled` would blur a keyboard user to <body>
+        // for the whole async window), so the click handler is the guard.
+        if (
+            this.busy !== 'idle' ||
+            (this.value === this.lastSavedValue && this.decorative === this.lastSavedDecorative)
+        ) {
             return;
         }
         this.busy = 'saving';

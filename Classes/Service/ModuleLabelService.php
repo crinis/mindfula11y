@@ -138,6 +138,7 @@ final readonly class ModuleLabelService
         'scan',
         'scan.processing',
         'scan.refresh',
+        'scan.issueContext',
         'scan.start',
         'scan.selector',
         'scan.context',

@@ -118,7 +118,12 @@ let ScanResults = class extends LitElement {
                                               <span class="detail-label">${lll("mindfula11y.scan.selector")}</span>
                                               <code class="code">${issue.selector}</code>
                                           </p>` : nothing}
-                                ${issue.context !== null && issue.context !== "" ? html`<pre class="context"><code class="code">${issue.context}</code></pre>` : nothing}
+                                ${issue.context !== null && issue.context !== "" ? html`<pre
+                                              class="context"
+                                              tabindex="0"
+                                              role="region"
+                                              aria-label=${lll("mindfula11y.scan.issueContext")}
+                                          ><code class="code">${issue.context}</code></pre>` : nothing}
                             </li>`
     )}
                     </ul>

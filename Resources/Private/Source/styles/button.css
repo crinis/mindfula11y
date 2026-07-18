@@ -42,7 +42,10 @@
             border-color: var(--mindfula11y-input-hover-border);
         }
 
-        &:disabled {
+        /* [aria-disabled]: async buttons stay focusable while busy (a real
+           disabled attribute would strand keyboard focus on <body>). */
+        &:disabled,
+        &[aria-disabled="true"] {
             color: var(--mindfula11y-text-subtle);
             cursor: default;
         }

@@ -220,7 +220,7 @@ function renderActions(
     return html`<div class="actions">
         ${
             demand !== null
-                ? html`<button type="button" class="button" data-action="trigger" ?disabled=${actionBusy || running} @click=${onTrigger}>
+                ? html`<button type="button" class="button" data-action="trigger" aria-disabled=${actionBusy || running ? 'true' : nothing} @click=${onTrigger}>
                       ${
                           actionBusy
                               ? html`<typo3-backend-spinner size="small"></typo3-backend-spinner>`
@@ -235,7 +235,7 @@ function renderActions(
         }
         ${
             running && scanId !== ''
-                ? html`<button type="button" class="button" data-action="cancel" ?disabled=${actionBusy} @click=${onCancel}>
+                ? html`<button type="button" class="button" data-action="cancel" aria-disabled=${actionBusy ? 'true' : nothing} @click=${onCancel}>
                       <typo3-backend-icon identifier="actions-close" size="small"></typo3-backend-icon>
                       ${lll('mindfula11y.scan.cancel')}
                   </button>`
@@ -265,7 +265,7 @@ function renderAiToggle(data: ScanPanelData, onChange: (checked: boolean) => voi
     </span>`;
 }
 
-function renderRequestError(data: ScanPanelData, onReload: () => void): TemplateResult | typeof nothing {
+function renderRequestError(data: ScanPanelData): TemplateResult | typeof nothing {
     if (data.actionError !== null) {
         return html`<mindfula11y-notice state="danger">
             ${renderNoticeBody(data.actionError)}
@@ -274,10 +274,21 @@ function renderRequestError(data: ScanPanelData, onReload: () => void): Template
     if (data.controllerState === 'error') {
         return html`<mindfula11y-notice state="danger">
             ${renderNoticeBody({ title: lll('mindfula11y.scan.error.loading'), description: data.loadErrorDescription })}
-            <button type="button" class="button" @click=${onReload}>${lll('mindfula11y.scan.refresh')}</button>
         </mindfula11y-notice>`;
     }
     return nothing;
+}
+
+/**
+ * Rendered OUTSIDE the role="status" container: role="status" is implicitly
+ * atomic, so an embedded control would be re-announced as status text — and
+ * a live region must not contain interactive content.
+ */
+function renderErrorActions(data: ScanPanelData, onReload: () => void): TemplateResult | typeof nothing {
+    if (data.controllerState !== 'error') {
+        return nothing;
+    }
+    return html`<button type="button" class="button" @click=${onReload}>${lll('mindfula11y.scan.refresh')}</button>`;
 }
 
 function renderBody(data: ScanPanelData): TemplateResult | typeof nothing {
@@ -310,6 +321,7 @@ export function renderPanelContent(data: ScanPanelData, callbacks: ScanPanelCall
         ${renderHints(data)}
         ${renderAiToggle(data, callbacks.onAiToggleChange)}
         ${renderActions(data, () => callbacks.onTrigger(data.tab), callbacks.onCancel)}
-        <div class="status-region" role="status">${renderRequestError(data, callbacks.onReload)}</div>
+        <div class="status-region" role="status">${renderRequestError(data)}</div>
+        ${renderErrorActions(data, callbacks.onReload)}
         ${renderBody(data)}`;
 }

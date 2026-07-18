@@ -109,7 +109,7 @@ let AltlessFileReference = class extends LitElement {
                 ${this.generateAltTextDemand !== null && !this.decorative ? html`<button
                               type="button"
                               class="button"
-                              ?disabled=${this.busy !== "idle"}
+                              aria-disabled=${this.busy !== "idle" ? "true" : nothing}
                               @click=${this.handleGenerate}
                           >
                               ${this.busy === "generating" ? html`<typo3-backend-spinner size="small"></typo3-backend-spinner>` : html`<typo3-backend-icon
@@ -121,7 +121,7 @@ let AltlessFileReference = class extends LitElement {
                 <button
                     type="button"
                     class="button"
-                    ?disabled=${this.busy !== "idle" || this.value === this.lastSavedValue && this.decorative === this.lastSavedDecorative}
+                    aria-disabled=${this.busy !== "idle" || this.value === this.lastSavedValue && this.decorative === this.lastSavedDecorative ? "true" : nothing}
                     @click=${this.handleSave}
                 >
                     ${this.busy === "saving" ? html`<typo3-backend-spinner size="small"></typo3-backend-spinner>` : html`<typo3-backend-icon identifier="actions-save" size="small"></typo3-backend-icon>`}
@@ -176,7 +176,7 @@ let AltlessFileReference = class extends LitElement {
     }
   }
   async handleSave() {
-    if (this.busy !== "idle") {
+    if (this.busy !== "idle" || this.value === this.lastSavedValue && this.decorative === this.lastSavedDecorative) {
       return;
     }
     this.busy = "saving";

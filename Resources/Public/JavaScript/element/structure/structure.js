@@ -130,6 +130,7 @@ let Structure = class extends LitElement {
             ${this.renderHeader()}
             ${this.announcer.render()}
             <div class="status-region" role="status">${this.renderError()}</div>
+            ${this.renderErrorRetry()}
             ${this.renderBody()}
         </div>`;
   }
@@ -182,16 +183,26 @@ let Structure = class extends LitElement {
     const description = error instanceof StructureAnalysisError ? lll(`mindfula11y.structure.error.rendering.${error.code}`) : lll("mindfula11y.structure.error.rendering.description");
     return html`<mindfula11y-notice state="danger">
             ${renderNoticeBody({ title: lll("mindfula11y.structure.error.rendering"), description })}
-            <button
-                type="button"
-                class="button retry"
-                @click=${() => {
+        </mindfula11y-notice>`;
+  }
+  /**
+   * Rendered OUTSIDE the role="status" container: role="status" is
+   * implicitly atomic, so an embedded control would be re-announced as
+   * status text — and a live region must not contain interactive content.
+   */
+  renderErrorRetry() {
+    if (this.analyzeTask.status !== TaskStatus.ERROR) {
+      return nothing;
+    }
+    return html`<button
+            type="button"
+            class="button retry"
+            @click=${() => {
       void this.analyzeTask.run();
     }}
-            >
-                ${lll("mindfula11y.structure.retry")}
-            </button>
-        </mindfula11y-notice>`;
+        >
+            ${lll("mindfula11y.structure.retry")}
+        </button>`;
   }
   renderBody() {
     if (this.analyzeTask.status === TaskStatus.ERROR) {
@@ -221,8 +232,8 @@ let Structure = class extends LitElement {
     if (findings.length === 0) {
       return nothing;
     }
-    return html`<section class="summary" aria-label=${lll("mindfula11y.structureErrors")}>
-            <ul class="findings">
+    return html`<div class="summary">
+            <ul class="findings" aria-label=${lll("mindfula11y.structureErrors")}>
                 ${findings.map(
       (finding) => html`<li>
                         <button
@@ -241,7 +252,7 @@ let Structure = class extends LitElement {
                     </li>`
     )}
             </ul>
-        </section>`;
+        </div>`;
   }
   renderHeading(content) {
     const tag = HEADING_TAGS[this.headingLevel] ?? FALLBACK_HEADING_TAG;

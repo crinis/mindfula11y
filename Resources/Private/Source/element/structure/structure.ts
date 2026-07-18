@@ -211,6 +211,7 @@ export class Structure extends LitElement {
             ${this.renderHeader()}
             ${this.announcer.render()}
             <div class="status-region" role="status">${this.renderError()}</div>
+            ${this.renderErrorRetry()}
             ${this.renderBody()}
         </div>`;
     }
@@ -275,16 +276,27 @@ export class Structure extends LitElement {
                 : lll('mindfula11y.structure.error.rendering.description');
         return html`<mindfula11y-notice state="danger">
             ${renderNoticeBody({ title: lll('mindfula11y.structure.error.rendering'), description })}
-            <button
-                type="button"
-                class="button retry"
-                @click=${(): void => {
-                    void this.analyzeTask.run();
-                }}
-            >
-                ${lll('mindfula11y.structure.retry')}
-            </button>
         </mindfula11y-notice>`;
+    }
+
+    /**
+     * Rendered OUTSIDE the role="status" container: role="status" is
+     * implicitly atomic, so an embedded control would be re-announced as
+     * status text — and a live region must not contain interactive content.
+     */
+    private renderErrorRetry(): TemplateResult | typeof nothing {
+        if (this.analyzeTask.status !== TaskStatus.ERROR) {
+            return nothing;
+        }
+        return html`<button
+            type="button"
+            class="button retry"
+            @click=${(): void => {
+                void this.analyzeTask.run();
+            }}
+        >
+            ${lll('mindfula11y.structure.retry')}
+        </button>`;
     }
 
     private renderBody(): TemplateResult | typeof nothing {
@@ -321,8 +333,8 @@ export class Structure extends LitElement {
             // live region still announces the analysis result.
             return nothing;
         }
-        return html`<section class="summary" aria-label=${lll('mindfula11y.structureErrors')}>
-            <ul class="findings">
+        return html`<div class="summary">
+            <ul class="findings" aria-label=${lll('mindfula11y.structureErrors')}>
                 ${findings.map(
                     (finding) => html`<li>
                         <button
@@ -341,7 +353,7 @@ export class Structure extends LitElement {
                     </li>`,
                 )}
             </ul>
-        </section>`;
+        </div>`;
     }
 
     private renderHeading(content: string): TemplateResult {

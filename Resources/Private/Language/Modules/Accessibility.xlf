@@ -599,6 +599,9 @@
             <trans-unit id="scan.refresh" resname="scan.refresh">
                 <source>Refresh Scan</source>
             </trans-unit>
+            <trans-unit id="scan.issueContext" resname="scan.issueContext">
+                <source>Affected markup</source>
+            </trans-unit>
             <trans-unit id="scan.updatedAt" resname="scan.updatedAt">
                 <source>Last scanned:</source>
             </trans-unit>
