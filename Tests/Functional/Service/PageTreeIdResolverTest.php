@@ -31,6 +31,13 @@ final class PageTreeIdResolverTest extends AbstractAuthorizationTestCase
         return $this->get(PageTreeIdResolver::class);
     }
 
+    public function testZeroLevelsContainsOnlyTheSelectedPage(): void
+    {
+        $this->logInBackendUser(2);
+
+        self::assertSame([10], $this->subject()->getPageTreeIds(10, 0));
+    }
+
     public function testEditorTreeContainsGrantedPagesButNotDeniedOnes(): void
     {
         $this->logInBackendUser(2);

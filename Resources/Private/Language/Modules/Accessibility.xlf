@@ -129,22 +129,22 @@
             </trans-unit>
 
             <trans-unit id="module.menu.pageLevels" resname="module.menu.pageLevels">
-                <source>Scan Scope</source>
-            </trans-unit>
-            <trans-unit id="module.menu.pageLevels.1" resname="module.menu.pageLevels.1">
-                <source>1 level deep</source>
+                <source>Page Scope</source>
             </trans-unit>
             <trans-unit id="module.menu.pageLevels.0" resname="module.menu.pageLevels.0">
                 <source>This page</source>
             </trans-unit>
+            <trans-unit id="module.menu.pageLevels.1" resname="module.menu.pageLevels.1">
+                <source>Direct subpages</source>
+            </trans-unit>
             <trans-unit id="module.menu.pageLevels.5" resname="module.menu.pageLevels.5">
-                <source>5 levels deep</source>
+                <source>Up to 5 subpage levels</source>
             </trans-unit>
             <trans-unit id="module.menu.pageLevels.10" resname="module.menu.pageLevels.10">
-                <source>10 levels deep</source>
+                <source>Up to 10 subpage levels</source>
             </trans-unit>
             <trans-unit id="module.menu.pageLevels.99" resname="module.menu.pageLevels.99">
-                <source>All levels</source>
+                <source>All subpages</source>
             </trans-unit>
 
             <trans-unit id="module.menu.tables" resname="module.menu.tables">

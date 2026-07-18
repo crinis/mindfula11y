@@ -163,24 +163,28 @@
             </trans-unit>
 
             <trans-unit id="module.menu.pageLevels" resname="module.menu.pageLevels">
-                <source>Scan Scope</source>
-                <target>Scan-Umfang</target>
+                <source>Page Scope</source>
+                <target>Seitenumfang</target>
+            </trans-unit>
+            <trans-unit id="module.menu.pageLevels.0" resname="module.menu.pageLevels.0">
+                <source>This page</source>
+                <target>Diese Seite</target>
             </trans-unit>
             <trans-unit id="module.menu.pageLevels.1" resname="module.menu.pageLevels.1">
-                <source>1 level deep</source>
-                <target>1 Ebene tief</target>
+                <source>Direct subpages</source>
+                <target>Direkte Unterseiten</target>
             </trans-unit>
             <trans-unit id="module.menu.pageLevels.5" resname="module.menu.pageLevels.5">
-                <source>5 levels deep</source>
-                <target>5 Ebenen tief</target>
+                <source>Up to 5 subpage levels</source>
+                <target>Bis zu 5 Unterseitenebenen</target>
             </trans-unit>
             <trans-unit id="module.menu.pageLevels.10" resname="module.menu.pageLevels.10">
-                <source>10 levels deep</source>
-                <target>10 Ebenen tief</target>
+                <source>Up to 10 subpage levels</source>
+                <target>Bis zu 10 Unterseitenebenen</target>
             </trans-unit>
             <trans-unit id="module.menu.pageLevels.99" resname="module.menu.pageLevels.99">
-                <source>All levels</source>
-                <target>Alle Ebenen</target>
+                <source>All subpages</source>
+                <target>Alle Unterseiten</target>
             </trans-unit>
 
             <trans-unit id="module.menu.tables" resname="module.menu.tables">

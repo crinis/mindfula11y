@@ -44,7 +44,7 @@ Open feature **Missing alternative text** to review file references that miss al
 You can:
 
 - filter by record type
-- change scan depth in the page tree (`1`, `5`, `10`, `99` levels)
+- keep the default scope on the current page or include direct, multiple, or all subpages
 - switch language
 - edit alt text inline
 - mark an image reference as decorative directly in the module card or in its file-reference editor

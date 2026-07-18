@@ -86,6 +86,14 @@ final class AccessibilityModuleControllerTest extends AbstractAuthorizationTestC
         return $this->get(AccessibilityModuleController::class)->mainAction($request);
     }
 
+    public function testMissingAltTextPageScopeDefaultsToCurrentPage(): void
+    {
+        $module = $this->get(ModuleProvider::class)->getModule('mindfula11y_accessibility');
+        self::assertNotNull($module);
+
+        self::assertSame(0, $module->getDefaultModuleData()['pageLevels'] ?? null);
+    }
+
     public function testPageWithoutShowPermissionRendersForbidden(): void
     {
         $this->logInBackendUser(2);

@@ -40,7 +40,7 @@ return [
         ],
         'moduleData' => [
             'languageId' => 0,
-            'pageLevels' => 1,
+            'pageLevels' => 0,
             'tableName' => '',
             'currentPage' => 1,
             'filterFileMetaData' => true,

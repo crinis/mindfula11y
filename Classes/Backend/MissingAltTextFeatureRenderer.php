@@ -48,7 +48,7 @@ final readonly class MissingAltTextFeatureRenderer implements FeatureRendererInt
     private const ITEMS_PER_PAGE = 100;
 
     /** Page-levels choices offered by the menu; other values are rejected. */
-    private const PAGE_LEVELS_OPTIONS = [1, 5, 10, 99];
+    private const PAGE_LEVELS_OPTIONS = [0, 1, 5, 10, 99];
 
     public function __construct(
         private ModuleSettingsService $moduleSettingsService,
@@ -68,9 +68,9 @@ final readonly class MissingAltTextFeatureRenderer implements FeatureRendererInt
         // Module data is GET-writable: clamp the page (it feeds the query
         // OFFSET) and only accept the page-levels values the menu offers.
         $currentPage = max(1, (int)$context->moduleData->get('currentPage', 1));
-        $pageLevels = (int)$context->moduleData->get('pageLevels', 1);
+        $pageLevels = (int)$context->moduleData->get('pageLevels', 0);
         if (!in_array($pageLevels, self::PAGE_LEVELS_OPTIONS, true)) {
-            $pageLevels = 1;
+            $pageLevels = 0;
         }
         $tableName = (string)$context->moduleData->get('tableName', '');
 
