@@ -22,6 +22,7 @@ declare(strict_types=1);
 
 namespace MindfulMarkup\MindfulA11y\Controller;
 
+use MindfulMarkup\MindfulA11y\Service\ModuleSettingsService;
 use MindfulMarkup\MindfulA11y\Service\PermissionService;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -44,6 +45,7 @@ final readonly class StructureAnalysisEnrichmentAjaxController
 
     public function __construct(
         private PermissionService $permissionService,
+        private ModuleSettingsService $moduleSettingsService,
         private FormDataCompiler $formDataCompiler,
         private UriBuilder $backendUriBuilder,
         private BackendLayoutView $backendLayoutView,
@@ -74,6 +76,13 @@ final readonly class StructureAnalysisEnrichmentAjaxController
             // layout or record-level permission checks.
             $record = BackendUtility::getRecordWSOL($tableName, $uid);
             if (!is_array($record)) {
+                continue;
+            }
+            // Feature-gate parity with ticket issuance: where Page TSconfig
+            // disables both structure features, no editing metadata is served
+            // either. Evaluated per record (not per request) because the batch
+            // may span pages with different TSconfig.
+            if (!$this->isStructureAnalysisEnabledForRecord($tableName, $uid, $record)) {
                 continue;
             }
             // Kept per column: checkRecordEditAccess() ANDs the non-exclude
@@ -136,6 +145,23 @@ final readonly class StructureAnalysisEnrichmentAjaxController
         }
 
         return new JsonResponse(['records' => $metadata]);
+    }
+
+    /**
+     * Whether Page TSconfig enables at least one structure feature for the
+     * page this record lives on (for pages records: the page itself).
+     * getPagesTSconfig() caches per page id, so batches spanning few pages
+     * stay cheap.
+     *
+     * @param array<string, mixed> $record
+     */
+    private function isStructureAnalysisEnabledForRecord(string $tableName, int $uid, array $record): bool
+    {
+        $pageUid = $tableName === 'pages' ? $uid : (int)($record['pid'] ?? 0);
+        $pageTsConfig = $this->moduleSettingsService->getConvertedPageTsConfig($pageUid);
+
+        return $this->moduleSettingsService->hasHeadingStructureAccess($pageTsConfig)
+            || $this->moduleSettingsService->hasLandmarkStructureAccess($pageTsConfig);
     }
 
     /**

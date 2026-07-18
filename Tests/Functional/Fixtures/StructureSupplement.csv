@@ -3,3 +3,6 @@
 ,600,1,"No Structure Access",1,"/no-structure-access",0,0,0,0,0,0,0,0,0,19,"mod.mindfula11y_accessibility.headingStructure.enable = 0
 mod.mindfula11y_accessibility.landmarkStructure.enable = 0"
 ,601,1,"No Translation",1,"/no-translation",0,0,0,0,0,0,0,0,0,19,""
+"tt_content"
+,"uid","pid","CType","header","sys_language_uid","l18n_parent","editlock","assets"
+,600,600,"text","Content on structure-disabled page",0,0,0,0

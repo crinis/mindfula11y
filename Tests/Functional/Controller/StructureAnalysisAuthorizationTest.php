@@ -610,4 +610,41 @@ final class StructureAnalysisAuthorizationTest extends AbstractAuthorizationTest
         $body = $this->decodeJsonResponse($response);
         self::assertSame([], $body['records']);
     }
+
+    /**
+     * DB-mount gate: content 106 sits on page 20, the second site root
+     * outside every db mount but with full perms_everybody (19). The mount
+     * dimension is enforced indirectly — calcPerms() yields NOTHING for
+     * out-of-webmount pages — so this pins that checkRecordEditAccess()
+     * stays mount-safe for the direct-POST enrichment path.
+     */
+    public function testEnrichActionFiltersOutRecordOutsideWebmount(): void
+    {
+        $this->logInBackendUser(2);
+        $response = $this->enrichmentController()->enrichAction($this->createJsonRequest(['records' => [
+            ['tableName' => 'tt_content', 'columnName' => 'tx_mindfula11y_headingtype', 'uid' => 106],
+        ]]));
+
+        self::assertSame(200, $response->getStatusCode());
+        self::assertSame([], $this->decodeJsonResponse($response)['records']);
+    }
+
+    /**
+     * TSconfig gate parity with ticket issuance: page 600 disables both
+     * structure features, so its records must yield no editing metadata even
+     * for the full editor (page perms 19, all record dimensions granted —
+     * only the TSconfig differs from the positive baseline on page 10).
+     * Without this gate, a direct POST bypasses the feature switch that
+     * ticketAction enforces.
+     */
+    public function testEnrichActionFiltersOutRecordOnStructureDisabledPage(): void
+    {
+        $this->logInBackendUser(2);
+        $response = $this->enrichmentController()->enrichAction($this->createJsonRequest(['records' => [
+            ['tableName' => 'tt_content', 'columnName' => 'tx_mindfula11y_headingtype', 'uid' => 600],
+        ]]));
+
+        self::assertSame(200, $response->getStatusCode());
+        self::assertSame([], $this->decodeJsonResponse($response)['records']);
+    }
 }
