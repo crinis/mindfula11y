@@ -93,6 +93,7 @@ final readonly class ScanDemandFactory
             pageRecordSnapshot: $this->recordSnapshotService->fingerprint('pages', $pageRecord),
             pageLevels: $pageLevels,
             crawl: $crawl,
+            expiresAt: time() + CreateScanDemand::LIFETIME,
         );
     }
 

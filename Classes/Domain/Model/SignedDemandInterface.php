@@ -25,12 +25,13 @@ namespace MindfulMarkup\MindfulA11y\Domain\Model;
 use MindfulMarkup\MindfulA11y\Service\DemandSignatureService;
 
 /**
- * A session-bound demand whose scope is HMAC-protected by
- * {@see DemandSignatureService} — the models stay pure value objects and never
- * sign themselves. The session-less {@see StructureAnalysisTicket} deliberately
- * does not implement this; its signing lives in StructureAnalysisTicketService.
+ * The session-bound flavor of {@see SignedScopeInterface}: a demand whose
+ * scope is HMAC-protected by {@see DemandSignatureService} — the models stay
+ * pure value objects and never sign themselves. The session-less bearer
+ * {@see StructureAnalysisTicket} deliberately does not implement this; its
+ * detached-signature wire format lives in StructureAnalysisTicketService.
  */
-interface SignedDemandInterface
+interface SignedDemandInterface extends SignedScopeInterface
 {
     /**
      * The ordered HMAC payload segments of this demand type.
@@ -43,14 +44,16 @@ interface SignedDemandInterface
      */
     public function signedProperties(): array;
 
-    /** Unix timestamp after which this demand must not be redeemed. */
-    public function getExpiresAt(): int;
+    /**
+     * The stable HMAC domain of this demand type (its SIGNING_CONTEXT) —
+     * deliberately decoupled from the PHP class name. Change it whenever the
+     * signed payload's shape or semantics change, so previously rendered
+     * demands fail closed.
+     */
+    public function signingContext(): string;
 
     /** The client-supplied signature carried for validation; '' on a freshly issued demand. */
     public function getSignature(): string;
-
-    /** Maximum seconds a demand of this type stays redeemable (its LIFETIME). */
-    public function maximumLifetime(): int;
 
     /**
      * The serialized wire shape. Carries the stored signature only — markup

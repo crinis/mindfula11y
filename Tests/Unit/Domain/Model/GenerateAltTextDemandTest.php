@@ -20,7 +20,8 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * Value-object shape of the alt-text demand: request-data gate, wire
- * round-trip and expiry defaulting. Signature creation and validation live in
+ * round-trip and verbatim expiry storage (fresh expiries are an issuance
+ * concern of AltTextDemandFactory). Signature creation and validation live in
  * DemandSignatureService and are covered by DemandSignatureServiceTest.
  */
 final class GenerateAltTextDemandTest extends TestCase
@@ -46,14 +47,15 @@ final class GenerateAltTextDemandTest extends TestCase
     }
 
     #[Test]
-    public function freshDemandCarriesNoSignatureAndALifetimeExpiry(): void
+    public function expiryIsStoredVerbatimAndNeverResolvedFresh(): void
     {
-        $now = time();
+        // The VO is deterministic: an unset expiry stays 0 and fails closed at
+        // validation — resolving a fresh one is the issuing factory's job.
         $demand = $this->createDemand();
 
         self::assertSame('', $demand->getSignature());
-        self::assertGreaterThan($now, $demand->getExpiresAt());
-        self::assertLessThanOrEqual($now + GenerateAltTextDemand::LIFETIME, $demand->getExpiresAt());
+        self::assertSame(0, $demand->getExpiresAt());
+        self::assertSame(2000000000, $this->createDemand(expiresAt: 2000000000)->getExpiresAt());
         self::assertSame(GenerateAltTextDemand::LIFETIME, $demand->maximumLifetime());
     }
 

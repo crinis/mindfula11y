@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace MindfulMarkup\MindfulA11y\Tests\Functional\Service;
 
+use MindfulMarkup\MindfulA11y\Domain\Model\CreateScanDemand;
+use MindfulMarkup\MindfulA11y\Service\DemandSignatureService;
 use MindfulMarkup\MindfulA11y\Service\ScanDemandFactory;
 use MindfulMarkup\MindfulA11y\Tests\Functional\AbstractAuthorizationTestCase;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
@@ -57,5 +59,26 @@ final class ScanDemandFactoryTest extends AbstractAuthorizationTestCase
 
         self::assertNotNull($demand);
         self::assertSame(1, $demand->getLanguageId());
+    }
+
+    public function testIssuedDemandCarriesAFreshExpiryAndValidates(): void
+    {
+        $this->logInBackendUser(2);
+        $pageRecord = BackendUtility::getRecord('pages', 18);
+        self::assertIsArray($pageRecord);
+
+        // The demand VO stores expiries verbatim, so the factory must resolve
+        // a fresh one at issuance — a forgotten expiry fails closed here.
+        $before = time();
+        $demand = $this->subject()->create($pageRecord, 18, 'https://example.com/page-only');
+
+        self::assertNotNull($demand);
+        self::assertGreaterThan($before, $demand->getExpiresAt());
+        self::assertLessThanOrEqual(time() + CreateScanDemand::LIFETIME, $demand->getExpiresAt());
+
+        $signatureService = $this->get(DemandSignatureService::class);
+        $redeemed = CreateScanDemand::fromRequestData($signatureService->serialize($demand));
+        self::assertNotNull($redeemed);
+        self::assertTrue($signatureService->isValid($redeemed));
     }
 }

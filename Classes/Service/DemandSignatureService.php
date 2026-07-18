@@ -23,6 +23,7 @@ declare(strict_types=1);
 namespace MindfulMarkup\MindfulA11y\Service;
 
 use MindfulMarkup\MindfulA11y\Domain\Model\SignedDemandInterface;
+use MindfulMarkup\MindfulA11y\Security\SignedScopePolicy;
 use TYPO3\CMS\Core\Crypto\HashService;
 
 /**
@@ -31,8 +32,8 @@ use TYPO3\CMS\Core\Crypto\HashService;
  * signature from the demand's scope and compares ({@see isValid()}).
  * Centralized so a security-policy change cannot silently apply to one demand
  * type but not the other. The signature bytes are a wire contract with
- * already-rendered demands (payload order and the FQCN HMAC domain) — see
- * SignedDemandInterface::signedProperties().
+ * already-rendered demands (payload order and the stable signing context) —
+ * see SignedDemandInterface::signedProperties().
  */
 final readonly class DemandSignatureService
 {
@@ -41,9 +42,9 @@ final readonly class DemandSignatureService
     ) {}
 
     /**
-     * The authoritative HMAC over the demand's scope. The concrete demand
-     * class keeps each type's HMAC domain-separated: a signature for one
-     * demand type never validates for another.
+     * The authoritative HMAC over the demand's scope. Each demand type's
+     * stable signing context keeps the HMAC domain-separated: a signature for
+     * one demand type never validates for another.
      */
     public function sign(SignedDemandInterface $demand): string
     {
@@ -52,19 +53,16 @@ final readonly class DemandSignatureService
         // ["a", "b|c"] indistinguishable to the HMAC.
         $payload = json_encode($demand->signedProperties(), JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
 
-        return $this->hashService->hmac($payload, $demand::class);
+        return $this->hashService->hmac($payload, $demand->signingContext());
     }
 
     /**
-     * A demand is valid only while unexpired, within its type's maximum
-     * lifetime window (a forged far-future expiry fails even before the
-     * signature comparison), and carrying an intact HMAC over its scope.
+     * A demand is valid only while inside the shared bounded-expiry window
+     * and carrying an intact HMAC over its scope.
      */
     public function isValid(SignedDemandInterface $demand): bool
     {
-        $now = time();
-        return $demand->getExpiresAt() > $now
-            && $demand->getExpiresAt() <= $now + $demand->maximumLifetime()
+        return SignedScopePolicy::isCurrent($demand, time())
             && hash_equals($this->sign($demand), $demand->getSignature());
     }
 

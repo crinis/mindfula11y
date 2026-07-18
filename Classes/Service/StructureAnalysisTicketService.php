@@ -21,13 +21,8 @@ use TYPO3\CMS\Core\Utility\StringUtility;
 /** Creates and validates short-lived, stateless frontend analysis capabilities. */
 final readonly class StructureAnalysisTicketService
 {
-    /** Short replay window for this stateless, narrowly scoped capability. */
-    public const LIFETIME = 15;
-
     /** Query parameter carrying the signed ticket on the frontend preview URL. */
     public const TICKET_QUERY_PARAMETER = 'mindfula11y_structure_ticket';
-
-    private const SIGNING_CONTEXT = self::class . ':v' . StructureAnalysisTicket::VERSION;
 
     public function __construct(
         private HashService $hashService,
@@ -55,7 +50,7 @@ final readonly class StructureAnalysisTicketService
             throw new \InvalidArgumentException('Invalid structure analysis authorization scope.', 1760000004);
         }
         $requestId = bin2hex(random_bytes(16));
-        $expiresAt = time() + self::LIFETIME;
+        $expiresAt = time() + StructureAnalysisTicket::LIFETIME;
         $ticket = new StructureAnalysisTicket(
             requestId: $requestId,
             pageId: $pageId,
@@ -70,7 +65,7 @@ final readonly class StructureAnalysisTicketService
         );
         $json = json_encode($ticket, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
         $payload = StringUtility::base64urlEncode($json);
-        $signature = $this->hashService->hmac($payload, self::SIGNING_CONTEXT);
+        $signature = $this->hashService->hmac($payload, StructureAnalysisTicket::SIGNING_CONTEXT);
 
         return [
             'token' => $payload . '.' . $signature,
@@ -117,7 +112,7 @@ final readonly class StructureAnalysisTicketService
         $now = time();
         [$payload, $signature] = array_pad(explode('.', $token, 2), 2, '');
         if ($payload === '' || $signature === ''
-            || !$this->hashService->validateHmac($payload, self::SIGNING_CONTEXT, $signature)
+            || !$this->hashService->validateHmac($payload, StructureAnalysisTicket::SIGNING_CONTEXT, $signature)
         ) {
             return null;
         }
@@ -136,7 +131,7 @@ final readonly class StructureAnalysisTicketService
         }
         // The signed expiration is enforced for every redemption and does not
         // depend on mutable server-side state or garbage collection.
-        $ticket = StructureAnalysisTicket::fromClaims($claims, $now, self::LIFETIME);
+        $ticket = StructureAnalysisTicket::fromClaims($claims, $now);
         if ($ticket === null) {
             return null;
         }

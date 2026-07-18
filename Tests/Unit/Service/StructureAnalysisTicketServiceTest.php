@@ -134,10 +134,40 @@ final class StructureAnalysisTicketServiceTest extends TestCase
     }
 
     #[Test]
+    public function tokenSignedWithTheStableContextValidates(): void
+    {
+        // Byte-compatibility pin: the signing context is a wire contract
+        // decoupled from PHP class names. Reproduce the wire format by hand;
+        // a context change must be deliberate (payload shape/semantics change)
+        // and fails all previously issued tickets closed.
+        self::assertSame('mindfula11y:ticket:structure-analysis:v3', StructureAnalysisTicket::SIGNING_CONTEXT);
+        $claims = [
+            'version' => StructureAnalysisTicket::VERSION,
+            'requestId' => str_repeat('cd', 16),
+            'pageId' => 42,
+            'languageId' => 0,
+            'workspaceId' => 0,
+            'pageRecordSnapshot' => str_repeat('a', 64),
+            'backendUserId' => 3,
+            'backendOrigin' => 'https://backend.example',
+            'frontendOrigin' => 'https://frontend.example',
+            'target' => '/page',
+            'expiresAt' => time() + 10,
+        ];
+        $payload = StringUtility::base64urlEncode(json_encode($claims, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES));
+        $signature = $this->hashService->hmac($payload, 'mindfula11y:ticket:structure-analysis:v3');
+
+        $ticket = $this->subject->validate($payload . '.' . $signature);
+
+        self::assertNotNull($ticket);
+        self::assertSame(42, $ticket->pageId);
+    }
+
+    #[Test]
     public function expiredTicketIsRejectedEvenWithValidSignature(): void
     {
-        // Reproduce the wire format with a past expiry; the signing context is
-        // part of the service contract (class name + ticket version).
+        // Reproduce the wire format with a past expiry signed with the
+        // authentic context, so only the temporal check can reject it.
         $claims = [
             'version' => StructureAnalysisTicket::VERSION,
             'requestId' => str_repeat('cd', 16),
@@ -152,10 +182,7 @@ final class StructureAnalysisTicketServiceTest extends TestCase
             'expiresAt' => time() - 1,
         ];
         $payload = StringUtility::base64urlEncode(json_encode($claims, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES));
-        $signature = $this->hashService->hmac(
-            $payload,
-            StructureAnalysisTicketService::class . ':v' . StructureAnalysisTicket::VERSION,
-        );
+        $signature = $this->hashService->hmac($payload, StructureAnalysisTicket::SIGNING_CONTEXT);
 
         self::assertNull($this->subject->validate($payload . '.' . $signature));
     }

@@ -111,7 +111,7 @@ final class ScanAjaxControllerTest extends AbstractAuthorizationTestCase
                 : str_repeat('0', 64),
             pageLevels: $pageLevels,
             crawl: $crawl,
-            expiresAt: $expiresAt,
+            expiresAt: $expiresAt ?: time() + CreateScanDemand::LIFETIME,
         ));
     }
 

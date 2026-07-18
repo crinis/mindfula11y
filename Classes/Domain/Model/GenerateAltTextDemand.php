@@ -58,6 +58,9 @@ final readonly class GenerateAltTextDemand implements SignedDemandInterface
     /** Demands are rendered into FormEngine/module markup that may stay open a while before use. */
     public const LIFETIME = 3600;
 
+    /** Stable HMAC domain — change only together with a payload shape/semantics change. */
+    public const SIGNING_CONTEXT = 'mindfula11y:demand:generate-alt-text';
+
     /**
      * @param int $userId Current user ID.
      * @param int $pageUid Page UID we are working on.

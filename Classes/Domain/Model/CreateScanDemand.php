@@ -55,6 +55,9 @@ final readonly class CreateScanDemand implements SignedDemandInterface
     /** Scan demands are rendered into the module and may be used after user interaction. */
     public const LIFETIME = 3600;
 
+    /** Stable HMAC domain — change only together with a payload shape/semantics change. */
+    public const SIGNING_CONTEXT = 'mindfula11y:demand:create-scan';
+
     /**
      * @param int $userId Current user ID.
      * @param int $pageId Original page ID (not translated).

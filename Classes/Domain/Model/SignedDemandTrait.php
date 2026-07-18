@@ -26,16 +26,18 @@ use MindfulMarkup\MindfulA11y\Service\DemandSignatureService;
 
 /**
  * Value-object plumbing shared by the session-bound signed demands
- * ({@see CreateScanDemand}, {@see GenerateAltTextDemand}): expiry
- * initialization, verbatim signature storage, and the strict request-field
- * gate. Signing and validation live in {@see DemandSignatureService} — the
- * demands themselves stay pure value objects.
+ * ({@see CreateScanDemand}, {@see GenerateAltTextDemand}): verbatim expiry
+ * and signature storage, and the strict request-field gate. Signing and
+ * validation live in {@see DemandSignatureService}, fresh expiries are the
+ * issuing factories' concern — the demands themselves stay deterministic
+ * value objects.
  *
  * The session-less {@see StructureAnalysisTicket} deliberately does NOT share
  * this lifecycle — its signing lives in StructureAnalysisTicketService.
  *
  * Using classes must declare `public const LIFETIME` (seconds a fresh demand
- * stays redeemable) and implement {@see SignedDemandInterface::signedProperties()}.
+ * stays redeemable), `public const SIGNING_CONTEXT` (the stable HMAC domain)
+ * and implement {@see SignedDemandInterface::signedProperties()}.
  */
 trait SignedDemandTrait
 {
@@ -43,14 +45,15 @@ trait SignedDemandTrait
     private readonly string $signature;
 
     /**
-     * Call from the constructor: resolves a fresh expiry when none is given
-     * and stores a (client-supplied) signature verbatim for later validation.
-     * Freshly issued demands carry no signature — the authoritative one is
-     * added by DemandSignatureService::serialize() at rendering time.
+     * Call from the constructor: stores expiry and (client-supplied)
+     * signature verbatim. An unset expiry stays 0 and fails closed at
+     * validation — the issuing factory passes time() + LIFETIME. Freshly
+     * issued demands carry no signature — the authoritative one is added by
+     * DemandSignatureService::serialize() at rendering time.
      */
     private function initializeSignedDemand(int $expiresAt, string $signature): void
     {
-        $this->expiresAt = $expiresAt > 0 ? $expiresAt : time() + self::LIFETIME;
+        $this->expiresAt = $expiresAt;
         $this->signature = $signature;
     }
 
@@ -90,5 +93,10 @@ trait SignedDemandTrait
     public function maximumLifetime(): int
     {
         return self::LIFETIME;
+    }
+
+    public function signingContext(): string
+    {
+        return self::SIGNING_CONTEXT;
     }
 }

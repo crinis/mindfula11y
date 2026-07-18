@@ -103,7 +103,7 @@ final class AltTextAjaxControllerTest extends AbstractAuthorizationTestCase
                 ? $snapshotService->fingerprint('sys_file_reference', $reference)
                 : '',
             recordColumns: $recordColumns,
-            expiresAt: $expiresAt,
+            expiresAt: $expiresAt ?: time() + GenerateAltTextDemand::LIFETIME,
         ));
     }
 

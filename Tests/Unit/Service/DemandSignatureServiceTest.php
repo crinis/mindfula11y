@@ -25,7 +25,7 @@ use TYPO3\CMS\Core\Crypto\HashService;
  * The single HMAC authority for the session-bound demands: issuance signs at
  * serialization time, redemption re-derives and compares. The signature bytes
  * are a wire contract with already-rendered demands — the byte-compatibility
- * test below pins payload order and HMAC domain (the demand FQCN).
+ * test below pins payload order and the stable signing context.
  */
 final class DemandSignatureServiceTest extends TestCase
 {
@@ -55,7 +55,8 @@ final class DemandSignatureServiceTest extends TestCase
             pageRecordSnapshot: str_repeat('a', 64),
             pageLevels: 5,
             crawl: false,
-            expiresAt: $expiresAt,
+            // The VO stores expiries verbatim; mirror the factories' fresh expiry.
+            expiresAt: $expiresAt ?: time() + CreateScanDemand::LIFETIME,
         );
     }
 
@@ -77,17 +78,17 @@ final class DemandSignatureServiceTest extends TestCase
     #[Test]
     public function signaturePinsTheRenderedWireContract(): void
     {
-        // Payload encoding, segment order and the FQCN HMAC domain must never
-        // change silently: demands rendered into still-open backend markup
-        // validate against them. Changing any of it is a signing-context bump
-        // that fails all previously rendered demands closed.
+        // Payload encoding, segment order and the stable signing context must
+        // never change silently: demands rendered into still-open backend
+        // markup validate against them. Changing any of it requires a new
+        // signing context that fails all previously rendered demands closed.
         $demand = $this->createDemand(expiresAt: 2000000000);
         $expected = (new HashService())->hmac(
             json_encode(
                 ['3', '42', 'https://example.com/page?type=0', '1', '2', str_repeat('a', 64), '5', '0', '2000000000'],
                 JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES
             ),
-            CreateScanDemand::class
+            'mindfula11y:demand:create-scan'
         );
 
         self::assertSame($expected, $this->demandSignatureService()->serialize($demand)['signature']);
@@ -195,6 +196,7 @@ final class DemandSignatureServiceTest extends TestCase
             recordSnapshot: str_repeat('a', 64),
             fileReferenceSnapshot: str_repeat('b', 64),
             recordColumns: ['alternative'],
+            expiresAt: time() + GenerateAltTextDemand::LIFETIME,
         ));
         $data[$field] = $value;
         $demand = GenerateAltTextDemand::fromRequestData($data);
@@ -204,10 +206,21 @@ final class DemandSignatureServiceTest extends TestCase
     }
 
     #[Test]
+    public function signingContextsAreStableWireIdentifiers(): void
+    {
+        // The contexts are wire contracts decoupled from PHP class names — a
+        // class rename must not silently invalidate rendered demands. Change a
+        // context only together with a payload shape/semantics change.
+        self::assertSame('mindfula11y:demand:create-scan', CreateScanDemand::SIGNING_CONTEXT);
+        self::assertSame('mindfula11y:demand:generate-alt-text', GenerateAltTextDemand::SIGNING_CONTEXT);
+    }
+
+    #[Test]
     public function signatureNeverValidatesAcrossDemandTypes(): void
     {
-        // The HMAC domain is the concrete demand class: even a hypothetical
-        // identical payload signed for one type must fail for the other.
+        // The HMAC domain is the demand type's signing context: even a
+        // hypothetical identical payload signed for one type must fail for
+        // the other.
         $service = $this->demandSignatureService();
         $altTextDemand = new GenerateAltTextDemand(
             userId: 3,

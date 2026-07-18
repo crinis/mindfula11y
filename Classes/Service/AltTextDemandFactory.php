@@ -91,6 +91,7 @@ final readonly class AltTextDemandFactory
             $this->recordSnapshotService->fingerprint($recordTableName, $record),
             $fileReferenceSnapshot,
             $columns,
+            expiresAt: time() + GenerateAltTextDemand::LIFETIME,
         );
     }
 }

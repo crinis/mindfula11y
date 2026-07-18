@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace MindfulMarkup\MindfulA11y\Tests\Unit\Domain\Model;
 
+use MindfulMarkup\MindfulA11y\Domain\Model\SignedScopeInterface;
 use MindfulMarkup\MindfulA11y\Domain\Model\StructureAnalysisTicket;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -45,7 +46,7 @@ final class StructureAnalysisTicketTest extends TestCase
     #[Test]
     public function validClaimsResolveToTicket(): void
     {
-        $ticket = StructureAnalysisTicket::fromClaims(self::validClaims(), self::NOW, self::LIFETIME);
+        $ticket = StructureAnalysisTicket::fromClaims(self::validClaims(), self::NOW);
 
         self::assertNotNull($ticket);
         self::assertSame(str_repeat('ab', 16), $ticket->requestId);
@@ -61,13 +62,24 @@ final class StructureAnalysisTicketTest extends TestCase
     }
 
     #[Test]
+    public function ticketIsASignedScopeWithItsOwnLifetime(): void
+    {
+        $ticket = StructureAnalysisTicket::fromClaims(self::validClaims(), self::NOW);
+
+        self::assertInstanceOf(SignedScopeInterface::class, $ticket);
+        self::assertSame(self::NOW + self::LIFETIME, $ticket->getExpiresAt());
+        self::assertSame(self::LIFETIME, $ticket->maximumLifetime());
+        self::assertSame(StructureAnalysisTicket::LIFETIME, $ticket->maximumLifetime());
+    }
+
+    #[Test]
     public function serializationRoundTripsThroughFromClaims(): void
     {
-        $ticket = StructureAnalysisTicket::fromClaims(self::validClaims(), self::NOW, self::LIFETIME);
+        $ticket = StructureAnalysisTicket::fromClaims(self::validClaims(), self::NOW);
         self::assertNotNull($ticket);
 
         $claims = json_decode(json_encode($ticket, JSON_THROW_ON_ERROR), true, flags: JSON_THROW_ON_ERROR);
-        self::assertNotNull(StructureAnalysisTicket::fromClaims($claims, self::NOW, self::LIFETIME));
+        self::assertNotNull(StructureAnalysisTicket::fromClaims($claims, self::NOW));
     }
 
     /** @return iterable<string, array{array<string, mixed>}> */
@@ -98,13 +110,13 @@ final class StructureAnalysisTicketTest extends TestCase
     #[DataProvider('invalidClaimsProvider')]
     public function invalidClaimsAreRejected(array $claims): void
     {
-        self::assertNull(StructureAnalysisTicket::fromClaims($claims, self::NOW, self::LIFETIME));
+        self::assertNull(StructureAnalysisTicket::fromClaims($claims, self::NOW));
     }
 
     #[Test]
     public function expiryBoundaryIsExclusive(): void
     {
-        $ticket = StructureAnalysisTicket::fromClaims(self::validClaims(), self::NOW, self::LIFETIME);
+        $ticket = StructureAnalysisTicket::fromClaims(self::validClaims(), self::NOW);
 
         self::assertNotNull($ticket);
         self::assertFalse($ticket->isExpired($ticket->expiresAt - 1));
@@ -114,7 +126,7 @@ final class StructureAnalysisTicketTest extends TestCase
     #[Test]
     public function fromRequestReturnsAttachedTicketOnly(): void
     {
-        $ticket = StructureAnalysisTicket::fromClaims(self::validClaims(), self::NOW, self::LIFETIME);
+        $ticket = StructureAnalysisTicket::fromClaims(self::validClaims(), self::NOW);
         self::assertNotNull($ticket);
 
         $bare = new ServerRequest('https://frontend.example/page');
