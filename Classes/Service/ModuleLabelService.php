@@ -22,7 +22,7 @@ declare(strict_types=1);
 
 namespace MindfulMarkup\MindfulA11y\Service;
 
-use TYPO3\CMS\Core\Localization\LanguageService;
+use TYPO3\CMS\Core\Localization\LanguageServiceFactory;
 
 /**
  * Provides the localized labels the module's JavaScript reads via lll().
@@ -33,6 +33,11 @@ use TYPO3\CMS\Core\Localization\LanguageService;
  */
 final readonly class ModuleLabelService
 {
+    public function __construct(
+        private LanguageServiceFactory $languageServiceFactory,
+        private BackendUserProvider $backendUserProvider,
+    ) {}
+
     public const LANGUAGE_FILE = 'LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:';
     private const DATABASE_LANGUAGE_FILE = 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:';
 
@@ -215,7 +220,11 @@ final readonly class ModuleLabelService
      */
     public function getInlineLanguageLabels(): array
     {
-        $languageService = $this->getLanguageService();
+        // Labels follow the requesting editor's backend language, matching
+        // what the surrounding module markup renders with.
+        $languageService = $this->languageServiceFactory->createFromUserPreferences(
+            $this->backendUserProvider->get(),
+        );
         $labels = [];
         foreach (self::LABEL_IDS as $labelId) {
             $labels['mindfula11y.' . $labelId] = $languageService->sL(self::LANGUAGE_FILE . $labelId);
@@ -227,10 +236,5 @@ final readonly class ModuleLabelService
         }
 
         return $labels;
-    }
-
-    private function getLanguageService(): LanguageService
-    {
-        return $GLOBALS['LANG'];
     }
 }
