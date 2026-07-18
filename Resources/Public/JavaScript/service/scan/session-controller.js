@@ -252,6 +252,7 @@ class ScanSessionController {
     }
   }
   beginOperation() {
+    this.clearPoll();
     this.abortController?.abort();
     this.abortController = new AbortController();
     return this.abortController.signal;

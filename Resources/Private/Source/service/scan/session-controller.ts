@@ -354,6 +354,10 @@ export class ScanSessionController implements ReactiveController {
     }
 
     private beginOperation(): AbortSignal {
+        // A poll armed for the previous scan must not survive into a manual
+        // operation: firing mid-request, its reload() would abort this
+        // operation's signal and drop the result.
+        this.clearPoll();
         this.abortController?.abort();
         this.abortController = new AbortController();
         return this.abortController.signal;

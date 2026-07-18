@@ -324,6 +324,34 @@ describe('ScanSessionController', () => {
         expect(controller.state).toBe('initial');
     });
 
+    it('a stale poll timer cannot abort a manual createScan in flight', async () => {
+        // A poll armed for the previous (running) scan must be cancelled when
+        // a manual operation starts: if it fired mid-create, its reload()
+        // would abort the create request's signal and the freshly created
+        // scan would be silently dropped.
+        vi.useFakeTimers();
+        const service = createFakeService();
+        service.loadScan.mockResolvedValue(makeResult(ScanStatus.Running));
+        service.createScan.mockImplementation(async () => {
+            // The stale timer elapses while the create POST is in flight.
+            await vi.advanceTimersByTimeAsync(5000);
+            return { scanId: 'created-1', status: ScanStatus.Pending };
+        });
+        const { controller } = build(service, { scanId: () => 'attr' });
+
+        controller.hostConnected();
+        await flush();
+        expect(service.loadScan).toHaveBeenCalledTimes(1); // running → poll armed
+
+        await controller.createScan(demand);
+        await flush();
+
+        expect(service.createScan).toHaveBeenCalledTimes(1);
+        const loadedIds = service.loadScan.mock.calls.map((call) => call[0]);
+        expect(loadedIds).toContain('created-1'); // the created scan was adopted and loaded
+        expect(loadedIds.filter((id) => id === 'attr')).toHaveLength(1); // no stray reload of the old scan
+    });
+
     it('createScan suppresses the attribute id so a later 404 does not fall back to it', async () => {
         const service = createFakeService();
         service.createScan.mockResolvedValue({ scanId: 'created-1', status: ScanStatus.Pending });

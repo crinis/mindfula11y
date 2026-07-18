@@ -125,7 +125,7 @@ let Scan = class extends LitElement {
     );
   }
   renderPanel(tab, withTabs) {
-    const busy = this.actionBusy || this.controller.state === "loading" && this.tabResult(tab) === null;
+    const busy = this.actionBusy || this.controller.state === "loading" && this.controller.result === null;
     const content = renderPanelContent(this.panelData(tab), this.panelCallbacks);
     return this.tabs.renderPanel({
       tab,

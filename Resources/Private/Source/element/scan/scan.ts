@@ -161,8 +161,11 @@ export class Scan extends LitElement {
     private renderPanel(tab: ScanTab, withTabs: boolean): TemplateResult {
         // Gate on an explicit action or the *first* load — a
         // background poll re-running with a result already in hand must not
-        // flicker aria-busy on every tick.
-        const busy = this.actionBusy || (this.controller.state === 'loading' && this.tabResult(tab) === null);
+        // flicker aria-busy on every tick. Gated on the controller's primary
+        // result, not the per-tab one: a page-mode scan on a site root keeps
+        // crawlResult null forever, and the crawl panel must not re-announce
+        // busy on every poll of the scan tab's run.
+        const busy = this.actionBusy || (this.controller.state === 'loading' && this.controller.result === null);
         const content = renderPanelContent(this.panelData(tab), this.panelCallbacks);
         return this.tabs.renderPanel({
             tab,
