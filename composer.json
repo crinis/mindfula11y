@@ -55,7 +55,8 @@
         "allow-plugins": {
             "typo3/cms-composer-installers": false,
             "typo3/class-alias-loader": false
-        }
+        },
+        "process-timeout": 900
     },
     "keywords": [
         "TYPO3",

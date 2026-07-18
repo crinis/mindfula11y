@@ -1,0 +1,4 @@
+"pages"
+,"uid","pid","title","doktype","slug","is_siteroot","hidden","editlock","sys_language_uid","l10n_parent","perms_userid","perms_groupid","perms_user","perms_group","perms_everybody","fe_group","extendToSubpages"
+,910,1,"Members Area",1,"/members",0,0,0,0,0,0,0,0,0,19,"-2",1
+,911,910,"Members Subpage",1,"/members/sub",0,0,0,0,0,0,0,0,0,19,"",0

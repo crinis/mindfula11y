@@ -101,6 +101,22 @@ final class LandmarkViewHelperTest extends FunctionalTestCase
     }
 
     #[Test]
+    public function ticketlessFrontendRequestEmitsNoAnalysisAnnotations(): void
+    {
+        // The ticket attribute is the sole gate for analysis annotations: a
+        // regular frontend request must yield clean public markup even with
+        // record coordinates configured, or record uids and column names
+        // would leak to every visitor.
+        $output = $this->render(
+            '<mindfula11y:landmark role="navigation" recordUid="102">Links</mindfula11y:landmark>',
+            new ServerRequest('https://frontend.example/'),
+        );
+
+        self::assertStringContainsString('<nav>Links</nav>', $output);
+        self::assertStringNotContainsString('data-mindfula11y-', $output);
+    }
+
+    #[Test]
     public function defaultLayoutAnnotatesTranslatedLandmarkWithLocalizedRecordUid(): void
     {
         $context = $this->get(RenderingContextFactory::class)->create([], $this->structureAnalysisRequest());

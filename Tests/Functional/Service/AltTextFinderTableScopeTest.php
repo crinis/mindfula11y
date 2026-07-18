@@ -66,4 +66,20 @@ final class AltTextFinderTableScopeTest extends AbstractAuthorizationTestCase
 
         self::assertSame([1], $foundUids, 'only page 10 references — the page-20 canary (801) stays out of scope');
     }
+
+    /**
+     * CType/authMode dimension of the table scope: the tt_content clause
+     * restricts parent rows to the CType values the user's explicit_allowdeny
+     * grants. Reference 1's parent (tt_content 100) is "textmedia"; user 7 may
+     * only edit "text", so the reference must vanish from their listing and
+     * count. Anti-vacuous anchor: testQualifiedUserStaysScopedToTheRequestedPageTree
+     * pins [1] for the full editor on the identical query.
+     */
+    public function testCtypeRestrictedUserDoesNotSeeReferencesOnDisallowedContentTypes(): void
+    {
+        $this->logInBackendUser(7);
+
+        self::assertSame(0, $this->subject()->countAltlessFileReferences(10, 0, 0, []));
+        self::assertSame([], $this->subject()->getAltlessFileReferences(10, 0, 0, []));
+    }
 }

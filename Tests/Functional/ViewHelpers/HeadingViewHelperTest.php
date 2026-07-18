@@ -440,6 +440,43 @@ final class HeadingViewHelperTest extends FunctionalTestCase
     }
 
     #[Test]
+    public function ticketlessFrontendRequestEmitsNoAnalysisAnnotations(): void
+    {
+        // The middleware-validated ticket attribute is the ONLY gate for the
+        // analysis annotations. A regular frontend request (present, but
+        // without the attribute) must produce clean public markup even when
+        // record coordinates are configured — otherwise record uids, table
+        // and column names would leak into every visitor-facing page. The
+        // positive twin (containerHeadingEmitsChildTypeCoordinatesOnItsOwnTag)
+        // proves the identical template DOES annotate under a ticket.
+        $output = $this->render(
+            '<mindfula11y:heading recordUid="800" relationId="a">Parent</mindfula11y:heading>'
+            . '<mindfula11y:heading.descendant ancestorId="a" relationId="child">Child</mindfula11y:heading.descendant>'
+            . '<mindfula11y:heading.sibling siblingId="a">Sibling</mindfula11y:heading.sibling>',
+            new ServerRequest('https://frontend.example/'),
+        );
+
+        self::assertStringContainsString('<h2>Parent</h2>', $output);
+        self::assertStringContainsString('<h4>Child</h4>', $output);
+        self::assertStringContainsString('<h2>Sibling</h2>', $output);
+        self::assertStringNotContainsString('data-mindfula11y-', $output);
+    }
+
+    #[Test]
+    public function requestlessRenderingEmitsNoAnalysisAnnotations(): void
+    {
+        // Same guarantee when Fluid renders without any request in the
+        // context (CLI/mail/widget rendering paths).
+        $output = $this->render(
+            '<mindfula11y:heading recordUid="800" relationId="a">Parent</mindfula11y:heading>'
+            . '<mindfula11y:heading.descendant ancestorId="a">Child</mindfula11y:heading.descendant>'
+        );
+
+        self::assertStringContainsString('<h2>Parent</h2>', $output);
+        self::assertStringNotContainsString('data-mindfula11y-', $output);
+    }
+
+    #[Test]
     public function suppressedContainerRendersNothingOutsideAnalysis(): void
     {
         // Normal frontend output must stay byte-identical: no marker.

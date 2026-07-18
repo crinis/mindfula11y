@@ -1,0 +1,5 @@
+# Minimal frontend rendering for the middleware chain tests: the analysis
+# pipeline only needs a resolvable HTML document with a <body>.
+page = PAGE
+page.10 = TEXT
+page.10.value = <main>Analysis target</main>

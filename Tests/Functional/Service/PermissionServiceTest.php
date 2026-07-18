@@ -599,6 +599,32 @@ final class PermissionServiceTest extends AbstractAuthorizationTestCase
         self::assertFalse($this->permissionService()->checkPageReadAccess($this->record('pages', 14)));
     }
 
+    /**
+     * Page 16 grants nothing to everybody (perms_everybody=0) and everything
+     * to the owner group (perms_groupid=1, perms_group=19): the only way in
+     * is group membership. This pins calcPerms()' group-bitmask resolution —
+     * every other page-perm test in the scenario resolves via
+     * perms_everybody. User 2 is in group 1; user 3 (group 2) is not, and
+     * group membership is the sole differing dimension for a read check.
+     */
+    public function testCheckPageReadAccessResolvesOwnerGroupBitmask(): void
+    {
+        $permissionService = $this->permissionService();
+        $groupOnlyPage = $this->record('pages', 16);
+
+        $this->logInBackendUser(2);
+        self::assertTrue(
+            $permissionService->checkPageReadAccess($groupOnlyPage),
+            'user 2 (member of owner group 1) must read via perms_group'
+        );
+
+        $this->logInBackendUser(3);
+        self::assertFalse(
+            $permissionService->checkPageReadAccess($groupOnlyPage),
+            'user 3 (not in group 1) must fall through to perms_everybody=0'
+        );
+    }
+
     public function testCheckPageReadAccessTranslationResolvesPermsViaParent(): void
     {
         $permissionService = $this->permissionService();
