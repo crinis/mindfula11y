@@ -40,6 +40,7 @@ the `Publish to TER` workflow uses the release body as the TER upload comment.
 
 ### Fixed
 
+- The Missing Alternative Texts view no longer fails when its list spans multiple pages: the pagination links were still built for a module route that no longer exists since the accessibility features were merged into one module, and generating them threw as soon as more than 100 file references matched the selected scope. The links now target the accessibility module and keep the missing-alt-text feature selected.
 - The Missing Alternative Texts view now shows file references from only the selected page by default. Its page-scope menu adds the explicit **This page** option and describes every wider choice in terms of included subpages; the previous **1 level deep** default also included direct child pages, which was easy for editors to misread as the current page.
 - Structure-analysis editing controls now target the rendered translation and current workspace draft. Landmark changes no longer update the default-language record from a translated preview, draft-specific content types and select options are respected, and stale controls for deleted or foreign-workspace records are withheld.
 - Structure analysis now follows TYPO3's native frontend-preview visibility: hidden content elements and content outside its start/end-time window are excluded, while hidden pages and workspace drafts remain previewable. Editors no longer receive findings for content they deliberately keep disabled instead of deleting.
