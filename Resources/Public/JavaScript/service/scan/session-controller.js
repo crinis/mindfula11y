@@ -230,6 +230,9 @@ class ScanSessionController {
       this.justCreated = false;
       this.lastStatus = result.status;
       this.options.onTransition?.(null, result);
+      if (previous !== "" && !isScanInProgress(result.status)) {
+        this.options.onTransition?.(previous, result);
+      }
       return;
     }
     const wasInProgress = previous !== "" && isScanInProgress(previous);

@@ -98,7 +98,16 @@ final readonly class AltTextGeneratorService
      */
     private function getChatImageDetail(): string
     {
-        return $this->extensionConfiguration->get('mindfula11y')['openAIChatImageDetail'] ?? 'auto';
+        try {
+            $configuration = $this->extensionConfiguration->get('mindfula11y');
+        } catch (\TYPO3\CMS\Core\Configuration\Exception\ExtensionConfigurationExtensionNotConfiguredException) {
+            // Unsynced/legacy deployments have no extension configuration at
+            // all; fall back to the default detail instead of aborting the
+            // generation.
+            return 'auto';
+        }
+
+        return $configuration['openAIChatImageDetail'] ?? 'auto';
     }
 
     /**

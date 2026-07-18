@@ -62,13 +62,32 @@ final readonly class ScanApiService
     ) {}
 
     /**
+     * The extension configuration, or an empty array when it is missing
+     * entirely (unsynced/legacy deployments where extension:setup has not
+     * run): isConfigured() runs on every module render, and
+     * ExtensionConfiguration::get() throwing must not break render paths.
+     *
+     * @return array<string, mixed>
+     */
+    private function getConfiguration(): array
+    {
+        try {
+            $configuration = $this->extensionConfiguration->get('mindfula11y');
+        } catch (\TYPO3\CMS\Core\Configuration\Exception\ExtensionConfigurationExtensionNotConfiguredException) {
+            return [];
+        }
+
+        return is_array($configuration) ? $configuration : [];
+    }
+
+    /**
      * Get the API URL from extension configuration.
      *
      * @return string The API URL.
      */
     private function getApiUrl(): string
     {
-        return rtrim($this->extensionConfiguration->get('mindfula11y')['scannerApiUrl'] ?? '', '/');
+        return rtrim($this->getConfiguration()['scannerApiUrl'] ?? '', '/');
     }
 
     /**
@@ -86,7 +105,7 @@ final readonly class ScanApiService
      */
     private function getApiToken(): string
     {
-        return $this->extensionConfiguration->get('mindfula11y')['scannerApiToken'] ?? '';
+        return $this->getConfiguration()['scannerApiToken'] ?? '';
     }
 
     /**
@@ -251,12 +270,22 @@ final readonly class ScanApiService
                 : ['skills' => array_values($aiAuditSkills)];
         }
 
+        try {
+            // THROW_ON_ERROR: an encode failure (e.g. malformed UTF-8 reaching
+            // the pass-through options) must fail cleanly instead of sending a
+            // literal `false` as the request body.
+            $body = json_encode($requestBody, JSON_THROW_ON_ERROR);
+        } catch (\JsonException $e) {
+            $this->logger->error('Failed to encode scan request body', ['exception' => $e->getMessage()]);
+            return null;
+        }
+
         $response = $this->sendRequest(
             '/scans',
             'POST',
             [
                 'headers' => ['Content-Type' => 'application/json'],
-                'body' => json_encode($requestBody),
+                'body' => $body,
             ],
             [],
             'Exception while creating scan',

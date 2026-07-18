@@ -41,7 +41,8 @@ export interface ScanSessionOptions {
     /**
      * Called after a status settles so the host can dispatch events/announce.
      * `previous` is `null` for a freshly created scan (the "started" transition)
-     * and the prior in-progress status for a terminal transition.
+     * and the prior status for a terminal transition. A fresh create whose
+     * first load is already terminal fires both transitions back to back.
      */
     onTransition?: (previous: ScanStatus | null, result: ScanResult) => void;
 }
@@ -329,6 +330,11 @@ export class ScanSessionController implements ReactiveController {
             this.justCreated = false;
             this.lastStatus = result.status;
             this.options.onTransition?.(null, result);
+            // A scan already terminal on its first load never re-enters
+            // commitStatus — deliver its terminal transition now or never.
+            if (previous !== '' && !isScanInProgress(result.status)) {
+                this.options.onTransition?.(previous, result);
+            }
             return;
         }
         const wasInProgress = previous !== '' && isScanInProgress(previous);

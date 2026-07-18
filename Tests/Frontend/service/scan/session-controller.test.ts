@@ -157,6 +157,25 @@ describe('ScanSessionController', () => {
         controller.hostDisconnected(); // clear the pending-status poll timer
     });
 
+    it('delivers the terminal transition when a fresh create is already terminal on first load', async () => {
+        // A created scan can settle before its first load completes: that load
+        // is the only chance to signal the terminal transition — without it no
+        // completed event or announcement ever fires for the scan.
+        const service = createFakeService();
+        service.createScan.mockResolvedValue({ scanId: 'created-1', status: ScanStatus.Pending });
+        service.loadScan.mockResolvedValue(makeResult(ScanStatus.Completed, { totalIssueCount: 2 }));
+        const onTransition = vi.fn();
+        const { controller } = build(service, { scanId: () => '', demand: () => demand, onTransition });
+
+        controller.hostConnected();
+        await flush();
+
+        expect(onTransition).toHaveBeenCalledTimes(2);
+        expect(onTransition.mock.calls[0]?.[0]).toBeNull(); // the "started" transition
+        expect(onTransition.mock.calls[1]?.[0]).toBe(ScanStatus.Pending);
+        expect(onTransition.mock.calls[1]?.[1]?.status).toBe(ScanStatus.Completed);
+    });
+
     it('forgets a 404 id and recreates at most once', async () => {
         const service = createFakeService();
         service.loadScan.mockResolvedValue(null); // every scan is gone on the API side
