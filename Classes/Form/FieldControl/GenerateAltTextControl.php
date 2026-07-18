@@ -24,12 +24,10 @@ declare(strict_types=1);
 namespace MindfulMarkup\MindfulA11y\Form\FieldControl;
 
 use Exception;
-use MindfulMarkup\MindfulA11y\Domain\Model\GenerateAltTextDemand;
-use MindfulMarkup\MindfulA11y\Service\BackendUserProvider;
+use MindfulMarkup\MindfulA11y\Service\AltTextDemandFactory;
 use MindfulMarkup\MindfulA11y\Service\DemandSignatureService;
 use MindfulMarkup\MindfulA11y\Service\OpenAIService;
 use MindfulMarkup\MindfulA11y\Service\PermissionService;
-use MindfulMarkup\MindfulA11y\Service\RecordSnapshotService;
 use MindfulMarkup\MindfulA11y\Tca\TranslationFields;
 use TYPO3\CMS\Backend\Form\AbstractNode;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
@@ -58,9 +56,8 @@ class GenerateAltTextControl extends AbstractNode
         protected readonly ResourceFactory $resourceFactory,
         protected readonly PageRenderer $pageRenderer,
         protected readonly PermissionService $permissionService,
-        protected readonly BackendUserProvider $backendUserProvider,
         protected readonly DemandSignatureService $demandSignatureService,
-        protected readonly RecordSnapshotService $recordSnapshotService,
+        protected readonly AltTextDemandFactory $altTextDemandFactory,
     ) {
     }
 
@@ -85,34 +82,24 @@ class GenerateAltTextControl extends AbstractNode
 
         $languageService = $this->getLanguageService();
         $itemName = (string)$this->data['parameterArray']['itemFormElName'];
-        $backendUser = $this->backendUserProvider->get();
         $recordUid = (int)$this->data['databaseRow']['uid'];
         $record = BackendUtility::getRecordWSOL($table, $recordUid);
         if (!is_array($record)) {
             return [];
         }
-        $recordSnapshot = $this->recordSnapshotService->fingerprint($table, $record);
-        $fileRecord = BackendUtility::getRecordWSOL('sys_file', $file->getUid());
-        if (!is_array($fileRecord)) {
-            return [];
-        }
-        $fileReferenceSnapshot = $table === 'sys_file_reference'
-            ? $this->recordSnapshotService->fingerprint('sys_file_reference', $record)
-            : '';
-        $generateAltTextDemand = new GenerateAltTextDemand(
-            $backendUser->user['uid'],
+        $generateAltTextDemand = $this->altTextDemandFactory->create(
             (int)$this->data['effectivePid'],
             $this->resolveLanguageUid(),
-            $backendUser->workspace,
             $table,
             $recordUid,
+            $record,
             $file->getUid(),
             $table === 'sys_file_reference' ? $recordUid : 0,
-            $this->recordSnapshotService->fingerprint('sys_file', $fileRecord),
-            $recordSnapshot,
-            $fileReferenceSnapshot,
             [$this->data['fieldName']],
         );
+        if ($generateAltTextDemand === null) {
+            return [];
+        }
 
         $this->pageRenderer->addInlineLanguageLabelArray([
             'mindfula11y.altText.generate.loading' => $languageService->sL('LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:altText.generate.loading'),

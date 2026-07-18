@@ -25,11 +25,10 @@ namespace MindfulMarkup\MindfulA11y\ViewHelpers;
 
 use MindfulMarkup\MindfulA11y\Domain\Model\AltlessFileReference;
 use MindfulMarkup\MindfulA11y\Domain\Model\GenerateAltTextDemand;
-use MindfulMarkup\MindfulA11y\Service\BackendUserProvider;
+use MindfulMarkup\MindfulA11y\Service\AltTextDemandFactory;
 use MindfulMarkup\MindfulA11y\Service\DemandSignatureService;
 use MindfulMarkup\MindfulA11y\Service\OpenAIService;
 use MindfulMarkup\MindfulA11y\Service\PermissionService;
-use MindfulMarkup\MindfulA11y\Service\RecordSnapshotService;
 use MindfulMarkup\MindfulA11y\Service\ModuleSettingsService;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
@@ -62,16 +61,11 @@ class AltlessFileReferenceViewHelper extends AbstractTagBasedViewHelper
     protected readonly UriBuilder $backendUriBuilder;
 
     /**
-     * Backend user provider instance.
-     */
-    protected readonly BackendUserProvider $backendUserProvider;
-
-    /**
      * Demand signature service instance.
      */
     protected readonly DemandSignatureService $demandSignatureService;
 
-    protected readonly RecordSnapshotService $recordSnapshotService;
+    protected readonly AltTextDemandFactory $altTextDemandFactory;
 
     /**
      * Tag name.
@@ -108,14 +102,6 @@ class AltlessFileReferenceViewHelper extends AbstractTagBasedViewHelper
     }
 
     /**
-     * Inject backend user provider.
-     */
-    public function injectBackendUserProvider(BackendUserProvider $backendUserProvider): void
-    {
-        $this->backendUserProvider = $backendUserProvider;
-    }
-
-    /**
      * Inject demand signature service.
      */
     public function injectDemandSignatureService(DemandSignatureService $demandSignatureService): void
@@ -123,9 +109,9 @@ class AltlessFileReferenceViewHelper extends AbstractTagBasedViewHelper
         $this->demandSignatureService = $demandSignatureService;
     }
 
-    public function injectRecordSnapshotService(RecordSnapshotService $recordSnapshotService): void
+    public function injectAltTextDemandFactory(AltTextDemandFactory $altTextDemandFactory): void
     {
-        $this->recordSnapshotService = $recordSnapshotService;
+        $this->altTextDemandFactory = $altTextDemandFactory;
     }
 
     /**
@@ -234,26 +220,16 @@ class AltlessFileReferenceViewHelper extends AbstractTagBasedViewHelper
         AltlessFileReference $fileReference,
         array $record,
     ): ?GenerateAltTextDemand {
-        $backendUser = $this->backendUserProvider->get();
         [$recordTableName, $recordColumnName, $recordUid] = $this->getRecordCoordinates($fileReference);
-        $fileUid = $fileReference->getOriginalResource()->getOriginalFile()->getUid();
-        $reference = BackendUtility::getRecordWSOL('sys_file_reference', $fileReference->getUid());
-        $fileRecord = BackendUtility::getRecordWSOL('sys_file', $fileUid);
-        if (!is_array($reference) || !is_array($fileRecord)) {
-            return null;
-        }
-        return new GenerateAltTextDemand(
-            (int)$backendUser->user['uid'],
+
+        return $this->altTextDemandFactory->create(
             $fileReference->getPid(),
             (int)$fileReference->getOriginalResource()->getReferenceProperty('sys_language_uid'),
-            $backendUser->workspace,
             $recordTableName,
             $recordUid,
-            $fileUid,
+            $record,
+            $fileReference->getOriginalResource()->getOriginalFile()->getUid(),
             $fileReference->getUid(),
-            $this->recordSnapshotService->fingerprint('sys_file', $fileRecord),
-            $this->recordSnapshotService->fingerprint($recordTableName, $record),
-            $this->recordSnapshotService->fingerprint('sys_file_reference', $reference),
             [$recordColumnName],
         );
     }
