@@ -159,18 +159,24 @@ final readonly class PagePreviewService
      * Get the workspace-overlaid localized page record, or null when the page
      * is not translated into the given language.
      *
+     * @param int|null $workspaceId The workspace to overlay for, or null for
+     *                              the session user's workspace. Session-less
+     *                              flows (structure-ticket redemption) pass
+     *                              their authenticated workspace claim
+     *                              explicitly instead of relying on a global.
      * @return array<string, mixed>|null
      */
-    public function getLocalizedPageRecord(int $pageId, int $languageId): ?array
+    public function getLocalizedPageRecord(int $pageId, int $languageId, ?int $workspaceId = null): ?array
     {
         if ($languageId === 0) {
             return null;
         }
+        $workspaceId ??= $this->backendUserProvider->get()->workspace;
         $queryBuilder = $this->connectionPool->getQueryBuilderForTable('pages');
         $queryBuilder->getRestrictions()
             ->removeAll()
             ->add(GeneralUtility::makeInstance(DeletedRestriction::class))
-            ->add(GeneralUtility::makeInstance(WorkspaceRestriction::class, $this->backendUserProvider->get()->workspace));
+            ->add(GeneralUtility::makeInstance(WorkspaceRestriction::class, $workspaceId));
         $overlayRecord = $queryBuilder
             ->select('*')
             ->from('pages')
@@ -188,7 +194,7 @@ final readonly class PagePreviewService
             ->executeQuery()
             ->fetchAssociative();
         if ($overlayRecord) {
-            BackendUtility::workspaceOL('pages', $overlayRecord, $this->backendUserProvider->get()->workspace);
+            BackendUtility::workspaceOL('pages', $overlayRecord, $workspaceId);
         }
         return is_array($overlayRecord) ? $overlayRecord : null;
     }

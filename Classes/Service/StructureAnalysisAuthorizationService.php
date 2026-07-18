@@ -14,14 +14,9 @@ declare(strict_types=1);
 namespace MindfulMarkup\MindfulA11y\Service;
 
 use MindfulMarkup\MindfulA11y\Domain\Model\StructureAnalysisTicket;
-use MindfulMarkup\MindfulA11y\Tca\TranslationFields;
 use TYPO3\CMS\Backend\Module\ModuleProvider;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
-use TYPO3\CMS\Core\Database\Connection;
-use TYPO3\CMS\Core\Database\ConnectionPool;
-use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
-use TYPO3\CMS\Core\Database\Query\Restriction\WorkspaceRestriction;
 use TYPO3\CMS\Core\Type\Bitmask\Permission;
 use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -34,7 +29,6 @@ final readonly class StructureAnalysisAuthorizationService
 
     public function __construct(
         private ModuleProvider $moduleProvider,
-        private ConnectionPool $connectionPool,
         private ModuleSettingsService $moduleSettingsService,
         private PagePreviewService $pagePreviewService,
         private RecordSnapshotService $recordSnapshotService,
@@ -130,41 +124,17 @@ final readonly class StructureAnalysisAuthorizationService
     }
 
     /**
-     * Deliberately NOT delegated to PagePreviewService::getLocalizedPageRecord()
-     * despite the similar query: that method derives the workspace from the
-     * session's $GLOBALS['BE_USER'], while this service authorizes session-less
-     * ticket requests against the ticket's own workspace claim.
+     * Whether the page has a usable translation in the ticket's workspace.
+     *
+     * Passes the ticket's authenticated workspace claim explicitly — ticket
+     * redemption has no backend session for the lookup to fall back to — and
+     * additionally rejects delete placeholders, which the preview lookup
+     * leaves to its callers.
      */
     private function hasPageTranslation(int $pageId, int $languageId, int $workspaceId): bool
     {
-        $languageField = TranslationFields::languageFieldName('pages');
-        $translationParentField = TranslationFields::translationParentFieldName('pages');
-        $queryBuilder = $this->connectionPool->getQueryBuilderForTable('pages');
-        $queryBuilder->getRestrictions()
-            ->removeAll()
-            ->add(GeneralUtility::makeInstance(DeletedRestriction::class))
-            ->add(GeneralUtility::makeInstance(WorkspaceRestriction::class, $workspaceId));
-        $translation = $queryBuilder
-            ->select('uid', 'pid', 't3ver_oid', 't3ver_state')
-            ->from('pages')
-            ->where(
-                $queryBuilder->expr()->eq(
-                    $translationParentField,
-                    $queryBuilder->createNamedParameter($pageId, Connection::PARAM_INT),
-                ),
-                $queryBuilder->expr()->eq(
-                    $languageField,
-                    $queryBuilder->createNamedParameter($languageId, Connection::PARAM_INT),
-                ),
-            )
-            ->setMaxResults(1)
-            ->executeQuery()
-            ->fetchAssociative();
-        if (!is_array($translation)) {
-            return false;
-        }
+        $translation = $this->pagePreviewService->getLocalizedPageRecord($pageId, $languageId, $workspaceId);
 
-        BackendUtility::workspaceOL('pages', $translation, $workspaceId);
         return is_array($translation)
             && VersionState::tryFrom((int)($translation['t3ver_state'] ?? 0)) !== VersionState::DELETE_PLACEHOLDER;
     }
