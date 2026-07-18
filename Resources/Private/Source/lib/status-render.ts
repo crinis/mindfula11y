@@ -94,12 +94,19 @@ export function noticeStateIcon(state: NoticeState): string {
  * screen-reader-only severity prefix carries the error/warning distinction
  * before the label — this a11y invariant lives here once for every caller.
  */
-export function renderSeverityChip(severity: StructureErrorSeverity, labelKey: string): TemplateResult {
+export function renderSeverityChip(
+    severity: StructureErrorSeverity,
+    labelKey: string,
+    ...labelArguments: Array<string | number>
+): TemplateResult {
     return html`<typo3-backend-icon
             identifier=${noticeStateIcon(noticeState(severity))}
             size="small"
         ></typo3-backend-icon>
-        <span><span class="sr-only">${lll(severityLabelKey(severity))}: </span>${lll(labelKey)}</span>`;
+        <span
+            ><span class="sr-only">${lll(severityLabelKey(severity))}: </span
+            >${lll(labelKey, ...labelArguments)}</span
+        >`;
 }
 
 /**

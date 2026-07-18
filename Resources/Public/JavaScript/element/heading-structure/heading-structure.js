@@ -14,9 +14,11 @@ import { html, nothing } from "lit";
 import { customElement } from "lit/decorators.js";
 import { repeat } from "lit/directives/repeat.js";
 import "@typo3/backend/element/icon-element.js";
-import { noticeState, renderSeverityChip, renderViewportBadges } from "../../lib/status-render.js";
-import { StructureErrorSeverity } from "../../lib/structure/types.js";
-import { StructureView } from "../structure-view/structure-view.js";
+import { renderViewportBadges } from "../../lib/status-render.js";
+import { HEADING_ERROR_KEYS, StructureErrorSeverity } from "../../lib/structure/types.js";
+import {
+  StructureView
+} from "../structure-view/structure-view.js";
 import componentStyles from "./heading-structure.css.js";
 let HeadingStructure = class extends StructureView {
   constructor() {
@@ -36,6 +38,10 @@ let HeadingStructure = class extends StructureView {
     this.knownRelationIds = this.collectRelationIds(nodes, /* @__PURE__ */ new Set());
     return this.renderTree(nodes);
   }
+  /** Heading page errors render as rows in the same flat list as node errors. */
+  renderPageErrors() {
+    return nothing;
+  }
   collectRelationIds(nodes, ids) {
     for (const node of nodes) {
       if (node.relationId !== "") {
@@ -51,12 +57,31 @@ let HeadingStructure = class extends StructureView {
   }
   renderTree(nodes) {
     return html`<ol class="tree">
+            ${this.pageErrors.map((error) => this.renderPageIssueItem(error))}
             ${repeat(
       this.flattenTree(nodes, 0),
       (item) => item.key,
       (item) => item.template
     )}
         </ol>`;
+  }
+  /** A page-level heading finding has no affected node, so it becomes its own unindented issue row. */
+  renderPageIssueItem(error) {
+    return this.renderIssueItem(error, {
+      issueKind: "page",
+      issueOptions: { pageScope: true }
+    });
+  }
+  /** One consistent list row for issue-only cases. */
+  renderIssueItem(error, options) {
+    return this.renderListItem(
+      this.renderHeadingRow({
+        errors: [error],
+        issueId: options.issueId,
+        issueOptions: options.issueOptions
+      }),
+      options
+    );
   }
   /**
    * Pre-order flattening of the analyzer's tree into ONE list: nesting depth
@@ -96,37 +121,52 @@ let HeadingStructure = class extends StructureView {
     return node.level > 0 ? node.level : parentIndent + 1;
   }
   renderItem(node, indent) {
-    return html`<li class="node" style=${`--mindfula11y-heading-structure-indent: ${indent - 1}`}>
-            ${this.renderRow(node)}
+    return this.renderListItem(this.renderRow(node), {
+      indent,
+      focusLabelId: this.rowLabelId(node.id)
+    });
+  }
+  /** Visible row content that names the native list-item focus fallback. */
+  rowLabelId(nodeId) {
+    return `heading-row-label-${nodeId}`;
+  }
+  /** The single list-item shell used by every ordinary and issue-only row. */
+  renderListItem(content, options) {
+    return html`<li
+            class="node"
+            data-issue-kind=${options.issueKind ?? nothing}
+            data-focus-fallback=${options.focusLabelId ?? nothing}
+            style=${options.indent === void 0 ? nothing : `--mindfula11y-heading-structure-indent: ${options.indent - 1}`}
+        >
+            ${content}
         </li>`;
   }
   /**
-   * Dashed stand-in row for one skipped heading level, indented at the
+   * Issue-only stand-in row for one skipped heading level, indented at the
    * missing level's own step. The level directly above the skipping heading
    * carries the `skip-…` id its describedby references.
    */
   renderPlaceholderItem(node, missingLevel) {
-    return html`<li
-            class="node"
-            data-placeholder
-            style=${`--mindfula11y-heading-structure-indent: ${missingLevel - 1}`}
-        >
-            <div class="row">
-                <div class="heading">
-                    <span class="level notice" data-missing data-state="danger" data-variant="pill"
-                        >${this.headingLevelLabel(missingLevel)}</span
-                    >
-                    <span class="text" id=${missingLevel === node.level - 1 ? `skip-${node.id}` : nothing}
-                        >${lll("mindfula11y.structure.headings.error.skippedLevel.inline", missingLevel)}</span
-                    >
-                </div>
-            </div>
-        </li>`;
+    const error = node.errors.find((candidate) => candidate.key === HEADING_ERROR_KEYS.skippedLevel) ?? {
+      key: HEADING_ERROR_KEYS.skippedLevel,
+      severity: StructureErrorSeverity.Error,
+      nodeId: node.id,
+      viewports: node.viewports
+    };
+    return this.renderIssueItem(error, {
+      issueKind: "missing-level",
+      indent: missingLevel,
+      ...missingLevel === node.level - 1 ? { issueId: `skip-${node.id}` } : {},
+      issueOptions: {
+        labelKey: "mindfula11y.structure.headings.error.skippedLevel.inline",
+        labelArguments: [missingLevel]
+      }
+    });
   }
   /**
    * Errors rendered as cues inside the affected row itself. Every node
    * finding renders in-row except an ordinary heading's skipped level: its
-   * missing-level placeholder row (see renderNode()) already IS the finding,
+   * missing-level placeholder row (see renderPlaceholderItem()) already IS the finding,
    * placed where the missing level belongs, so an in-row chip would only
    * duplicate it. Container rows keep their attributed skip in-row — they
    * never render placeholders.
@@ -135,7 +175,7 @@ let HeadingStructure = class extends StructureView {
     if (node.kind === "container") {
       return node.errors;
     }
-    return node.errors.filter((error) => error.key !== "mindfula11y.structure.headings.error.skippedLevel");
+    return node.errors.filter((error) => error.key !== HEADING_ERROR_KEYS.skippedLevel);
   }
   /**
    * References everything describing the row's state: the in-row error cues
@@ -161,17 +201,7 @@ let HeadingStructure = class extends StructureView {
     const editable = node.record !== null && node.record.editLink !== "";
     const hasChildControl = this.hasChildLevelControl(node);
     const inRowErrors = this.inRowErrors(node);
-    const hasErrorSeverity = inRowErrors.some((error) => error.severity === StructureErrorSeverity.Error);
-    return html`<div
-            class="row"
-            data-node-id=${node.id}
-            data-relation-id=${node.relationId}
-            ?data-container=${isContainer}
-            ?data-child-control=${hasChildControl}
-            ?data-error=${hasErrorSeverity}
-            ?data-warning=${inRowErrors.length > 0 && !hasErrorSeverity}
-        >
-            <div class="heading">
+    const content = html`<div class="heading" id=${this.rowLabelId(node.id)}>
                 ${this.renderLevelControl(node, label, editable)}
                 ${isContainer ? html`<span class="text">
                               <span class="container-badge">
@@ -187,26 +217,61 @@ let HeadingStructure = class extends StructureView {
                     ${editable && this.hasRecord(node) ? this.renderEditLink(node, label) : nothing}
                     ${this.renderBusySpinner(node)}
                 </span>
-            </div>
-            ${inRowErrors.length > 0 ? html`<span class="row-issues" id="issue-${node.id}"
-                          >${inRowErrors.map((error) => this.renderRowIssue(node, error))}</span
-                      >` : nothing}
+            </div>`;
+    return this.renderHeadingRow({
+      errors: inRowErrors,
+      content,
+      nodeId: node.id,
+      relationId: node.relationId,
+      container: isContainer,
+      childControl: hasChildControl,
+      issueId: `issue-${node.id}`,
+      issueOptions: (error) => ({ showViewports: !this.hasSameViewports(error, node) })
+    });
+  }
+  /** The single row shell used by issue-only, ordinary heading and hidden-container rows. */
+  renderHeadingRow(options) {
+    const hasError = options.errors.some((error) => error.severity === StructureErrorSeverity.Error);
+    return html`<div
+            class="row"
+            data-node-id=${options.nodeId ?? nothing}
+            data-relation-id=${options.relationId ?? nothing}
+            ?data-container=${options.container ?? false}
+            ?data-child-control=${options.childControl ?? false}
+            ?data-error=${hasError}
+            ?data-warning=${options.errors.length > 0 && !hasError}
+        >
+            ${options.content ?? nothing}
+            ${options.errors.length > 0 ? this.renderIssueGroup(options.errors, {
+      className: "row-issues",
+      id: options.issueId,
+      issueOptions: options.issueOptions
+    }) : nothing}
         </div>`;
   }
-  /**
-   * A finding rendered as a cue inside the affected row. Same inline notice
-   * as the base renderIssue(), but the finding's viewport badges are omitted
-   * when they merely repeat the row's own badges rendered right beside it —
-   * they only appear when the finding is viewport-specific.
-   */
-  renderRowIssue(node, error) {
-    const sameViewports = error.viewports.length === node.viewports.length && error.viewports.every((viewport) => node.viewports.includes(viewport));
-    return html`<p class="notice issue" data-state=${noticeState(error.severity)} data-variant="inline" data-scope="node">
-            ${renderSeverityChip(error.severity, error.key)}
-            ${sameViewports ? nothing : renderViewportBadges(error.viewports)}
-        </p>`;
+  /** Whether issue viewport badges would merely repeat the affected row's badges. */
+  hasSameViewports(error, node) {
+    return error.viewports.length === node.viewports.length && error.viewports.every((viewport) => node.viewports.includes(viewport));
   }
   renderLevelControl(node, label, editable) {
+    if (node.relation !== null) {
+      const hasTarget = this.relationTargetExists(node);
+      const content = this.renderRelationLevelContent(node, hasTarget);
+      if (!hasTarget) {
+        return html`<span class="level" data-relation data-relation-kind=${node.relation.kind}>${content}</span>`;
+      }
+      return html`<button
+                type="button"
+                class="level"
+                data-relation
+                data-relation-kind=${node.relation.kind}
+                data-control="level"
+                aria-describedby=${this.describedby(node)}
+                @click=${() => this.handleRelationJump(node)}
+            >
+                ${content}
+            </button>`;
+    }
     if (editable && node.record !== null && Object.keys(node.availableTypes).length > 0) {
       const currentValue = node.record.storedValue ?? `h${node.level}`;
       return this.renderValueSelect(node, {
@@ -217,32 +282,24 @@ let HeadingStructure = class extends StructureView {
         options: this.buildLevelOptions(node.availableTypes, currentValue, node.level > 0 ? node.level : null)
       });
     }
-    if (node.relation !== null) {
-      const levelLabel = this.headingLevelLabel(node.level);
-      const relationLabel = node.relation.kind === "ancestor" ? lll("mindfula11y.structure.headings.relation.descendant") : lll("mindfula11y.structure.headings.relation.sibling");
-      if (!this.relationTargetExists(node)) {
-        return html`<span class="level" data-relation>
-                    ${levelLabel}
-                    <typo3-backend-icon identifier="actions-link" size="small"></typo3-backend-icon>
-                    <span class="sr-only">${relationLabel}</span>
-                </span>`;
-      }
-      return html`<button
-                type="button"
-                class="level"
-                data-relation
-                data-control="level"
-                aria-label="${levelLabel} — ${relationLabel}. ${lll("mindfula11y.structure.headings.relation.jump")}"
-                aria-describedby=${this.describedby(node)}
-                @click=${() => this.handleRelationJump(node)}
-            >
-                ${levelLabel}
-                <typo3-backend-icon identifier="actions-link" size="small"></typo3-backend-icon>
-            </button>`;
-    }
     return html`<span class="level" data-locked>
             ${this.renderLockedChip(node.level > 0 ? this.headingLevelLabel(node.level) : "\u2014")}
         </span>`;
+  }
+  /** Shared visible and screen-reader explanation for both relation variants. */
+  renderRelationLevelContent(node, hasTarget) {
+    const relationKey = node.relation?.kind === "ancestor" ? "mindfula11y.structure.headings.relation.descendant" : "mindfula11y.structure.headings.relation.sibling";
+    return html`${this.headingLevelLabel(node.level)}
+            <span class="relation-label">${lll(relationKey)}</span>
+            <typo3-backend-icon
+                identifier=${hasTarget ? "actions-link" : "actions-lock"}
+                size="small"
+                aria-hidden="true"
+            ></typo3-backend-icon>
+            <span class="sr-only">
+                ${lll("mindfula11y.structure.headings.relation.readonly")}
+                ${hasTarget ? lll("mindfula11y.structure.headings.relation.jump") : nothing}
+            </span>`;
   }
   /**
    * Select writing the container-owned child-type column, rendered on the row
@@ -332,7 +389,10 @@ let HeadingStructure = class extends StructureView {
       );
       return;
     }
-    this.focusRow(target);
+    this.focusRow(target, {
+      preferredControl: node.relation?.kind === "ancestor" ? "child-level" : "level",
+      fallbackToOtherControls: false
+    });
   }
 };
 HeadingStructure.styles = [...StructureView.viewStyles, componentStyles];

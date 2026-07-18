@@ -63,6 +63,9 @@
             <trans-unit id="structure.updated" resname="structure.updated">
                 <source>Page structure updated. Errors: %d; warnings: %d.</source>
             </trans-unit>
+            <trans-unit id="structure.findingCount" resname="structure.findingCount">
+                <source>Count: %d</source>
+            </trans-unit>
             <trans-unit id="structure.retry" resname="structure.retry">
                 <source>Retry</source>
             </trans-unit>
@@ -397,19 +400,22 @@
                 <source>Sets the heading level for all content elements inside this element. Automatic uses the next level.</source>
             </trans-unit>
             <trans-unit id="structure.headings.relation.descendant" resname="structure.headings.relation.descendant">
-                <source>Related to parent heading</source>
+                <source>Inherited from ancestor — change there</source>
+            </trans-unit>
+            <trans-unit id="structure.headings.relation.readonly" resname="structure.headings.relation.readonly">
+                <source>This heading level is inherited and cannot be changed here.</source>
             </trans-unit>
             <trans-unit id="structure.headings.relation.jump" resname="structure.headings.relation.jump">
-                <source>Jump to the related heading.</source>
+                <source>Jump to the related heading to change the level.</source>
             </trans-unit>
             <trans-unit id="structure.headings.relation.sibling" resname="structure.headings.relation.sibling">
-                <source>Related to sibling heading</source>
+                <source>Inherited from sibling — change there</source>
             </trans-unit>
             <trans-unit id="structure.headings.relation.notFound" resname="structure.headings.relation.notFound">
-                <source>Ancestor not found</source>
+                <source>Related heading not found</source>
             </trans-unit>
             <trans-unit id="structure.headings.relation.notFound.description" resname="structure.headings.relation.notFound.description">
-                <source>The referenced ancestor heading could not be found in the document.</source>
+                <source>The heading that controls this inherited level could not be found in the document.</source>
             </trans-unit>
             <trans-unit id="structure.headings.noHeadings" resname="structure.headings.noHeadings">
                 <source>No headings found</source>

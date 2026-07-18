@@ -76,6 +76,10 @@
                 <source>Page structure updated. Errors: %d; warnings: %d.</source>
                 <target>Seitenstruktur aktualisiert. Fehler: %d; Warnungen: %d.</target>
             </trans-unit>
+            <trans-unit id="structure.findingCount" resname="structure.findingCount">
+                <source>Count: %d</source>
+                <target>Anzahl: %d</target>
+            </trans-unit>
             <trans-unit id="structure.retry" resname="structure.retry">
                 <source>Retry</source>
                 <target>Erneut versuchen</target>
@@ -482,24 +486,28 @@
 				<target>Legt die Überschriftenebene für alle Inhaltselemente innerhalb dieses Elements fest. Automatisch verwendet die nächste Ebene.</target>
             </trans-unit>
             <trans-unit id="structure.headings.relation.descendant" resname="structure.headings.relation.descendant">
-                <source>Related to parent heading</source>
-                <target>Untergeordnet zur übergeordneten Überschrift</target>
+                <source>Inherited from ancestor — change there</source>
+                <target>Von übergeordneter Überschrift geerbt – dort ändern</target>
+            </trans-unit>
+            <trans-unit id="structure.headings.relation.readonly" resname="structure.headings.relation.readonly">
+                <source>This heading level is inherited and cannot be changed here.</source>
+                <target>Diese Überschriftenebene ist geerbt und kann hier nicht geändert werden.</target>
             </trans-unit>
             <trans-unit id="structure.headings.relation.jump" resname="structure.headings.relation.jump">
-                <source>Jump to the related heading.</source>
-                <target>Zur verknüpften Überschrift springen.</target>
+                <source>Jump to the related heading to change the level.</source>
+                <target>Zur verknüpften Überschrift springen, um die Ebene zu ändern.</target>
             </trans-unit>
             <trans-unit id="structure.headings.relation.sibling" resname="structure.headings.relation.sibling">
-                <source>Related to sibling heading</source>
-                <target>Gleichrangig zur benachbarten Überschrift</target>
+                <source>Inherited from sibling — change there</source>
+                <target>Von gleichrangiger Überschrift geerbt – dort ändern</target>
             </trans-unit>
             <trans-unit id="structure.headings.relation.notFound" resname="structure.headings.relation.notFound">
-                <source>Ancestor not found</source>
-                <target>Übergeordnete Überschrift nicht gefunden</target>
+                <source>Related heading not found</source>
+                <target>Verknüpfte Überschrift nicht gefunden</target>
             </trans-unit>
             <trans-unit id="structure.headings.relation.notFound.description" resname="structure.headings.relation.notFound.description">
-                <source>The referenced ancestor heading could not be found in the document.</source>
-                <target>Die referenzierte übergeordnete Überschrift konnte im Dokument nicht gefunden werden.</target>
+                <source>The heading that controls this inherited level could not be found in the document.</source>
+                <target>Die Überschrift, die diese geerbte Ebene steuert, konnte im Dokument nicht gefunden werden.</target>
             </trans-unit>
             <trans-unit id="structure.headings.noHeadings" resname="structure.headings.noHeadings">
                 <source>No headings found</source>

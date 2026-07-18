@@ -347,7 +347,9 @@ export class Structure extends LitElement {
                             }}
                         >
                             ${renderSeverityChip(finding.severity, finding.key)}
-                            <span class="finding-count">${finding.count}</span>
+                            <strong class="finding-count"
+                                >${lll('mindfula11y.structure.findingCount', finding.count)}</strong
+                            >
                             ${renderViewportBadges(finding.viewports)}
                         </button>
                     </li>`,

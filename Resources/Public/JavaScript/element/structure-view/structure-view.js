@@ -51,9 +51,13 @@ class StructureView extends LitElement {
   }
   render() {
     return html`<div class="view">
-            ${this.pageErrors.map((error) => this.renderIssue(error, true))}
+            ${this.renderPageErrors()}
             ${this.nodes.length === 0 ? this.renderEmpty() : this.renderNodes(this.nodes)}
         </div>`;
+  }
+  /** Page-level findings have no affected node; subclasses may place them in their own schematic. */
+  renderPageErrors() {
+    return this.pageErrors.length > 0 ? html`${this.pageErrors.map((error) => this.renderIssue(error, { pageScope: true }))}` : nothing;
   }
   updated(changed) {
     if (changed.has("nodes") && this.pendingFocusId !== "") {
@@ -75,7 +79,7 @@ class StructureView extends LitElement {
   focusControl(nodeId, controlName = "") {
     const row = this.renderRoot.querySelector(`[data-node-id="${CSS.escape(nodeId)}"]`);
     if (row !== null) {
-      this.focusRow(row, controlName);
+      this.focusRow(row, { preferredControl: controlName });
     }
   }
   /** Focuses the first element affected by the given error key; page-level issues focus their message. */
@@ -106,11 +110,19 @@ class StructureView extends LitElement {
     return null;
   }
   renderNodeIssues(node) {
-    return html`<div class="issues" id="issue-${node.id}">
-            ${node.errors.map((error) => this.renderIssue(error, false))}
+    return this.renderIssueGroup(node.errors, { className: "issues", id: `issue-${node.id}` });
+  }
+  /** One group renderer for every layout that presents shared inline issues. */
+  renderIssueGroup(errors, options) {
+    const issueOptions = options.issueOptions ?? {};
+    return html`<div class=${options.className} id=${options.id ?? nothing}>
+            ${errors.map(
+      (error) => this.renderIssue(error, typeof issueOptions === "function" ? issueOptions(error) : issueOptions)
+    )}
         </div>`;
   }
-  renderIssue(error, pageScope) {
+  renderIssue(error, options = {}) {
+    const pageScope = options.pageScope ?? false;
     return html`<p
             class="notice issue"
             data-state=${noticeState(error.severity)}
@@ -118,7 +130,8 @@ class StructureView extends LitElement {
             data-scope=${pageScope ? "page" : "node"}
             tabindex=${pageScope ? "-1" : nothing}
         >
-            ${renderSeverityChip(error.severity, error.key)} ${renderViewportBadges(error.viewports)}
+            ${renderSeverityChip(error.severity, options.labelKey ?? error.key, ...options.labelArguments ?? [])}
+            ${options.showViewports === false ? nothing : renderViewportBadges(error.viewports)}
         </p>`;
   }
   renderEmpty() {
@@ -233,17 +246,36 @@ class StructureView extends LitElement {
     }
   }
   /**
-   * Focuses a node row's control (or the row itself) and flashes the
-   * highlight. `preferredControl` — a `data-control` value — is tried before
-   * the `controlSelector`/edit-link fallback chain (see {@link focusControl}).
+   * Focuses a node row's control and flashes the highlight. If no control is
+   * available, a subclass can nominate a native containing element through
+   * `data-focus-fallback`; its value references the visible content that
+   * temporarily names the fallback while focused. A preferred `data-control`
+   * value is tried before the `controlSelector`/edit-link fallback chain;
+   * callers can disable that chain when only the exact control owns the
+   * relationship being followed (see {@link focusControl}).
    */
-  focusRow(row, preferredControl = "") {
-    const control = (preferredControl !== "" ? row.querySelector(`[data-control="${CSS.escape(preferredControl)}"]`) : null) ?? row.querySelector(this.controlSelector) ?? row.querySelector('[data-control="edit"]');
+  focusRow(row, options = {}) {
+    const preferredControl = options.preferredControl ?? "";
+    const preferred = preferredControl === "" ? null : row.querySelector(`[data-control="${CSS.escape(preferredControl)}"]`);
+    const control = preferred ?? (options.fallbackToOtherControls === false ? null : row.querySelector(this.controlSelector) ?? row.querySelector('[data-control="edit"]'));
     if (control !== null) {
       control.focus();
     } else {
-      row.setAttribute("tabindex", "-1");
-      row.focus();
+      const fallback = row.closest("[data-focus-fallback]") ?? row;
+      const labelId = fallback.dataset.focusFallback ?? "";
+      fallback.setAttribute("tabindex", "-1");
+      if (labelId !== "") {
+        fallback.setAttribute("aria-labelledby", labelId);
+      }
+      fallback.focus();
+      fallback.addEventListener(
+        "blur",
+        () => {
+          fallback.removeAttribute("tabindex");
+          fallback.removeAttribute("aria-labelledby");
+        },
+        { once: true }
+      );
     }
     scrollIntoViewCentered(row);
     row.setAttribute("data-highlight", "");

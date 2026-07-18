@@ -41,6 +41,12 @@
     }
 
     .finding-count {
+        padding-inline: var(--mindfula11y-space-3xs);
         font-weight: 700;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+        background-color: var(--mindfula11y-component-bg);
+        border: 1px solid var(--mindfula11y-notice-border);
+        border-radius: 999em;
     }
 }

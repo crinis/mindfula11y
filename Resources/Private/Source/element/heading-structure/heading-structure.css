@@ -141,10 +141,13 @@
         text-align: center;
         white-space: nowrap;
 
-        /* Dashed = derived; only the jump-button variant (carrying data-control)
-           is interactive — the plain variant marks a heading derived from a
-           parent that renders no own heading, so there is nothing to jump to. */
+        /* Dashed = inherited. The visible relation text explains where the
+           level is controlled; only a reachable source becomes a jump button. */
         &[data-relation] {
+            justify-content: start;
+            max-inline-size: 100%;
+            text-align: start;
+            white-space: normal;
             border-style: dashed;
 
             &[data-control] {
@@ -157,19 +160,12 @@
             background-color: var(--mindfula11y-surface-high);
             border-color: transparent;
         }
+    }
 
-        /*
-         * Placeholder chip for a skipped level — tint and text color come from
-         * the shared notice pattern (danger pill); locally it keeps the level
-         * column's square radius and the tree's dashed derived-marker border.
-         * border-color repeats the pattern token so the recipe's :hover rule
-         * above (same specificity, earlier source order) cannot override it.
-         */
-        &[data-missing] {
-            border-color: var(--mindfula11y-notice-border);
-            border-style: dashed;
-            border-radius: var(--mindfula11y-input-radius);
-        }
+    :is(.relation-label, .child-label) {
+        font-size: var(--mindfula11y-font-size-xs);
+        font-weight: 600;
+        color: var(--mindfula11y-text-subtle);
     }
 
     /*
@@ -230,12 +226,6 @@
         }
     }
 
-    .child-label {
-        font-size: var(--mindfula11y-font-size-xs);
-        font-weight: 600;
-        color: var(--mindfula11y-text-subtle);
-    }
-
     .child-level {
         inline-size: 100%;
         min-inline-size: 0;
@@ -283,5 +273,11 @@
         gap: var(--mindfula11y-space-3xs);
         align-items: center;
         max-inline-size: 100%;
+    }
+
+    /* The shared page-issue margin separates standalone notices from a view;
+       this page issue is already spaced by the tree and contained by a row. */
+    .issue[data-scope="page"] {
+        margin-block-end: 0;
     }
 }

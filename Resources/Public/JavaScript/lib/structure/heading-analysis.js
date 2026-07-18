@@ -1,13 +1,7 @@
 import { createErrorCollector } from "./analysis.js";
 import { extractChildTypeRecord, extractRecord, indexStructureNodes } from "./annotations.js";
 import { isElementExposed, resolveExposure } from "./element-exposure.js";
-import { StructureErrorSeverity } from "./types.js";
-const ERROR_KEYS = {
-  missingH1: "mindfula11y.structure.headings.error.missingH1",
-  multipleH1: "mindfula11y.structure.headings.error.multipleH1",
-  emptyHeading: "mindfula11y.structure.headings.error.emptyHeadings",
-  skippedLevel: "mindfula11y.structure.headings.error.skippedLevel"
-};
+import { HEADING_ERROR_KEYS, StructureErrorSeverity } from "./types.js";
 const CONTAINER_SELECTOR = "[data-mindfula11y-container]";
 const extractRelation = (element) => {
   const ancestorId = element.dataset.mindfula11yAncestorId ?? "";
@@ -39,7 +33,7 @@ const analyzeHeadings = (doc, options = {}) => {
   const nodesByRelationId = /* @__PURE__ */ new Map();
   const h1Count = headings.filter((heading) => heading.tagName === "H1").length;
   if (headings.length > 0 && h1Count === 0) {
-    collector.pageError(ERROR_KEYS.missingH1, StructureErrorSeverity.Error);
+    collector.pageError(HEADING_ERROR_KEYS.missingH1, StructureErrorSeverity.Error);
   }
   exposed.forEach((element) => {
     if (element.matches(CONTAINER_SELECTOR)) {
@@ -101,17 +95,17 @@ const analyzeHeadings = (doc, options = {}) => {
       nodesByRelationId.set(relationId, node);
     }
     if (h1Count > 1 && level === 1) {
-      collector.nodeError(node, ERROR_KEYS.multipleH1, StructureErrorSeverity.Warning);
+      collector.nodeError(node, HEADING_ERROR_KEYS.multipleH1, StructureErrorSeverity.Warning);
     }
     if (label === "") {
-      collector.nodeError(node, ERROR_KEYS.emptyHeading, StructureErrorSeverity.Error);
+      collector.nodeError(node, HEADING_ERROR_KEYS.emptyHeading, StructureErrorSeverity.Error);
     }
     if (attributedContainer !== null) {
-      if (!attributedContainer.errors.some((error) => error.key === ERROR_KEYS.skippedLevel)) {
-        collector.nodeError(attributedContainer, ERROR_KEYS.skippedLevel, StructureErrorSeverity.Error);
+      if (!attributedContainer.errors.some((error) => error.key === HEADING_ERROR_KEYS.skippedLevel)) {
+        collector.nodeError(attributedContainer, HEADING_ERROR_KEYS.skippedLevel, StructureErrorSeverity.Error);
       }
     } else if (skippedLevels > 0) {
-      collector.nodeError(node, ERROR_KEYS.skippedLevel, StructureErrorSeverity.Error);
+      collector.nodeError(node, HEADING_ERROR_KEYS.skippedLevel, StructureErrorSeverity.Error);
     }
     if (parent === null) {
       rootNodes.push(node);

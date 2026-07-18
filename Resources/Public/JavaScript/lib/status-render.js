@@ -32,12 +32,15 @@ const NOTICE_STATE_ICONS = {
 function noticeStateIcon(state) {
   return NOTICE_STATE_ICONS[state];
 }
-function renderSeverityChip(severity, labelKey) {
+function renderSeverityChip(severity, labelKey, ...labelArguments) {
   return html`<typo3-backend-icon
             identifier=${noticeStateIcon(noticeState(severity))}
             size="small"
         ></typo3-backend-icon>
-        <span><span class="sr-only">${lll(severityLabelKey(severity))}: </span>${lll(labelKey)}</span>`;
+        <span
+            ><span class="sr-only">${lll(severityLabelKey(severity))}: </span
+            >${lll(labelKey, ...labelArguments)}</span
+        >`;
 }
 const renderViewportBadges = (viewports) => html`<span class="viewports">
         <span class="sr-only">${lll("mindfula11y.structure.viewports")}: </span>
