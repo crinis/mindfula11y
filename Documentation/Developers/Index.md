@@ -14,7 +14,7 @@ cached page shell and title have already been generated. This also means a title
 from a form template is not a cross-version solution.
 
 The behavior is controlled globally by `enableValidationErrorTitlePrefix` in Extension
-Configuration and is enabled by default. Client-side HTML5 validation needs no handling because it
+Configuration and is disabled by default. Client-side HTML5 validation needs no handling because it
 does not cause a page load.
 
 ## Fluid namespace

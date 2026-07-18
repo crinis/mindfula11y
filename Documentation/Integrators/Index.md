@@ -24,7 +24,7 @@ Configure in **Admin Tools > Settings > Extension Configuration**.
 | `disableAltTextGeneration` | Turn off AI generation globally while keeping manual alt editing. |
 | `scannerApiUrl` | Base URL of your scanner service. Use full format with protocol and optional port, without path. Example: `http://localhost:3000` (MindfulAPI Docker default) or `https://scanner.example.com`. |
 | `scannerApiToken` | Bearer token used to authenticate TYPO3 against the scanner API (if enabled there). |
-| `enableValidationErrorTitlePrefix` | Prefixes the page title with a localized `Error:` after failed server-side EXT:form validation. Enabled by default. |
+| `enableValidationErrorTitlePrefix` | Prefixes the page title with a localized `Error:` after failed server-side EXT:form validation. Disabled by default. |
 
 ### Keeping secrets out of settings.php
 
@@ -48,8 +48,8 @@ When a TYPO3 EXT:form submission fails server-side validation, Mindful A11y pref
 page title with a localized `Error:` (`Fehler:` in German). Screen readers encounter the failure
 state in the title as soon as the response loads, following the GOV.UK validation pattern.
 
-The behavior is enabled by default. Clear `enableValidationErrorTitlePrefix` in
-**Admin Tools > Settings > Extension Configuration** to disable it globally. Extension
+The behavior is disabled by default. Set `enableValidationErrorTitlePrefix` in
+**Admin Tools > Settings > Extension Configuration** to enable it globally. Extension
 Configuration is used because this is frontend response policy for the installation; Page TSconfig
 controls backend and editor behavior and is therefore not the appropriate configuration layer.
 

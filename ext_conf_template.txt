@@ -19,4 +19,4 @@ scannerApiUrl =
 scannerApiToken =
 
 # cat=mindfula11y//g; type=boolean; label=LLL:EXT:mindfula11y/Resources/Private/Language/Configuration.xlf:validationError.enableTitlePrefix
-enableValidationErrorTitlePrefix = 1
+enableValidationErrorTitlePrefix = 0

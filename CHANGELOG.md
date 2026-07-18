@@ -22,6 +22,7 @@ the `Publish to TER` workflow uses the release body as the TER upload comment.
 
 ### Changed
 
+- The page-title `Error:` prefix after failed server-side EXT:form validation is now disabled by default: new installations must opt in by setting the `enableValidationErrorTitlePrefix` extension configuration. Installations that already synced their extension configuration keep their stored value, and a missing or unsynced extension configuration now reads as disabled instead of failing the request.
 - File-reference alternative-text inputs again use TYPO3's native metadata
   placeholder behavior for every editor allowed to edit the reference field.
   The extension no longer adds a separate `sys_file_metadata` table-read gate
