@@ -144,13 +144,13 @@
 			<!-- ARIA Labelledby Field -->
 			<trans-unit id="ttContent.columns.mindfula11y.ariaLabelledby"
 				resname="ttContent.columns.mindfula11y.ariaLabelledby">
-				<source>Use header as landmark name</source>
+				<source>Use heading as landmark name</source>
 				<target>Überschrift als Landmark-Name verwenden</target>
 			</trans-unit>
 			<trans-unit id="ttContent.columns.mindfula11y.ariaLabelledby.description"
 				resname="ttContent.columns.mindfula11y.ariaLabelledby.description">
-				<source>When enabled, the content element's header will be used as the accessible name for this landmark. IMPORTANT: Make sure your content element has a meaningful header when this option is enabled, as screen readers will announce it as the landmark's name.</source>
-				<target>Wenn aktiviert, wird die Überschrift des Inhaltselements als zugänglicher Name für dieses Landmark verwendet. WICHTIG: Stellen Sie sicher, dass Ihr Inhaltselement eine aussagekräftige Überschrift hat, wenn diese Option aktiviert ist, da Screenreader sie als Namen des Landmarks vorlesen werden.</target>
+				<source>Uses the content element's heading as the accessible name for this landmark. Enable only when the element has a meaningful heading that identifies the landmark.</source>
+				<target>Verwendet die Überschrift des Inhaltselements als zugänglichen Namen für dieses Landmark. Aktivieren Sie die Option nur, wenn das Element eine aussagekräftige Überschrift hat, die das Landmark bezeichnet.</target>
 			</trans-unit>
 			
 			<!-- ARIA Label Field -->
@@ -161,32 +161,32 @@
 			</trans-unit>
 			<trans-unit id="ttContent.columns.mindfula11y.ariaLabel.description"
 				resname="ttContent.columns.mindfula11y.ariaLabel.description">
-				<source>Provide a descriptive name for this landmark that will be announced by screen readers. This should be concise but meaningful, helping users understand the purpose of this section.</source>
-				<target>Geben Sie einen beschreibenden Namen für dieses Landmark an, der von Screenreadern vorgelesen wird. Dieser sollte prägnant aber aussagekräftig sein und Nutzern helfen, den Zweck dieses Bereichs zu verstehen.</target>
+				<source>Enter a concise, descriptive name for this landmark. Screen readers announce the name to help users understand the purpose of this section.</source>
+				<target>Geben Sie einen kurzen, aussagekräftigen Namen für dieses Landmark ein. Screenreader geben den Namen aus, damit Nutzer den Zweck dieses Bereichs verstehen können.</target>
 			</trans-unit>
 
 			<!-- Scan ID Field -->
 			<trans-unit id="pages.columns.mindfula11y.scanId"
 				resname="pages.columns.mindfula11y.scanId">
-				<source>Accessibility Scan ID</source>
-				<target>Zugänglichkeit-Scan-ID</target>
+				<source>Accessibility scan ID</source>
+				<target>Barrierefreiheits-Scan-ID</target>
 			</trans-unit>
 			<trans-unit id="pages.columns.mindfula11y.scanId.description"
 				resname="pages.columns.mindfula11y.scanId.description">
 				<source>External accessibility scan identifier for this page.</source>
-				<target>Externe Zugänglichkeits-Scan-Identifikation für diese Seite.</target>
+				<target>Externe Kennung des Barrierefreiheits-Scans für diese Seite.</target>
 			</trans-unit>
 			
 			<!-- Scan Last Updated Field -->
 			<trans-unit id="pages.columns.mindfula11y.scanUpdated"
 				resname="pages.columns.mindfula11y.scanUpdated">
-				<source>Scan Updated</source>
-				<target>Scan aktualisiert</target>
+				<source>Scan ID last updated</source>
+				<target>Scan-ID zuletzt aktualisiert</target>
 			</trans-unit>
 			<trans-unit id="pages.columns.mindfula11y.scanUpdated.description"
 				resname="pages.columns.mindfula11y.scanUpdated.description">
 				<source>Timestamp when the accessibility scan ID was last updated.</source>
-				<target>Zeitstempel, wann die Zugänglichkeits-Scan-ID zuletzt aktualisiert wurde.</target>
+				<target>Zeitpunkt der letzten Aktualisierung der Barrierefreiheits-Scan-ID.</target>
 			</trans-unit>
 		</body>
 	</file>

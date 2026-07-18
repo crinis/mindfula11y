@@ -58,10 +58,10 @@
                 <source>Analyzing page structure …</source>
             </trans-unit>
             <trans-unit id="structure.analyzed" resname="structure.analyzed">
-                <source>Page structure analyzed: %d errors, %d warnings.</source>
+                <source>Page structure analyzed. Errors: %d; warnings: %d.</source>
             </trans-unit>
             <trans-unit id="structure.updated" resname="structure.updated">
-                <source>Page structure updated: %d errors, %d warnings.</source>
+                <source>Page structure updated. Errors: %d; warnings: %d.</source>
             </trans-unit>
             <trans-unit id="structure.retry" resname="structure.retry">
                 <source>Retry</source>
@@ -125,7 +125,7 @@
             </trans-unit>
 
             <trans-unit id="general.viewDetails" resname="general.viewDetails">
-                <source>View Details</source>
+                <source>View details</source>
             </trans-unit>
 
             <trans-unit id="module.menu.pageLevels" resname="module.menu.pageLevels">
@@ -159,7 +159,7 @@
             </trans-unit>
             <trans-unit id="module.menu.filter.fileMetaData" resname="module.menu.filter.fileMetaData">
                 <source>
-                    Filter records with inherited alternative text
+                    Hide records with inherited alternative text
                 </source>
             </trans-unit>
 
@@ -198,7 +198,7 @@
                 <source>Minor</source>
             </trans-unit>
             <trans-unit id="general.error.loading" resname="general.error.loading">
-                <source>Failed to load heading/landmark structure.</source>
+                <source>Failed to load heading and landmark structure.</source>
             </trans-unit>
             <trans-unit id="general.error.loading.description" resname="general.error.loading.description">
                 <source>Could not analyze the page content. Please try again or check your connection.</source>
@@ -212,7 +212,7 @@
             </trans-unit>
             <trans-unit id="altText.generate.loading"
                 resname="altText.generate.loading">
-                <source>Generating alternative text...</source>
+                <source>Generating alternative text…</source>
             </trans-unit>
             <trans-unit id="altText.generate.success"
                 resname="altText.generate.success">
@@ -227,7 +227,7 @@
             </trans-unit>
             <trans-unit id="altText.generate.error.unknown"
                 resname="altText.generate.error.unknown">
-                <source>Unknown error occurred.</source>
+                <source>Unknown error</source>
             </trans-unit>
             <trans-unit id="altText.generate.error.unknown.description"
                 resname="altText.generate.error.unknown.description">
@@ -238,11 +238,11 @@
             </trans-unit>
             <trans-unit id="altText.generate.error.openAIConnection"
                 resname="altText.generate.error.openAIConnection">
-                <source>ChatGPT connection error.</source>
+                <source>OpenAI connection error</source>
             </trans-unit>
             <trans-unit id="altText.generate.error.openAIConnection.description"
                 resname="altText.generate.error.openAIConnection.description">
-                <source>Could not establish connection to ChatGPT. Is your API-Key OK?</source>
+                <source>Could not connect to OpenAI. Is the API key valid?</source>
             </trans-unit>
             <trans-unit id="altText.editRecord.label"
                 resname="altText.editRecord.label">
@@ -280,11 +280,11 @@
             </trans-unit>
             <trans-unit id="altText.fallbackAltLabel"
                 resname="altText.fallbackAltLabel">
-                <source>Label specified in file metadata:</source>
+                <source>Alternative text inherited from file metadata:</source>
             </trans-unit>
             <trans-unit id="altText.pagination.navigation"
                 resname="altText.pagination.navigation">
-                <source>Pagination navigation</source>
+                <source>Pagination</source>
             </trans-unit>
             <trans-unit id="altText.pagination.previous"
                 resname="altText.pagination.previous">
@@ -301,7 +301,7 @@
                 <source>No file references without alternative text found.</source>
             </trans-unit>
             <trans-unit id="altText.count" resname="altText.count">
-                <source>%1$d file references without alternative text found.</source>
+                <source>File references without alternative text: %1$d</source>
             </trans-unit>
             <trans-unit id="altText.noAccess" resname="altText.noAccess">
                 <source>No access to missing alternative text feature.</source>
@@ -359,10 +359,7 @@
             </trans-unit>
             <trans-unit id="structure.headings.error.missingH1.description"
                 resname="structure.headings.error.missingH1.description">
-                <source>Every page should have exactly one &lt;h1&gt; as the main heading, usually
-                    at the top of the main content. Screenreader users rely on the &lt;h1&gt; to
-                    quickly skip to the main content and get to understand what the content is
-                    about.</source>
+                <source>A clear &lt;h1&gt; helps users identify the page's main topic and navigate its heading structure. Add one descriptive &lt;h1&gt;, usually at the start of the main content.</source>
             </trans-unit>
             <trans-unit id="structure.headings.error.multipleH1"
                 resname="structure.headings.error.multipleH1">
@@ -370,7 +367,7 @@
             </trans-unit>
             <trans-unit id="structure.headings.error.multipleH1.description"
                 resname="structure.headings.error.multipleH1.description">
-                <source>Pages should have exactly one &lt;h1&gt; heading to provide a clear document structure. Multiple &lt;h1&gt; elements can confuse screen readers and hurt SEO. Consider using &lt;h2&gt; or other heading levels for additional headings.</source>
+                <source>Using one &lt;h1&gt; for the page's main topic makes the heading hierarchy easier to understand. Consider using &lt;h2&gt; or lower heading levels for additional headings.</source>
             </trans-unit>
             <trans-unit id="structure.headings.edit" resname="structure.headings.edit">
                 <source>Edit heading</source>
@@ -434,7 +431,7 @@
                 <source>Select a valid landmark role.</source>
             </trans-unit>
             <trans-unit id="structure.landmarks.role.none" resname="structure.landmarks.role.none">
-                <source>No Landmark (none)</source>
+                <source>No landmark (none)</source>
             </trans-unit>
             <trans-unit id="structure.landmarks.role.banner" resname="structure.landmarks.role.banner">
                 <source>Site Header (banner)</source>
@@ -464,7 +461,7 @@
                 <source>No landmarks found</source>
             </trans-unit>
             <trans-unit id="structure.landmarks.noLandmarks.description" resname="structure.landmarks.noLandmarks.description">
-                <source>This page doesn't contain any ARIA landmarks or semantic HTML elements.</source>
+                <source>This page doesn't contain any ARIA landmarks or semantic HTML landmark elements.</source>
             </trans-unit>
             <trans-unit id="structure.landmarks.error.store" resname="structure.landmarks.error.store">
                 <source>Saving landmark role failed.</source>
@@ -479,8 +476,7 @@
             </trans-unit>
             <trans-unit id="structure.landmarks.error.missingMain.description"
                 resname="structure.landmarks.error.missingMain.description">
-                <source>Every page should have exactly one main landmark to identify the main content area. 
-                    This helps screenreader users quickly navigate to the primary content.</source>
+                <source>Add one main landmark to identify the page's primary content. This helps screen reader users navigate to it quickly.</source>
             </trans-unit>
             <trans-unit id="structure.landmarks.error.duplicateMain"
                 resname="structure.landmarks.error.duplicateMain">
@@ -488,7 +484,7 @@
             </trans-unit>
             <trans-unit id="structure.landmarks.error.duplicateMain.description"
                 resname="structure.landmarks.error.duplicateMain.description">
-                <source>Only one main landmark is allowed per page. Multiple main landmarks can confuse screen reader users.</source>
+                <source>A page should expose only one main landmark at a time. Multiple main landmarks can make the primary content difficult to identify.</source>
             </trans-unit>
             <trans-unit id="structure.landmarks.error.duplicateSameLabel" resname="structure.landmarks.error.duplicateSameLabel">
                 <source>Landmarks with identical labels.</source>
@@ -503,7 +499,7 @@
                 <source>More than one landmark with the same role lacks a label. Add unique labels (aria-label or aria-labelledby) so users can distinguish them.</source>
             </trans-unit>
             <trans-unit id="structure.landmarks.unlabelledLandmark" resname="structure.landmarks.unlabelledLandmark">
-                <source>Unlabelled Landmark</source>
+                <source>Unlabeled landmark</source>
             </trans-unit>
 
             <!-- General Errors -->
@@ -532,13 +528,13 @@
                 <source>The workspace context is invalid. Please switch to the correct workspace and try again.</source>
             </trans-unit>
             <trans-unit id="error.invalidLanguage" resname="error.invalidLanguage">
-                <source>Invalid language access</source>
+                <source>No access to selected language</source>
             </trans-unit>
             <trans-unit id="error.invalidLanguage.description" resname="error.invalidLanguage.description">
                 <source>You do not have access to the selected language. Please select an allowed language.</source>
             </trans-unit>
             <trans-unit id="error.invalidRecordAccess" resname="error.invalidRecordAccess">
-                <source>Invalid record access</source>
+                <source>No access to record</source>
             </trans-unit>
             <trans-unit id="error.invalidRecordAccess.description" resname="error.invalidRecordAccess.description">
                 <source>You do not have permission to edit this record or its specified fields.</source>
@@ -552,7 +548,7 @@
             </trans-unit>
 
             <trans-unit id="error.noFileAccess" resname="error.noFileAccess">
-                <source>No access to sys_file table</source>
+                <source>No access to file records</source>
             </trans-unit>
             <trans-unit id="error.noFileAccess.description" resname="error.noFileAccess.description">
                 <source>You do not have permission to read sys_file records. Please contact your administrator.</source>
@@ -594,10 +590,10 @@
                 <source>The accessibility scanner API is not configured. Please contact your administrator to configure the API URL and token.</source>
             </trans-unit>
             <trans-unit id="scan.start" resname="scan.start">
-                <source>Start Scan</source>
+                <source>Start scan</source>
             </trans-unit>
             <trans-unit id="scan.refresh" resname="scan.refresh">
-                <source>Refresh Scan</source>
+                <source>Refresh scan</source>
             </trans-unit>
             <trans-unit id="scan.issueContext" resname="scan.issueContext">
                 <source>Affected markup</source>
@@ -606,25 +602,25 @@
                 <source>Last scanned:</source>
             </trans-unit>
             <trans-unit id="scan.crawl.start" resname="scan.crawl.start">
-                <source>Start Crawl</source>
+                <source>Start crawl</source>
             </trans-unit>
             <trans-unit id="scan.crawl.refresh" resname="scan.crawl.refresh">
-                <source>Refresh Crawl</source>
+                <source>Refresh crawl</source>
             </trans-unit>
             <trans-unit id="scan.progress.discovering" resname="scan.progress.discovering">
                 <source>Discovering pages…</source>
             </trans-unit>
             <trans-unit id="scan.progress.pages" resname="scan.progress.pages">
-                <source>Scanned %d pages — %d discovered so far</source>
+                <source>Pages scanned: %d — discovered so far: %d</source>
             </trans-unit>
             <trans-unit id="scan.progress.pagesFailed" resname="scan.progress.pagesFailed">
-                <source>%d pages failed</source>
+                <source>Pages that could not be scanned: %d</source>
             </trans-unit>
             <trans-unit id="scan.tab.scan" resname="scan.tab.scan">
-                <source>Targeted Scan</source>
+                <source>Targeted scan</source>
             </trans-unit>
             <trans-unit id="scan.tab.crawl" resname="scan.tab.crawl">
-                <source>Full Site Crawl</source>
+                <source>Full-site crawl</source>
             </trans-unit>
             <trans-unit id="scan.tab.scan.description" resname="scan.tab.scan.description">
                 <source>Scans this page and optionally its child pages based on the selected scope. An external service performs the analysis — pages must be publicly accessible on the internet.</source>
@@ -636,7 +632,7 @@
                 <source>Manual scan required</source>
             </trans-unit>
             <trans-unit id="scan.multiPage.manualScan.description" resname="scan.multiPage.manualScan.description">
-                <source>Automatic scanning is disabled when multiple pages are in scope. Click "Start Scan" to analyse all selected pages.</source>
+                <source>Automatic scanning is disabled when multiple pages are in scope. Select "Start scan" to analyze all selected pages.</source>
             </trans-unit>
             <trans-unit id="scan.scopeExpanded" resname="scan.scopeExpanded">
                 <source>Scan scope has changed</source>
@@ -648,7 +644,7 @@
                 <source>No crawl scan started yet</source>
             </trans-unit>
             <trans-unit id="scan.crawl.idle.description" resname="scan.crawl.idle.description">
-                <source>Click "Start Crawl" to begin. The crawler follows all links from this root page and analyses every reachable page. All pages must be publicly accessible on the internet — the crawler cannot access password-protected or restricted pages.</source>
+                <source>Select "Start crawl" to begin. The crawler follows all links from this root page and analyzes every reachable page. All pages must be publicly accessible on the internet — the crawler cannot access password-protected or restricted pages.</source>
             </trans-unit>
             <trans-unit id="scan.error.crawlNotRootPage" resname="scan.error.crawlNotRootPage">
                 <source>Crawl not available</source>
@@ -657,10 +653,10 @@
                 <source>Crawl mode is only available on site root pages.</source>
             </trans-unit>
             <trans-unit id="scan.report.html" resname="scan.report.html">
-                <source>HTML Report</source>
+                <source>HTML report</source>
             </trans-unit>
             <trans-unit id="scan.report.pdf" resname="scan.report.pdf">
-                <source>PDF Report</source>
+                <source>PDF report</source>
             </trans-unit>
             <trans-unit id="scan.error.reportFailed" resname="scan.error.reportFailed">
                 <source>Report generation failed</source>
@@ -672,16 +668,16 @@
                 <source>Invalid report format</source>
             </trans-unit>
             <trans-unit id="scan.loading" resname="scan.loading">
-                <source>Loading scan results...</source>
+                <source>Loading scan results…</source>
             </trans-unit>
             <trans-unit id="scan.status.pending" resname="scan.status.pending">
-                <source>Scan Pending</source>
+                <source>Scan pending</source>
             </trans-unit>
             <trans-unit id="scan.status.running" resname="scan.status.running">
-                <source>Scan Running</source>
+                <source>Scan running</source>
             </trans-unit>
             <trans-unit id="scan.status.failed" resname="scan.status.failed">
-                <source>Scan Failed</source>
+                <source>Scan failed</source>
             </trans-unit>
             <trans-unit id="scan.status.failed.description" resname="scan.status.failed.description">
                 <source>The accessibility scan failed. Please try again later or contact your administrator.</source>
@@ -714,7 +710,7 @@
                 <source>Scan started.</source>
             </trans-unit>
             <trans-unit id="scan.announce.completed" resname="scan.announce.completed">
-                <source>Scan completed: %d issues found.</source>
+                <source>Scan completed. Issues found: %d.</source>
             </trans-unit>
             <trans-unit id="scan.announce.canceled" resname="scan.announce.canceled">
                 <source>Scan canceled.</source>
@@ -726,7 +722,7 @@
                 <source>Include AI review</source>
             </trans-unit>
             <trans-unit id="scan.aiAudit.toggle.description" resname="scan.aiAudit.toggle.description">
-                <source>A language model additionally reviews all content quality aspects enabled on the scanner. AI findings are suggestions and need human judgement.</source>
+                <source>A language model additionally reviews all content-quality checks enabled in the scanner. AI findings are suggestions and require human judgment.</source>
             </trans-unit>
             <trans-unit id="scan.aiAudit.section" resname="scan.aiAudit.section">
                 <source>AI review</source>
@@ -735,7 +731,7 @@
                 <source>AI-generated — verify before acting</source>
             </trans-unit>
             <trans-unit id="scan.aiAudit.disclaimer.description" resname="scan.aiAudit.disclaimer.description">
-                <source>The findings below were produced by a large language model (LLM), not the deterministic axe-core engine. They may be incomplete, inaccurate, or reflect subjective judgement. Confidence values are the model's own estimates; items marked "Needs human review" were low-confidence or could not be judged reliably. Treat every item as a suggestion to confirm manually, not a definitive accessibility result.</source>
+                <source>The findings below were produced by a large language model (LLM), not the deterministic axe-core engine. They may be incomplete, inaccurate, or reflect subjective judgment. Confidence values are the model's own estimates; items marked "Needs human review" were low-confidence or could not be judged reliably. Treat every item as a suggestion to confirm manually, not a definitive accessibility result.</source>
             </trans-unit>
             <trans-unit id="scan.aiAudit.status.pending" resname="scan.aiAudit.status.pending">
                 <source>AI review queued</source>
@@ -744,10 +740,10 @@
                 <source>AI review running — %d of %d checks done</source>
             </trans-unit>
             <trans-unit id="scan.aiAudit.tasksFailed" resname="scan.aiAudit.tasksFailed">
-                <source>%d AI checks did not finish</source>
+                <source>AI checks not completed: %d</source>
             </trans-unit>
             <trans-unit id="scan.aiAudit.appropriateCount" resname="scan.aiAudit.appropriateCount">
-                <source>%d elements were reviewed and assessed as appropriate.</source>
+                <source>Elements reviewed and assessed as appropriate: %d.</source>
             </trans-unit>
             <trans-unit id="scan.aiAudit.noFindings" resname="scan.aiAudit.noFindings">
                 <source>The AI review found nothing to flag.</source>
@@ -838,31 +834,31 @@
                 <source>(opens in a new tab)</source>
             </trans-unit>
             <trans-unit id="scan.issueCount" resname="scan.issueCount">
-                <source>%d Issue</source>
+                <source>%d issue</source>
             </trans-unit>
             <trans-unit id="scan.issuesCount" resname="scan.issuesCount">
-                <source>%d Issues</source>
+                <source>%d issues</source>
             </trans-unit>
             <trans-unit id="scan.selector" resname="scan.selector">
                 <source>Selector:</source>
             </trans-unit>
             <trans-unit id="scan.context" resname="scan.context">
-                <source>HTML Context:</source>
+                <source>HTML context:</source>
             </trans-unit>
             <trans-unit id="scan.pageUrl" resname="scan.pageUrl">
                 <source>Page URL:</source>
             </trans-unit>
             <trans-unit id="scan.processing" resname="scan.processing">
-                <source>Processing...</source>
+                <source>Processing…</source>
             </trans-unit>
             <trans-unit id="scan.issuesFound" resname="scan.issuesFound">
-                <source>Last external scan: %d accessibility issues found</source>
+                <source>Last external scan — accessibility issues found: %d</source>
             </trans-unit>
             <trans-unit id="scan.summary.jumpHint" resname="scan.summary.jumpHint">
                 <source>Jump to the first issue</source>
             </trans-unit>
             <trans-unit id="scan.noIssues" resname="scan.noIssues">
-                <source>Last external scan: No accessibility issues found</source>
+                <source>Last external scan — no accessibility issues found</source>
             </trans-unit>   
             <trans-unit id="scan.error.loading" resname="scan.error.loading">
                 <source>The last external scan failed.</source>

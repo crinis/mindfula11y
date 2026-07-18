@@ -69,12 +69,12 @@
                 <target>Seitenstruktur wird analysiert …</target>
             </trans-unit>
             <trans-unit id="structure.analyzed" resname="structure.analyzed">
-                <source>Page structure analyzed: %d errors, %d warnings.</source>
-                <target>Seitenstruktur analysiert: %d Fehler, %d Warnungen.</target>
+                <source>Page structure analyzed. Errors: %d; warnings: %d.</source>
+                <target>Seitenstruktur analysiert. Fehler: %d; Warnungen: %d.</target>
             </trans-unit>
             <trans-unit id="structure.updated" resname="structure.updated">
-                <source>Page structure updated: %d errors, %d warnings.</source>
-                <target>Seitenstruktur aktualisiert: %d Fehler, %d Warnungen.</target>
+                <source>Page structure updated. Errors: %d; warnings: %d.</source>
+                <target>Seitenstruktur aktualisiert. Fehler: %d; Warnungen: %d.</target>
             </trans-unit>
             <trans-unit id="structure.retry" resname="structure.retry">
                 <source>Retry</source>
@@ -158,7 +158,7 @@
             </trans-unit>
 
             <trans-unit id="general.viewDetails" resname="general.viewDetails">
-                <source>View Details</source>
+                <source>View details</source>
                 <target>Details anzeigen</target>
             </trans-unit>
 
@@ -198,7 +198,7 @@
             </trans-unit>
             <trans-unit id="module.menu.filter.fileMetaData" resname="module.menu.filter.fileMetaData">
                 <source>
-                    Filter records with inherited alternative text
+                    Hide records with inherited alternative text
                 </source>
                 <target>Datensätze mit geerbtem Alternativtext ausblenden</target>
             </trans-unit>
@@ -242,15 +242,15 @@
             </trans-unit>
             <trans-unit id="severity.moderate" resname="severity.moderate">
                 <source>Moderate</source>
-                <target>Mäßig</target>
+                <target>Mittel</target>
             </trans-unit>
             <trans-unit id="severity.minor" resname="severity.minor">
                 <source>Minor</source>
-                <target>Geringfügig</target>
+                <target>Gering</target>
             </trans-unit>
             <trans-unit id="general.error.loading" resname="general.error.loading">
-                <source>Failed to load heading/landmark structure.</source>
-                <target>Überschriften-/Landmark-Struktur konnte nicht geladen werden.</target>
+                <source>Failed to load heading and landmark structure.</source>
+                <target>Die Überschriften- und Landmark-Struktur konnte nicht geladen werden.</target>
             </trans-unit>
             <trans-unit id="general.error.loading.description" resname="general.error.loading.description">
                 <source>Could not analyze the page content. Please try again or check your connection.</source>
@@ -266,8 +266,8 @@
                 <target>Generieren</target>
             </trans-unit>
             <trans-unit id="altText.generate.loading" resname="altText.generate.loading">
-                <source>Generating alternative text...</source>
-                <target>Alternativtext wird generiert...</target>
+                <source>Generating alternative text…</source>
+                <target>Alternativtext wird generiert…</target>
             </trans-unit>
             <trans-unit id="altText.generate.success" resname="altText.generate.success">
                 <source>Alternative text generated.</source>
@@ -281,8 +281,8 @@
                 <target>Der Alternativtext wurde erfolgreich generiert. Bitte stellen Sie sicher, dass er das Bild treffend beschreibt.</target>
             </trans-unit>
             <trans-unit id="altText.generate.error.unknown" resname="altText.generate.error.unknown">
-                <source>Unknown error occurred.</source>
-                <target>Unbekannter Fehler aufgetreten.</target>
+                <source>Unknown error</source>
+                <target>Unbekannter Fehler</target>
             </trans-unit>
             <trans-unit id="altText.generate.error.unknown.description" resname="altText.generate.error.unknown.description">
                 <source>
@@ -292,12 +292,12 @@
                 <target>Es ist ein unbekannter Fehler aufgetreten. Bitte wenden Sie sich an Ihren Administrator oder versuchen Sie es später erneut.</target>
             </trans-unit>
             <trans-unit id="altText.generate.error.openAIConnection" resname="altText.generate.error.openAIConnection">
-                <source>ChatGPT connection error.</source>
-                <target>ChatGPT-Verbindungsfehler.</target>
+                <source>OpenAI connection error</source>
+                <target>OpenAI-Verbindungsfehler</target>
             </trans-unit>
             <trans-unit id="altText.generate.error.openAIConnection.description" resname="altText.generate.error.openAIConnection.description">
-                <source>Could not establish connection to ChatGPT. Is your API-Key OK?</source>
-                <target>Verbindung zu ChatGPT konnte nicht hergestellt werden. Ist Ihr API-Schlüssel korrekt?</target>
+                <source>Could not connect to OpenAI. Is the API key valid?</source>
+                <target>Die Verbindung zu OpenAI konnte nicht hergestellt werden. Ist der API-Schlüssel gültig?</target>
             </trans-unit>
             <trans-unit id="altText.editRecord.label" resname="altText.editRecord.label">
                 <source>Edit record [%1$s][%2$s].</source>
@@ -337,19 +337,19 @@
             </trans-unit>
             <trans-unit id="altText.opensNewTab" resname="altText.opensNewTab">
                 <source>(opens in a new tab)</source>
-                <target>(öffnet in neuem Tab)</target>
+                <target>(öffnet in einem neuen Tab)</target>
             </trans-unit>
             <trans-unit id="altText.imagePreview" resname="altText.imagePreview">
                 <source>Image preview</source>
                 <target>Bildvorschau</target>
             </trans-unit>
             <trans-unit id="altText.fallbackAltLabel" resname="altText.fallbackAltLabel">
-                <source>Label specified in file metadata:</source>
-                <target>In den Dateimetadaten festgelegter Alternativtext:</target>
+                <source>Alternative text inherited from file metadata:</source>
+                <target>Aus den Dateimetadaten übernommener Alternativtext:</target>
             </trans-unit>
             <trans-unit id="altText.pagination.navigation" resname="altText.pagination.navigation">
-                <source>Pagination navigation</source>
-                <target>Seitennavigation</target>
+                <source>Pagination</source>
+                <target>Seitennummerierung</target>
             </trans-unit>
             <trans-unit id="altText.pagination.previous" resname="altText.pagination.previous">
                 <source>Previous page</source>
@@ -368,12 +368,12 @@
                 <target>Keine Dateiverweise ohne Alternativtext gefunden.</target>
             </trans-unit>
             <trans-unit id="altText.count" resname="altText.count">
-                <source>%1$d file references without alternative text found.</source>
-                <target>%1$d Dateiverweise ohne Alternativtext gefunden.</target>
+                <source>File references without alternative text: %1$d</source>
+                <target>Dateiverweise ohne Alternativtext: %1$d</target>
             </trans-unit>
             <trans-unit id="altText.noAccess" resname="altText.noAccess">
                 <source>No access to missing alternative text feature.</source>
-                <target>Kein Zugriff auf die Funktion „Fehlender Alternativtext".</target>
+                <target>Kein Zugriff auf die Funktion „Fehlender Alternativtext“.</target>
             </trans-unit>
             <trans-unit id="altText.noAccess.description" resname="altText.noAccess.description">
                 <source>
@@ -430,19 +430,16 @@
                 <target>Fehlende &lt;h1&gt;-Überschrift.</target>
             </trans-unit>
             <trans-unit id="structure.headings.error.missingH1.description" resname="structure.headings.error.missingH1.description">
-                <source>Every page should have exactly one &lt;h1&gt; as the main heading, usually
-                    at the top of the main content. Screenreader users rely on the &lt;h1&gt; to
-                    quickly skip to the main content and get to understand what the content is
-                    about.</source>
-                <target>Jede Seite sollte genau eine &lt;h1&gt;-Überschrift als Hauptüberschrift haben, in der Regel am Anfang des Hauptinhalts. Screenreader-Nutzer verlassen sich auf die &lt;h1&gt;, um schnell zum Hauptinhalt zu gelangen und dessen Thema zu erfassen.</target>
+                <source>A clear &lt;h1&gt; helps users identify the page's main topic and navigate its heading structure. Add one descriptive &lt;h1&gt;, usually at the start of the main content.</source>
+                <target>Eine klare &lt;h1&gt;-Überschrift hilft Nutzern, das Hauptthema der Seite zu erkennen und in der Überschriftenstruktur zu navigieren. Fügen Sie eine aussagekräftige &lt;h1&gt;-Überschrift ein, üblicherweise am Anfang des Hauptinhalts.</target>
             </trans-unit>
             <trans-unit id="structure.headings.error.multipleH1" resname="structure.headings.error.multipleH1">
                 <source>Multiple &lt;h1&gt; headings found.</source>
                 <target>Mehrere &lt;h1&gt;-Überschriften gefunden.</target>
             </trans-unit>
             <trans-unit id="structure.headings.error.multipleH1.description" resname="structure.headings.error.multipleH1.description">
-                <source>Pages should have exactly one &lt;h1&gt; heading to provide a clear document structure. Multiple &lt;h1&gt; elements can confuse screen readers and hurt SEO. Consider using &lt;h2&gt; or other heading levels for additional headings.</source>
-                <target>Seiten sollten genau eine &lt;h1&gt;-Überschrift haben, um eine klare Dokumentstruktur zu gewährleisten. Mehrere &lt;h1&gt;-Elemente können Screenreader verwirren und sich negativ auf SEO auswirken. Verwenden Sie &lt;h2&gt; oder andere Überschriftenebenen für weitere Überschriften.</target>
+                <source>Using one &lt;h1&gt; for the page's main topic makes the heading hierarchy easier to understand. Consider using &lt;h2&gt; or lower heading levels for additional headings.</source>
+                <target>Eine einzelne &lt;h1&gt;-Überschrift für das Hauptthema der Seite macht die Überschriftenhierarchie leichter verständlich. Verwenden Sie für weitere Überschriften möglichst &lt;h2&gt; oder niedrigere Überschriftenebenen.</target>
             </trans-unit>
             <trans-unit id="structure.headings.edit" resname="structure.headings.edit">
                 <source>Edit heading</source>
@@ -454,7 +451,7 @@
             </trans-unit>
             <trans-unit id="structure.headings.unlabeled" resname="structure.headings.unlabeled">
                 <source>Unlabeled heading</source>
-                <target>Unbetitelte Überschrift</target>
+                <target>Überschrift ohne Text</target>
             </trans-unit>
             <trans-unit id="structure.headings.container" resname="structure.headings.container">
                 <source>Hidden container element</source>
@@ -526,7 +523,7 @@
                 <target>Bitte wählen Sie eine gültige Landmark-Rolle.</target>
             </trans-unit>
             <trans-unit id="structure.landmarks.role.none" resname="structure.landmarks.role.none">
-                <source>No Landmark (none)</source>
+                <source>No landmark (none)</source>
                 <target>Kein Landmark (none)</target>
             </trans-unit>
             <trans-unit id="structure.landmarks.role.banner" resname="structure.landmarks.role.banner">
@@ -566,8 +563,8 @@
                 <target>Keine Landmarks gefunden</target>
             </trans-unit>
             <trans-unit id="structure.landmarks.noLandmarks.description" resname="structure.landmarks.noLandmarks.description">
-                <source>This page doesn't contain any ARIA landmarks or semantic HTML elements.</source>
-                <target>Diese Seite enthält keine ARIA-Landmarks oder semantischen HTML-Elemente.</target>
+                <source>This page doesn't contain any ARIA landmarks or semantic HTML landmark elements.</source>
+                <target>Diese Seite enthält keine ARIA-Landmarks oder semantischen HTML-Landmark-Elemente.</target>
             </trans-unit>
             <trans-unit id="structure.landmarks.error.store" resname="structure.landmarks.error.store">
                 <source>Saving landmark role failed.</source>
@@ -582,17 +579,16 @@
                 <target>Fehlendes main-Landmark.</target>
             </trans-unit>
             <trans-unit id="structure.landmarks.error.missingMain.description" resname="structure.landmarks.error.missingMain.description">
-                <source>Every page should have exactly one main landmark to identify the main content area.
-                    This helps screenreader users quickly navigate to the primary content.</source>
-                <target>Jede Seite sollte genau ein main-Landmark haben, um den Hauptinhaltsbereich zu kennzeichnen. Dies hilft Screenreader-Nutzern, schnell zum primären Inhalt zu navigieren.</target>
+                <source>Add one main landmark to identify the page's primary content. This helps screen reader users navigate to it quickly.</source>
+                <target>Fügen Sie ein main-Landmark hinzu, das den Hauptinhalt der Seite kennzeichnet. So können Screenreader-Nutzer schnell dorthin navigieren.</target>
             </trans-unit>
             <trans-unit id="structure.landmarks.error.duplicateMain" resname="structure.landmarks.error.duplicateMain">
                 <source>Multiple main landmarks found.</source>
                 <target>Mehrere main-Landmarks gefunden.</target>
             </trans-unit>
             <trans-unit id="structure.landmarks.error.duplicateMain.description" resname="structure.landmarks.error.duplicateMain.description">
-                <source>Only one main landmark is allowed per page. Multiple main landmarks can confuse screen reader users.</source>
-                <target>Pro Seite ist nur ein main-Landmark erlaubt. Mehrere main-Landmarks können Screenreader-Nutzer verwirren.</target>
+                <source>A page should expose only one main landmark at a time. Multiple main landmarks can make the primary content difficult to identify.</source>
+                <target>Eine Seite sollte immer nur ein main-Landmark ausgeben. Mehrere main-Landmarks erschweren es, den Hauptinhalt zu erkennen.</target>
             </trans-unit>
             <trans-unit id="structure.landmarks.error.duplicateSameLabel" resname="structure.landmarks.error.duplicateSameLabel">
                 <source>Landmarks with identical labels.</source>
@@ -611,8 +607,8 @@
                 <target>Mehr als ein Landmark derselben Rolle hat keine Bezeichnung. Fügen Sie eindeutige Bezeichnungen (aria-label oder aria-labelledby) hinzu, damit Nutzer sie unterscheiden können.</target>
             </trans-unit>
             <trans-unit id="structure.landmarks.unlabelledLandmark" resname="structure.landmarks.unlabelledLandmark">
-                <source>Unlabelled Landmark</source>
-                <target>Unbetiteltes Landmark</target>
+                <source>Unlabeled landmark</source>
+                <target>Landmark ohne Bezeichnung</target>
             </trans-unit>
 
             <!-- General Errors -->
@@ -649,7 +645,7 @@
                 <target>Der Workspace-Kontext ist ungültig. Bitte wechseln Sie in den richtigen Workspace und versuchen Sie es erneut.</target>
             </trans-unit>
             <trans-unit id="error.invalidLanguage" resname="error.invalidLanguage">
-                <source>Invalid language access</source>
+                <source>No access to selected language</source>
                 <target>Kein Zugriff auf diese Sprache</target>
             </trans-unit>
             <trans-unit id="error.invalidLanguage.description" resname="error.invalidLanguage.description">
@@ -657,7 +653,7 @@
                 <target>Sie haben keinen Zugriff auf die gewählte Sprache. Bitte wählen Sie eine erlaubte Sprache.</target>
             </trans-unit>
             <trans-unit id="error.invalidRecordAccess" resname="error.invalidRecordAccess">
-                <source>Invalid record access</source>
+                <source>No access to record</source>
                 <target>Kein Zugriff auf den Datensatz</target>
             </trans-unit>
             <trans-unit id="error.invalidRecordAccess.description" resname="error.invalidRecordAccess.description">
@@ -675,7 +671,7 @@
             </trans-unit>
 
             <trans-unit id="error.noFileAccess" resname="error.noFileAccess">
-                <source>No access to sys_file table</source>
+                <source>No access to file records</source>
                 <target>Kein Zugriff auf die Dateitabelle</target>
             </trans-unit>
             <trans-unit id="error.noFileAccess.description" resname="error.noFileAccess.description">
@@ -689,7 +685,7 @@
             </trans-unit>
             <trans-unit id="error.noFileMountAccess.description" resname="error.noFileMountAccess.description">
                 <source>You do not have permission to read this file. The file may be outside your file mount boundaries.</source>
-                <target>Sie haben keine Berechtigung, diese Datei zu lesen. Die Datei befindet sich möglicherweise außerhalb Ihrer Datei-Einhängepunkte.</target>
+                <target>Sie haben keine Berechtigung, diese Datei zu lesen. Die Datei befindet sich möglicherweise außerhalb Ihrer Dateifreigaben.</target>
             </trans-unit>
             <trans-unit id="error.fileNotFound" resname="error.fileNotFound">
                 <source>File not found</source>
@@ -711,7 +707,7 @@
             </trans-unit>
             <trans-unit id="scan.noAccess.description" resname="scan.noAccess.description">
                 <source>You do not have access to the accessibility scanner. Please contact your administrator to enable scan access.</source>
-                <target>Sie haben keinen Zugriff auf den Accessibility-Scanner. Bitte wenden Sie sich an Ihren Administrator, um den Scan-Zugriff zu aktivieren.</target>
+                <target>Sie haben keinen Zugriff auf den Barrierefreiheits-Scanner. Bitte wenden Sie sich an Ihren Administrator, um den Scan-Zugriff zu aktivieren.</target>
             </trans-unit>
             <trans-unit id="scan.previewNotEnabled" resname="scan.previewNotEnabled">
                 <source>Preview not available for this page type</source>
@@ -719,7 +715,7 @@
             </trans-unit>
             <trans-unit id="scan.previewNotEnabled.description" resname="scan.previewNotEnabled.description">
                 <source>The accessibility scanner requires a preview URL to scan the page. This page type does not support preview or preview is disabled.</source>
-                <target>Der Accessibility-Scanner benötigt eine Vorschau-URL, um die Seite zu scannen. Dieser Seitentyp unterstützt keine Vorschau oder die Vorschau ist deaktiviert.</target>
+                <target>Der Barrierefreiheits-Scanner benötigt eine Vorschau-URL, um die Seite zu scannen. Dieser Seitentyp unterstützt keine Vorschau oder die Vorschau ist deaktiviert.</target>
             </trans-unit>
             <trans-unit id="scan.notConfigured" resname="scan.notConfigured">
                 <source>Scanner not configured</source>
@@ -727,22 +723,38 @@
             </trans-unit>
             <trans-unit id="scan.notConfigured.description" resname="scan.notConfigured.description">
                 <source>The accessibility scanner API is not configured. Please contact your administrator to configure the API URL and token.</source>
-                <target>Die Accessibility-Scanner-API ist nicht konfiguriert. Bitte wenden Sie sich an Ihren Administrator, um die API-URL und den Token einzurichten.</target>
+                <target>Die Barrierefreiheits-Scanner-API ist nicht konfiguriert. Bitte wenden Sie sich an Ihren Administrator, um die API-URL und den Token einzurichten.</target>
             </trans-unit>
             <trans-unit id="scan.start" resname="scan.start">
-                <source>Start Scan</source>
+                <source>Start scan</source>
                 <target>Scan starten</target>
             </trans-unit>
             <trans-unit id="scan.refresh" resname="scan.refresh">
-                <source>Refresh Scan</source>
+                <source>Refresh scan</source>
                 <target>Scan aktualisieren</target>
             </trans-unit>
+            <trans-unit id="scan.issueContext" resname="scan.issueContext">
+                <source>Affected markup</source>
+                <target>Betroffenes Markup</target>
+            </trans-unit>
+            <trans-unit id="scan.updatedAt" resname="scan.updatedAt">
+                <source>Last scanned:</source>
+                <target>Zuletzt gescannt:</target>
+            </trans-unit>
+            <trans-unit id="scan.crawl.start" resname="scan.crawl.start">
+                <source>Start crawl</source>
+                <target>Crawl starten</target>
+            </trans-unit>
+            <trans-unit id="scan.crawl.refresh" resname="scan.crawl.refresh">
+                <source>Refresh crawl</source>
+                <target>Crawl aktualisieren</target>
+            </trans-unit>
             <trans-unit id="scan.tab.scan" resname="scan.tab.scan">
-                <source>Targeted Scan</source>
+                <source>Targeted scan</source>
                 <target>Gezielter Scan</target>
             </trans-unit>
             <trans-unit id="scan.tab.crawl" resname="scan.tab.crawl">
-                <source>Full Site Crawl</source>
+                <source>Full-site crawl</source>
                 <target>Vollständiger Website-Crawl</target>
             </trans-unit>
             <trans-unit id="scan.tab.scan.description" resname="scan.tab.scan.description">
@@ -758,8 +770,8 @@
                 <target>Manueller Scan erforderlich</target>
             </trans-unit>
             <trans-unit id="scan.multiPage.manualScan.description" resname="scan.multiPage.manualScan.description">
-                <source>Automatic scanning is disabled when multiple pages are in scope. Click "Start Scan" to analyse all selected pages.</source>
-                <target>Automatisches Scannen ist deaktiviert, wenn mehrere Seiten im Umfang enthalten sind. Klicken Sie auf „Scan starten", um alle ausgewählten Seiten zu analysieren.</target>
+                <source>Automatic scanning is disabled when multiple pages are in scope. Select "Start scan" to analyze all selected pages.</source>
+                <target>Automatisches Scannen ist deaktiviert, wenn der gewählte Umfang mehrere Seiten umfasst. Wählen Sie „Scan starten“, um alle ausgewählten Seiten zu analysieren.</target>
             </trans-unit>
             <trans-unit id="scan.scopeExpanded" resname="scan.scopeExpanded">
                 <source>Scan scope has changed</source>
@@ -774,28 +786,56 @@
                 <target>Noch kein Crawl-Scan gestartet</target>
             </trans-unit>
             <trans-unit id="scan.crawl.idle.description" resname="scan.crawl.idle.description">
-                <source>Click "Start Crawl" to begin. The crawler follows all links from this root page and analyses every reachable page. All pages must be publicly accessible on the internet — the crawler cannot access password-protected or restricted pages.</source>
-                <target>Klicken Sie auf „Crawl starten", um zu beginnen. Der Crawler folgt allen Links von dieser Wurzelseite und analysiert jede erreichbare Seite. Alle Seiten müssen öffentlich im Internet zugänglich sein – der Crawler kann keine passwortgeschützten oder eingeschränkten Seiten aufrufen.</target>
+                <source>Select "Start crawl" to begin. The crawler follows all links from this root page and analyzes every reachable page. All pages must be publicly accessible on the internet — the crawler cannot access password-protected or restricted pages.</source>
+                <target>Wählen Sie „Crawl starten“, um zu beginnen. Der Crawler folgt allen Links von dieser Stammseite und analysiert jede erreichbare Seite. Alle Seiten müssen öffentlich im Internet zugänglich sein – der Crawler kann keine passwortgeschützten oder zugriffsbeschränkten Seiten aufrufen.</target>
+            </trans-unit>
+            <trans-unit id="scan.error.crawlNotRootPage" resname="scan.error.crawlNotRootPage">
+                <source>Crawl not available</source>
+                <target>Crawl nicht verfügbar</target>
+            </trans-unit>
+            <trans-unit id="scan.error.crawlNotRootPage.description" resname="scan.error.crawlNotRootPage.description">
+                <source>Crawl mode is only available on site root pages.</source>
+                <target>Der Crawl-Modus ist nur auf Site-Root-Seiten verfügbar.</target>
+            </trans-unit>
+            <trans-unit id="scan.report.html" resname="scan.report.html">
+                <source>HTML report</source>
+                <target>HTML-Bericht</target>
+            </trans-unit>
+            <trans-unit id="scan.report.pdf" resname="scan.report.pdf">
+                <source>PDF report</source>
+                <target>PDF-Bericht</target>
+            </trans-unit>
+            <trans-unit id="scan.error.reportFailed" resname="scan.error.reportFailed">
+                <source>Report generation failed</source>
+                <target>Bericht konnte nicht erstellt werden</target>
+            </trans-unit>
+            <trans-unit id="scan.error.reportFailed.description" resname="scan.error.reportFailed.description">
+                <source>The report could not be generated. Please try again later.</source>
+                <target>Der Bericht konnte nicht erstellt werden. Bitte versuchen Sie es später erneut.</target>
+            </trans-unit>
+            <trans-unit id="scan.error.reportFormat" resname="scan.error.reportFormat">
+                <source>Invalid report format</source>
+                <target>Ungültiges Berichtsformat</target>
             </trans-unit>
             <trans-unit id="scan.loading" resname="scan.loading">
-                <source>Loading scan results...</source>
-                <target>Scan-Ergebnisse werden geladen...</target>
+                <source>Loading scan results…</source>
+                <target>Scan-Ergebnisse werden geladen…</target>
             </trans-unit>
             <trans-unit id="scan.status.pending" resname="scan.status.pending">
-                <source>Scan Pending</source>
+                <source>Scan pending</source>
                 <target>Scan ausstehend</target>
             </trans-unit>
             <trans-unit id="scan.status.running" resname="scan.status.running">
-                <source>Scan Running</source>
+                <source>Scan running</source>
                 <target>Scan läuft</target>
             </trans-unit>
             <trans-unit id="scan.status.failed" resname="scan.status.failed">
-                <source>Scan Failed</source>
+                <source>Scan failed</source>
                 <target>Scan fehlgeschlagen</target>
             </trans-unit>
             <trans-unit id="scan.status.failed.description" resname="scan.status.failed.description">
                 <source>The accessibility scan failed. Please try again later or contact your administrator.</source>
-                <target>Der Accessibility-Scan ist fehlgeschlagen. Bitte versuchen Sie es später erneut oder wenden Sie sich an Ihren Administrator.</target>
+                <target>Der Barrierefreiheits-Scan ist fehlgeschlagen. Bitte versuchen Sie es später erneut oder wenden Sie sich an Ihren Administrator.</target>
             </trans-unit>
             <trans-unit id="scan.status.analyzing" resname="scan.status.analyzing">
                 <source>AI review running</source>
@@ -834,8 +874,8 @@
                 <target>Scan gestartet.</target>
             </trans-unit>
             <trans-unit id="scan.announce.completed" resname="scan.announce.completed">
-                <source>Scan completed: %d issues found.</source>
-                <target>Scan abgeschlossen: %d Probleme gefunden.</target>
+                <source>Scan completed. Issues found: %d.</source>
+                <target>Scan abgeschlossen. Gefundene Probleme: %d.</target>
             </trans-unit>
             <trans-unit id="scan.announce.canceled" resname="scan.announce.canceled">
                 <source>Scan canceled.</source>
@@ -850,20 +890,20 @@
                 <target>Seiten werden ermittelt…</target>
             </trans-unit>
             <trans-unit id="scan.progress.pages" resname="scan.progress.pages">
-                <source>Scanned %d pages — %d discovered so far</source>
-                <target>%d Seiten gescannt — %d bisher ermittelt</target>
+                <source>Pages scanned: %d — discovered so far: %d</source>
+                <target>Gescannte Seiten: %d – bisher ermittelt: %d</target>
             </trans-unit>
             <trans-unit id="scan.progress.pagesFailed" resname="scan.progress.pagesFailed">
-                <source>%d pages failed</source>
-                <target>%d Seiten fehlgeschlagen</target>
+                <source>Pages that could not be scanned: %d</source>
+                <target>Nicht gescannte Seiten: %d</target>
             </trans-unit>
             <trans-unit id="scan.aiAudit.toggle" resname="scan.aiAudit.toggle">
                 <source>Include AI review</source>
                 <target>KI-Prüfung einbeziehen</target>
             </trans-unit>
             <trans-unit id="scan.aiAudit.toggle.description" resname="scan.aiAudit.toggle.description">
-                <source>A language model additionally reviews all content quality aspects enabled on the scanner. AI findings are suggestions and need human judgement.</source>
-                <target>Ein Sprachmodell prüft zusätzlich alle auf dem Scanner aktivierten inhaltlichen Qualitätsaspekte. KI-Befunde sind Vorschläge und erfordern menschliche Beurteilung.</target>
+                <source>A language model additionally reviews all content-quality checks enabled in the scanner. AI findings are suggestions and require human judgment.</source>
+                <target>Ein Sprachmodell führt zusätzlich alle im Scanner aktivierten Prüfungen der Inhaltsqualität durch. KI-Befunde sind Vorschläge und erfordern eine menschliche Beurteilung.</target>
             </trans-unit>
             <trans-unit id="scan.aiAudit.section" resname="scan.aiAudit.section">
                 <source>AI review</source>
@@ -874,7 +914,7 @@
                 <target>KI-generiert — vor Umsetzung prüfen</target>
             </trans-unit>
             <trans-unit id="scan.aiAudit.disclaimer.description" resname="scan.aiAudit.disclaimer.description">
-                <source>The findings below were produced by a large language model (LLM), not the deterministic axe-core engine. They may be incomplete, inaccurate, or reflect subjective judgement. Confidence values are the model's own estimates; items marked "Needs human review" were low-confidence or could not be judged reliably. Treat every item as a suggestion to confirm manually, not a definitive accessibility result.</source>
+                <source>The findings below were produced by a large language model (LLM), not the deterministic axe-core engine. They may be incomplete, inaccurate, or reflect subjective judgment. Confidence values are the model's own estimates; items marked "Needs human review" were low-confidence or could not be judged reliably. Treat every item as a suggestion to confirm manually, not a definitive accessibility result.</source>
                 <target>Die folgenden Befunde stammen von einem großen Sprachmodell (LLM), nicht von der deterministischen axe-core-Engine. Sie können unvollständig oder ungenau sein oder subjektive Einschätzungen widerspiegeln. Konfidenzwerte sind die eigenen Schätzungen des Modells; als „Menschliche Prüfung erforderlich“ markierte Einträge hatten eine geringe Konfidenz oder konnten nicht zuverlässig beurteilt werden. Behandeln Sie jeden Befund als manuell zu bestätigenden Vorschlag, nicht als endgültiges Ergebnis der Barrierefreiheitsprüfung.</target>
             </trans-unit>
             <trans-unit id="scan.aiAudit.status.pending" resname="scan.aiAudit.status.pending">
@@ -886,12 +926,12 @@
                 <target>KI-Prüfung läuft – %d von %d Prüfungen abgeschlossen</target>
             </trans-unit>
             <trans-unit id="scan.aiAudit.tasksFailed" resname="scan.aiAudit.tasksFailed">
-                <source>%d AI checks did not finish</source>
-                <target>%d KI-Prüfungen wurden nicht abgeschlossen</target>
+                <source>AI checks not completed: %d</source>
+                <target>Nicht abgeschlossene KI-Prüfungen: %d</target>
             </trans-unit>
             <trans-unit id="scan.aiAudit.appropriateCount" resname="scan.aiAudit.appropriateCount">
-                <source>%d elements were reviewed and assessed as appropriate.</source>
-                <target>%d Elemente wurden geprüft und als angemessen bewertet.</target>
+                <source>Elements reviewed and assessed as appropriate: %d.</source>
+                <target>Geprüfte und als angemessen bewertete Elemente: %d.</target>
             </trans-unit>
             <trans-unit id="scan.aiAudit.noFindings" resname="scan.aiAudit.noFindings">
                 <source>The AI review found nothing to flag.</source>
@@ -952,7 +992,7 @@
             </trans-unit>
             <trans-unit id="scan.error.notConfigured.description" resname="scan.error.notConfigured.description">
                 <source>The accessibility scanner API URL and token are not configured.</source>
-                <target>Die URL und der Token der Accessibility-Scanner-API sind nicht konfiguriert.</target>
+                <target>Die URL und der Token der Barrierefreiheits-Scanner-API sind nicht konfiguriert.</target>
             </trans-unit>
             <trans-unit id="scan.error.apiNotReachable" resname="scan.error.apiNotReachable">
                 <source>Scanner API not reachable</source>
@@ -960,7 +1000,7 @@
             </trans-unit>
             <trans-unit id="scan.error.apiNotReachable.description" resname="scan.error.apiNotReachable.description">
                 <source>The accessibility scanner API could not be reached. Please check the API URL in the extension configuration or contact your administrator.</source>
-                <target>Die Accessibility-Scanner-API konnte nicht erreicht werden. Bitte überprüfen Sie die API-URL in der Erweiterungskonfiguration oder wenden Sie sich an Ihren Administrator.</target>
+                <target>Die Barrierefreiheits-Scanner-API konnte nicht erreicht werden. Bitte überprüfen Sie die API-URL in der Erweiterungskonfiguration oder wenden Sie sich an Ihren Administrator.</target>
             </trans-unit>
             <trans-unit id="scan.status.apiReachable" resname="scan.status.apiReachable">
                 <source>Scanner API reachable</source>
@@ -968,7 +1008,7 @@
             </trans-unit>
             <trans-unit id="scan.status.apiReachable.description" resname="scan.status.apiReachable.description">
                 <source>The accessibility scanner API is reachable and ready to use.</source>
-                <target>Die Accessibility-Scanner-API ist erreichbar und einsatzbereit.</target>
+                <target>Die Barrierefreiheits-Scanner-API ist erreichbar und einsatzbereit.</target>
             </trans-unit>
             <trans-unit id="scan.error.createFailed" resname="scan.error.createFailed">
                 <source>Failed to create scan</source>
@@ -976,7 +1016,7 @@
             </trans-unit>
             <trans-unit id="scan.error.createFailed.description" resname="scan.error.createFailed.description">
                 <source>Could not create a new accessibility scan. Please try again or contact your administrator.</source>
-                <target>Ein neuer Accessibility-Scan konnte nicht erstellt werden. Bitte versuchen Sie es erneut oder wenden Sie sich an Ihren Administrator.</target>
+                <target>Ein neuer Barrierefreiheits-Scan konnte nicht erstellt werden. Bitte versuchen Sie es erneut oder wenden Sie sich an Ihren Administrator.</target>
             </trans-unit>
             <trans-unit id="scan.error.noScanId" resname="scan.error.noScanId">
                 <source>No scan ID found</source>
@@ -992,7 +1032,7 @@
             </trans-unit>
             <trans-unit id="scan.error.getFailed.description" resname="scan.error.getFailed.description">
                 <source>Could not load the accessibility scan results. Please try again.</source>
-                <target>Die Accessibility-Scan-Ergebnisse konnten nicht geladen werden. Bitte versuchen Sie es erneut.</target>
+                <target>Die Ergebnisse des Barrierefreiheits-Scans konnten nicht geladen werden. Bitte versuchen Sie es erneut.</target>
             </trans-unit>
             <trans-unit id="scan.error.storeFailed" resname="scan.error.storeFailed">
                 <source>Failed to store scan ID.</source>
@@ -1011,11 +1051,11 @@
                 <target>(öffnet in einem neuen Tab)</target>
             </trans-unit>
             <trans-unit id="scan.issueCount" resname="scan.issueCount">
-                <source>%d Issue</source>
+                <source>%d issue</source>
                 <target>%d Problem</target>
             </trans-unit>
             <trans-unit id="scan.issuesCount" resname="scan.issuesCount">
-                <source>%d Issues</source>
+                <source>%d issues</source>
                 <target>%d Probleme</target>
             </trans-unit>
             <trans-unit id="scan.selector" resname="scan.selector">
@@ -1023,24 +1063,28 @@
                 <target>Selektor:</target>
             </trans-unit>
             <trans-unit id="scan.context" resname="scan.context">
-                <source>HTML Context:</source>
+                <source>HTML context:</source>
                 <target>HTML-Kontext:</target>
             </trans-unit>
+            <trans-unit id="scan.pageUrl" resname="scan.pageUrl">
+                <source>Page URL:</source>
+                <target>Seiten-URL:</target>
+            </trans-unit>
             <trans-unit id="scan.processing" resname="scan.processing">
-                <source>Processing...</source>
-                <target>Wird verarbeitet...</target>
+                <source>Processing…</source>
+                <target>Wird verarbeitet…</target>
             </trans-unit>
             <trans-unit id="scan.issuesFound" resname="scan.issuesFound">
-                <source>Last external scan: %d accessibility issues found</source>
-                <target>Letzter externer Scan: %d Barrierefreiheitsprobleme gefunden</target>
+                <source>Last external scan — accessibility issues found: %d</source>
+                <target>Letzter externer Scan – gefundene Barrierefreiheitsprobleme: %d</target>
             </trans-unit>
             <trans-unit id="scan.summary.jumpHint" resname="scan.summary.jumpHint">
                 <source>Jump to the first issue</source>
                 <target>Zum ersten Problem springen</target>
             </trans-unit>
             <trans-unit id="scan.noIssues" resname="scan.noIssues">
-                <source>Last external scan: No accessibility issues found</source>
-                <target>Letzter externer Scan: Keine Barrierefreiheitsprobleme gefunden</target>
+                <source>Last external scan — no accessibility issues found</source>
+                <target>Letzter externer Scan – keine Barrierefreiheitsprobleme gefunden</target>
             </trans-unit>
             <trans-unit id="scan.error.loading" resname="scan.error.loading">
                 <source>The last external scan failed.</source>
@@ -1068,7 +1112,7 @@
             </trans-unit>
             <trans-unit id="scan.error.pageVisible.description" resname="scan.error.pageVisible.description">
                 <source>The page is hidden or not yet published. The external accessibility scanner cannot access it.</source>
-                <target>Die Seite ist ausgeblendet oder noch nicht veröffentlicht. Der externe Accessibility-Scanner kann nicht auf sie zugreifen.</target>
+                <target>Die Seite ist ausgeblendet oder noch nicht veröffentlicht. Der externe Barrierefreiheits-Scanner kann nicht auf sie zugreifen.</target>
             </trans-unit>
             <trans-unit id="scan.error.accessDenied" resname="scan.error.accessDenied">
                 <source>Access denied</source>

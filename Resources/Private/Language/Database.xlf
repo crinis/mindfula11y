@@ -130,11 +130,11 @@
 			<!-- ARIA Labelledby Field -->
 			<trans-unit id="ttContent.columns.mindfula11y.ariaLabelledby"
 				resname="ttContent.columns.mindfula11y.ariaLabelledby">
-				<source>Use header as landmark name</source>
+				<source>Use heading as landmark name</source>
 			</trans-unit>
 			<trans-unit id="ttContent.columns.mindfula11y.ariaLabelledby.description"
 				resname="ttContent.columns.mindfula11y.ariaLabelledby.description">
-				<source>When enabled, the content element's header will be used as the accessible name for this landmark. IMPORTANT: Make sure your content element has a meaningful header when this option is enabled, as screen readers will announce it as the landmark's name.</source>
+				<source>Uses the content element's heading as the accessible name for this landmark. Enable only when the element has a meaningful heading that identifies the landmark.</source>
 			</trans-unit>
 			
 			<!-- ARIA Label Field -->
@@ -144,13 +144,13 @@
 			</trans-unit>
 			<trans-unit id="ttContent.columns.mindfula11y.ariaLabel.description"
 				resname="ttContent.columns.mindfula11y.ariaLabel.description">
-				<source>Provide a descriptive name for this landmark that will be announced by screen readers. This should be concise but meaningful, helping users understand the purpose of this section.</source>
+				<source>Enter a concise, descriptive name for this landmark. Screen readers announce the name to help users understand the purpose of this section.</source>
 			</trans-unit>
 			
 			<!-- Scan ID Field -->
 			<trans-unit id="pages.columns.mindfula11y.scanId"
 				resname="pages.columns.mindfula11y.scanId">
-				<source>Accessibility Scan ID</source>
+				<source>Accessibility scan ID</source>
 			</trans-unit>
 			<trans-unit id="pages.columns.mindfula11y.scanId.description"
 				resname="pages.columns.mindfula11y.scanId.description">
@@ -160,7 +160,7 @@
 			<!-- Scan Last Updated Field -->
 			<trans-unit id="pages.columns.mindfula11y.scanUpdated"
 				resname="pages.columns.mindfula11y.scanUpdated">
-				<source>Scan Updated</source>
+				<source>Scan ID last updated</source>
 			</trans-unit>
 			<trans-unit id="pages.columns.mindfula11y.scanUpdated.description"
 				resname="pages.columns.mindfula11y.scanUpdated.description">
