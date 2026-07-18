@@ -15,6 +15,7 @@ namespace MindfulMarkup\MindfulA11y\Service;
 
 use MindfulMarkup\MindfulA11y\Domain\Model\GenerateAltTextDemand;
 use MindfulMarkup\MindfulA11y\Enum\AltTextDemandAuthorizationFailure;
+use MindfulMarkup\MindfulA11y\Tca\TranslationFields;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Resource\Exception\FileDoesNotExistException;
 use TYPO3\CMS\Core\Resource\File;
@@ -35,10 +36,7 @@ final readonly class AltTextDemandAuthorizationService
     {
         $record = BackendUtility::getRecordWSOL($demand->getRecordTable(), $demand->getRecordUid());
         if (!is_array($record)
-            || !hash_equals(
-                $demand->getRecordSnapshot(),
-                $this->recordSnapshotService->fingerprint($demand->getRecordTable(), $record),
-            )
+            || !$this->recordSnapshotService->matches($demand->getRecordSnapshot(), $demand->getRecordTable(), $record)
             || !$this->recordMatchesDemand($demand, $record)
         ) {
             return AltTextDemandAuthorizationFailure::INVALID_SNAPSHOT;
@@ -60,20 +58,14 @@ final readonly class AltTextDemandAuthorizationService
         }
         if (($reference === null && $demand->getFileReferenceSnapshot() !== '')
             || (is_array($reference)
-                && !hash_equals(
-                    $demand->getFileReferenceSnapshot(),
-                    $this->recordSnapshotService->fingerprint('sys_file_reference', $reference),
-                ))
+                && !$this->recordSnapshotService->matches($demand->getFileReferenceSnapshot(), 'sys_file_reference', $reference))
         ) {
             return AltTextDemandAuthorizationFailure::INVALID_SNAPSHOT;
         }
 
         $fileRecord = BackendUtility::getRecordWSOL('sys_file', $demand->getFileUid());
         if (!is_array($fileRecord)
-            || !hash_equals(
-                $demand->getFileSnapshot(),
-                $this->recordSnapshotService->fingerprint('sys_file', $fileRecord),
-            )
+            || !$this->recordSnapshotService->matches($demand->getFileSnapshot(), 'sys_file', $fileRecord)
         ) {
             return AltTextDemandAuthorizationFailure::INVALID_SNAPSHOT;
         }
@@ -116,7 +108,7 @@ final readonly class AltTextDemandAuthorizationService
     private function recordMatchesDemand(GenerateAltTextDemand $demand, array $record): bool
     {
         if ((int)($record['pid'] ?? -1) !== $demand->getPageUid()
-            || $this->recordLanguage($demand->getRecordTable(), $record) !== $demand->getLanguageUid()
+            || TranslationFields::languageId($demand->getRecordTable(), $record) !== $demand->getLanguageUid()
         ) {
             return false;
         }
@@ -155,7 +147,7 @@ final readonly class AltTextDemandAuthorizationService
             : BackendUtility::getRecordWSOL('sys_file_reference', $demand->getFileReferenceUid());
         if (!is_array($reference)
             || (int)($reference['pid'] ?? -1) !== $demand->getPageUid()
-            || $this->recordLanguage('sys_file_reference', $reference) !== $demand->getLanguageUid()
+            || TranslationFields::languageId('sys_file_reference', $reference) !== $demand->getLanguageUid()
             || (int)($reference['uid_local'] ?? 0) !== $demand->getFileUid()
         ) {
             return false;
@@ -170,13 +162,5 @@ final readonly class AltTextDemandAuthorizationService
         }
 
         return $reference;
-    }
-
-    /** @param array<string, mixed> $record */
-    private function recordLanguage(string $table, array $record): int
-    {
-        $languageField = (string)($GLOBALS['TCA'][$table]['ctrl']['languageField'] ?? '');
-
-        return $languageField === '' ? 0 : (int)($record[$languageField] ?? 0);
     }
 }

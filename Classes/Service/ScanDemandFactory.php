@@ -23,6 +23,7 @@ declare(strict_types=1);
 namespace MindfulMarkup\MindfulA11y\Service;
 
 use MindfulMarkup\MindfulA11y\Domain\Model\CreateScanDemand;
+use MindfulMarkup\MindfulA11y\Tca\TranslationFields;
 use TYPO3\CMS\Backend\Routing\PreviewUriBuilder;
 
 /**
@@ -77,7 +78,6 @@ final readonly class ScanDemandFactory
         }
 
         $backendUser = $this->backendUserProvider->get();
-        $languageField = (string)($GLOBALS['TCA']['pages']['ctrl']['languageField'] ?? 'sys_language_uid');
 
         return new CreateScanDemand(
             userId: (int)$backendUser->user['uid'],
@@ -88,7 +88,7 @@ final readonly class ScanDemandFactory
             // no page translation the caller falls back to the default-language
             // record, and a demand signed with the untranslated selection could
             // never be redeemed (no localized record, snapshot mismatch).
-            languageId: (int)($pageRecord[$languageField] ?? 0),
+            languageId: TranslationFields::languageId('pages', $pageRecord),
             workspaceId: $backendUser->workspace,
             pageRecordSnapshot: $this->recordSnapshotService->fingerprint('pages', $pageRecord),
             pageLevels: $pageLevels,
@@ -103,15 +103,10 @@ final readonly class ScanDemandFactory
      */
     public function matchesCurrentSnapshot(CreateScanDemand $demand, array $pageRecord): bool
     {
-        $languageField = (string)($GLOBALS['TCA']['pages']['ctrl']['languageField'] ?? 'sys_language_uid');
-        $translationParentField = (string)($GLOBALS['TCA']['pages']['ctrl']['transOrigPointerField'] ?? 'l10n_parent');
-        $currentPageId = (int)($pageRecord[$translationParentField] ?? 0) ?: (int)($pageRecord['uid'] ?? 0);
+        $currentPageId = TranslationFields::translationParentUid('pages', $pageRecord) ?: (int)($pageRecord['uid'] ?? 0);
         if ($currentPageId !== $demand->getPageId()
-            || (int)($pageRecord[$languageField] ?? 0) !== $demand->getLanguageId()
-            || !hash_equals(
-                $demand->getPageRecordSnapshot(),
-                $this->recordSnapshotService->fingerprint('pages', $pageRecord),
-            )
+            || TranslationFields::languageId('pages', $pageRecord) !== $demand->getLanguageId()
+            || !$this->recordSnapshotService->matches($demand->getPageRecordSnapshot(), 'pages', $pageRecord)
         ) {
             return false;
         }

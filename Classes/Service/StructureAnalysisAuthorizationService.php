@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace MindfulMarkup\MindfulA11y\Service;
 
 use MindfulMarkup\MindfulA11y\Domain\Model\StructureAnalysisTicket;
+use MindfulMarkup\MindfulA11y\Tca\TranslationFields;
 use TYPO3\CMS\Backend\Module\ModuleProvider;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
@@ -136,8 +137,8 @@ final readonly class StructureAnalysisAuthorizationService
      */
     private function hasPageTranslation(int $pageId, int $languageId, int $workspaceId): bool
     {
-        $languageField = (string)($GLOBALS['TCA']['pages']['ctrl']['languageField'] ?? 'sys_language_uid');
-        $translationParentField = (string)($GLOBALS['TCA']['pages']['ctrl']['transOrigPointerField'] ?? 'l10n_parent');
+        $languageField = TranslationFields::languageFieldName('pages');
+        $translationParentField = TranslationFields::translationParentFieldName('pages');
         $queryBuilder = $this->connectionPool->getQueryBuilderForTable('pages');
         $queryBuilder->getRestrictions()
             ->removeAll()
@@ -202,10 +203,7 @@ final readonly class StructureAnalysisAuthorizationService
             );
             if ($previewUrl === null
                 || $previewPage === null
-                || !hash_equals(
-                    $ticket->pageRecordSnapshot,
-                    $this->recordSnapshotService->fingerprint('pages', $previewPage),
-                )
+                || !$this->recordSnapshotService->matches($ticket->pageRecordSnapshot, 'pages', $previewPage)
             ) {
                 return false;
             }

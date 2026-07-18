@@ -42,4 +42,16 @@ final readonly class RecordSnapshotService
 
         return hash('sha256', json_encode($persistedRecord, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES));
     }
+
+    /**
+     * Whether a previously issued snapshot still matches the record's current
+     * persisted state. Timing-safe: snapshots authorize signed demands, so the
+     * comparison must not leak how much of the fingerprint matched.
+     *
+     * @param array<string, mixed> $record
+     */
+    public function matches(string $snapshot, string $table, array $record): bool
+    {
+        return hash_equals($snapshot, $this->fingerprint($table, $record));
+    }
 }
