@@ -23,6 +23,8 @@ declare(strict_types=1);
 namespace MindfulMarkup\MindfulA11y\Service;
 
 use TYPO3\CMS\Backend\Utility\BackendUtility;
+use TYPO3\CMS\Core\Exception\SiteNotFoundException;
+use TYPO3\CMS\Core\Site\SiteFinder;
 use TYPO3\CMS\Core\TypoScript\TypoScriptService;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
@@ -38,6 +40,7 @@ final readonly class ModuleSettingsService
 {
     public function __construct(
         private PermissionService $permissionService,
+        private SiteFinder $siteFinder,
         private TypoScriptService $typoScriptService,
     ) {}
 
@@ -138,17 +141,27 @@ final readonly class ModuleSettingsService
     }
 
     /**
-     * Get HTTP Basic Authentication credentials for the scanner from Page TSconfig.
+     * Get HTTP Basic Authentication credentials for the scanner.
      *
-     * Returns an associative array with 'username' and 'password' keys when both are
-     * configured, or null when either value is absent. Credentials are read exclusively
-     * on the server side and are never forwarded to the frontend.
+     * Resolved from the page's site settings (mindfula11y.scan.basicAuth.username /
+     * .password — the only per-site surface supporting %env()% placeholders for the
+     * secret), with the Page TSconfig keys released in v0.12.0 as deprecated
+     * fallback. Site settings are authoritative as soon as either key is set there:
+     * a partial pair fails closed (no credentials sent, visible as a 401 at the
+     * protected host) instead of silently reviving the deprecated TSconfig
+     * credentials mid-migration. Credentials are read exclusively on the server
+     * side and are never forwarded to the frontend.
      *
      * @param array<string, mixed> $pageTsConfig
      * @return array{username: string, password: string}|null
      */
-    public function getScanBasicAuth(array $pageTsConfig): ?array
+    public function getScanBasicAuth(int $pageId, array $pageTsConfig): ?array
     {
+        $siteAuth = $this->getSiteSettingsScanBasicAuth($pageId);
+        if ($siteAuth !== []) {
+            return count($siteAuth) === 2 ? $siteAuth : null;
+        }
+
         $username = trim((string)($pageTsConfig['mod']['mindfula11y_accessibility']['scan']['basicAuthUsername'] ?? ''));
         $password = trim((string)($pageTsConfig['mod']['mindfula11y_accessibility']['scan']['basicAuthPassword'] ?? ''));
 
@@ -157,6 +170,30 @@ final readonly class ModuleSettingsService
         }
 
         return ['username' => $username, 'password' => $password];
+    }
+
+    /**
+     * Read the scanner basic-auth site settings for the page's site.
+     *
+     * @return array{username?: string, password?: string} Empty when neither key is set (or the page has no site).
+     */
+    private function getSiteSettingsScanBasicAuth(int $pageId): array
+    {
+        try {
+            $settings = $this->siteFinder->getSiteByPageId($pageId)->getSettings();
+        } catch (SiteNotFoundException) {
+            return [];
+        }
+
+        $auth = [];
+        foreach (['username', 'password'] as $key) {
+            $value = $settings->get('mindfula11y.scan.basicAuth.' . $key, '');
+            if (is_scalar($value) && trim((string)$value) !== '') {
+                $auth[$key] = trim((string)$value);
+            }
+        }
+
+        return $auth;
     }
 
     /**

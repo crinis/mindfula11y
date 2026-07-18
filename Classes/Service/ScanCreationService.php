@@ -77,9 +77,10 @@ final readonly class ScanCreationService
             }
         }
 
-        // Read basic auth credentials from PageTS (server-side only, never from client input).
+        // Read basic auth credentials from site settings / PageTS (server-side only,
+        // never from client input).
         $scanOptions = [];
-        $basicAuth = $this->moduleSettingsService->getScanBasicAuth($pageTsConfig);
+        $basicAuth = $this->moduleSettingsService->getScanBasicAuth($demand->getPageId(), $pageTsConfig);
         if ($basicAuth !== null) {
             $scanOptions['basicAuth'] = $basicAuth;
         }

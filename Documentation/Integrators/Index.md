@@ -89,8 +89,6 @@ mod {
         scan {
             enable = 0
             autoCreate = 1
-            # basicAuthUsername =
-            # basicAuthPassword =
             aiAudit {
                 enable = 0
                 default = 0
@@ -122,8 +120,8 @@ TCEFORM.tt_content.tx_mindfula11y_landmark {
 | `mod.mindfula11y_accessibility.landmarkStructure.enable` | Enables landmark structure checks in module. |
 | `mod.mindfula11y_accessibility.scan.enable` | Enables scanner feature in module. |
 | `mod.mindfula11y_accessibility.scan.autoCreate` | Auto-starts new scan on module load when content changed. |
-| `mod.mindfula11y_accessibility.scan.basicAuthUsername` | Username used only when target frontend is protected by HTTP Basic Auth. |
-| `mod.mindfula11y_accessibility.scan.basicAuthPassword` | Password used only when target frontend is protected by HTTP Basic Auth. |
+| `mod.mindfula11y_accessibility.scan.basicAuthUsername` | Deprecated — use the site setting `mindfula11y.scan.basicAuth.username` (see [Scanning pages behind HTTP Basic Authentication](#scanning-pages-behind-http-basic-authentication)). |
+| `mod.mindfula11y_accessibility.scan.basicAuthPassword` | Deprecated — use the site setting `mindfula11y.scan.basicAuth.password` (supports `%env()%` placeholders, same section). |
 | `mod.mindfula11y_accessibility.scan.aiAudit.enable` | Offers the "Include AI review" toggle in the scan module; requires MindfulAPI's agent feature (see [AI review](#ai-review-agent-audit)). |
 | `mod.mindfula11y_accessibility.scan.aiAudit.default` | Pre-selects the AI review toggle for new scans; editors can still switch it off per scan. |
 | `mod.mindfula11y_accessibility.scan.aiAudit.skills` | Optional comma-separated skill subset. Unset requests every MindfulAPI-enabled skill; an empty value requests none. |
@@ -179,16 +177,23 @@ Without both a reachable MindfulAPI service and `mod.mindfula11y_accessibility.s
 
 ### Scanning pages behind HTTP Basic Authentication
 
-If your frontend is protected by HTTP Basic Auth, set both TSconfig keys:
+If your frontend is protected by HTTP Basic Auth, configure the credentials as site settings in `config/sites/<identifier>/settings.yaml`:
 
-- `mod.mindfula11y_accessibility.scan.basicAuthUsername`
-- `mod.mindfula11y_accessibility.scan.basicAuthPassword`
+```yaml
+mindfula11y:
+  scan:
+    basicAuth:
+      username: 'scanner'
+      password: '%env(MINDFULA11Y_SCAN_BASIC_AUTH_PASSWORD)%'
+```
 
-The extension sends these credentials server-side to the scanner so protected pages can still be scanned.
+The extension reads these credentials server-side for the site of the scanned page and forwards them to the scanner so protected pages can still be scanned; they are never exposed to the browser. Multi-site installations therefore scope credentials to exactly the protected host. The password (or username) may reference an environment variable via TYPO3's `%env(...)%` placeholder syntax, keeping the secret out of the committed file. Both values are required; if one is missing, no credentials are sent.
 
-Both values are required; if one is missing, no credentials are sent.
+Use the nested tree form shown above. The extension deliberately ships no settings definition for these keys, so the secret never surfaces in the backend site settings editor — and settings without a definition are only resolvable in tree form.
 
-> Security note: keep scanner credentials scoped to a low-privilege account. Page TSconfig is backend-managed configuration and should be treated as sensitive project configuration.
+> Deprecated: the Page TSconfig keys `mod.mindfula11y_accessibility.scan.basicAuthUsername` / `basicAuthPassword` still work as a fallback. They cannot reference environment variables and apply per page tree rather than per site. As soon as either site setting is set, the site settings are authoritative — a partially configured pair sends no credentials instead of falling back to TSconfig.
+
+> Security note: keep scanner credentials scoped to a low-privilege account. When using `%env()%` placeholders, treat `settings.yaml` as deploy-managed: saving site settings through the backend editor may write resolved values back to the file.
 
 ### AI review (agent audit)
 
