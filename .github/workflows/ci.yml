@@ -47,6 +47,8 @@ jobs:
         include:
           - php: '8.2'
             typo3: '^13.4'
+          - php: '8.3'
+            typo3: '^14.3'
           - php: '8.4'
             typo3: '^14.3'
     steps:
