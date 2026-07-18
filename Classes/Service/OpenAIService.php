@@ -119,7 +119,26 @@ final readonly class OpenAIService
      */
     private function getModelName(): string
     {
-        return $this->extensionConfiguration->get('mindfula11y')['openAIChatModel'] ?? 'gpt-5.4-mini';
+        return $this->getConfiguration()['openAIChatModel'] ?? 'gpt-5.4-mini';
+    }
+
+    /**
+     * The extension configuration, or an empty array when it is missing
+     * entirely (unsynced/legacy deployments where extension:setup has not
+     * run): every consumer treats absent keys as "feature disabled", and
+     * ExtensionConfiguration::get() throwing must not break render paths.
+     *
+     * @return array<string, mixed>
+     */
+    private function getConfiguration(): array
+    {
+        try {
+            $configuration = $this->extensionConfiguration->get('mindfula11y');
+        } catch (\TYPO3\CMS\Core\Configuration\Exception\ExtensionConfigurationExtensionNotConfiguredException) {
+            return [];
+        }
+
+        return is_array($configuration) ? $configuration : [];
     }
 
     /**
@@ -129,7 +148,7 @@ final readonly class OpenAIService
      */
     private function getApiKey(): string
     {
-        return $this->extensionConfiguration->get('mindfula11y')['openAIApiKey'] ?? '';
+        return $this->getConfiguration()['openAIApiKey'] ?? '';
     }
 
     /**
@@ -152,7 +171,9 @@ final readonly class OpenAIService
      */
     public function isEnabledAndConfigured(): bool
     {
-        return !(bool)$this->extensionConfiguration->get('mindfula11y', 'disableAltTextGeneration') &&
-               !empty($this->extensionConfiguration->get('mindfula11y', 'openAIApiKey'));
+        $configuration = $this->getConfiguration();
+
+        return !(bool)($configuration['disableAltTextGeneration'] ?? false)
+            && !empty($configuration['openAIApiKey'] ?? '');
     }
 }

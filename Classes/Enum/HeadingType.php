@@ -61,12 +61,12 @@ enum HeadingType: string
     }
 
     /**
-     * Create HeadingType from numeric level (for migration purposes).
+     * Create HeadingType from a numeric level.
      *
      * Levels outside 1-6 fall back to HeadingType::P, so this never returns null; the
      * only caller (increment(), below) relies on that to avoid its own null handling.
      */
-    public static function fromNumericLevel(int $level): self
+    private static function fromNumericLevel(int $level): self
     {
         return match ($level) {
             1 => self::H1,

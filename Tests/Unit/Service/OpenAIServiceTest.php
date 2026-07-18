@@ -40,6 +40,29 @@ final class OpenAIServiceTest extends TestCase
     }
 
     #[Test]
+    public function missingExtensionConfigurationDisablesGenerationInsteadOfThrowing(): void
+    {
+        // Unsynced/legacy deployments have no extension configuration at all;
+        // ExtensionConfiguration::get() then throws. The service must treat
+        // that as "generation disabled" — isEnabledAndConfigured() is called
+        // from FormEngine render paths where an exception breaks the form.
+        $extensionConfiguration = $this->createMock(ExtensionConfiguration::class);
+        $extensionConfiguration->method('get')->willThrowException(
+            new \TYPO3\CMS\Core\Configuration\Exception\ExtensionConfigurationExtensionNotConfiguredException(
+                'not configured',
+                1509654728,
+            ),
+        );
+        $service = new OpenAIService(
+            $extensionConfiguration,
+            $this->createMock(RequestFactory::class),
+            $this->createMock(LoggerInterface::class),
+        );
+
+        self::assertFalse($service->isEnabledAndConfigured());
+    }
+
+    #[Test]
     public function failedApiRequestIsLoggedAndReturnsNull(): void
     {
         $requestFactory = $this->createMock(RequestFactory::class);
