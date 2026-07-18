@@ -159,18 +159,16 @@
         }
 
         /*
-         * Placeholder chip for a skipped level — neutral-on-tint like every
-         * status surface (solid state pairings cap near 5:1, below AAA).
+         * Placeholder chip for a skipped level — tint and text color come from
+         * the shared notice pattern (danger pill); locally it keeps the level
+         * column's square radius and the tree's dashed derived-marker border.
+         * border-color repeats the pattern token so the recipe's :hover rule
+         * above (same specificity, earlier source order) cannot override it.
          */
         &[data-missing] {
-            color: var(--mindfula11y-text);
-            background-color: color-mix(
-                in srgb,
-                var(--mindfula11y-state-danger-bg) 15%,
-                var(--mindfula11y-component-bg)
-            );
-            border-color: var(--mindfula11y-state-danger-border);
+            border-color: var(--mindfula11y-notice-border);
             border-style: dashed;
+            border-radius: var(--mindfula11y-input-radius);
         }
     }
 

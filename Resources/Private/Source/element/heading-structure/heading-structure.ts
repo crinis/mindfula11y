@@ -148,7 +148,9 @@ export class HeadingStructure extends StructureView<HeadingNode> {
         >
             <div class="row">
                 <div class="heading">
-                    <span class="level" data-missing>${this.headingLevelLabel(missingLevel)}</span>
+                    <span class="level notice" data-missing data-state="danger" data-variant="pill"
+                        >${this.headingLevelLabel(missingLevel)}</span
+                    >
                     <span class="text" id=${missingLevel === node.level - 1 ? `skip-${node.id}` : nothing}
                         >${lll('mindfula11y.structure.headings.error.skippedLevel.inline', missingLevel)}</span
                     >
