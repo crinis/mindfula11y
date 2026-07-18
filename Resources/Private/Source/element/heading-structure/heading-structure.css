@@ -26,9 +26,11 @@
     /*
      * One flat list: hierarchy is announced per row via the heading level, so
      * the indentation is a purely visual aid derived from the level. The step
-     * comes from the rem space scale so the structure scales with root font
-     * size and zoom; the indent factor is a runtime value the component sets
-     * per item (--mindfula11y-heading-structure-indent).
+     * uses the FIXED (px) space scale on purpose: indent multiplies by depth,
+     * and a text-zoom-scaled step would overflow narrow viewports at 200%
+     * (WCAG 1.4.10) — the announced levels carry the semantics regardless.
+     * The indent factor is a runtime value the component sets per item
+     * (--mindfula11y-heading-structure-indent).
      */
     .tree {
         display: flex;

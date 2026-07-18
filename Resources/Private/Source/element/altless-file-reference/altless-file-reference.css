@@ -75,7 +75,6 @@
 
     .hint {
         max-inline-size: 70ch;
-        margin: 0;
         color: var(--mindfula11y-text-subtle);
     }
 

@@ -52,14 +52,14 @@
     .toggle {
         display: grid;
         grid-template-columns: auto 1fr;
-        gap: var(--mindfula11y-space-3xs) var(--mindfula11y-space-3xs);
+        gap: var(--mindfula11y-space-3xs);
         align-items: center;
     }
 
     .checkbox {
-        /* em-sized so the target stays ≥ 24px at every zoom (WCAG 2.5.8). */
-        inline-size: 1.5em;
-        block-size: 1.5em;
+        /* Token-sized so the target stays ≥ 24px at every zoom (WCAG 2.5.8). */
+        inline-size: var(--mindfula11y-control-min-size);
+        block-size: var(--mindfula11y-control-min-size);
         accent-color: var(--mindfula11y-focus-color);
 
         &:not(:disabled) {
