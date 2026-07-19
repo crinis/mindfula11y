@@ -101,8 +101,16 @@
                 <target>Das Laden der Seitenvorschau hat zu lange gedauert.</target>
             </trans-unit>
             <trans-unit id="structure.error.rendering.framing" resname="structure.error.rendering.framing">
-                <source>The frontend page refused to be embedded, or the analysis session expired.</source>
-                <target>Die Frontend-Seite lässt sich nicht einbetten, oder die Analysesitzung ist abgelaufen.</target>
+                <source>The frontend page refused to be embedded, or the analysis session expired. If the page is protected by HTTP authentication (e.g. staging basic auth), open it in a new tab, sign in, then retry.</source>
+                <target>Die Frontend-Seite lässt sich nicht einbetten, oder die Analysesitzung ist abgelaufen. Ist die Seite durch HTTP-Authentifizierung (z. B. Basic Auth) geschützt, öffnen Sie sie in einem neuen Tab, melden Sie sich an und versuchen Sie es erneut.</target>
+            </trans-unit>
+            <trans-unit id="structure.error.rendering.auth" resname="structure.error.rendering.auth">
+                <source>The page requires a sign-in (HTTP authentication) that the analysis cannot provide. Open the page in a new tab, sign in there, then retry the analysis.</source>
+                <target>Die Seite erfordert eine Anmeldung (HTTP-Authentifizierung), die die Analyse nicht bereitstellen kann. Öffnen Sie die Seite in einem neuen Tab, melden Sie sich dort an und starten Sie die Analyse anschließend erneut.</target>
+            </trans-unit>
+            <trans-unit id="structure.error.rendering.openPage" resname="structure.error.rendering.openPage">
+                <source>Open page in new tab</source>
+                <target>Seite in neuem Tab öffnen</target>
             </trans-unit>
             <trans-unit id="structure.error.rendering.http" resname="structure.error.rendering.http">
                 <source>The page could not be rendered.</source>

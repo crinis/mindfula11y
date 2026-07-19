@@ -36,6 +36,12 @@
         font-weight: 700;
     }
 
+    .error-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--mindfula11y-space-2xs);
+    }
+
     .retry {
         margin-inline-start: auto;
     }

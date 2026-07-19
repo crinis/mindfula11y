@@ -82,7 +82,13 @@
                 <source>The page preview took too long to load.</source>
             </trans-unit>
             <trans-unit id="structure.error.rendering.framing" resname="structure.error.rendering.framing">
-                <source>The frontend page refused to be embedded, or the analysis session expired.</source>
+                <source>The frontend page refused to be embedded, or the analysis session expired. If the page is protected by HTTP authentication (e.g. staging basic auth), open it in a new tab, sign in, then retry.</source>
+            </trans-unit>
+            <trans-unit id="structure.error.rendering.auth" resname="structure.error.rendering.auth">
+                <source>The page requires a sign-in (HTTP authentication) that the analysis cannot provide. Open the page in a new tab, sign in there, then retry the analysis.</source>
+            </trans-unit>
+            <trans-unit id="structure.error.rendering.openPage" resname="structure.error.rendering.openPage">
+                <source>Open page in new tab</source>
             </trans-unit>
             <trans-unit id="structure.error.rendering.http" resname="structure.error.rendering.http">
                 <source>The page could not be rendered.</source>

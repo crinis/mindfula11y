@@ -130,7 +130,7 @@ let Structure = class extends LitElement {
             ${this.renderHeader()}
             ${this.announcer.render()}
             <div class="status-region" role="status">${this.renderError()}</div>
-            ${this.renderErrorRetry()}
+            ${this.renderErrorActions()}
             ${this.renderBody()}
         </div>`;
   }
@@ -189,20 +189,31 @@ let Structure = class extends LitElement {
    * Rendered OUTSIDE the role="status" container: role="status" is
    * implicitly atomic, so an embedded control would be re-announced as
    * status text — and a live region must not contain interactive content.
+   * The open-page link is the recovery path for pages behind HTTP auth:
+   * a top-level navigation gets the browser sign-in prompt the sandboxed
+   * frame cannot show, and the per-origin auth cache then lets Retry
+   * succeed.
    */
-  renderErrorRetry() {
+  renderErrorActions() {
     if (this.analyzeTask.status !== TaskStatus.ERROR) {
       return nothing;
     }
-    return html`<button
-            type="button"
-            class="button retry"
-            @click=${() => {
+    const error = this.analyzeTask.error;
+    const pageUrl = error instanceof StructureAnalysisError ? error.pageUrl : void 0;
+    return html`<div class="error-actions">
+            <button
+                type="button"
+                class="button retry"
+                @click=${() => {
       void this.analyzeTask.run();
     }}
-        >
-            ${lll("mindfula11y.structure.retry")}
-        </button>`;
+            >
+                ${lll("mindfula11y.structure.retry")}
+            </button>
+            ${pageUrl === void 0 ? nothing : html`<a class="button open-page" href=${pageUrl} target="_blank" rel="noopener">
+                      ${lll("mindfula11y.structure.error.rendering.openPage")}
+                  </a>`}
+        </div>`;
   }
   renderBody() {
     if (this.analyzeTask.status === TaskStatus.ERROR) {
