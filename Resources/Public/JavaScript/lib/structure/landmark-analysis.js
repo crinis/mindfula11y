@@ -4,8 +4,18 @@ import { resolveExposure } from "./element-exposure.js";
 const ERROR_KEYS = {
   missingMain: "mindfula11y.structure.landmarks.error.missingMain",
   duplicateMain: "mindfula11y.structure.landmarks.error.duplicateMain",
+  duplicateBanner: "mindfula11y.structure.landmarks.error.duplicateBanner",
+  duplicateContentinfo: "mindfula11y.structure.landmarks.error.duplicateContentinfo",
   duplicateSameLabel: "mindfula11y.structure.landmarks.error.duplicateSameLabel",
-  multipleUnlabeled: "mindfula11y.structure.landmarks.error.multipleUnlabeledLandmarks"
+  multipleUnlabeled: "mindfula11y.structure.landmarks.error.multipleUnlabeledLandmarks",
+  mainNotTopLevel: "mindfula11y.structure.landmarks.error.mainNotTopLevel",
+  bannerNotTopLevel: "mindfula11y.structure.landmarks.error.bannerNotTopLevel",
+  contentinfoNotTopLevel: "mindfula11y.structure.landmarks.error.contentinfoNotTopLevel"
+};
+const SINGLETON_TOP_LEVEL_ROLES = {
+  main: { duplicate: ERROR_KEYS.duplicateMain, notTopLevel: ERROR_KEYS.mainNotTopLevel },
+  banner: { duplicate: ERROR_KEYS.duplicateBanner, notTopLevel: ERROR_KEYS.bannerNotTopLevel },
+  contentinfo: { duplicate: ERROR_KEYS.duplicateContentinfo, notTopLevel: ERROR_KEYS.contentinfoNotTopLevel }
 };
 const LANDMARK_SELECTOR = [
   '[role="banner"]',
@@ -114,6 +124,7 @@ const analyzeLandmarks = (doc, options = {}) => {
     flat.push(node);
   });
   const rootNodes = [];
+  const nested = /* @__PURE__ */ new Set();
   elements.forEach((element) => {
     const node = nodesByElement.get(element);
     if (node === void 0) {
@@ -128,21 +139,31 @@ const analyzeLandmarks = (doc, options = {}) => {
       rootNodes.push(node);
     } else {
       parent.children.push(node);
+      nested.add(node);
     }
   });
   const collector = createErrorCollector(viewport);
   if (flat.length > 0) {
-    const mains = flat.filter((node) => node.role === "main");
-    if (mains.length === 0) {
+    if (!flat.some((node) => node.role === "main")) {
       collector.pageError(ERROR_KEYS.missingMain, "moderate");
-    } else if (mains.length > 1) {
-      for (const node of mains) {
-        collector.nodeError(node, ERROR_KEYS.duplicateMain, "moderate");
+    }
+    for (const [role, keys] of Object.entries(SINGLETON_TOP_LEVEL_ROLES)) {
+      const instances = flat.filter((node) => node.role === role);
+      if (instances.length > 1) {
+        for (const node of instances) {
+          collector.nodeError(node, keys.duplicate, "moderate");
+        }
+      }
+      for (const node of instances) {
+        if (nested.has(node)) {
+          collector.nodeError(node, keys.notTopLevel, "moderate");
+        }
       }
     }
+    const isSingletonRole = (role) => role in SINGLETON_TOP_LEVEL_ROLES;
     const byRoleAndLabel = groupBy(
       flat,
-      (node) => node.label === "" || node.role === "main" ? null : `${node.role}\0${node.label}`
+      (node) => node.label === "" || isSingletonRole(node.role) ? null : `${node.role}\0${node.label}`
     );
     for (const group of byRoleAndLabel.values()) {
       if (group.length < 2) {
@@ -161,7 +182,7 @@ const analyzeLandmarks = (doc, options = {}) => {
     }
     const unlabeledByRole = groupBy(
       flat,
-      (node) => node.label !== "" || node.role === "" || node.role === "main" ? null : node.role
+      (node) => node.label !== "" || node.role === "" || isSingletonRole(node.role) ? null : node.role
     );
     for (const group of unlabeledByRole.values()) {
       if (group.length < 2) {

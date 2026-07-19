@@ -32,8 +32,22 @@ import type { LandmarkAnalysis, LandmarkNode, StructureAnalysisOptions } from '.
 const ERROR_KEYS = {
     missingMain: 'mindfula11y.structure.landmarks.error.missingMain',
     duplicateMain: 'mindfula11y.structure.landmarks.error.duplicateMain',
+    duplicateBanner: 'mindfula11y.structure.landmarks.error.duplicateBanner',
+    duplicateContentinfo: 'mindfula11y.structure.landmarks.error.duplicateContentinfo',
     duplicateSameLabel: 'mindfula11y.structure.landmarks.error.duplicateSameLabel',
     multipleUnlabeled: 'mindfula11y.structure.landmarks.error.multipleUnlabeledLandmarks',
+    mainNotTopLevel: 'mindfula11y.structure.landmarks.error.mainNotTopLevel',
+    bannerNotTopLevel: 'mindfula11y.structure.landmarks.error.bannerNotTopLevel',
+    contentinfoNotTopLevel: 'mindfula11y.structure.landmarks.error.contentinfoNotTopLevel',
+} as const;
+
+/** Roles whose landmarks must be unique per page AND sit at the top level (axe
+ * `landmark-no-duplicate-*` / `landmark-*-is-top-level`, all moderate best
+ * practices). Keyed by role for the duplicate/top-level loops below. */
+const SINGLETON_TOP_LEVEL_ROLES = {
+    main: { duplicate: ERROR_KEYS.duplicateMain, notTopLevel: ERROR_KEYS.mainNotTopLevel },
+    banner: { duplicate: ERROR_KEYS.duplicateBanner, notTopLevel: ERROR_KEYS.bannerNotTopLevel },
+    contentinfo: { duplicate: ERROR_KEYS.duplicateContentinfo, notTopLevel: ERROR_KEYS.contentinfoNotTopLevel },
 } as const;
 
 /**
@@ -131,10 +145,13 @@ const navigationSignature = (element: HTMLElement, doc: Document, isExposed: Ele
 
 /**
  * Analyzes the document's exposed landmarks: nests them by containment (nearest landmark
- * ancestor) and detects missing main (page-level — axe `landmark-one-main`), multiple
- * main (per instance — axe `landmark-no-duplicate-main`), ambiguous identical labels
- * and multiple unlabeled landmarks sharing a role (per instance — axe
- * `landmark-unique`, `main` exempt). All four are moderate axe best practices.
+ * ancestor) and detects missing main (page-level — axe `landmark-one-main`), duplicate
+ * main/banner/contentinfo (per instance — axe `landmark-no-duplicate-*`), main/banner/
+ * contentinfo nested inside another landmark (per instance — axe
+ * `landmark-*-is-top-level`), ambiguous identical labels and multiple unlabeled
+ * landmarks sharing a role (per instance — axe `landmark-unique`; the singleton
+ * roles are exempt — their duplicate-role finding is strictly stronger). All are
+ * moderate axe best practices.
  */
 export const analyzeLandmarks = (doc: Document, options: StructureAnalysisOptions = {}): LandmarkAnalysis => {
     const viewport = options.viewport ?? 'desktop';
@@ -197,6 +214,7 @@ export const analyzeLandmarks = (doc: Document, options: StructureAnalysisOption
 
     // Containment: attach each landmark to its nearest landmark ancestor.
     const rootNodes: LandmarkNode[] = [];
+    const nested = new Set<LandmarkNode>();
     elements.forEach((element) => {
         const node = nodesByElement.get(element);
         if (node === undefined) {
@@ -211,23 +229,43 @@ export const analyzeLandmarks = (doc: Document, options: StructureAnalysisOption
             rootNodes.push(node);
         } else {
             parent.children.push(node);
+            nested.add(node);
         }
     });
 
     const collector = createErrorCollector(viewport);
 
     if (flat.length > 0) {
-        const mains = flat.filter((node) => node.role === 'main');
-        if (mains.length === 0) {
+        if (!flat.some((node) => node.role === 'main')) {
             collector.pageError(ERROR_KEYS.missingMain, 'moderate');
-        } else if (mains.length > 1) {
-            for (const node of mains) {
-                collector.nodeError(node, ERROR_KEYS.duplicateMain, 'moderate');
+        }
+
+        // Singleton roles: at most one exposed instance per page, and never
+        // nested inside another landmark. Native header/footer used for other
+        // purposes never reach these checks: LANDMARK_SELECTOR excludes them
+        // inside sectioning content, where they carry no landmark role — so
+        // article/section headers and footers are not misread as
+        // banner/contentinfo.
+        for (const [role, keys] of Object.entries(SINGLETON_TOP_LEVEL_ROLES)) {
+            const instances = flat.filter((node) => node.role === role);
+            if (instances.length > 1) {
+                for (const node of instances) {
+                    collector.nodeError(node, keys.duplicate, 'moderate');
+                }
+            }
+            for (const node of instances) {
+                if (nested.has(node)) {
+                    collector.nodeError(node, keys.notTopLevel, 'moderate');
+                }
             }
         }
 
+        // Singleton roles are exempt from both label-based rules below: any
+        // second instance is already a duplicate-role finding regardless of
+        // labelling, so label chips would only restate it.
+        const isSingletonRole = (role: string): boolean => role in SINGLETON_TOP_LEVEL_ROLES;
         const byRoleAndLabel = groupBy(flat, (node) =>
-            node.label === '' || node.role === 'main' ? null : `${node.role}\u0000${node.label}`,
+            node.label === '' || isSingletonRole(node.role) ? null : `${node.role}\u0000${node.label}`,
         );
         for (const group of byRoleAndLabel.values()) {
             if (group.length < 2) {
@@ -251,7 +289,7 @@ export const analyzeLandmarks = (doc: Document, options: StructureAnalysisOption
         }
 
         const unlabeledByRole = groupBy(flat, (node) =>
-            node.label !== '' || node.role === '' || node.role === 'main' ? null : node.role,
+            node.label !== '' || node.role === '' || isSingletonRole(node.role) ? null : node.role,
         );
         for (const group of unlabeledByRole.values()) {
             if (group.length < 2) {

@@ -634,6 +634,46 @@
                 <source>More than one landmark with the same role lacks a label. Add unique labels (aria-label or aria-labelledby) so users can distinguish them.</source>
                 <target>Mehr als ein Landmark derselben Rolle hat keine Bezeichnung. Fügen Sie eindeutige Bezeichnungen (aria-label oder aria-labelledby) hinzu, damit Nutzer sie unterscheiden können.</target>
             </trans-unit>
+            <trans-unit id="structure.landmarks.error.duplicateBanner" resname="structure.landmarks.error.duplicateBanner">
+                <source>Multiple banner landmarks found.</source>
+                <target>Mehrere banner-Landmarks gefunden.</target>
+            </trans-unit>
+            <trans-unit id="structure.landmarks.error.duplicateBanner.description" resname="structure.landmarks.error.duplicateBanner.description">
+                <source>A page should expose only one banner landmark — the site-wide header. Merge the extra banners or give secondary areas a different role.</source>
+                <target>Eine Seite sollte nur ein banner-Landmark haben — den seitenweiten Kopfbereich. Führen Sie die zusätzlichen Banner zusammen oder geben Sie sekundären Bereichen eine andere Rolle.</target>
+            </trans-unit>
+            <trans-unit id="structure.landmarks.error.duplicateContentinfo" resname="structure.landmarks.error.duplicateContentinfo">
+                <source>Multiple contentinfo landmarks found.</source>
+                <target>Mehrere contentinfo-Landmarks gefunden.</target>
+            </trans-unit>
+            <trans-unit id="structure.landmarks.error.duplicateContentinfo.description" resname="structure.landmarks.error.duplicateContentinfo.description">
+                <source>A page should expose only one contentinfo landmark — the site-wide footer. Merge the extra footers or give secondary areas a different role.</source>
+                <target>Eine Seite sollte nur ein contentinfo-Landmark haben — den seitenweiten Fußbereich. Führen Sie die zusätzlichen Fußbereiche zusammen oder geben Sie sekundären Bereichen eine andere Rolle.</target>
+            </trans-unit>
+            <trans-unit id="structure.landmarks.error.mainNotTopLevel" resname="structure.landmarks.error.mainNotTopLevel">
+                <source>Main landmark nested inside another landmark.</source>
+                <target>main-Landmark ist in einem anderen Landmark verschachtelt.</target>
+            </trans-unit>
+            <trans-unit id="structure.landmarks.error.mainNotTopLevel.description" resname="structure.landmarks.error.mainNotTopLevel.description">
+                <source>The main landmark must be a top-level landmark. Move the primary content out of the surrounding landmark so screen reader users can jump to it directly.</source>
+                <target>Das main-Landmark muss auf oberster Ebene liegen. Verschieben Sie den Hauptinhalt aus dem umgebenden Landmark, damit Screenreader-Nutzer direkt dorthin springen können.</target>
+            </trans-unit>
+            <trans-unit id="structure.landmarks.error.bannerNotTopLevel" resname="structure.landmarks.error.bannerNotTopLevel">
+                <source>Banner landmark nested inside another landmark.</source>
+                <target>banner-Landmark ist in einem anderen Landmark verschachtelt.</target>
+            </trans-unit>
+            <trans-unit id="structure.landmarks.error.bannerNotTopLevel.description" resname="structure.landmarks.error.bannerNotTopLevel.description">
+                <source>The banner landmark (site-wide header) must be a top-level landmark. Move it out of the surrounding landmark, or use a different role if it is not the site-wide header.</source>
+                <target>Das banner-Landmark (seitenweiter Kopfbereich) muss auf oberster Ebene liegen. Verschieben Sie es aus dem umgebenden Landmark oder verwenden Sie eine andere Rolle, wenn es sich nicht um den seitenweiten Kopfbereich handelt.</target>
+            </trans-unit>
+            <trans-unit id="structure.landmarks.error.contentinfoNotTopLevel" resname="structure.landmarks.error.contentinfoNotTopLevel">
+                <source>Contentinfo landmark nested inside another landmark.</source>
+                <target>contentinfo-Landmark ist in einem anderen Landmark verschachtelt.</target>
+            </trans-unit>
+            <trans-unit id="structure.landmarks.error.contentinfoNotTopLevel.description" resname="structure.landmarks.error.contentinfoNotTopLevel.description">
+                <source>The contentinfo landmark (site-wide footer) must be a top-level landmark. Move it out of the surrounding landmark, or use a different role if it is not the site-wide footer.</source>
+                <target>Das contentinfo-Landmark (seitenweiter Fußbereich) muss auf oberster Ebene liegen. Verschieben Sie es aus dem umgebenden Landmark oder verwenden Sie eine andere Rolle, wenn es sich nicht um den seitenweiten Fußbereich handelt.</target>
+            </trans-unit>
             <trans-unit id="structure.landmarks.unlabelledLandmark" resname="structure.landmarks.unlabelledLandmark">
                 <source>Unlabeled landmark</source>
                 <target>Landmark ohne Bezeichnung</target>

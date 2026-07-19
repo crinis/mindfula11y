@@ -180,6 +180,96 @@ describe('analyzeLandmarks', () => {
         expect(multipleUnlabeledErrors.every((error) => error.severity === 'moderate')).toBe(true);
     });
 
+    // The duplicate/top-level singleton tests use explicit role attributes:
+    // happy-dom cannot evaluate LANDMARK_SELECTOR's self-referential :not()
+    // compounds, so native header/footer never surface as banner/contentinfo
+    // in this suite (see the tripwire tests below).
+    it('flags duplicateBanner once per banner instance', () => {
+        document.body.innerHTML = `
+            <main></main>
+            <div role="banner">First header</div>
+            <div role="banner">Second header</div>
+        `;
+
+        const analysis = analyzeLandmarks(document);
+        const duplicateBannerErrors = analysis.errors.filter((error) => error.key.endsWith('duplicateBanner'));
+        expect(duplicateBannerErrors).toHaveLength(2);
+        expect(duplicateBannerErrors.every((error) => error.severity === 'moderate')).toBe(true);
+        expect(duplicateBannerErrors.every((error) => error.nodeId !== null)).toBe(true);
+    });
+
+    it('flags duplicateContentinfo once per contentinfo instance', () => {
+        document.body.innerHTML = `
+            <main></main>
+            <div role="contentinfo">First footer</div>
+            <div role="contentinfo">Second footer</div>
+        `;
+
+        const analysis = analyzeLandmarks(document);
+        const duplicateErrors = analysis.errors.filter((error) => error.key.endsWith('duplicateContentinfo'));
+        expect(duplicateErrors).toHaveLength(2);
+        expect(duplicateErrors.every((error) => error.severity === 'moderate')).toBe(true);
+    });
+
+    it('does not restate singleton duplicates through the label rules', () => {
+        // Two unlabeled banners are exactly one problem (duplicateBanner) —
+        // multipleUnlabeled must not double-flag them; likewise two banners
+        // sharing a label stay out of duplicateSameLabel.
+        document.body.innerHTML = `
+            <main></main>
+            <div role="banner">First</div>
+            <div role="banner">Second</div>
+            <div role="contentinfo" aria-label="Legal">First</div>
+            <div role="contentinfo" aria-label="Legal">Second</div>
+        `;
+
+        const analysis = analyzeLandmarks(document);
+        const keys = analysis.errors.map((error) => error.key);
+        expect(keys.some((key) => key.endsWith('multipleUnlabeledLandmarks'))).toBe(false);
+        expect(keys.some((key) => key.endsWith('duplicateSameLabel'))).toBe(false);
+        expect(keys.filter((key) => key.endsWith('duplicateBanner'))).toHaveLength(2);
+        expect(keys.filter((key) => key.endsWith('duplicateContentinfo'))).toHaveLength(2);
+    });
+
+    it('accepts a single top-level banner and contentinfo without findings', () => {
+        document.body.innerHTML = `
+            <div role="banner">Header</div>
+            <main></main>
+            <div role="contentinfo">Footer</div>
+        `;
+
+        expect(analyzeLandmarks(document).errors).toEqual([]);
+    });
+
+    it('flags main nested inside another landmark as mainNotTopLevel', () => {
+        document.body.innerHTML = `
+            <div role="banner">Header</div>
+            <div role="region" aria-label="Wrapper"><main></main></div>
+        `;
+
+        const analysis = analyzeLandmarks(document);
+        const notTopLevelErrors = analysis.errors.filter((error) => error.key.endsWith('mainNotTopLevel'));
+        expect(notTopLevelErrors).toHaveLength(1);
+        expect(notTopLevelErrors[0]?.severity).toBe('moderate');
+        const main = flatten(analysis.nodes).find((node) => node.role === 'main');
+        expect(notTopLevelErrors[0]?.nodeId).toBe(main?.id);
+    });
+
+    it('flags banner and contentinfo nested inside another landmark', () => {
+        document.body.innerHTML = `
+            <main>
+                <div role="banner">Nested header</div>
+                <div role="contentinfo">Nested footer</div>
+            </main>
+        `;
+
+        const analysis = analyzeLandmarks(document);
+        expect(analysis.errors.filter((error) => error.key.endsWith('bannerNotTopLevel'))).toHaveLength(1);
+        expect(analysis.errors.filter((error) => error.key.endsWith('contentinfoNotTopLevel'))).toHaveLength(1);
+        // A single nested banner is nested, not duplicated.
+        expect(analysis.errors.some((error) => error.key.includes('duplicate'))).toBe(false);
+    });
+
     it('excludes header/footer nested inside sectioning content from banner/contentinfo', () => {
         // Verified against real Chromium (devtools protocol) that the production
         // selector (LANDMARK_SELECTOR) correctly matches only the page-level

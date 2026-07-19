@@ -516,6 +516,36 @@
             <trans-unit id="structure.landmarks.error.multipleUnlabeledLandmarks.description" resname="structure.landmarks.error.multipleUnlabeledLandmarks.description">
                 <source>More than one landmark with the same role lacks a label. Add unique labels (aria-label or aria-labelledby) so users can distinguish them.</source>
             </trans-unit>
+            <trans-unit id="structure.landmarks.error.duplicateBanner" resname="structure.landmarks.error.duplicateBanner">
+                <source>Multiple banner landmarks found.</source>
+            </trans-unit>
+            <trans-unit id="structure.landmarks.error.duplicateBanner.description" resname="structure.landmarks.error.duplicateBanner.description">
+                <source>A page should expose only one banner landmark — the site-wide header. Merge the extra banners or give secondary areas a different role.</source>
+            </trans-unit>
+            <trans-unit id="structure.landmarks.error.duplicateContentinfo" resname="structure.landmarks.error.duplicateContentinfo">
+                <source>Multiple contentinfo landmarks found.</source>
+            </trans-unit>
+            <trans-unit id="structure.landmarks.error.duplicateContentinfo.description" resname="structure.landmarks.error.duplicateContentinfo.description">
+                <source>A page should expose only one contentinfo landmark — the site-wide footer. Merge the extra footers or give secondary areas a different role.</source>
+            </trans-unit>
+            <trans-unit id="structure.landmarks.error.mainNotTopLevel" resname="structure.landmarks.error.mainNotTopLevel">
+                <source>Main landmark nested inside another landmark.</source>
+            </trans-unit>
+            <trans-unit id="structure.landmarks.error.mainNotTopLevel.description" resname="structure.landmarks.error.mainNotTopLevel.description">
+                <source>The main landmark must be a top-level landmark. Move the primary content out of the surrounding landmark so screen reader users can jump to it directly.</source>
+            </trans-unit>
+            <trans-unit id="structure.landmarks.error.bannerNotTopLevel" resname="structure.landmarks.error.bannerNotTopLevel">
+                <source>Banner landmark nested inside another landmark.</source>
+            </trans-unit>
+            <trans-unit id="structure.landmarks.error.bannerNotTopLevel.description" resname="structure.landmarks.error.bannerNotTopLevel.description">
+                <source>The banner landmark (site-wide header) must be a top-level landmark. Move it out of the surrounding landmark, or use a different role if it is not the site-wide header.</source>
+            </trans-unit>
+            <trans-unit id="structure.landmarks.error.contentinfoNotTopLevel" resname="structure.landmarks.error.contentinfoNotTopLevel">
+                <source>Contentinfo landmark nested inside another landmark.</source>
+            </trans-unit>
+            <trans-unit id="structure.landmarks.error.contentinfoNotTopLevel.description" resname="structure.landmarks.error.contentinfoNotTopLevel.description">
+                <source>The contentinfo landmark (site-wide footer) must be a top-level landmark. Move it out of the surrounding landmark, or use a different role if it is not the site-wide footer.</source>
+            </trans-unit>
             <trans-unit id="structure.landmarks.unlabelledLandmark" resname="structure.landmarks.unlabelledLandmark">
                 <source>Unlabeled landmark</source>
             </trans-unit>
