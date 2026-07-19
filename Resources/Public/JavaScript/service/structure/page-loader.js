@@ -166,13 +166,22 @@ class RenderedPageLoader {
     if (pageUrl === null || new URL(pageUrl).origin !== window.location.origin) {
       return framing;
     }
+    let probeTimer;
     try {
-      const response = await fetch(pageUrl, {
-        credentials: "include",
-        redirect: "follow",
-        cache: "no-store",
-        signal
-      });
+      const response = await Promise.race([
+        fetch(pageUrl, {
+          credentials: "include",
+          redirect: "follow",
+          cache: "no-store",
+          signal
+        }),
+        new Promise((_, timeoutReject) => {
+          probeTimer = window.setTimeout(
+            () => timeoutReject(new Error("Auth probe timed out.")),
+            POST_LOAD_GRACE
+          );
+        })
+      ]);
       if (response.status === 401 || response.status === 407) {
         return new StructureAnalysisError(
           "auth",
@@ -182,6 +191,8 @@ class RenderedPageLoader {
         );
       }
     } catch {
+    } finally {
+      window.clearTimeout(probeTimer);
     }
     return framing;
   }

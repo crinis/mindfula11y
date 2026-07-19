@@ -329,6 +329,31 @@ describe('RenderedPageLoader', () => {
         await assertion;
     });
 
+    it('falls back to the framing diagnosis when the same-origin probe hangs', async () => {
+        vi.useFakeTimers();
+        vi.stubGlobal('fetch', vi.fn().mockReturnValue(new Promise(() => {})));
+        const controller = new AbortController();
+        const loader = createLoader(`${window.location.origin}/hangs?mindfula11y_structure_ticket=tok`);
+        const loading = loader.load('mobile', document.body, controller.signal, {
+            pageId: 1,
+            languageId: 0,
+            headings: true,
+            landmarks: true,
+        });
+        await vi.advanceTimersByTimeAsync(0);
+        const frame = document.querySelector('[data-structure-analysis-frame]') as HTMLIFrameElement;
+        const assertion = expect(loading).rejects.toMatchObject({
+            code: 'framing',
+            pageUrl: `${window.location.origin}/hangs`,
+        });
+
+        frame.dispatchEvent(new Event('load'));
+        await vi.advanceTimersByTimeAsync(2_000); // grace expires, probe starts
+        await vi.advanceTimersByTimeAsync(2_000); // probe bound expires
+
+        await assertion;
+    });
+
     it('keeps the framing diagnosis for cross-origin pages and never probes them', async () => {
         vi.useFakeTimers();
         const fetchMock = vi.fn();

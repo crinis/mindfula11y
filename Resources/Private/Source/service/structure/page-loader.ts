@@ -268,13 +268,25 @@ export class RenderedPageLoader {
         if (pageUrl === null || new URL(pageUrl).origin !== window.location.origin) {
             return framing;
         }
+        let probeTimer: number | undefined;
         try {
-            const response = await fetch(pageUrl, {
-                credentials: 'include',
-                redirect: 'follow',
-                cache: 'no-store',
-                signal,
-            });
+            // Bounded by POST_LOAD_GRACE: a hanging probe must not defer the
+            // rejection to the outer LOAD_TIMEOUT, which would surface as a
+            // 'timeout' without the recovery pageUrl.
+            const response = await Promise.race([
+                fetch(pageUrl, {
+                    credentials: 'include',
+                    redirect: 'follow',
+                    cache: 'no-store',
+                    signal,
+                }),
+                new Promise<never>((_, timeoutReject) => {
+                    probeTimer = window.setTimeout(
+                        () => timeoutReject(new Error('Auth probe timed out.')),
+                        POST_LOAD_GRACE,
+                    );
+                }),
+            ]);
             if (response.status === 401 || response.status === 407) {
                 return new StructureAnalysisError(
                     'auth',
@@ -285,6 +297,8 @@ export class RenderedPageLoader {
             }
         } catch {
             // The probe failing adds no information; keep the framing diagnosis.
+        } finally {
+            window.clearTimeout(probeTimer);
         }
         return framing;
     }
