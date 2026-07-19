@@ -82,7 +82,7 @@ export const renderTabPanel = (opts: {
 }): TemplateResult => {
     const { tab, active, withTablist, busy, content } = opts;
     if (!withTablist) {
-        return html`<div class="panel" aria-busy=${busy ? 'true' : 'false'}>${content}</div>`;
+        return html`<div class="panel" aria-busy=${busy ? 'true' : nothing}>${content}</div>`;
     }
     return html`<div
         class="panel"
@@ -90,7 +90,7 @@ export const renderTabPanel = (opts: {
         id="panel-${tab}"
         aria-labelledby="tab-${tab}"
         tabindex="0"
-        aria-busy=${busy ? 'true' : 'false'}
+        aria-busy=${busy ? 'true' : nothing}
         ?hidden=${!active}
     >
         ${content}

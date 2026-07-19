@@ -8,54 +8,52 @@
   <f:layout name="Module" />
 
   <f:section name="Content">
-    <section class="callout callout-notice">
-      <div class="callout-content">
-        <div class="callout-title">
-          <h1>
-            <f:translate
-              key="LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:altText"
-            />
-          </h1>
-        </div>
-        <div class="callout-body">
-          <f:if condition="{paginator.paginatedItems -> f:count()} > 0">
-            <f:then>
-              <ul class="list-unstyled mb-0" role="list">
-                <f:for
-                  each="{paginator.paginatedItems}"
-                  as="fileReference"
-                  iteration="iterator"
+    <section>
+      <h1 class="mb-3">
+        <f:translate
+          key="LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:altText"
+        />
+      </h1>
+      <f:if condition="{paginator.paginatedItems -> f:count()} > 0">
+        <f:then>
+          <f:comment>
+            Safari removes native list semantics when list-style is none outside navigation;
+            the explicit role restores those semantics for VoiceOver.
+          </f:comment>
+          <ul class="list-unstyled mb-0" role="list">
+            <f:for
+              each="{paginator.paginatedItems}"
+              as="fileReference"
+              iteration="iterator"
+            >
+              <li class="{f:if(condition: iterator.isLast, else: 'mb-3')}">
+                <f:alias
+                  map="{originalResource: fileReference.originalResource}"
                 >
-                  <li class="{f:if(condition: iterator.isFirst, else: 'mb-3')}">
-                    <f:alias
-                      map="{originalResource: fileReference.originalResource}"
-                    >
-                      <mindfula11y:altlessFileReference
-                        fileReference="{fileReference}"
-                        previewUrl="{f:uri.image(image: originalResource, maxHeight: 150)}"
-                        originalUrl="{f:uri.image(image: originalResource)}"
-                      />
-                    </f:alias>
-                  </li>
-                </f:for>
-              </ul>
-              <f:render
-                partial="Backend/MissingAltText/Pagination"
-                arguments="{pagination: pagination, paginator: paginator, moduleData: moduleData}"
-              />
-            </f:then>
-            <f:else>
-              <mindfula11y-notice state="success">
-                <span>
-                  <f:translate
-                    key="LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:altText.noMissingAltText"
+                  <mindfula11y:altlessFileReference
+                    fileReference="{fileReference}"
+                    previewUrl="{f:uri.image(image: originalResource, maxHeight: 150)}"
+                    originalUrl="{f:uri.image(image: originalResource)}"
                   />
-                </span>
-              </mindfula11y-notice>
-            </f:else>
-          </f:if>
-        </div>
-      </div>
+                </f:alias>
+              </li>
+            </f:for>
+          </ul>
+          <f:render
+            partial="Backend/MissingAltText/Pagination"
+            arguments="{pagination: pagination, paginator: paginator, moduleData: moduleData}"
+          />
+        </f:then>
+        <f:else>
+          <mindfula11y-notice state="success">
+            <span>
+              <f:translate
+                key="LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:altText.noMissingAltText"
+              />
+            </span>
+          </mindfula11y-notice>
+        </f:else>
+      </f:if>
     </section>
   </f:section>
 </html>

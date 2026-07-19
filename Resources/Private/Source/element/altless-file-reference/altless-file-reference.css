@@ -32,9 +32,9 @@
         flex-direction: column;
         gap: var(--mindfula11y-space-fixed-s);
 
-        @container (inline-size >= 36rem) {
+        @container (inline-size >= 30rem) {
             display: grid;
-            grid-template-columns: auto 1fr;
+            grid-template-columns: auto minmax(0, 1fr);
             align-items: start;
         }
     }
@@ -96,11 +96,11 @@
         color: var(--mindfula11y-input-color);
         resize: block;
         background-color: var(--mindfula11y-input-bg);
-        border: 1px solid var(--mindfula11y-input-border);
+        border: 1px solid color-mix(in srgb, var(--mindfula11y-input-border), var(--mindfula11y-text) 25%);
         border-radius: var(--mindfula11y-input-radius);
 
         &:hover {
-            border-color: var(--mindfula11y-input-hover-border);
+            border-color: color-mix(in srgb, var(--mindfula11y-input-hover-border), var(--mindfula11y-text) 25%);
         }
     }
 

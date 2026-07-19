@@ -8,9 +8,10 @@
 </f:comment>
 <f:if condition="{pagination.lastPageNumber} > 1">
   <nav
+    class="mt-3"
     aria-label="{f:translate(key: 'LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:altText.pagination.navigation')}"
   >
-    <ul class="pagination" role="list">
+    <ul class="pagination">
       <f:if condition="{pagination.previousPageNumber}">
         <li class="page-item">
           <a
@@ -23,17 +24,34 @@
         </li>
       </f:if>
       <f:for each="{pagination.allPageNumbers}" as="pageNumber">
+        <f:variable
+          name="pageUrl"
+          value="{be:moduleLink(route: 'mindfula11y_accessibility', arguments: {id: moduleData.id, feature: moduleData.feature, languageId: moduleData.languageId, pageLevels: moduleData.pageLevels, tableName: moduleData.tableName, filterFileMetaData: moduleData.filterFileMetaData, showDecorative: moduleData.showDecorative, showAllReferences: moduleData.showAllReferences, currentPage: pageNumber})}"
+        />
         <li
           class="page-item{f:if(condition: '{pageNumber} == {paginator.currentPageNumber}', then: ' active')}"
         >
-          <a
-            href="{be:moduleLink(route: 'mindfula11y_accessibility', arguments: {id: moduleData.id, feature: moduleData.feature, languageId: moduleData.languageId, pageLevels: moduleData.pageLevels, tableName: moduleData.tableName, filterFileMetaData: moduleData.filterFileMetaData, showDecorative: moduleData.showDecorative, showAllReferences: moduleData.showAllReferences, currentPage: pageNumber})}"
-            class="page-link"
-            aria-label="{f:translate(key: 'LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:altText.pagination.page', arguments: {0: pageNumber})}"
-            aria-current="{f:if(condition: '{pageNumber} == {paginator.currentPageNumber}', then: 'page', else: 'false')}"
-          >
-            {pageNumber}
-          </a>
+          <f:if condition="{pageNumber} == {paginator.currentPageNumber}">
+            <f:then>
+              <a
+                href="{pageUrl}"
+                class="page-link"
+                aria-label="{f:translate(key: 'LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:altText.pagination.page', arguments: {0: pageNumber})}"
+                aria-current="page"
+              >
+                {pageNumber}
+              </a>
+            </f:then>
+            <f:else>
+              <a
+                href="{pageUrl}"
+                class="page-link"
+                aria-label="{f:translate(key: 'LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:altText.pagination.page', arguments: {0: pageNumber})}"
+              >
+                {pageNumber}
+              </a>
+            </f:else>
+          </f:if>
         </li>
       </f:for>
       <f:if condition="{pagination.nextPageNumber}">

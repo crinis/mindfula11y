@@ -72,6 +72,8 @@ describe('TabsController', () => {
         expect(tabButton(host, 'two').getAttribute('aria-selected')).toBe('false');
         expect(host.shadowRoot?.querySelector('#panel-one')?.hasAttribute('hidden')).toBe(false);
         expect(host.shadowRoot?.querySelector('#panel-two')?.hasAttribute('hidden')).toBe(true);
+        expect(host.shadowRoot?.querySelector('#panel-one')?.hasAttribute('aria-busy')).toBe(false);
+        expect(host.shadowRoot?.querySelector('#panel-two')?.hasAttribute('aria-busy')).toBe(false);
     });
 
     it('activates a tab on click selection and re-renders the host', async () => {

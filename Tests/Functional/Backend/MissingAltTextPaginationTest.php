@@ -66,5 +66,8 @@ final class MissingAltTextPaginationTest extends AbstractAuthorizationTestCase
         self::assertStringContainsString('showDecorative=1', $html);
         self::assertStringContainsString('showAllReferences=1', $html);
         self::assertStringContainsString('currentPage=3', $html); // the next-page link
+        self::assertSame(1, substr_count($html, 'aria-current="page"'));
+        self::assertStringNotContainsString('aria-current="false"', $html);
+        self::assertStringNotContainsString('role="list"', $html);
     }
 }
