@@ -18,10 +18,10 @@ import { RenderedPageLoader } from '../../../../Resources/Private/Source/service
 
 const REQUEST_ID = '0123456789abcdef0123456789abcdef';
 
-const createLoader = (): RenderedPageLoader => {
+const createLoader = (url: string = window.location.href): RenderedPageLoader => {
     const service = {
         issueTicket: async (): Promise<StructureAnalysisTicket> => ({
-            url: window.location.href,
+            url,
             requestId: REQUEST_ID,
         }),
         enrich: async (): Promise<undefined> => undefined,
@@ -46,6 +46,7 @@ describe('RenderedPageLoader', () => {
 
     afterEach(() => {
         vi.useRealTimers();
+        vi.unstubAllGlobals();
     });
 
     it('removes its iframe and rejects when rendering is aborted', async () => {
@@ -89,6 +90,7 @@ describe('RenderedPageLoader', () => {
 
     it('rejects with a framing error when the frame loads without ever handshaking', async () => {
         vi.useFakeTimers();
+        vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('network unreachable')));
         const controller = new AbortController();
         const loader = createLoader();
         const loading = loader.load('mobile', document.body, controller.signal, {
@@ -271,5 +273,85 @@ describe('RenderedPageLoader', () => {
 
         controller.abort();
         await expect(loading).rejects.toMatchObject({ name: 'AbortError' });
+    });
+
+    it('upgrades a same-origin framing failure to an auth error when the page answers 401', async () => {
+        vi.useFakeTimers();
+        const fetchMock = vi.fn().mockResolvedValue({ status: 401 } as Response);
+        vi.stubGlobal('fetch', fetchMock);
+        const controller = new AbortController();
+        const loader = createLoader(`${window.location.origin}/protected?mindfula11y_structure_ticket=tok`);
+        const loading = loader.load('mobile', document.body, controller.signal, {
+            pageId: 1,
+            languageId: 0,
+            headings: true,
+            landmarks: true,
+        });
+        await vi.advanceTimersByTimeAsync(0);
+        const frame = document.querySelector('[data-structure-analysis-frame]') as HTMLIFrameElement;
+        const assertion = expect(loading).rejects.toMatchObject({
+            code: 'auth',
+            status: 401,
+            pageUrl: `${window.location.origin}/protected`,
+        });
+
+        frame.dispatchEvent(new Event('load'));
+        await vi.advanceTimersByTimeAsync(2_000);
+
+        await assertion;
+        expect(fetchMock).toHaveBeenCalledWith(
+            `${window.location.origin}/protected`,
+            expect.objectContaining({ credentials: 'include', redirect: 'follow', cache: 'no-store' }),
+        );
+    });
+
+    it('keeps the framing diagnosis when the same-origin probe answers without an auth challenge', async () => {
+        vi.useFakeTimers();
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ status: 200 } as Response));
+        const controller = new AbortController();
+        const loader = createLoader(`${window.location.origin}/refuses-framing?mindfula11y_structure_ticket=tok`);
+        const loading = loader.load('mobile', document.body, controller.signal, {
+            pageId: 1,
+            languageId: 0,
+            headings: true,
+            landmarks: true,
+        });
+        await vi.advanceTimersByTimeAsync(0);
+        const frame = document.querySelector('[data-structure-analysis-frame]') as HTMLIFrameElement;
+        const assertion = expect(loading).rejects.toMatchObject({
+            code: 'framing',
+            pageUrl: `${window.location.origin}/refuses-framing`,
+        });
+
+        frame.dispatchEvent(new Event('load'));
+        await vi.advanceTimersByTimeAsync(2_000);
+
+        await assertion;
+    });
+
+    it('keeps the framing diagnosis for cross-origin pages and never probes them', async () => {
+        vi.useFakeTimers();
+        const fetchMock = vi.fn();
+        vi.stubGlobal('fetch', fetchMock);
+        const controller = new AbortController();
+        const loader = createLoader('https://frontend.example/page?mindfula11y_structure_ticket=tok');
+        const loading = loader.load('mobile', document.body, controller.signal, {
+            pageId: 1,
+            languageId: 0,
+            headings: true,
+            landmarks: true,
+        });
+        await vi.advanceTimersByTimeAsync(0);
+        const frame = document.querySelector('[data-structure-analysis-frame]') as HTMLIFrameElement;
+        const assertion = expect(loading).rejects.toMatchObject({
+            code: 'framing',
+            pageUrl: 'https://frontend.example/page',
+        });
+
+        frame.dispatchEvent(new Event('load'));
+        await vi.advanceTimersByTimeAsync(2_000);
+
+        await assertion;
+        expect(fetchMock).not.toHaveBeenCalled();
     });
 });

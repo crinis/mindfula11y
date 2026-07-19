@@ -10,6 +10,16 @@ const STRUCTURE_VIEWPORTS = {
   mobile: { width: 375, height: 812 },
   desktop: { width: 1280, height: 900 }
 };
+const TICKET_QUERY_PARAMETER = "mindfula11y_structure_ticket";
+const pageUrlOf = (ticketUrl) => {
+  try {
+    const url = new URL(ticketUrl, window.location.href);
+    url.searchParams.delete(TICKET_QUERY_PARAMETER);
+    return url.toString();
+  } catch {
+    return null;
+  }
+};
 const abortReason = (signal) => signal.reason ?? new DOMException("Structure analysis rendering was cancelled.", "AbortError");
 class RenderedPageLoader {
   constructor(service) {
@@ -73,17 +83,9 @@ class RenderedPageLoader {
         if (port !== null || graceTimeout !== null) {
           return;
         }
-        graceTimeout = window.setTimeout(
-          () => settle(
-            () => reject(
-              new StructureAnalysisError(
-                "framing",
-                "The frontend preview could not be analyzed. It may refuse framing or the analysis session expired."
-              )
-            )
-          ),
-          POST_LOAD_GRACE
-        );
+        graceTimeout = window.setTimeout(() => {
+          void this.framingFailure(ticket, signal).then((error) => settle(() => reject(error)));
+        }, POST_LOAD_GRACE);
       };
       const handleReady = (event) => {
         if (port !== null || event.source !== frame.contentWindow || !isStructureAnalysisReadyMessage(event.data, ticket.requestId)) {
@@ -141,6 +143,47 @@ class RenderedPageLoader {
       }
       frame.src = ticket.url;
     });
+  }
+  /**
+   * Classifies a frame that loaded but never handshook. The sandboxed frame
+   * is opaque-origin: browsers suppress its HTTP-auth prompt and hide the
+   * response status, so a page behind basic auth is indistinguishable from
+   * refused framing in here. A same-origin fetch of the ticket-free page
+   * URL can read that status and upgrade the diagnosis to 'auth';
+   * cross-origin pages expose no status without CORS, so the generic
+   * 'framing' message (which names authentication as a possible cause)
+   * remains. Runs only on an already-failed load — the working credential
+   * paths never reach it.
+   */
+  async framingFailure(ticket, signal) {
+    const pageUrl = pageUrlOf(ticket.url);
+    const framing = new StructureAnalysisError(
+      "framing",
+      "The frontend preview could not be analyzed. It may refuse framing, require authentication, or the analysis session expired.",
+      void 0,
+      pageUrl ?? void 0
+    );
+    if (pageUrl === null || new URL(pageUrl).origin !== window.location.origin) {
+      return framing;
+    }
+    try {
+      const response = await fetch(pageUrl, {
+        credentials: "include",
+        redirect: "follow",
+        cache: "no-store",
+        signal
+      });
+      if (response.status === 401 || response.status === 407) {
+        return new StructureAnalysisError(
+          "auth",
+          "The frontend page requires HTTP authentication the sandboxed preview cannot supply.",
+          response.status,
+          pageUrl
+        );
+      }
+    } catch {
+    }
+    return framing;
   }
 }
 export {

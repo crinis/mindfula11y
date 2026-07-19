@@ -13,6 +13,7 @@ export type StructureAnalysisFailureCode =
     | 'ticket' // ticket issuance failed
     | 'timeout' // preview render timeout
     | 'framing' // frame refused/expired ticket (load-event race)
+    | 'auth' // page demands HTTP authentication the sandboxed frame cannot supply
     | 'http' // page rendered with error status
     | 'analysis' // runner reported an analysis error
     | 'payload' // result rejected (too large / malformed)
@@ -23,7 +24,8 @@ export class StructureAnalysisError extends Error {
     constructor(
         readonly code: StructureAnalysisFailureCode,
         message: string, // developer-facing; UI uses code, not message
-        readonly status?: number, // for 'http'
+        readonly status?: number, // for 'http' and 'auth'
+        readonly pageUrl?: string, // ticket-free page URL — recovery link for 'auth'/'framing'
     ) {
         super(message);
         this.name = 'StructureAnalysisError';
