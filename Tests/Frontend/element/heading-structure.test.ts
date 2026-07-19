@@ -23,16 +23,12 @@ vi.mock('@typo3/backend/element/spinner-element.js', () => ({}));
 
 import type { HeadingStructure } from '../../../Resources/Private/Source/element/heading-structure/heading-structure.js';
 import '../../../Resources/Private/Source/element/heading-structure/heading-structure.js';
-import {
-    type HeadingNode,
-    type StructureError,
-    StructureErrorSeverity,
-} from '../../../Resources/Private/Source/lib/structure/types.js';
+import type { HeadingNode, StructureError } from '../../../Resources/Private/Source/lib/structure/types.js';
 import type { RecordReference } from '../../../Resources/Private/Source/lib/types.js';
 
 const makeError = (key: string, nodeId: string | null): StructureError => ({
     key,
-    severity: StructureErrorSeverity.Error,
+    severity: 'moderate',
     nodeId,
     viewports: ['desktop'],
 });

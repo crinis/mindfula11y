@@ -27,14 +27,14 @@
 import { lll } from '@typo3/core/lit-helper.js';
 import type { TemplateResult } from 'lit';
 import { html } from 'lit';
-import { StructureErrorSeverity, type StructureViewport } from './structure/types.js';
+import type { StructureViewport } from './structure/types.js';
 import type { ImpactSeverity } from './types.js';
+import { IMPACT_ORDER } from './types.js';
 
 /** Visual state of the shared `.notice` pattern (styles/notice.css). */
 export type NoticeState = 'info' | 'success' | 'warning' | 'serious' | 'danger';
 
-/** Worst-first axe impact order, also used for chip and grouping order. */
-export const IMPACT_ORDER: readonly ImpactSeverity[] = ['critical', 'serious', 'moderate', 'minor'];
+export { IMPACT_ORDER };
 
 /**
  * Maps an axe impact (also used by agent findings) to the notice palette —
@@ -53,11 +53,6 @@ export function impactState(impact: ImpactSeverity): NoticeState {
     return IMPACT_STATES[impact];
 }
 
-/** Maps a structure finding's severity to the notice state presenting it. */
-export function noticeState(severity: StructureErrorSeverity): NoticeState {
-    return severity === StructureErrorSeverity.Error ? 'danger' : 'warning';
-}
-
 /** Compact issue-count pill for tab labels: visible count, full text for AT. */
 export function renderCountBadge(state: NoticeState, count: number, srText: string): TemplateResult {
     return html`<span class="notice count" data-state=${state} data-variant="pill"
@@ -68,10 +63,10 @@ export function renderCountBadge(state: NoticeState, count: number, srText: stri
 /**
  * Inline-label key naming a severity for assistive technology — the state
  * icons are aria-hidden (core hardcodes that in Icon::render()), so text
- * must carry the error/warning distinction.
+ * must carry the severity distinction.
  */
-export function severityLabelKey(severity: StructureErrorSeverity): string {
-    return severity === StructureErrorSeverity.Error ? 'mindfula11y.severity.error' : 'mindfula11y.severity.warning';
+export function severityLabelKey(severity: ImpactSeverity): string {
+    return `mindfula11y.severity.${severity}`;
 }
 
 /** Single source of every notice-state → TYPO3 icon identifier mapping in the extension. */
@@ -91,16 +86,16 @@ export function noticeStateIcon(state: NoticeState): string {
 /**
  * Renders a severity's icon + label for inline/pill notices: the icon is
  * aria-hidden by TYPO3 core (Icon::render() hardcodes it), so a
- * screen-reader-only severity prefix carries the error/warning distinction
+ * screen-reader-only severity prefix carries the severity distinction
  * before the label — this a11y invariant lives here once for every caller.
  */
 export function renderSeverityChip(
-    severity: StructureErrorSeverity,
+    severity: ImpactSeverity,
     labelKey: string,
     ...labelArguments: Array<string | number>
 ): TemplateResult {
     return html`<typo3-backend-icon
-            identifier=${noticeStateIcon(noticeState(severity))}
+            identifier=${noticeStateIcon(impactState(severity))}
             size="small"
         ></typo3-backend-icon>
         <span

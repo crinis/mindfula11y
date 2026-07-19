@@ -69,12 +69,12 @@
                 <target>Seitenstruktur wird analysiert …</target>
             </trans-unit>
             <trans-unit id="structure.analyzed" resname="structure.analyzed">
-                <source>Page structure analyzed. Errors: %d; warnings: %d.</source>
-                <target>Seitenstruktur analysiert. Fehler: %d; Warnungen: %d.</target>
+                <source>Page structure analyzed. Moderate issues: %d; minor issues: %d.</source>
+                <target>Seitenstruktur analysiert. Mittlere Probleme: %d; geringe Probleme: %d.</target>
             </trans-unit>
             <trans-unit id="structure.updated" resname="structure.updated">
-                <source>Page structure updated. Errors: %d; warnings: %d.</source>
-                <target>Seitenstruktur aktualisiert. Fehler: %d; Warnungen: %d.</target>
+                <source>Page structure updated. Moderate issues: %d; minor issues: %d.</source>
+                <target>Seitenstruktur aktualisiert. Mittlere Probleme: %d; geringe Probleme: %d.</target>
             </trans-unit>
             <trans-unit id="structure.findingCount" resname="structure.findingCount">
                 <source>Count: %d</source>
@@ -438,8 +438,8 @@
                 <target>Überschriften ohne Textinhalt bieten keinen semantischen Mehrwert und können Screenreader-Nutzer verwirren. Bitte fügen Sie allen Überschriftenelementen beschreibenden Text hinzu oder entfernen Sie leere Überschriften.</target>
             </trans-unit>
             <trans-unit id="structure.headings.error.skippedLevel" resname="structure.headings.error.skippedLevel">
-                <source>Skipped heading levels!</source>
-                <target>Überschriftenebenen übersprungen!</target>
+                <source>Skipped heading levels.</source>
+                <target>Überschriftenebenen übersprungen.</target>
             </trans-unit>
             <trans-unit id="structure.headings.error.skippedLevel.description" resname="structure.headings.error.skippedLevel.description">
                 <source>Heading levels should not be skipped. For example, an &lt;h2&gt; should not be followed directly by an &lt;h4&gt; without an intervening &lt;h3&gt;. Proper heading structure helps screen reader users understand the content hierarchy.</source>

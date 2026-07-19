@@ -1,5 +1,5 @@
+import { IMPACT_ORDER } from "../types.js";
 import { mergeViewports } from "./analysis.js";
-import { StructureErrorSeverity } from "./types.js";
 const DOMAIN_ORDER = ["headings", "landmarks"];
 const enabledDomains = (enabled) => DOMAIN_ORDER.filter((domain) => enabled[domain]);
 const domainErrors = (analysis, domain) => {
@@ -11,13 +11,9 @@ const domainErrors = (analysis, domain) => {
 };
 const pageErrors = (analysis, domain) => domainErrors(analysis, domain).filter((error) => error.nodeId === null);
 const severityCounts = (analysis, domain) => {
-  const counts = { errors: 0, warnings: 0 };
+  const counts = { critical: 0, serious: 0, moderate: 0, minor: 0 };
   for (const error of domainErrors(analysis, domain)) {
-    if (error.severity === StructureErrorSeverity.Error) {
-      counts.errors += 1;
-    } else {
-      counts.warnings += 1;
-    }
+    counts[error.severity] += 1;
   }
   return counts;
 };
@@ -41,12 +37,9 @@ const aggregateFindings = (analysis, enabled) => {
       }
     }
   }
-  return Array.from(findings.values()).sort((a, b) => {
-    if (a.severity === b.severity) {
-      return 0;
-    }
-    return a.severity === StructureErrorSeverity.Error ? -1 : 1;
-  });
+  return Array.from(findings.values()).sort(
+    (a, b) => IMPACT_ORDER.indexOf(a.severity) - IMPACT_ORDER.indexOf(b.severity)
+  );
 };
 export {
   aggregateFindings,

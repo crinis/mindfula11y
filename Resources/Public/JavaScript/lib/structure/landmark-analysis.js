@@ -1,7 +1,6 @@
 import { createErrorCollector, groupBy } from "./analysis.js";
 import { extractRecord, indexStructureNodes } from "./annotations.js";
 import { resolveExposure } from "./element-exposure.js";
-import { StructureErrorSeverity } from "./types.js";
 const ERROR_KEYS = {
   missingMain: "mindfula11y.structure.landmarks.error.missingMain",
   duplicateMain: "mindfula11y.structure.landmarks.error.duplicateMain",
@@ -135,10 +134,10 @@ const analyzeLandmarks = (doc, options = {}) => {
   if (flat.length > 0) {
     const mains = flat.filter((node) => node.role === "main");
     if (mains.length === 0) {
-      collector.pageError(ERROR_KEYS.missingMain, StructureErrorSeverity.Error);
+      collector.pageError(ERROR_KEYS.missingMain, "moderate");
     } else if (mains.length > 1) {
       for (const node of mains) {
-        collector.nodeError(node, ERROR_KEYS.duplicateMain, StructureErrorSeverity.Error);
+        collector.nodeError(node, ERROR_KEYS.duplicateMain, "moderate");
       }
     }
     const byRoleAndLabel = groupBy(
@@ -156,7 +155,7 @@ const analyzeLandmarks = (doc, options = {}) => {
       const identicalNavigation = signatures[0] !== void 0 && signatures[0] !== "" && new Set(signatures).size === 1;
       if (!identicalNavigation) {
         for (const node of group) {
-          collector.nodeError(node, ERROR_KEYS.duplicateSameLabel, StructureErrorSeverity.Warning);
+          collector.nodeError(node, ERROR_KEYS.duplicateSameLabel, "moderate");
         }
       }
     }
@@ -169,7 +168,7 @@ const analyzeLandmarks = (doc, options = {}) => {
         continue;
       }
       for (const node of group) {
-        collector.nodeError(node, ERROR_KEYS.multipleUnlabeled, StructureErrorSeverity.Warning);
+        collector.nodeError(node, ERROR_KEYS.multipleUnlabeled, "moderate");
       }
     }
   }

@@ -1,7 +1,7 @@
 import { createErrorCollector } from "./analysis.js";
 import { extractChildTypeRecord, extractRecord, indexStructureNodes } from "./annotations.js";
 import { isElementExposed, resolveExposure } from "./element-exposure.js";
-import { HEADING_ERROR_KEYS, StructureErrorSeverity } from "./types.js";
+import { HEADING_ERROR_KEYS } from "./types.js";
 const CONTAINER_SELECTOR = "[data-mindfula11y-container]";
 const extractRelation = (element) => {
   const ancestorId = element.dataset.mindfula11yAncestorId ?? "";
@@ -33,7 +33,7 @@ const analyzeHeadings = (doc, options = {}) => {
   const nodesByRelationId = /* @__PURE__ */ new Map();
   const h1Count = headings.filter((heading) => heading.tagName === "H1").length;
   if (headings.length > 0 && h1Count === 0) {
-    collector.pageError(HEADING_ERROR_KEYS.missingH1, StructureErrorSeverity.Error);
+    collector.pageError(HEADING_ERROR_KEYS.missingH1, "moderate");
   }
   exposed.forEach((element) => {
     if (element.matches(CONTAINER_SELECTOR)) {
@@ -95,17 +95,17 @@ const analyzeHeadings = (doc, options = {}) => {
       nodesByRelationId.set(relationId, node);
     }
     if (h1Count > 1 && level === 1) {
-      collector.nodeError(node, HEADING_ERROR_KEYS.multipleH1, StructureErrorSeverity.Warning);
+      collector.nodeError(node, HEADING_ERROR_KEYS.multipleH1, "minor");
     }
     if (label === "") {
-      collector.nodeError(node, HEADING_ERROR_KEYS.emptyHeading, StructureErrorSeverity.Error);
+      collector.nodeError(node, HEADING_ERROR_KEYS.emptyHeading, "minor");
     }
     if (attributedContainer !== null) {
       if (!attributedContainer.errors.some((error) => error.key === HEADING_ERROR_KEYS.skippedLevel)) {
-        collector.nodeError(attributedContainer, HEADING_ERROR_KEYS.skippedLevel, StructureErrorSeverity.Error);
+        collector.nodeError(attributedContainer, HEADING_ERROR_KEYS.skippedLevel, "moderate");
       }
     } else if (skippedLevels > 0) {
-      collector.nodeError(node, HEADING_ERROR_KEYS.skippedLevel, StructureErrorSeverity.Error);
+      collector.nodeError(node, HEADING_ERROR_KEYS.skippedLevel, "moderate");
     }
     if (parent === null) {
       rootNodes.push(node);

@@ -35,6 +35,13 @@ export type GenerateAltTextDemand = Record<string, unknown>;
  */
 export type ImpactSeverity = 'critical' | 'serious' | 'moderate' | 'minor';
 
+/**
+ * Worst-first impact order, driving chip/grouping order, worst-of reductions
+ * and count buckets. Lives beside the type (not in status-render) so the
+ * DOM-pure structure modules can consume it without a Lit dependency.
+ */
+export const IMPACT_ORDER: readonly ImpactSeverity[] = ['critical', 'serious', 'moderate', 'minor'];
+
 export interface RecordReference {
     tableName: string;
     columnName: string;

@@ -19,14 +19,8 @@
 
 /** Domain types of the structure analysis (headings and landmarks). */
 
-import type { RecordReference } from '../types.js';
+import type { ImpactSeverity, RecordReference } from '../types.js';
 import type { ElementExposurePredicate } from './element-exposure.js';
-
-/** Severity of a structure finding; Error outranks Warning. */
-export enum StructureErrorSeverity {
-    Error = 'error',
-    Warning = 'warning',
-}
 
 /** Canonical heading finding keys shared by analysis and presentation. */
 export const HEADING_ERROR_KEYS = {
@@ -54,11 +48,14 @@ export type StructureDomain = 'headings' | 'landmarks';
 /**
  * One occurrence of a structure problem, identified by its XLF label key
  * (e.g. `mindfula11y.structure.headings.error.missingH1`).
+ * `severity` is the axe-core impact of the equivalent axe rule (all current
+ * findings are axe best practices: `moderate` or `minor` — never WCAG
+ * failures, which is why no structure finding presents as a red error).
  * `nodeId` is null for page-level findings (missing H1 / missing main).
  */
 export interface StructureError {
     key: string;
-    severity: StructureErrorSeverity;
+    severity: ImpactSeverity;
     nodeId: string | null;
     viewports: StructureViewport[];
 }

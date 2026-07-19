@@ -16,7 +16,7 @@ import { live } from "lit/directives/live.js";
 import "@typo3/backend/element/icon-element.js";
 import "@typo3/backend/element/spinner-element.js";
 import { scrollIntoViewCentered } from "../../lib/dom.js";
-import { noticeState, renderSeverityChip, renderViewportBadges } from "../../lib/status-render.js";
+import { impactState, renderSeverityChip, renderViewportBadges } from "../../lib/status-render.js";
 import { dispatch } from "../../lib/types.js";
 import { RecordApi } from "../../service/record-api.js";
 import { baseStyles } from "../../styles/base-styles.js";
@@ -125,7 +125,7 @@ class StructureView extends LitElement {
     const pageScope = options.pageScope ?? false;
     return html`<p
             class="notice issue"
-            data-state=${noticeState(error.severity)}
+            data-state=${impactState(error.severity)}
             data-variant="inline"
             data-scope=${pageScope ? "page" : "node"}
             tabindex=${pageScope ? "-1" : nothing}

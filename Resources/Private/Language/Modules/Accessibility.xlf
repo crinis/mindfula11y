@@ -58,10 +58,10 @@
                 <source>Analyzing page structure …</source>
             </trans-unit>
             <trans-unit id="structure.analyzed" resname="structure.analyzed">
-                <source>Page structure analyzed. Errors: %d; warnings: %d.</source>
+                <source>Page structure analyzed. Moderate issues: %d; minor issues: %d.</source>
             </trans-unit>
             <trans-unit id="structure.updated" resname="structure.updated">
-                <source>Page structure updated. Errors: %d; warnings: %d.</source>
+                <source>Page structure updated. Moderate issues: %d; minor issues: %d.</source>
             </trans-unit>
             <trans-unit id="structure.findingCount" resname="structure.findingCount">
                 <source>Count: %d</source>
@@ -358,7 +358,7 @@
             </trans-unit>
             <trans-unit id="structure.headings.error.skippedLevel"
                 resname="structure.headings.error.skippedLevel">
-                <source>Skipped heading levels!</source>
+                <source>Skipped heading levels.</source>
             </trans-unit>
             <trans-unit id="structure.headings.error.skippedLevel.description"
                 resname="structure.headings.error.skippedLevel.description">

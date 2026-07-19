@@ -43,7 +43,7 @@ vi.mock('../../../Resources/Private/Source/service/record-api.js', () => {
 
 import type { StructureViewNode } from '../../../Resources/Private/Source/element/structure-view/structure-view.js';
 import { StructureView } from '../../../Resources/Private/Source/element/structure-view/structure-view.js';
-import { type StructureError, StructureErrorSeverity } from '../../../Resources/Private/Source/lib/structure/types.js';
+import type { StructureError } from '../../../Resources/Private/Source/lib/structure/types.js';
 import type { RecordReference } from '../../../Resources/Private/Source/lib/types.js';
 
 interface TestNode extends StructureViewNode<TestNode> {
@@ -111,7 +111,7 @@ const makeNode = (id: string, over: Partial<TestNode> = {}): TestNode => ({
 
 const makeError = (key: string, nodeId: string | null): StructureError => ({
     key,
-    severity: StructureErrorSeverity.Error,
+    severity: 'moderate',
     nodeId,
     viewports: ['desktop'],
 });

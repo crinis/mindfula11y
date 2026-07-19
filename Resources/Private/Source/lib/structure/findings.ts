@@ -24,14 +24,15 @@
  * analysis plus plain enabled-domain booleans.
  */
 
+import type { ImpactSeverity } from '../types.js';
+import { IMPACT_ORDER } from '../types.js';
 import { mergeViewports } from './analysis.js';
 import type { StructureAnalysis, StructureDomain, StructureError, StructureViewport } from './types.js';
-import { StructureErrorSeverity } from './types.js';
 
 /** One findings-summary chip: an error type with its occurrence count. */
 export interface Finding {
     key: string;
-    severity: StructureErrorSeverity;
+    severity: ImpactSeverity;
     count: number;
     domain: StructureDomain;
     viewports: StructureViewport[];
@@ -63,26 +64,22 @@ export const domainErrors = (analysis: StructureAnalysis | null, domain: Structu
 export const pageErrors = (analysis: StructureAnalysis | null, domain: StructureDomain): StructureError[] =>
     domainErrors(analysis, domain).filter((error) => error.nodeId === null);
 
-/** Error/warning totals of one domain, for the tab badges and announcements. */
+/** Per-impact finding totals of one domain, for the tab badges and announcements. */
 export const severityCounts = (
     analysis: StructureAnalysis | null,
     domain: StructureDomain,
-): { errors: number; warnings: number } => {
-    const counts = { errors: 0, warnings: 0 };
+): Record<ImpactSeverity, number> => {
+    const counts: Record<ImpactSeverity, number> = { critical: 0, serious: 0, moderate: 0, minor: 0 };
     for (const error of domainErrors(analysis, domain)) {
-        if (error.severity === StructureErrorSeverity.Error) {
-            counts.errors += 1;
-        } else {
-            counts.warnings += 1;
-        }
+        counts[error.severity] += 1;
     }
     return counts;
 };
 
 /**
  * Groups the enabled domains' errors into findings chips: one chip per
- * domain + error key, counting occurrences and merging viewports, errors
- * sorted before warnings.
+ * domain + error key, counting occurrences and merging viewports, sorted
+ * worst impact first (stable within one impact).
  */
 export const aggregateFindings = (analysis: StructureAnalysis | null, enabled: EnabledDomains): Finding[] => {
     const findings = new Map<string, Finding>();
@@ -106,10 +103,7 @@ export const aggregateFindings = (analysis: StructureAnalysis | null, enabled: E
             }
         }
     }
-    return Array.from(findings.values()).sort((a, b) => {
-        if (a.severity === b.severity) {
-            return 0;
-        }
-        return a.severity === StructureErrorSeverity.Error ? -1 : 1;
-    });
+    return Array.from(findings.values()).sort(
+        (a, b) => IMPACT_ORDER.indexOf(a.severity) - IMPACT_ORDER.indexOf(b.severity),
+    );
 };

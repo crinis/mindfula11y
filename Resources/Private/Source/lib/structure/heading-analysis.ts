@@ -27,7 +27,7 @@ import { createErrorCollector } from './analysis.js';
 import { extractChildTypeRecord, extractRecord, indexStructureNodes } from './annotations.js';
 import { isElementExposed, resolveExposure } from './element-exposure.js';
 import type { HeadingAnalysis, HeadingNode, HeadingRelation, StructureAnalysisOptions } from './types.js';
-import { HEADING_ERROR_KEYS, StructureErrorSeverity } from './types.js';
+import { HEADING_ERROR_KEYS } from './types.js';
 
 const CONTAINER_SELECTOR = '[data-mindfula11y-container]';
 
@@ -45,9 +45,11 @@ const extractRelation = (element: HTMLElement): HeadingRelation | null => {
 
 /**
  * Analyzes exposed h1–h6 elements: builds the level-nested tree and detects missing H1
- * (page-level error), multiple H1 (warning per instance), empty headings (error)
- * and skipped levels (error per offending heading, `skippedLevels` counts the
- * gap for placeholder rendering).
+ * (page-level, moderate — axe `page-has-heading-one`), multiple H1 (minor per
+ * instance — not an axe rule, pure best-practice advice), empty headings
+ * (minor — axe `empty-heading`) and skipped levels (moderate per offending
+ * heading — axe `heading-order`; `skippedLevels` counts the gap for
+ * placeholder rendering).
  * A skip is an increase of more than one against the nearest shallower
  * predecessor; root headings — including those before the first H1 — never
  * skip (axe-core heading-order semantics).
@@ -89,7 +91,7 @@ export const analyzeHeadings = (doc: Document, options: StructureAnalysisOptions
     const h1Count = headings.filter((heading) => heading.tagName === 'H1').length;
 
     if (headings.length > 0 && h1Count === 0) {
-        collector.pageError(HEADING_ERROR_KEYS.missingH1, StructureErrorSeverity.Error);
+        collector.pageError(HEADING_ERROR_KEYS.missingH1, 'moderate');
     }
 
     exposed.forEach((element) => {
@@ -171,17 +173,17 @@ export const analyzeHeadings = (doc: Document, options: StructureAnalysisOptions
         }
 
         if (h1Count > 1 && level === 1) {
-            collector.nodeError(node, HEADING_ERROR_KEYS.multipleH1, StructureErrorSeverity.Warning);
+            collector.nodeError(node, HEADING_ERROR_KEYS.multipleH1, 'minor');
         }
         if (label === '') {
-            collector.nodeError(node, HEADING_ERROR_KEYS.emptyHeading, StructureErrorSeverity.Error);
+            collector.nodeError(node, HEADING_ERROR_KEYS.emptyHeading, 'minor');
         }
         if (attributedContainer !== null) {
             if (!attributedContainer.errors.some((error) => error.key === HEADING_ERROR_KEYS.skippedLevel)) {
-                collector.nodeError(attributedContainer, HEADING_ERROR_KEYS.skippedLevel, StructureErrorSeverity.Error);
+                collector.nodeError(attributedContainer, HEADING_ERROR_KEYS.skippedLevel, 'moderate');
             }
         } else if (skippedLevels > 0) {
-            collector.nodeError(node, HEADING_ERROR_KEYS.skippedLevel, StructureErrorSeverity.Error);
+            collector.nodeError(node, HEADING_ERROR_KEYS.skippedLevel, 'moderate');
         }
 
         if (parent === null) {

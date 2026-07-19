@@ -24,9 +24,10 @@ import { html, nothing } from 'lit';
 import { customElement } from 'lit/decorators.js';
 import { repeat } from 'lit/directives/repeat.js';
 import '@typo3/backend/element/icon-element.js';
-import { renderViewportBadges } from '../../lib/status-render.js';
+import { impactState, renderViewportBadges } from '../../lib/status-render.js';
 import type { HeadingNode, StructureError } from '../../lib/structure/types.js';
-import { HEADING_ERROR_KEYS, StructureErrorSeverity } from '../../lib/structure/types.js';
+import { HEADING_ERROR_KEYS } from '../../lib/structure/types.js';
+import { IMPACT_ORDER } from '../../lib/types.js';
 import {
     type StructureIssueOptionsProvider,
     type StructureIssueRenderOptions,
@@ -218,7 +219,7 @@ export class HeadingStructure extends StructureView<HeadingNode> {
     private renderPlaceholderItem(node: HeadingNode, missingLevel: number): TemplateResult {
         const error = node.errors.find((candidate) => candidate.key === HEADING_ERROR_KEYS.skippedLevel) ?? {
             key: HEADING_ERROR_KEYS.skippedLevel,
-            severity: StructureErrorSeverity.Error,
+            severity: 'moderate' as const,
             nodeId: node.id,
             viewports: node.viewports,
         };
@@ -315,15 +316,16 @@ export class HeadingStructure extends StructureView<HeadingNode> {
 
     /** The single row shell used by issue-only, ordinary heading and hidden-container rows. */
     private renderHeadingRow(options: HeadingRowOptions): TemplateResult {
-        const hasError = options.errors.some((error) => error.severity === StructureErrorSeverity.Error);
+        // The row surface takes the notice state of its worst finding, so the
+        // border accent always matches the inline severity notices it carries.
+        const worst = IMPACT_ORDER.find((impact) => options.errors.some((error) => error.severity === impact));
         return html`<div
             class="row"
             data-node-id=${options.nodeId ?? nothing}
             data-relation-id=${options.relationId ?? nothing}
             ?data-container=${options.container ?? false}
             ?data-child-control=${options.childControl ?? false}
-            ?data-error=${hasError}
-            ?data-warning=${options.errors.length > 0 && !hasError}
+            data-issue-state=${worst === undefined ? nothing : impactState(worst)}
         >
             ${options.content ?? nothing}
             ${

@@ -17,7 +17,8 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-import type { StructureError, StructureErrorSeverity, StructureViewport } from './types.js';
+import type { ImpactSeverity } from '../types.js';
+import type { StructureError, StructureViewport } from './types.js';
 import { STRUCTURE_VIEWPORT_ORDER } from './types.js';
 
 /** Union of two viewport sets in canonical order — the merge contract's single rule. */
@@ -34,18 +35,18 @@ export const mergeViewports = (a: readonly StructureViewport[], b: readonly Stru
  */
 export interface StructureErrorCollector {
     readonly errors: StructureError[];
-    pageError(key: string, severity: StructureErrorSeverity): void;
-    nodeError(node: { id: string; errors: StructureError[] }, key: string, severity: StructureErrorSeverity): void;
+    pageError(key: string, severity: ImpactSeverity): void;
+    nodeError(node: { id: string; errors: StructureError[] }, key: string, severity: ImpactSeverity): void;
 }
 
 export const createErrorCollector = (viewport: StructureViewport): StructureErrorCollector => {
     const errors: StructureError[] = [];
     return {
         errors,
-        pageError(key: string, severity: StructureErrorSeverity): void {
+        pageError(key: string, severity: ImpactSeverity): void {
             errors.push({ key, severity, nodeId: null, viewports: [viewport] });
         },
-        nodeError(node: { id: string; errors: StructureError[] }, key: string, severity: StructureErrorSeverity): void {
+        nodeError(node: { id: string; errors: StructureError[] }, key: string, severity: ImpactSeverity): void {
             const error: StructureError = { key, severity, nodeId: node.id, viewports: [viewport] };
             node.errors.push(error);
             errors.push(error);

@@ -21,17 +21,17 @@ import type {
     StructureError,
     StructureViewport,
 } from '../../../../Resources/Private/Source/lib/structure/types.js';
-import { StructureErrorSeverity } from '../../../../Resources/Private/Source/lib/structure/types.js';
+import type { ImpactSeverity } from '../../../../Resources/Private/Source/lib/types.js';
 
 const makeError = (
     key: string,
     // Destructuring defaults apply on undefined only, so an explicit
     // page-level `nodeId: null` passes through.
     {
-        severity = StructureErrorSeverity.Error,
+        severity = 'moderate' as ImpactSeverity,
         nodeId = 'node-1',
         viewports = ['mobile', 'desktop'],
-    }: { severity?: StructureErrorSeverity; nodeId?: string | null; viewports?: StructureViewport[] } = {},
+    }: { severity?: ImpactSeverity; nodeId?: string | null; viewports?: StructureViewport[] } = {},
 ): StructureError => ({ key, severity, nodeId, viewports });
 
 const makeAnalysis = (headingErrors: StructureError[], landmarkErrors: StructureError[] | null): StructureAnalysis => ({
@@ -81,20 +81,20 @@ describe('pageErrors', () => {
 
 describe('severityCounts', () => {
     it('counts zero for a missing analysis', () => {
-        expect(severityCounts(null, 'headings')).toEqual({ errors: 0, warnings: 0 });
+        expect(severityCounts(null, 'headings')).toEqual({ critical: 0, serious: 0, moderate: 0, minor: 0 });
     });
 
-    it('splits a domain into error and warning totals', () => {
+    it('buckets a domain into per-impact totals', () => {
         const analysis = makeAnalysis(
             [
-                makeError('a', { severity: StructureErrorSeverity.Error }),
-                makeError('b', { severity: StructureErrorSeverity.Warning }),
-                makeError('c', { severity: StructureErrorSeverity.Warning }),
+                makeError('a', { severity: 'moderate' }),
+                makeError('b', { severity: 'minor' }),
+                makeError('c', { severity: 'minor' }),
             ],
             null,
         );
 
-        expect(severityCounts(analysis, 'headings')).toEqual({ errors: 1, warnings: 2 });
+        expect(severityCounts(analysis, 'headings')).toEqual({ critical: 0, serious: 0, moderate: 1, minor: 2 });
     });
 });
 
@@ -135,19 +135,19 @@ describe('aggregateFindings', () => {
         expect(findings.map((finding) => finding.domain)).toEqual(['headings', 'landmarks']);
     });
 
-    it('sorts errors before warnings and keeps insertion order within a severity', () => {
+    it('sorts worst impact first and keeps insertion order within one impact', () => {
         const analysis = makeAnalysis(
             [
-                makeError('warning-1', { severity: StructureErrorSeverity.Warning }),
-                makeError('error-1', { severity: StructureErrorSeverity.Error }),
-                makeError('warning-2', { severity: StructureErrorSeverity.Warning }),
+                makeError('minor-1', { severity: 'minor' }),
+                makeError('moderate-1', { severity: 'moderate' }),
+                makeError('minor-2', { severity: 'minor' }),
             ],
             null,
         );
 
         const findings = aggregateFindings(analysis, bothEnabled);
 
-        expect(findings.map((finding) => finding.key)).toEqual(['error-1', 'warning-1', 'warning-2']);
+        expect(findings.map((finding) => finding.key)).toEqual(['moderate-1', 'minor-1', 'minor-2']);
     });
 
     it('ignores errors of a disabled domain', () => {

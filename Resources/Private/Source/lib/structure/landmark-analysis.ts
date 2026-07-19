@@ -28,7 +28,6 @@ import { extractRecord, indexStructureNodes } from './annotations.js';
 import type { ElementExposurePredicate } from './element-exposure.js';
 import { resolveExposure } from './element-exposure.js';
 import type { LandmarkAnalysis, LandmarkNode, StructureAnalysisOptions } from './types.js';
-import { StructureErrorSeverity } from './types.js';
 
 const ERROR_KEYS = {
     missingMain: 'mindfula11y.structure.landmarks.error.missingMain',
@@ -132,9 +131,10 @@ const navigationSignature = (element: HTMLElement, doc: Document, isExposed: Ele
 
 /**
  * Analyzes the document's exposed landmarks: nests them by containment (nearest landmark
- * ancestor) and detects missing main (page-level error), multiple main (error per
- * instance), ambiguous identical labels (warning per instance) and multiple unlabeled
- * landmarks sharing a role (warning per instance, `main` exempt).
+ * ancestor) and detects missing main (page-level — axe `landmark-one-main`), multiple
+ * main (per instance — axe `landmark-no-duplicate-main`), ambiguous identical labels
+ * and multiple unlabeled landmarks sharing a role (per instance — axe
+ * `landmark-unique`, `main` exempt). All four are moderate axe best practices.
  */
 export const analyzeLandmarks = (doc: Document, options: StructureAnalysisOptions = {}): LandmarkAnalysis => {
     const viewport = options.viewport ?? 'desktop';
@@ -219,10 +219,10 @@ export const analyzeLandmarks = (doc: Document, options: StructureAnalysisOption
     if (flat.length > 0) {
         const mains = flat.filter((node) => node.role === 'main');
         if (mains.length === 0) {
-            collector.pageError(ERROR_KEYS.missingMain, StructureErrorSeverity.Error);
+            collector.pageError(ERROR_KEYS.missingMain, 'moderate');
         } else if (mains.length > 1) {
             for (const node of mains) {
-                collector.nodeError(node, ERROR_KEYS.duplicateMain, StructureErrorSeverity.Error);
+                collector.nodeError(node, ERROR_KEYS.duplicateMain, 'moderate');
             }
         }
 
@@ -245,7 +245,7 @@ export const analyzeLandmarks = (doc: Document, options: StructureAnalysisOption
                 signatures[0] !== undefined && signatures[0] !== '' && new Set(signatures).size === 1;
             if (!identicalNavigation) {
                 for (const node of group) {
-                    collector.nodeError(node, ERROR_KEYS.duplicateSameLabel, StructureErrorSeverity.Warning);
+                    collector.nodeError(node, ERROR_KEYS.duplicateSameLabel, 'moderate');
                 }
             }
         }
@@ -258,7 +258,7 @@ export const analyzeLandmarks = (doc: Document, options: StructureAnalysisOption
                 continue;
             }
             for (const node of group) {
-                collector.nodeError(node, ERROR_KEYS.multipleUnlabeled, StructureErrorSeverity.Warning);
+                collector.nodeError(node, ERROR_KEYS.multipleUnlabeled, 'moderate');
             }
         }
     }

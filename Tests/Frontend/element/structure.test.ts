@@ -34,11 +34,10 @@ import type { Structure } from '../../../Resources/Private/Source/element/struct
 import '../../../Resources/Private/Source/element/structure/structure.js';
 import { StructureAnalysisError } from '../../../Resources/Private/Source/lib/structure/error.js';
 import type { StructureAnalysis, StructureError } from '../../../Resources/Private/Source/lib/structure/types.js';
-import { StructureErrorSeverity } from '../../../Resources/Private/Source/lib/structure/types.js';
 
 const makeError = (nodeId: string): StructureError => ({
     key: 'mindfula11y.structure.headings.error.emptyHeadings',
-    severity: StructureErrorSeverity.Error,
+    severity: 'moderate',
     nodeId,
     viewports: ['desktop'],
 });

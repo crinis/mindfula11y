@@ -20,12 +20,14 @@ import "../landmark-structure/landmark-structure.js";
 import "../notice/notice.js";
 import { LiveAnnouncer } from "../../lib/live-announcer.js";
 import {
-  noticeState,
+  IMPACT_ORDER,
+  impactState,
   renderCountBadge,
   renderLoadingPlaceholder,
   renderNoticeBody,
   renderSeverityChip,
-  renderViewportBadges
+  renderViewportBadges,
+  severityLabelKey
 } from "../../lib/status-render.js";
 import { StructureAnalysisError } from "../../lib/structure/error.js";
 import {
@@ -162,18 +164,13 @@ let Structure = class extends LitElement {
       disabled: this.analysis === null && this.analyzeTask.status === TaskStatus.PENDING
     };
   }
+  /** Count badge of the domain's worst present impact (worst-first, like the scan view). */
   renderTabBadge(counts) {
-    if (counts.errors > 0) {
-      return renderCountBadge("danger", counts.errors, `${counts.errors} ${lll("mindfula11y.severity.error")}`);
+    const worst = IMPACT_ORDER.find((impact) => counts[impact] > 0);
+    if (worst === void 0) {
+      return nothing;
     }
-    if (counts.warnings > 0) {
-      return renderCountBadge(
-        "warning",
-        counts.warnings,
-        `${counts.warnings} ${lll("mindfula11y.severity.warning")}`
-      );
-    }
-    return nothing;
+    return renderCountBadge(impactState(worst), counts[worst], `${counts[worst]} ${lll(severityLabelKey(worst))}`);
   }
   renderError() {
     if (this.analyzeTask.status !== TaskStatus.ERROR) {
@@ -250,7 +247,7 @@ let Structure = class extends LitElement {
                         <button
                             type="button"
                             class="notice finding"
-                            data-state=${noticeState(finding.severity)}
+                            data-state=${impactState(finding.severity)}
                             data-variant="pill"
                             @click=${() => {
         void this.handleFindingClick(finding);
@@ -280,17 +277,21 @@ let Structure = class extends LitElement {
     const view = this.renderRoot.querySelector(DOMAINS[finding.domain].tag);
     view?.focusFirstIssue(finding.key);
   }
-  /** Announces the analysis outcome with total error/warning counts. */
+  /**
+   * Announces the analysis outcome with total moderate/minor counts — the
+   * only impacts the structure analyzers emit (all their findings are axe
+   * best practices; a future higher-impact rule must extend the label).
+   */
   async announceResult(signal, isRefresh) {
-    let errors = 0;
-    let warnings = 0;
+    let moderate = 0;
+    let minor = 0;
     for (const domain of this.enabledTabs()) {
       const counts = severityCounts(this.analysis, domain);
-      errors += counts.errors;
-      warnings += counts.warnings;
+      moderate += counts.moderate;
+      minor += counts.minor;
     }
     const key = isRefresh ? "mindfula11y.structure.updated" : "mindfula11y.structure.analyzed";
-    await this.announcer.announce(lll(key, errors, warnings), signal);
+    await this.announcer.announce(lll(key, moderate, minor), signal);
   }
 };
 Structure.styles = [

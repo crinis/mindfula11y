@@ -29,7 +29,7 @@ describe('analyzeHeadings', () => {
         const analysis = analyzeHeadings(document);
         expect(analysis.errors).toHaveLength(1);
         expect(analysis.errors[0]?.key.endsWith('missingH1')).toBe(true);
-        expect(analysis.errors[0]?.severity).toBe('error');
+        expect(analysis.errors[0]?.severity).toBe('moderate');
         expect(analysis.errors[0]?.nodeId).toBeNull();
     });
 
@@ -51,7 +51,7 @@ describe('analyzeHeadings', () => {
         const analysis = analyzeHeadings(document);
         const multipleH1Errors = analysis.errors.filter((error) => error.key.endsWith('multipleH1'));
         expect(multipleH1Errors).toHaveLength(2);
-        expect(multipleH1Errors.every((error) => error.severity === 'warning')).toBe(true);
+        expect(multipleH1Errors.every((error) => error.severity === 'minor')).toBe(true);
         expect(multipleH1Errors.every((error) => error.nodeId !== null)).toBe(true);
     });
 
@@ -64,7 +64,7 @@ describe('analyzeHeadings', () => {
         const analysis = analyzeHeadings(document);
         const emptyHeadingErrors = analysis.errors.filter((error) => error.key.endsWith('emptyHeadings'));
         expect(emptyHeadingErrors).toHaveLength(1);
-        expect(emptyHeadingErrors[0]?.severity).toBe('error');
+        expect(emptyHeadingErrors[0]?.severity).toBe('minor');
 
         const nodes = flatten(analysis.nodes);
         expect(nodes.find((node) => node.label === 'Title')?.errors ?? []).toHaveLength(0);
@@ -85,7 +85,7 @@ describe('analyzeHeadings', () => {
 
         const skippedLevelErrors = analysis.errors.filter((error) => error.key.endsWith('skippedLevel'));
         expect(skippedLevelErrors).toHaveLength(1);
-        expect(skippedLevelErrors[0]?.severity).toBe('error');
+        expect(skippedLevelErrors[0]?.severity).toBe('moderate');
         expect(skippedLevelErrors[0]?.nodeId).toBe(h3Node?.id);
     });
 

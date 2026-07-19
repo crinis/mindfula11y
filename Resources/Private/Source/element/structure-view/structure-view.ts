@@ -26,7 +26,7 @@ import { live } from 'lit/directives/live.js';
 import '@typo3/backend/element/icon-element.js';
 import '@typo3/backend/element/spinner-element.js';
 import { scrollIntoViewCentered } from '../../lib/dom.js';
-import { noticeState, renderSeverityChip, renderViewportBadges } from '../../lib/status-render.js';
+import { impactState, renderSeverityChip, renderViewportBadges } from '../../lib/status-render.js';
 import type { StructureError, StructureViewport } from '../../lib/structure/types.js';
 import type { RecordReference } from '../../lib/types.js';
 import { dispatch } from '../../lib/types.js';
@@ -204,7 +204,7 @@ export abstract class StructureView<T extends StructureViewNode<T>> extends LitE
         const pageScope = options.pageScope ?? false;
         return html`<p
             class="notice issue"
-            data-state=${noticeState(error.severity)}
+            data-state=${impactState(error.severity)}
             data-variant="inline"
             data-scope=${pageScope ? 'page' : 'node'}
             tabindex=${pageScope ? '-1' : nothing}

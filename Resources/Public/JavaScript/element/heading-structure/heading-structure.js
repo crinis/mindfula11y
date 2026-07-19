@@ -14,8 +14,9 @@ import { html, nothing } from "lit";
 import { customElement } from "lit/decorators.js";
 import { repeat } from "lit/directives/repeat.js";
 import "@typo3/backend/element/icon-element.js";
-import { renderViewportBadges } from "../../lib/status-render.js";
-import { HEADING_ERROR_KEYS, StructureErrorSeverity } from "../../lib/structure/types.js";
+import { impactState, renderViewportBadges } from "../../lib/status-render.js";
+import { HEADING_ERROR_KEYS } from "../../lib/structure/types.js";
+import { IMPACT_ORDER } from "../../lib/types.js";
 import {
   StructureView
 } from "../structure-view/structure-view.js";
@@ -149,7 +150,7 @@ let HeadingStructure = class extends StructureView {
   renderPlaceholderItem(node, missingLevel) {
     const error = node.errors.find((candidate) => candidate.key === HEADING_ERROR_KEYS.skippedLevel) ?? {
       key: HEADING_ERROR_KEYS.skippedLevel,
-      severity: StructureErrorSeverity.Error,
+      severity: "moderate",
       nodeId: node.id,
       viewports: node.viewports
     };
@@ -231,15 +232,14 @@ let HeadingStructure = class extends StructureView {
   }
   /** The single row shell used by issue-only, ordinary heading and hidden-container rows. */
   renderHeadingRow(options) {
-    const hasError = options.errors.some((error) => error.severity === StructureErrorSeverity.Error);
+    const worst = IMPACT_ORDER.find((impact) => options.errors.some((error) => error.severity === impact));
     return html`<div
             class="row"
             data-node-id=${options.nodeId ?? nothing}
             data-relation-id=${options.relationId ?? nothing}
             ?data-container=${options.container ?? false}
             ?data-child-control=${options.childControl ?? false}
-            ?data-error=${hasError}
-            ?data-warning=${options.errors.length > 0 && !hasError}
+            data-issue-state=${worst === void 0 ? nothing : impactState(worst)}
         >
             ${options.content ?? nothing}
             ${options.errors.length > 0 ? this.renderIssueGroup(options.errors, {

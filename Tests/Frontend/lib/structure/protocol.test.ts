@@ -52,6 +52,59 @@ describe('structure-analysis-protocol guards', () => {
         ).toBe(false);
     });
 
+    it('accepts findings with every axe impact severity', () => {
+        const errors = ['critical', 'serious', 'moderate', 'minor'].map((severity) => ({
+            key: 'mindfula11y.structure.headings.error.skippedLevel',
+            severity,
+            nodeId: null,
+            viewports: ['mobile'],
+        }));
+
+        expect(
+            isStructureAnalysisResultMessage(
+                {
+                    protocol: STRUCTURE_ANALYSIS_PROTOCOL,
+                    type: 'result',
+                    requestId: REQUEST_ID,
+                    viewport: 'mobile',
+                    headings: { nodes: [], errors },
+                    landmarks: null,
+                },
+                REQUEST_ID,
+                'mobile',
+            ),
+        ).toBe(true);
+    });
+
+    it('rejects a finding whose severity is not an axe impact', () => {
+        // 'error'/'warning' were the pre-impact-scale severities; the wire
+        // guard must accept exactly the current impact values and nothing else.
+        expect(
+            isStructureAnalysisResultMessage(
+                {
+                    protocol: STRUCTURE_ANALYSIS_PROTOCOL,
+                    type: 'result',
+                    requestId: REQUEST_ID,
+                    viewport: 'mobile',
+                    headings: {
+                        nodes: [],
+                        errors: [
+                            {
+                                key: 'mindfula11y.structure.headings.error.skippedLevel',
+                                severity: 'error',
+                                nodeId: null,
+                                viewports: ['mobile'],
+                            },
+                        ],
+                    },
+                    landmarks: null,
+                },
+                REQUEST_ID,
+                'mobile',
+            ),
+        ).toBe(false);
+    });
+
     it('accepts a container node whose own type is not a heading (level 0)', () => {
         // Mirrors heading-analysis.ts: a data-mindfula11y-container="p|div"
         // element is reported as kind 'container' with level 0.

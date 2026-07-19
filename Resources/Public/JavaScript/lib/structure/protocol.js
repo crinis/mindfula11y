@@ -1,4 +1,5 @@
 import { isBoundedString, isObject, isStringMap } from "../guards.js";
+import { IMPACT_ORDER } from "../types.js";
 const STRUCTURE_ANALYSIS_PROTOCOL = "mindfula11y.structure.v1";
 const MAX_ANALYSIS_ITEMS = 2e3;
 const isViewport = (value) => value === "mobile" || value === "desktop";
@@ -8,7 +9,7 @@ const isError = (value) => {
   if (!isObject(value) || !isBoundedString(value.key, 256) || !isViewportList(value.viewports)) {
     return false;
   }
-  return (value.severity === "error" || value.severity === "warning") && (value.nodeId === null || isBoundedString(value.nodeId, 512));
+  return IMPACT_ORDER.includes(value.severity) && (value.nodeId === null || isBoundedString(value.nodeId, 512));
 };
 const isRecord = (value) => {
   if (value === null) {

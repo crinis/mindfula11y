@@ -1,7 +1,6 @@
 import { lll } from "@typo3/core/lit-helper.js";
 import { html } from "lit";
-import { StructureErrorSeverity } from "./structure/types.js";
-const IMPACT_ORDER = ["critical", "serious", "moderate", "minor"];
+import { IMPACT_ORDER } from "./types.js";
 const IMPACT_STATES = {
   critical: "danger",
   serious: "serious",
@@ -11,16 +10,13 @@ const IMPACT_STATES = {
 function impactState(impact) {
   return IMPACT_STATES[impact];
 }
-function noticeState(severity) {
-  return severity === StructureErrorSeverity.Error ? "danger" : "warning";
-}
 function renderCountBadge(state, count, srText) {
   return html`<span class="notice count" data-state=${state} data-variant="pill"
         ><span aria-hidden="true">${count}</span><span class="sr-only">${srText}</span></span
     >`;
 }
 function severityLabelKey(severity) {
-  return severity === StructureErrorSeverity.Error ? "mindfula11y.severity.error" : "mindfula11y.severity.warning";
+  return `mindfula11y.severity.${severity}`;
 }
 const NOTICE_STATE_ICONS = {
   info: "status-dialog-information",
@@ -34,7 +30,7 @@ function noticeStateIcon(state) {
 }
 function renderSeverityChip(severity, labelKey, ...labelArguments) {
   return html`<typo3-backend-icon
-            identifier=${noticeStateIcon(noticeState(severity))}
+            identifier=${noticeStateIcon(impactState(severity))}
             size="small"
         ></typo3-backend-icon>
         <span
@@ -59,7 +55,6 @@ const renderLoadingPlaceholder = (label) => html`<div class="placeholder">
 export {
   IMPACT_ORDER,
   impactState,
-  noticeState,
   noticeStateIcon,
   renderCountBadge,
   renderLoadingPlaceholder,

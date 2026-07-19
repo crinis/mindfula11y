@@ -73,13 +73,15 @@
         }
 
         /* A row carrying its findings inline (no separate issue row beneath
-           it) is marked as the error/warning surface itself. */
-        &[data-error] {
-            border-color: var(--mindfula11y-state-danger-border);
+           it) is marked as the issue surface itself: the border accent takes
+           its worst finding's notice state (moderate → warning, minor → info
+           — the only impacts the structure analyzers emit). */
+        &[data-issue-state="warning"] {
+            border-color: var(--mindfula11y-state-warning-border);
         }
 
-        &[data-warning] {
-            border-color: var(--mindfula11y-state-warning-border);
+        &[data-issue-state="info"] {
+            border-color: var(--mindfula11y-state-info-border);
         }
 
         @container (inline-size >= 36rem) {

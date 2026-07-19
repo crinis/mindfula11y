@@ -81,7 +81,7 @@ describe('analyzeLandmarks', () => {
         const analysis = analyzeLandmarks(document);
         expect(analysis.errors).toHaveLength(2);
         expect(analysis.errors.every((error) => error.key.endsWith('duplicateSameLabel'))).toBe(true);
-        expect(analysis.errors.every((error) => error.severity === 'warning')).toBe(true);
+        expect(analysis.errors.every((error) => error.severity === 'moderate')).toBe(true);
     });
 
     it('allows the same label for navigation landmarks with identical non-empty links', () => {
@@ -148,7 +148,7 @@ describe('analyzeLandmarks', () => {
         const analysis = analyzeLandmarks(document);
         expect(analysis.errors).toHaveLength(1);
         expect(analysis.errors[0]?.key.endsWith('missingMain')).toBe(true);
-        expect(analysis.errors[0]?.severity).toBe('error');
+        expect(analysis.errors[0]?.severity).toBe('moderate');
         expect(analysis.errors[0]?.nodeId).toBeNull();
     });
 
@@ -161,7 +161,7 @@ describe('analyzeLandmarks', () => {
         const analysis = analyzeLandmarks(document);
         const duplicateMainErrors = analysis.errors.filter((error) => error.key.endsWith('duplicateMain'));
         expect(duplicateMainErrors).toHaveLength(2);
-        expect(duplicateMainErrors.every((error) => error.severity === 'error')).toBe(true);
+        expect(duplicateMainErrors.every((error) => error.severity === 'moderate')).toBe(true);
         expect(duplicateMainErrors.every((error) => error.nodeId !== null)).toBe(true);
     });
 
@@ -177,7 +177,7 @@ describe('analyzeLandmarks', () => {
             error.key.endsWith('multipleUnlabeledLandmarks'),
         );
         expect(multipleUnlabeledErrors).toHaveLength(2);
-        expect(multipleUnlabeledErrors.every((error) => error.severity === 'warning')).toBe(true);
+        expect(multipleUnlabeledErrors.every((error) => error.severity === 'moderate')).toBe(true);
     });
 
     it('excludes header/footer nested inside sectioning content from banner/contentinfo', () => {

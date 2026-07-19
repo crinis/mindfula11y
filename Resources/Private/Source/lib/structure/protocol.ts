@@ -9,6 +9,8 @@
  */
 
 import { isBoundedString, isObject, isStringMap } from '../guards.js';
+import type { ImpactSeverity } from '../types.js';
+import { IMPACT_ORDER } from '../types.js';
 import type { HeadingAnalysis, HeadingNode, LandmarkAnalysis, LandmarkNode, StructureViewport } from './types.js';
 
 export const STRUCTURE_ANALYSIS_PROTOCOL = 'mindfula11y.structure.v1' as const;
@@ -69,7 +71,7 @@ const isError = (value: unknown): boolean => {
         return false;
     }
     return (
-        (value.severity === 'error' || value.severity === 'warning') &&
+        IMPACT_ORDER.includes(value.severity as ImpactSeverity) &&
         (value.nodeId === null || isBoundedString(value.nodeId, 512))
     );
 };

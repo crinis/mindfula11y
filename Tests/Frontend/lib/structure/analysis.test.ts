@@ -28,7 +28,6 @@ import type {
     LandmarkNode,
     StructureError,
 } from '../../../../Resources/Private/Source/lib/structure/types.js';
-import { StructureErrorSeverity } from '../../../../Resources/Private/Source/lib/structure/types.js';
 
 const flattenHeadings = (nodes: HeadingNode[]): HeadingNode[] =>
     nodes.flatMap((node) => [node, ...flattenHeadings(node.children)]);
@@ -112,14 +111,14 @@ describe('createErrorCollector', () => {
         const collector = createErrorCollector('desktop');
         const node: { id: string; errors: StructureError[] } = { id: 'node-1', errors: [] };
 
-        collector.nodeError(node, 'mindfula11y.structure.some.error', StructureErrorSeverity.Error);
+        collector.nodeError(node, 'mindfula11y.structure.some.error', 'moderate');
 
         expect(node.errors).toHaveLength(1);
         expect(collector.errors).toHaveLength(1);
         expect(collector.errors[0]).toBe(node.errors[0]);
         expect(node.errors[0]).toEqual({
             key: 'mindfula11y.structure.some.error',
-            severity: StructureErrorSeverity.Error,
+            severity: 'moderate',
             nodeId: 'node-1',
             viewports: ['desktop'],
         });
@@ -128,12 +127,12 @@ describe('createErrorCollector', () => {
     it('produces a page-level error with a null nodeId and the collector viewport', () => {
         const collector = createErrorCollector('mobile');
 
-        collector.pageError('mindfula11y.structure.some.pageError', StructureErrorSeverity.Warning);
+        collector.pageError('mindfula11y.structure.some.pageError', 'minor');
 
         expect(collector.errors).toEqual([
             {
                 key: 'mindfula11y.structure.some.pageError',
-                severity: StructureErrorSeverity.Warning,
+                severity: 'minor',
                 nodeId: null,
                 viewports: ['mobile'],
             },
