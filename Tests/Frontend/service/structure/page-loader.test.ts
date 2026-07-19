@@ -329,9 +329,10 @@ describe('RenderedPageLoader', () => {
         await assertion;
     });
 
-    it('falls back to the framing diagnosis when the same-origin probe hangs', async () => {
+    it('falls back to the framing diagnosis when the same-origin probe hangs, aborting the request', async () => {
         vi.useFakeTimers();
-        vi.stubGlobal('fetch', vi.fn().mockReturnValue(new Promise(() => {})));
+        const fetchMock = vi.fn().mockReturnValue(new Promise(() => {}));
+        vi.stubGlobal('fetch', fetchMock);
         const controller = new AbortController();
         const loader = createLoader(`${window.location.origin}/hangs?mindfula11y_structure_ticket=tok`);
         const loading = loader.load('mobile', document.body, controller.signal, {
@@ -349,9 +350,41 @@ describe('RenderedPageLoader', () => {
 
         frame.dispatchEvent(new Event('load'));
         await vi.advanceTimersByTimeAsync(2_000); // grace expires, probe starts
+        const probeSignal = (fetchMock.mock.calls[0]?.[1] as RequestInit | undefined)?.signal;
+        expect(probeSignal?.aborted).toBe(false);
         await vi.advanceTimersByTimeAsync(2_000); // probe bound expires
 
         await assertion;
+        // The timer winning the race must cancel the underlying request: once
+        // the task settles into its error state nothing aborts the run's
+        // signal anymore, so a leaked probe would stall until the server
+        // closes it — accumulating across retries.
+        expect(probeSignal?.aborted).toBe(true);
+    });
+
+    it('cancels a still-pending probe when the outer load is aborted', async () => {
+        vi.useFakeTimers();
+        const fetchMock = vi.fn().mockReturnValue(new Promise(() => {}));
+        vi.stubGlobal('fetch', fetchMock);
+        const controller = new AbortController();
+        const loader = createLoader(`${window.location.origin}/hangs?mindfula11y_structure_ticket=tok`);
+        const loading = loader.load('mobile', document.body, controller.signal, {
+            pageId: 1,
+            languageId: 0,
+            headings: true,
+            landmarks: true,
+        });
+        await vi.advanceTimersByTimeAsync(0);
+        const frame = document.querySelector('[data-structure-analysis-frame]') as HTMLIFrameElement;
+        const assertion = expect(loading).rejects.toMatchObject({ name: 'AbortError' });
+
+        frame.dispatchEvent(new Event('load'));
+        await vi.advanceTimersByTimeAsync(2_000); // grace expires, probe starts
+        controller.abort();
+        await assertion;
+
+        const probeSignal = (fetchMock.mock.calls[0]?.[1] as RequestInit | undefined)?.signal;
+        expect(probeSignal?.aborted).toBe(true);
     });
 
     it('keeps the framing diagnosis for cross-origin pages and never probes them', async () => {

@@ -268,6 +268,12 @@ export class RenderedPageLoader {
         if (pageUrl === null || new URL(pageUrl).origin !== window.location.origin) {
             return framing;
         }
+        // Probe-local controller: the timeout below only rejects the race — it
+        // must also cancel the underlying request, because once this rejection
+        // settles the Lit task into its error state, nothing aborts the run's
+        // signal anymore (@lit/task only aborts PENDING runs), and each Retry
+        // would stack another stalled same-origin request.
+        const probe = new AbortController();
         let probeTimer: number | undefined;
         try {
             // Bounded by POST_LOAD_GRACE: a hanging probe must not defer the
@@ -278,7 +284,7 @@ export class RenderedPageLoader {
                     credentials: 'include',
                     redirect: 'follow',
                     cache: 'no-store',
-                    signal,
+                    signal: AbortSignal.any([signal, probe.signal]),
                 }),
                 new Promise<never>((_, timeoutReject) => {
                     probeTimer = window.setTimeout(
@@ -299,6 +305,9 @@ export class RenderedPageLoader {
             // The probe failing adds no information; keep the framing diagnosis.
         } finally {
             window.clearTimeout(probeTimer);
+            // Settled either way: cancels the request when the timer won, and
+            // releases the never-read response body when the fetch won.
+            probe.abort();
         }
         return framing;
     }

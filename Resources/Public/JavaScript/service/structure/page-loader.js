@@ -166,6 +166,7 @@ class RenderedPageLoader {
     if (pageUrl === null || new URL(pageUrl).origin !== window.location.origin) {
       return framing;
     }
+    const probe = new AbortController();
     let probeTimer;
     try {
       const response = await Promise.race([
@@ -173,7 +174,7 @@ class RenderedPageLoader {
           credentials: "include",
           redirect: "follow",
           cache: "no-store",
-          signal
+          signal: AbortSignal.any([signal, probe.signal])
         }),
         new Promise((_, timeoutReject) => {
           probeTimer = window.setTimeout(
@@ -193,6 +194,7 @@ class RenderedPageLoader {
     } catch {
     } finally {
       window.clearTimeout(probeTimer);
+      probe.abort();
     }
     return framing;
   }
