@@ -97,6 +97,8 @@ The checks use the page's rendered CSS at representative mobile and desktop size
 
 ![Structure checks highlighting a skipped heading level and landmark naming issue for the current page](../Images/editors-heading-landmark-checks.png)
 
+> **Note:** If the analysis reports that the page requires a sign-in (for example on a staging site protected with a browser password prompt), choose **Open page in new tab**, sign in there, and then **Retry**. The sign-in is remembered until you close the browser.
+
 ## Scanner usage
 
 - you can trigger scans from the module

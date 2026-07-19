@@ -195,6 +195,15 @@ Use the nested tree form shown above. The extension deliberately ships no settin
 
 > Security note: keep scanner credentials scoped to a low-privilege account. When using `%env()%` placeholders, treat `settings.yaml` as deploy-managed: saving site settings through the backend editor may write resolved values back to the file.
 
+These credentials are used by the scanner only. The structure analysis loads pages through the editor's browser instead — see [Structure analysis behind HTTP Basic Authentication](#structure-analysis-behind-http-basic-authentication).
+
+### Structure analysis behind HTTP Basic Authentication
+
+The heading/landmark structure analysis renders the page in the editor's own browser (a hidden, sandboxed frame inside the backend module). The `mindfula11y.scan.basicAuth.*` site settings therefore do **not** apply to it — credentials cannot be attached to such a frame. Instead, the analysis relies on the browser's own HTTP-authentication cache:
+
+- **Frontend and backend on the same origin, whole vhost protected (recommended):** editors already entered the credentials to reach `/typo3`, the browser re-sends them for the analysis request, and everything works without any extra sign-in. To get this behavior, keep the backend inside the same protection space as the frontend (auth configured for the whole host, one realm).
+- **Frontend on a different origin, or the backend excluded from the protection:** the sandboxed frame cannot show the browser's sign-in prompt. The module reports that the page requires a sign-in and offers **Open page in new tab** — after signing in there, **Retry** succeeds. The sign-in is cached per origin until the browser is closed, so this is needed once per browser session.
+
 ### AI review (agent audit)
 
 MindfulAPI (v0.7.0 or later, see above) can optionally run an **AI audit** alongside the axe-core scan: a language model reviews content quality aspects (image alternative text, heading structure, link purpose, form labels, page title) and reports findings with severity, confidence and suggestions. AI findings are shown in a separate "AI review" section and always need human judgement.
