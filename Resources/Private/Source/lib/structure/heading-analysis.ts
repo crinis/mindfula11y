@@ -30,6 +30,8 @@ import type { HeadingAnalysis, HeadingNode, HeadingRelation, StructureAnalysisOp
 import { HEADING_ERROR_KEYS } from './types.js';
 
 const CONTAINER_SELECTOR = '[data-mindfula11y-container]';
+const DEMOTED_SELECTOR = '[data-mindfula11y-demoted]';
+const NON_HEADING_SELECTOR = `${CONTAINER_SELECTOR}, ${DEMOTED_SELECTOR}`;
 
 const extractRelation = (element: HTMLElement): HeadingRelation | null => {
     const ancestorId = element.dataset.mindfula11yAncestorId ?? '';
@@ -50,6 +52,10 @@ const extractRelation = (element: HTMLElement): HeadingRelation | null => {
  * (minor — axe `empty-heading`) and skipped levels (moderate per offending
  * heading — axe `heading-order`; `skippedLevels` counts the gap for
  * placeholder rendering).
+ * Besides headings, the tree carries hidden container markers and rendered
+ * demoted tags (`data-mindfula11y-demoted`, p/div): both attach to the current
+ * heading context without opening a level or joining any heading check, so
+ * every element wired to a heading ViewHelper keeps exactly one row.
  * A skip is an increase of more than one against the nearest shallower
  * predecessor; root headings — including those before the first H1 — never
  * skip (axe-core heading-order semantics).
@@ -66,7 +72,9 @@ export const analyzeHeadings = (doc: Document, options: StructureAnalysisOptions
     // role="presentation" does not remove its children from the accessibility
     // tree, so the presentational-role half of resolveExposure must not apply here.
     const rawExposure = options.isExposed ?? isElementExposed;
-    const candidates = Array.from(doc.querySelectorAll<HTMLElement>(`h1, h2, h3, h4, h5, h6, ${CONTAINER_SELECTOR}`));
+    const candidates = Array.from(
+        doc.querySelectorAll<HTMLElement>(`h1, h2, h3, h4, h5, h6, ${CONTAINER_SELECTOR}, ${DEMOTED_SELECTOR}`),
+    );
     const index = indexStructureNodes(candidates, (element) => {
         const relationId = element.dataset.mindfula11yRelationId ?? '';
         return relationId === '' ? '' : `rel:${relationId}`;
@@ -78,7 +86,7 @@ export const analyzeHeadings = (doc: Document, options: StructureAnalysisOptions
             ? element.parentElement === null || rawExposure(element.parentElement)
             : isExposed(element),
     );
-    const headings = exposed.filter((element) => !element.matches(CONTAINER_SELECTOR));
+    const headings = exposed.filter((element) => !element.matches(NON_HEADING_SELECTOR));
     const collector = createErrorCollector(viewport);
     const rootNodes: HeadingNode[] = [];
     const parentStack: HeadingNode[] = [];
@@ -94,34 +102,66 @@ export const analyzeHeadings = (doc: Document, options: StructureAnalysisOptions
         collector.pageError(HEADING_ERROR_KEYS.missingH1, 'moderate');
     }
 
+    // Hidden container markers and rendered demoted tags (p/div) share one row
+    // shape: a non-heading node that attaches to the current heading context
+    // but opens no level and joins no heading check. Only kind, level, label
+    // (containers render no text of their own) and relation vary. Registering
+    // it by relation id keeps a suppressed container — or one whose own header
+    // rendered as a paragraph — resolvable as its descendants' jump target and
+    // child-type host.
+    const attachNonHeadingNode = (
+        element: HTMLElement,
+        kind: 'container' | 'demoted',
+        level: number,
+        relation: HeadingRelation | null,
+    ): void => {
+        // The marker/discriminator attribute names the element's non-heading
+        // type; preserved so read-only chips can label rows that carry no
+        // record value (e.g. relation-derived demoted descendants).
+        const rawType = kind === 'demoted' ? element.dataset.mindfula11yDemoted : element.dataset.mindfula11yContainer;
+        const node: HeadingNode = {
+            id: index.get(element)?.id ?? '',
+            documentOrder: index.get(element)?.documentOrder ?? 0,
+            kind,
+            level,
+            ...(rawType === 'p' || rawType === 'div' ? { nonHeadingType: rawType } : {}),
+            label: kind === 'demoted' ? (element.textContent?.trim() ?? '') : '',
+            availableTypes: {},
+            availableChildTypes: {},
+            record: extractRecord(element),
+            childTypeRecord: extractChildTypeRecord(element),
+            relationId: element.dataset.mindfula11yRelationId ?? '',
+            relation,
+            skippedLevels: 0,
+            viewports: [viewport],
+            errors: [],
+            children: [],
+        };
+        if (node.relationId !== '') {
+            nodesByRelationId.set(node.relationId, node);
+        }
+        (parentStack.at(-1)?.children ?? rootNodes).push(node);
+    };
+
     exposed.forEach((element) => {
+        // Containers never open a level or join an error check of their own;
+        // skips of their derived headings are attributed to them below.
         if (element.matches(CONTAINER_SELECTOR)) {
             const ownType = /^h([1-6])$/.exec(element.dataset.mindfula11yContainer ?? '');
-            const container: HeadingNode = {
-                id: index.get(element)?.id ?? '',
-                documentOrder: index.get(element)?.documentOrder ?? 0,
-                kind: 'container',
-                level: ownType === null ? 0 : Number.parseInt(ownType[1] ?? '0', 10),
-                label: '',
-                availableTypes: {},
-                availableChildTypes: {},
-                record: extractRecord(element),
-                childTypeRecord: extractChildTypeRecord(element),
-                relationId: element.dataset.mindfula11yRelationId ?? '',
-                relation: null,
-                skippedLevels: 0,
-                viewports: [viewport],
-                errors: [],
-                children: [],
-            };
-            if (container.relationId !== '') {
-                nodesByRelationId.set(container.relationId, container);
-            }
-            // Containers attach to the current heading context but never open
-            // one: they are not headings and join no level or error checks
-            // of their own (skips of their derived headings are attributed
-            // to them below).
-            (parentStack.at(-1)?.children ?? rootNodes).push(container);
+            attachNonHeadingNode(
+                element,
+                'container',
+                ownType === null ? 0 : Number.parseInt(ownType[1] ?? '0', 10),
+                null,
+            );
+            return;
+        }
+
+        // A rendered non-heading tag (p/div) from a heading ViewHelper: kept as
+        // a row so its type stays editable from the module, but — like
+        // containers — it opens no level and joins no heading check.
+        if (element.matches(DEMOTED_SELECTOR)) {
+            attachNonHeadingNode(element, 'demoted', 0, extractRelation(element));
             return;
         }
 

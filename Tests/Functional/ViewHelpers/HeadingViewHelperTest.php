@@ -440,6 +440,74 @@ final class HeadingViewHelperTest extends FunctionalTestCase
     }
 
     #[Test]
+    public function demotedHeadingEmitsDiscriminatorForAnalysis(): void
+    {
+        // A rendered p is invisible to the analyzer's h1-h6 collection: the
+        // discriminator keeps the element's row (and its editable type) in the
+        // module, and record-value tells the row which type is stored.
+        $output = $this->render(
+            '<mindfula11y:heading type="p" recordUid="800">Demoted</mindfula11y:heading>',
+            $this->structureAnalysisRequest(),
+        );
+
+        self::assertStringContainsString('data-mindfula11y-demoted="p"', $output);
+        self::assertStringContainsString('data-mindfula11y-record-uid="800"', $output);
+        self::assertStringContainsString('data-mindfula11y-record-value="p"', $output);
+        self::assertStringContainsString('>Demoted</p>', $output);
+    }
+
+    #[Test]
+    public function renderedHeadingEmitsNoDemotedDiscriminator(): void
+    {
+        $output = $this->render(
+            '<mindfula11y:heading type="h2" recordUid="800">Heading</mindfula11y:heading>',
+            $this->structureAnalysisRequest(),
+        );
+
+        self::assertStringNotContainsString('data-mindfula11y-demoted', $output);
+        self::assertStringNotContainsString('data-mindfula11y-record-value', $output);
+    }
+
+    #[Test]
+    public function unannotatedNonHeadingTagEmitsNoDiscriminator(): void
+    {
+        // Decorative template usage without record or relation coordinates has
+        // nothing the module could show or edit: no row, no discriminator.
+        $output = $this->render(
+            '<mindfula11y:heading type="p">Plain</mindfula11y:heading>',
+            $this->structureAnalysisRequest(),
+        );
+
+        self::assertStringNotContainsString('data-mindfula11y-', $output);
+    }
+
+    #[Test]
+    public function demotedContainerKeepsRelationAndChildTypeCoordinatesForAnalysis(): void
+    {
+        // A container whose own header renders as a paragraph must keep its row:
+        // it stays the descendants' jump target and the child-type column's home.
+        // Record 801 stores no child type, so the descendant derives p verbatim
+        // and carries the discriminator itself.
+        $output = $this->render(
+            '<mindfula11y:heading type="p" recordUid="801" relationId="a">Parent</mindfula11y:heading>'
+            . '<mindfula11y:heading.descendant ancestorId="a">Child</mindfula11y:heading.descendant>',
+            $this->structureAnalysisRequest(),
+        );
+
+        $parentMarkup = substr($output, 0, (int)strpos($output, 'Parent</p>'));
+        self::assertStringContainsString('data-mindfula11y-demoted="p"', $parentMarkup);
+        self::assertStringContainsString('data-mindfula11y-relation-id="a"', $parentMarkup);
+        self::assertStringContainsString('data-mindfula11y-record-value="p"', $parentMarkup);
+        self::assertStringContainsString('data-mindfula11y-childtype-uid="801"', $parentMarkup);
+        self::assertStringContainsString('data-mindfula11y-childtype-value=""', $parentMarkup);
+
+        $childMarkup = substr($output, (int)strpos($output, 'Parent</p>'));
+        self::assertStringContainsString('data-mindfula11y-ancestor-id="a"', $childMarkup);
+        self::assertStringContainsString('data-mindfula11y-demoted="p"', $childMarkup);
+        self::assertStringContainsString('>Child</p>', $childMarkup);
+    }
+
+    #[Test]
     public function ticketlessFrontendRequestEmitsNoAnalysisAnnotations(): void
     {
         // The middleware-validated ticket attribute is the ONLY gate for the

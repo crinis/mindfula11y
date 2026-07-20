@@ -66,8 +66,13 @@ export interface HeadingRelation {
     targetRelationId: string;
 }
 
-/** Rendered heading, or a hidden marker standing in for a suppressed container element. */
-export type HeadingNodeKind = 'heading' | 'container';
+/**
+ * Rendered heading (h1-h6), a hidden marker standing in for a suppressed
+ * container element, or a rendered non-heading tag (p/div) a heading
+ * ViewHelper demoted — kept in the tree so its type stays editable and
+ * relations targeting it keep resolving.
+ */
+export type HeadingNodeKind = 'heading' | 'container' | 'demoted';
 
 /** One heading in the analyzed document, nested by level. */
 export interface HeadingNode {
@@ -77,6 +82,12 @@ export interface HeadingNode {
     kind: HeadingNodeKind;
     /** For containers: the element's own (unrendered) level; 0 when its own type is not h1-h6. */
     level: number;
+    /**
+     * The non-heading type (p/div) of a level-0 container or demoted row, read
+     * from the marker/discriminator attribute. Lets read-only chips name the
+     * type even when no record value is available (relation-derived rows).
+     */
+    nonHeadingType?: 'p' | 'div';
     label: string;
     /** Always `{}` from the analyzer; populated in place by `applyRecordMetadata` after backend enrichment. */
     availableTypes: Record<string, string>;

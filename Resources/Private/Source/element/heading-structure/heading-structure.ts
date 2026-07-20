@@ -55,6 +55,7 @@ interface HeadingRowOptions {
     nodeId?: string | undefined;
     relationId?: string | undefined;
     container?: boolean | undefined;
+    demoted?: boolean | undefined;
     childControl?: boolean | undefined;
     issueId?: string | undefined;
     issueOptions?: StructureIssueOptionsProvider | undefined;
@@ -90,8 +91,24 @@ export class HeadingStructure extends StructureView<HeadingNode> {
      */
     private knownRelationIds: ReadonlySet<string> = new Set();
 
+    /**
+     * Node ids of publishers some rendered element derives its level FROM,
+     * rebuilt per render: a container not in this set anchors no headings yet,
+     * and its row says so instead of presenting a setting with no visible
+     * effect. Tracked per publisher NODE, not per relation id: a duplicated id
+     * (the same container rendered twice via shortcut records) resolves each
+     * relation to its nearest preceding occurrence, so only that occurrence
+     * counts as anchored.
+     */
+    private anchoredNodeIds: ReadonlySet<string> = new Set();
+
     protected override renderNodes(nodes: HeadingNode[]): TemplateResult {
-        this.knownRelationIds = this.collectRelationIds(nodes, new Set());
+        const known = new Set<string>();
+        const publishers = new Map<string, HeadingNode[]>();
+        const derivers: HeadingNode[] = [];
+        this.collectRelationNodes(nodes, known, publishers, derivers);
+        this.knownRelationIds = known;
+        this.anchoredNodeIds = this.resolveAnchoredNodes(publishers, derivers);
         return this.renderTree(nodes);
     }
 
@@ -100,14 +117,57 @@ export class HeadingStructure extends StructureView<HeadingNode> {
         return nothing;
     }
 
-    private collectRelationIds(nodes: HeadingNode[], ids: Set<string>): Set<string> {
+    /**
+     * One document walk collecting the relation participants: the ids some
+     * node publishes (`known` — a jump target that resolves to a rendered
+     * row), every publisher node per id, and every node deriving its level
+     * from a relation.
+     */
+    private collectRelationNodes(
+        nodes: HeadingNode[],
+        known: Set<string>,
+        publishers: Map<string, HeadingNode[]>,
+        derivers: HeadingNode[],
+    ): void {
         for (const node of nodes) {
             if (node.relationId !== '') {
-                ids.add(node.relationId);
+                known.add(node.relationId);
+                const list = publishers.get(node.relationId) ?? [];
+                list.push(node);
+                publishers.set(node.relationId, list);
             }
-            this.collectRelationIds(node.children, ids);
+            if ((node.relation?.targetRelationId ?? '') !== '') {
+                derivers.push(node);
+            }
+            this.collectRelationNodes(node.children, known, publishers, derivers);
         }
-        return ids;
+    }
+
+    /**
+     * Resolves each deriving node to its publisher the way relations actually
+     * bind — the nearest PRECEDING publisher of the id, matching the
+     * analyzer's registry mirror and handleRelationJump()'s target pick (first
+     * occurrence as the fallback) — and returns the ids of publishers at least
+     * one node resolved to.
+     */
+    private resolveAnchoredNodes(publishers: Map<string, HeadingNode[]>, derivers: HeadingNode[]): Set<string> {
+        for (const list of publishers.values()) {
+            list.sort((a, b) => a.documentOrder - b.documentOrder);
+        }
+        const anchored = new Set<string>();
+        for (const deriver of derivers) {
+            const list = publishers.get(deriver.relation?.targetRelationId ?? '') ?? [];
+            const resolved = list.filter((node) => node.documentOrder < deriver.documentOrder).at(-1) ?? list.at(0);
+            if (resolved !== undefined) {
+                anchored.add(resolved.id);
+            }
+        }
+        return anchored;
+    }
+
+    /** Whether any rendered element currently derives its level from this container occurrence. */
+    private anchorsHeadings(node: HeadingNode): boolean {
+        return this.anchoredNodeIds.has(node.id);
     }
 
     private relationTargetExists(node: HeadingNode): boolean {
@@ -163,7 +223,7 @@ export class HeadingStructure extends StructureView<HeadingNode> {
                     template: this.renderPlaceholderItem(node, missingLevel),
                 });
             }
-            const indent = node.kind === 'container' ? this.containerIndent(node, parentIndent) : node.level;
+            const indent = node.kind === 'heading' ? node.level : this.containerIndent(node, parentIndent);
             items.push({ key: node.id, template: this.renderItem(node, indent) });
             items.push(...this.flattenTree(node.children, indent));
         }
@@ -171,11 +231,11 @@ export class HeadingStructure extends StructureView<HeadingNode> {
     }
 
     /**
-     * A container row's indent expresses its parental role, one step above the
-     * level its children derive: the explicitly stored child type when set,
-     * else the automatic derivation base — its own (unrendered) level, or the
-     * tree parent when it has none. Its stored level itself is communicated by
-     * the row's level select, not by indentation.
+     * A container or demoted row's indent expresses its parental role, one
+     * step above the level its children derive: the explicitly stored child
+     * type when set, else the automatic derivation base — its own (unrendered)
+     * level, or the tree parent when it has none. Its stored level itself is
+     * communicated by the row's level select, not by indentation.
      */
     private containerIndent(node: HeadingNode, parentIndent: number): number {
         const childType = /^h([1-6])$/.exec(node.childTypeRecord?.storedValue ?? '');
@@ -250,13 +310,18 @@ export class HeadingStructure extends StructureView<HeadingNode> {
     }
 
     /**
-     * References everything describing the row's state: the in-row error cues
-     * (`issue-…`) and, for an unattributed skip, the innermost missing-level
-     * placeholder's message (`skip-…`) — so the select announces "Missing
-     * heading level N …" instead of a generic chip.
+     * References everything describing the row's state: the "Not part of the
+     * heading structure." note every non-heading row carries
+     * (`structure-note-…`), the in-row error cues (`issue-…`) and, for an
+     * unattributed skip, the innermost missing-level placeholder's message
+     * (`skip-…`) — so the select announces "Missing heading level N …"
+     * instead of a generic chip.
      */
     protected override describedby(node: HeadingNode): string | typeof nothing {
         const ids: string[] = [];
+        if (node.kind !== 'heading') {
+            ids.push(`structure-note-${node.id}`);
+        }
         if (this.inRowErrors(node).length > 0) {
             ids.push(`issue-${node.id}`);
         }
@@ -268,6 +333,7 @@ export class HeadingStructure extends StructureView<HeadingNode> {
 
     private renderRow(node: HeadingNode): TemplateResult {
         const isContainer = node.kind === 'container';
+        const isDemoted = node.kind === 'demoted';
         const label =
             node.label !== ''
                 ? node.label
@@ -282,16 +348,27 @@ export class HeadingStructure extends StructureView<HeadingNode> {
 
         const content = html`<div class="heading" id=${this.rowLabelId(node.id)}>
                 ${this.renderLevelControl(node, label, editable)}
-                ${
-                    isContainer
-                        ? html`<span class="text">
-                              <span class="container-badge">
-                                  <typo3-backend-icon identifier="overlay-hidden" size="small"></typo3-backend-icon>
-                                  ${label}
-                              </span>
-                          </span>`
-                        : html`<span class="text" ?data-empty=${node.label === ''}>${label}</span>`
-                }
+                <span class="text" ?data-empty=${node.label === ''}>
+                    ${label}${
+                        // Every row that renders no heading of its own — demoted
+                        // tags and containers alike — carries the same state
+                        // note. It rides on text, not styling: read in the row's
+                        // flow and referenced by the row controls'
+                        // aria-describedby (see describedby()).
+                        node.kind !== 'heading'
+                            ? html`<span class="note" id="structure-note-${node.id}"
+                                  >${lll('mindfula11y.structure.headings.notInStructure')}</span
+                              >`
+                            : nothing
+                    }${
+                        // A container that anchors nothing yet explains itself:
+                        // without this note the row is a setting with no visible
+                        // effect anywhere near it.
+                        isContainer && !this.anchorsHeadings(node)
+                            ? html`<span class="note">${lll('mindfula11y.structure.headings.container.empty')}</span>`
+                            : nothing
+                    }
+                </span>
             </div>
             ${this.renderChildLevelControl(node, label)}
             <div class="meta" ?data-child-control=${hasChildControl}>
@@ -308,6 +385,7 @@ export class HeadingStructure extends StructureView<HeadingNode> {
             nodeId: node.id,
             relationId: node.relationId,
             container: isContainer,
+            demoted: isDemoted,
             childControl: hasChildControl,
             issueId: `issue-${node.id}`,
             issueOptions: (error: StructureError) => ({ showViewports: !this.hasSameViewports(error, node) }),
@@ -324,6 +402,7 @@ export class HeadingStructure extends StructureView<HeadingNode> {
             data-node-id=${options.nodeId ?? nothing}
             data-relation-id=${options.relationId ?? nothing}
             ?data-container=${options.container ?? false}
+            ?data-demoted=${options.demoted ?? false}
             ?data-child-control=${options.childControl ?? false}
             data-issue-state=${worst === undefined ? nothing : impactState(worst)}
         >
@@ -385,9 +464,23 @@ export class HeadingStructure extends StructureView<HeadingNode> {
             });
         }
 
-        return html`<span class="level" data-locked>
-            ${this.renderLockedChip(node.level > 0 ? this.headingLevelLabel(node.level) : '—')}
-        </span>`;
+        return html`<span class="level" data-locked>${this.renderLockedChip(this.levelChipLabel(node))}</span>`;
+    }
+
+    /**
+     * Display text for a read-only level chip: the level label for headings;
+     * for level-0 container/demoted rows the rendered non-heading type's label
+     * (e.g. "Paragraph — not a heading"), falling back to the stored record
+     * value — record-less relation-derived rows only carry the former — and to
+     * a neutral dash when neither is known.
+     */
+    private levelChipLabel(node: HeadingNode): string {
+        if (node.level > 0) {
+            return this.headingLevelLabel(node.level);
+        }
+        const type = node.nonHeadingType ?? node.record?.storedValue ?? '';
+        const typeLabel = type === '' ? '' : lll(`mindfula11y.structure.headings.level.${type}`);
+        return typeLabel || '—';
     }
 
     /** Shared visible and screen-reader explanation for both relation variants. */
@@ -396,7 +489,7 @@ export class HeadingStructure extends StructureView<HeadingNode> {
             node.relation?.kind === 'ancestor'
                 ? 'mindfula11y.structure.headings.relation.descendant'
                 : 'mindfula11y.structure.headings.relation.sibling';
-        return html`${this.headingLevelLabel(node.level)}
+        return html`${this.levelChipLabel(node)}
             <span class="relation-label">${lll(relationKey)}</span>
             <typo3-backend-icon
                 identifier=${hasTarget ? 'actions-link' : 'actions-lock'}

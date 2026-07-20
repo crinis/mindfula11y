@@ -3,6 +3,8 @@ import { extractChildTypeRecord, extractRecord, indexStructureNodes } from "./an
 import { isElementExposed, resolveExposure } from "./element-exposure.js";
 import { HEADING_ERROR_KEYS } from "./types.js";
 const CONTAINER_SELECTOR = "[data-mindfula11y-container]";
+const DEMOTED_SELECTOR = "[data-mindfula11y-demoted]";
+const NON_HEADING_SELECTOR = `${CONTAINER_SELECTOR}, ${DEMOTED_SELECTOR}`;
 const extractRelation = (element) => {
   const ancestorId = element.dataset.mindfula11yAncestorId ?? "";
   if (ancestorId !== "") {
@@ -18,7 +20,9 @@ const analyzeHeadings = (doc, options = {}) => {
   const viewport = options.viewport ?? "desktop";
   const isExposed = resolveExposure(options.isExposed);
   const rawExposure = options.isExposed ?? isElementExposed;
-  const candidates = Array.from(doc.querySelectorAll(`h1, h2, h3, h4, h5, h6, ${CONTAINER_SELECTOR}`));
+  const candidates = Array.from(
+    doc.querySelectorAll(`h1, h2, h3, h4, h5, h6, ${CONTAINER_SELECTOR}, ${DEMOTED_SELECTOR}`)
+  );
   const index = indexStructureNodes(candidates, (element) => {
     const relationId = element.dataset.mindfula11yRelationId ?? "";
     return relationId === "" ? "" : `rel:${relationId}`;
@@ -26,7 +30,7 @@ const analyzeHeadings = (doc, options = {}) => {
   const exposed = candidates.filter(
     (element) => element.matches(CONTAINER_SELECTOR) ? element.parentElement === null || rawExposure(element.parentElement) : isExposed(element)
   );
-  const headings = exposed.filter((element) => !element.matches(CONTAINER_SELECTOR));
+  const headings = exposed.filter((element) => !element.matches(NON_HEADING_SELECTOR));
   const collector = createErrorCollector(viewport);
   const rootNodes = [];
   const parentStack = [];
@@ -35,30 +39,44 @@ const analyzeHeadings = (doc, options = {}) => {
   if (headings.length > 0 && h1Count === 0) {
     collector.pageError(HEADING_ERROR_KEYS.missingH1, "moderate");
   }
+  const attachNonHeadingNode = (element, kind, level, relation) => {
+    const rawType = kind === "demoted" ? element.dataset.mindfula11yDemoted : element.dataset.mindfula11yContainer;
+    const node = {
+      id: index.get(element)?.id ?? "",
+      documentOrder: index.get(element)?.documentOrder ?? 0,
+      kind,
+      level,
+      ...rawType === "p" || rawType === "div" ? { nonHeadingType: rawType } : {},
+      label: kind === "demoted" ? element.textContent?.trim() ?? "" : "",
+      availableTypes: {},
+      availableChildTypes: {},
+      record: extractRecord(element),
+      childTypeRecord: extractChildTypeRecord(element),
+      relationId: element.dataset.mindfula11yRelationId ?? "",
+      relation,
+      skippedLevels: 0,
+      viewports: [viewport],
+      errors: [],
+      children: []
+    };
+    if (node.relationId !== "") {
+      nodesByRelationId.set(node.relationId, node);
+    }
+    (parentStack.at(-1)?.children ?? rootNodes).push(node);
+  };
   exposed.forEach((element) => {
     if (element.matches(CONTAINER_SELECTOR)) {
       const ownType = /^h([1-6])$/.exec(element.dataset.mindfula11yContainer ?? "");
-      const container = {
-        id: index.get(element)?.id ?? "",
-        documentOrder: index.get(element)?.documentOrder ?? 0,
-        kind: "container",
-        level: ownType === null ? 0 : Number.parseInt(ownType[1] ?? "0", 10),
-        label: "",
-        availableTypes: {},
-        availableChildTypes: {},
-        record: extractRecord(element),
-        childTypeRecord: extractChildTypeRecord(element),
-        relationId: element.dataset.mindfula11yRelationId ?? "",
-        relation: null,
-        skippedLevels: 0,
-        viewports: [viewport],
-        errors: [],
-        children: []
-      };
-      if (container.relationId !== "") {
-        nodesByRelationId.set(container.relationId, container);
-      }
-      (parentStack.at(-1)?.children ?? rootNodes).push(container);
+      attachNonHeadingNode(
+        element,
+        "container",
+        ownType === null ? 0 : Number.parseInt(ownType[1] ?? "0", 10),
+        null
+      );
+      return;
+    }
+    if (element.matches(DEMOTED_SELECTOR)) {
+      attachNonHeadingNode(element, "demoted", 0, extractRelation(element));
       return;
     }
     const level = Number.parseInt(element.tagName.charAt(1), 10);

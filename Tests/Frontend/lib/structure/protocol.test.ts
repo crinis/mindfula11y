@@ -142,6 +142,51 @@ describe('structure-analysis-protocol guards', () => {
         ).toBe(true);
     });
 
+    it('accepts a demoted node at level 0 and rejects it at any heading level', () => {
+        // Mirrors heading-analysis.ts: a rendered data-mindfula11y-demoted tag
+        // (p/div) is reported as kind 'demoted' and always level 0.
+        const demotedNode = {
+            id: 'demoted',
+            documentOrder: 0,
+            kind: 'demoted',
+            level: 0,
+            label: 'Former heading',
+            availableTypes: {},
+            availableChildTypes: {},
+            record: null,
+            childTypeRecord: null,
+            relationId: '',
+            relation: null,
+            skippedLevels: 0,
+            viewports: ['mobile'],
+            errors: [],
+            children: [],
+        };
+        const message = (node: object): object => ({
+            protocol: STRUCTURE_ANALYSIS_PROTOCOL,
+            type: 'result',
+            requestId: REQUEST_ID,
+            viewport: 'mobile',
+            headings: { nodes: [node], errors: [] },
+            landmarks: null,
+        });
+
+        expect(isStructureAnalysisResultMessage(message(demotedNode), REQUEST_ID, 'mobile')).toBe(true);
+        expect(isStructureAnalysisResultMessage(message({ ...demotedNode, level: 2 }), REQUEST_ID, 'mobile')).toBe(
+            false,
+        );
+        expect(
+            isStructureAnalysisResultMessage(message({ ...demotedNode, kind: 'paragraph' }), REQUEST_ID, 'mobile'),
+        ).toBe(false);
+        // The optional non-heading type is bounded to the two rendered tags.
+        expect(
+            isStructureAnalysisResultMessage(message({ ...demotedNode, nonHeadingType: 'p' }), REQUEST_ID, 'mobile'),
+        ).toBe(true);
+        expect(
+            isStructureAnalysisResultMessage(message({ ...demotedNode, nonHeadingType: 'span' }), REQUEST_ID, 'mobile'),
+        ).toBe(false);
+    });
+
     it('rejects a level-0 node that claims to be a heading rather than a container', () => {
         const headingNode = {
             id: 'heading',

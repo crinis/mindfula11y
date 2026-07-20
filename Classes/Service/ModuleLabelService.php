@@ -41,7 +41,9 @@ final readonly class ModuleLabelService
     public const LANGUAGE_FILE = 'LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:';
     private const DATABASE_LANGUAGE_FILE = 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:';
 
-    private const HEADING_TYPE_LABEL_IDS = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p'];
+    // 'div' is not offered to editors by default but remains a renderable type:
+    // a div-demoted row's chip still needs its label.
+    private const HEADING_TYPE_LABEL_IDS = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'div'];
 
     private const LABEL_IDS = [
         'structureErrors',
@@ -82,6 +84,8 @@ final readonly class ModuleLabelService
         'structure.headings.noHeadings.description',
         'structure.headings.unlabeled',
         'structure.headings.container',
+        'structure.headings.container.empty',
+        'structure.headings.notInStructure',
         'structure.headings.edit',
         'structure.headings.edit.locked',
         'structure.headings.type',

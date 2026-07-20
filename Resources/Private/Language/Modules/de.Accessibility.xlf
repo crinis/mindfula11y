@@ -478,8 +478,16 @@
                 <target>Überschrift ohne Text</target>
             </trans-unit>
             <trans-unit id="structure.headings.container" resname="structure.headings.container">
-                <source>Hidden container element</source>
-                <target>Verstecktes Container-Element</target>
+                <source>Container without its own heading</source>
+                <target>Container ohne eigene Überschrift</target>
+            </trans-unit>
+            <trans-unit id="structure.headings.container.empty" resname="structure.headings.container.empty">
+                <source>Contains no headings yet.</source>
+                <target>Enthält noch keine Überschriften.</target>
+            </trans-unit>
+            <trans-unit id="structure.headings.notInStructure" resname="structure.headings.notInStructure">
+                <source>Not part of the heading structure.</source>
+                <target>Nicht Teil der Überschriftenstruktur.</target>
             </trans-unit>
             <trans-unit id="structure.headings.type" resname="structure.headings.type">
                 <source>Heading level</source>

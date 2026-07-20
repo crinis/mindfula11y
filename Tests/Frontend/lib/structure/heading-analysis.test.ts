@@ -231,6 +231,8 @@ describe('analyzeHeadings', () => {
         expect(container?.label).toBe('');
         expect(container?.record?.storedValue).toBe('h2');
         expect(container?.childTypeRecord?.storedValue).toBe('');
+        // The marker names a real heading level: no non-heading type to carry.
+        expect(container?.nonHeadingType).toBeUndefined();
         expect(container?.errors).toEqual([]);
         // Containers are not headings: no empty-heading error, no level participation.
         expect(analysis.errors).toEqual([]);
@@ -272,6 +274,7 @@ describe('analyzeHeadings', () => {
 
         expect(analysis.nodes[0]?.kind).toBe('container');
         expect(analysis.nodes[0]?.level).toBe(0);
+        expect(analysis.nodes[0]?.nonHeadingType).toBe('p');
     });
 
     it('keeps container markers whose parent only has a presentational role', () => {
@@ -361,5 +364,74 @@ describe('analyzeHeadings', () => {
         ]);
         const headings = all.filter((node) => node.kind === 'heading');
         expect(headings.every((node) => node.skippedLevels === 0)).toBe(true);
+    });
+
+    it('maps rendered demoted tags to level-0 nodes without joining any heading check', () => {
+        document.body.innerHTML = `
+            <h1>Page</h1>
+            <p data-mindfula11y-demoted="p"
+                data-mindfula11y-record-table-name="tt_content"
+                data-mindfula11y-record-column-name="tx_mindfula11y_headingtype"
+                data-mindfula11y-record-uid="9" data-mindfula11y-record-value="p">Former heading</p>
+            <h2>Section</h2>`;
+
+        const analysis = analyzeHeadings(document, { isExposed: () => true });
+
+        const demoted = analysis.nodes[0]?.children.find((node) => node.kind === 'demoted');
+        expect(demoted).toBeDefined();
+        expect(demoted?.level).toBe(0);
+        expect(demoted?.label).toBe('Former heading');
+        expect(demoted?.record?.storedValue).toBe('p');
+        expect(demoted?.nonHeadingType).toBe('p');
+        // Not a heading: empty-heading/H1/skip checks ignore it entirely.
+        expect(analysis.errors).toEqual([]);
+        expect(analysis.nodes[0]?.children.some((node) => node.label === 'Section')).toBe(true);
+    });
+
+    it('ignores rendered p/div tags without the demoted discriminator', () => {
+        document.body.innerHTML = `
+            <h1>Page</h1>
+            <p>Ordinary copy</p>`;
+
+        const analysis = analyzeHeadings(document, { isExposed: () => true });
+
+        expect(flatten(analysis.nodes)).toHaveLength(1);
+    });
+
+    it('excludes demoted tags hidden in the analyzed viewport', () => {
+        document.body.innerHTML = `
+            <h1>Page</h1>
+            <p data-mindfula11y-demoted="p" data-hidden-for-test>Hidden demoted</p>`;
+
+        const analysis = analyzeHeadings(document, {
+            isExposed: (element: HTMLElement) => !element.hasAttribute('data-hidden-for-test'),
+        });
+
+        expect(flatten(analysis.nodes)).toHaveLength(1);
+    });
+
+    it('registers a demoted publisher so relations targeting it resolve to its node', () => {
+        // A container whose own header renders as a paragraph must remain the
+        // relation target: its derived children reference the demoted node, not
+        // a missing one.
+        document.body.innerHTML = `
+            <h1>Page</h1>
+            <p data-mindfula11y-demoted="p" data-mindfula11y-relation-id="acc"
+                data-mindfula11y-childtype-table-name="tt_content"
+                data-mindfula11y-childtype-column-name="tx_mindfula11y_childheadingtype"
+                data-mindfula11y-childtype-uid="9" data-mindfula11y-childtype-value="h3">Container title</p>
+            <h3 data-mindfula11y-ancestor-id="acc">Derived</h3>`;
+
+        const analysis = analyzeHeadings(document, { isExposed: () => true });
+
+        const all = flatten(analysis.nodes);
+        const demoted = all.find((node) => node.kind === 'demoted');
+        expect(demoted?.relationId).toBe('acc');
+        expect(demoted?.childTypeRecord?.storedValue).toBe('h3');
+        const derived = all.find((node) => node.label === 'Derived');
+        expect(derived?.relation).toEqual({ kind: 'ancestor', targetRelationId: 'acc' });
+        // The h1->h3 skip stays on the heading: only hidden container rows
+        // absorb their children's skips (the demoted row shows no level).
+        expect(derived?.skippedLevels).toBe(1);
     });
 });

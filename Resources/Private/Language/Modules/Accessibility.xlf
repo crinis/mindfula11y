@@ -394,7 +394,13 @@
                 <source>Unlabeled heading</source>
             </trans-unit>
             <trans-unit id="structure.headings.container" resname="structure.headings.container">
-                <source>Hidden container element</source>
+                <source>Container without its own heading</source>
+            </trans-unit>
+            <trans-unit id="structure.headings.container.empty" resname="structure.headings.container.empty">
+                <source>Contains no headings yet.</source>
+            </trans-unit>
+            <trans-unit id="structure.headings.notInStructure" resname="structure.headings.notInStructure">
+                <source>Not part of the heading structure.</source>
             </trans-unit>
             <trans-unit id="structure.headings.type" resname="structure.headings.type">
                 <source>Heading level</source>

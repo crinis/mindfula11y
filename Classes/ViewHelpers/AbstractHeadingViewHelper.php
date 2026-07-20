@@ -375,12 +375,60 @@ abstract class AbstractHeadingViewHelper extends AbstractTagBasedViewHelper
         $marker->addAttribute('data-mindfula11y-container', $this->tag->getTagName());
         $marker->addAttribute('data-mindfula11y-relation-id', (string)$this->arguments['relationId']);
         $this->addRecordDataAttributes($marker);
-        if ($this->hasRecordInformation()) {
-            $marker->addAttribute('data-mindfula11y-record-value', $this->tag->getTagName());
-        }
+        $this->addResolvedTagNameAsRecordValue($marker);
         $this->addChildTypeDataAttributesTo($marker);
 
         return $marker->render();
+    }
+
+    /**
+     * Repeats the resolved tag name as the record value on the given tag. A
+     * non-heading tag — a suppressed-container marker or a rendered demoted
+     * p/div — cannot imply its stored level the way an h1-h6 tag name does, so
+     * the module row needs the type stated explicitly. No-op without record
+     * coordinates.
+     *
+     * @return void
+     */
+    private function addResolvedTagNameAsRecordValue(TagBuilder $tag): void
+    {
+        if ($this->hasRecordInformation()) {
+            $tag->addAttribute('data-mindfula11y-record-value', $this->tag->getTagName());
+        }
+    }
+
+    /**
+     * Marks a rendered non-heading tag (p/div) for the analyzer on a validated
+     * structure-analysis request: the analyzer collects headings by tag name
+     * (h1-h6), so without this discriminator a demoted element's annotations are
+     * invisible and its row leaves the module the moment an editor selects
+     * "Paragraph" — including a container's, whose descendants then lose their
+     * jump target. Only tags that carry analysis annotations are marked; the
+     * record coordinates alone cannot serve as the collector's selector because
+     * the landmark ViewHelper emits the same `data-mindfula11y-record-*` names.
+     * `data-mindfula11y-record-value` repeats the resolved tag name for the same
+     * reason the suppressed-container marker does: a non-heading tag cannot
+     * imply the stored level.
+     *
+     * @return void
+     */
+    protected function addDemotedDataAttributes(): void
+    {
+        if (HeadingType::tryFrom($this->tag->getTagName())?->getNumericLevel() !== null) {
+            return;
+        }
+        $carriesAnnotation = false;
+        foreach (array_keys($this->tag->getAttributes()) as $name) {
+            if (str_starts_with($name, 'data-mindfula11y-')) {
+                $carriesAnnotation = true;
+                break;
+            }
+        }
+        if (!$carriesAnnotation) {
+            return;
+        }
+        $this->tag->addAttribute('data-mindfula11y-demoted', $this->tag->getTagName());
+        $this->addResolvedTagNameAsRecordValue($this->tag);
     }
 
     /**
@@ -423,6 +471,7 @@ abstract class AbstractHeadingViewHelper extends AbstractTagBasedViewHelper
 
         if ($this->isStructureAnalysisRequest()) {
             $this->addAnalysisDataAttributes();
+            $this->addDemotedDataAttributes();
         }
 
         $this->tag->setContent($content);

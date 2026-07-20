@@ -120,15 +120,18 @@ const isHeadingNode = (value: unknown, depth: number, counter: { value: number }
     if (!isObject(value) || depth > 20 || ++counter.value > MAX_ANALYSIS_ITEMS) {
         return false;
     }
+    // The allowed level range per kind (checked below, after kind is validated):
+    // heading 1-6; container 0-6 (level 0 when its own type is not h1-h6);
+    // demoted (p/div) always level 0 — see heading-analysis.ts.
+    const [minLevel, maxLevel] = value.kind === 'heading' ? [1, 6] : value.kind === 'demoted' ? [0, 0] : [0, 6];
     if (
         !hasValidNodeBase(value, value.availableTypes) ||
-        (value.kind !== 'heading' && value.kind !== 'container') ||
+        (value.kind !== 'heading' && value.kind !== 'container' && value.kind !== 'demoted') ||
         typeof value.level !== 'number' ||
         !Number.isInteger(value.level) ||
-        // Containers report level 0 when their own type is not h1-h6
-        // (see heading-analysis.ts); real headings are always 1-6.
-        value.level < (value.kind === 'container' ? 0 : 1) ||
-        value.level > 6 ||
+        value.level < minLevel ||
+        value.level > maxLevel ||
+        (value.nonHeadingType !== undefined && value.nonHeadingType !== 'p' && value.nonHeadingType !== 'div') ||
         !isRecord(value.childTypeRecord) ||
         !isStringMap(value.availableChildTypes) ||
         !isBoundedString(value.relationId, 512) ||
