@@ -197,6 +197,44 @@ final readonly class ModuleSettingsService
     }
 
     /**
+     * Crawl-mode URL exclusion globs for the page's site.
+     *
+     * Resolved from the site setting mindfula11y.scan.crawl.excludeGlobs (a list
+     * of glob patterns). During a crawl the scanner skips every discovered URL
+     * matching any pattern, keeping physical files (e.g. fileadmin PDFs and
+     * images) that produce axe-core false positives out of the results. Patterns
+     * are matched against the full URL and read exclusively on the server side.
+     *
+     * @return list<string> Up to 20 non-empty patterns (scanner API limit); empty when unset or the page has no site.
+     */
+    public function getScanCrawlExcludeGlobs(int $pageId): array
+    {
+        try {
+            // A list value is not resolvable through SiteSettings::get(), which
+            // only returns scalar leaves by their full dotted identifier (a list
+            // is flattened to …excludeGlobs.0/.1/…, leaving the parent key
+            // undefined). Read the nested settings tree and navigate to it.
+            $tree = $this->siteFinder->getSiteByPageId($pageId)->getSettings()->getAll();
+        } catch (SiteNotFoundException) {
+            return [];
+        }
+
+        $raw = $tree['mindfula11y']['scan']['crawl']['excludeGlobs'] ?? [];
+        if (!is_array($raw)) {
+            return [];
+        }
+
+        $globs = [];
+        foreach ($raw as $value) {
+            if (is_scalar($value) && trim((string)$value) !== '') {
+                $globs[] = trim((string)$value);
+            }
+        }
+
+        return array_slice(array_values(array_unique($globs)), 0, 20);
+    }
+
+    /**
      * Check if the user may request an AI audit alongside a scan.
      *
      * The scanner API's agent feature is optional and disabled by default,
