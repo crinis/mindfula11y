@@ -28,6 +28,8 @@ upload comment. Manual `v*` tags are blocked by a repository ruleset.
 
 - Scanner HTTP Basic Auth credentials can now be configured per site via the site settings `mindfula11y.scan.basicAuth.username` / `mindfula11y.scan.basicAuth.password` in `config/sites/<identifier>/settings.yaml` (nested tree form). The password may reference an environment variable through TYPO3's `%env(...)%` placeholder syntax, keeping the secret out of committed configuration. Site settings take precedence over the deprecated Page TSconfig keys; as soon as either site setting is set, a partially configured pair sends no credentials instead of falling back.
 
+- Crawl scans can exclude URLs via the site setting `mindfula11y.scan.crawl.excludeGlobs` (a list of glob patterns) in `config/sites/<identifier>/settings.yaml`. Any discovered URL matching a pattern is skipped during the crawl, keeping physical files (e.g. `fileadmin` PDFs and images) that produce axe-core false positives out of the results. Patterns match against the full URL; up to 20 are forwarded to the scanner. Crawl mode only; single-page and page-tree scans are unaffected.
+
 ### Changed
 
 - The page-title `Error:` prefix after failed server-side EXT:form validation is now disabled by default: new installations must opt in by setting the `enableValidationErrorTitlePrefix` extension configuration. Installations that already synced their extension configuration keep their stored value, and a missing or unsynced extension configuration now reads as disabled instead of failing the request.
