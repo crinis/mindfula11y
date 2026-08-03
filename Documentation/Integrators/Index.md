@@ -197,6 +197,24 @@ Use the nested tree form shown above. The extension deliberately ships no settin
 
 These credentials are used by the scanner only. The structure analysis loads pages through the editor's browser instead — see [Structure analysis behind HTTP Basic Authentication](#structure-analysis-behind-http-basic-authentication).
 
+### Excluding URLs from a crawl
+
+In crawl mode the scanner follows links and scans every in-scope URL, including links to physical files (PDFs, images, downloads). axe-core runs against the browser's rendering of those files and reports violations that are meaningless for the file itself. To keep them out of the results, exclude such URLs as site settings in `config/sites/<identifier>/settings.yaml`:
+
+```yaml
+mindfula11y:
+  scan:
+    crawl:
+      excludeGlobs:
+        - '**/fileadmin/**'
+        - '**/typo3temp/**'
+        - '**/*.pdf'
+        - '**/*.jpg'
+        - '**/*.png'
+```
+
+Each entry is a glob pattern matched against the full URL; any discovered URL matching at least one pattern is skipped during the crawl. Up to 20 patterns are forwarded (the scanner API's limit); further entries are ignored. The setting applies to crawl mode only — single-page and page-tree scans scan exactly the URLs you select. As with the basic-auth keys, the extension ships no settings definition, so configure this in the nested tree form shown above.
+
 ### Structure analysis behind HTTP Basic Authentication
 
 The heading/landmark structure analysis renders the page in the editor's own browser (a hidden, sandboxed frame inside the backend module). The `mindfula11y.scan.basicAuth.*` site settings therefore do **not** apply to it — credentials cannot be attached to such a frame. Instead, the analysis relies on the browser's own HTTP-authentication cache:

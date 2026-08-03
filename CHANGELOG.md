@@ -23,6 +23,8 @@ upload comment. Manual `v*` tags are blocked by a repository ruleset.
 - The landmark check detects five more axe-core problems (all moderate): duplicate banner or contentinfo landmarks, and a main, banner or contentinfo landmark nested inside another landmark. Native `<header>`/`<footer>` inside sectioning content carry no landmark role there and are never flagged.
 - Scanner HTTP Basic Auth credentials can be configured per site through the site settings `mindfula11y.scan.basicAuth.username` / `mindfula11y.scan.basicAuth.password` in `config/sites/<identifier>/settings.yaml`. The password may use TYPO3's `%env(...)%` syntax, keeping the secret out of committed configuration. Site settings take precedence over the deprecated Page TSconfig keys.
 
+- Crawl scans can exclude URLs via the site setting `mindfula11y.scan.crawl.excludeGlobs` (a list of glob patterns) in `config/sites/<identifier>/settings.yaml`. Any discovered URL matching a pattern is skipped during the crawl, keeping physical files (e.g. `fileadmin` PDFs and images) that produce axe-core false positives out of the results. Patterns match against the full URL; up to 20 are forwarded to the scanner. Crawl mode only; single-page and page-tree scans are unaffected.
+
 ### Changed
 
 - **Requires TYPO3 >= 13.4.18** on the v13 line: earlier 13.4 patch levels silently ignore the `inheritAccessFromModule` backend-route option the extension's AJAX routes rely on as their first access gate.

@@ -75,6 +75,13 @@ final readonly class ScanCreationService
             if ($base !== null) {
                 $crawlOptions['globs'] = [$base . '/**'];
             }
+
+            // Skip physical-file URLs (fileadmin PDFs, images, …) that produce
+            // axe-core false positives. Patterns come from site settings.
+            $excludeGlobs = $this->moduleSettingsService->getScanCrawlExcludeGlobs($demand->getPageId());
+            if ($excludeGlobs !== []) {
+                $crawlOptions['excludeGlobs'] = $excludeGlobs;
+            }
         }
 
         // Read basic auth credentials from site settings / PageTS (server-side only,

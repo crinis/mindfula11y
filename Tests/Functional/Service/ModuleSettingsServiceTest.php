@@ -159,4 +159,63 @@ final class ModuleSettingsServiceTest extends AbstractAuthorizationTestCase
 
         self::assertNull($this->subject()->getScanBasicAuth(18, []));
     }
+
+    /**
+     * Write crawl exclusion globs into the site's settings.yaml (tree form, see
+     * writeScanBasicAuthSiteSettings for why).
+     *
+     * @param list<string> $globs
+     */
+    private function writeScanCrawlExcludeGlobsSiteSettings(array $globs): void
+    {
+        $this->writeDefaultSiteConfiguration();
+        $this->get(SiteWriter::class)->writeSettings('main', [
+            'mindfula11y' => ['scan' => ['crawl' => ['excludeGlobs' => $globs]]],
+        ]);
+        $this->get(CacheManager::class)->getCache('core')->flush();
+    }
+
+    public function testSiteSettingsProvideCrawlExcludeGlobs(): void
+    {
+        $this->writeScanCrawlExcludeGlobsSiteSettings(['**/fileadmin/**', '**/*.pdf']);
+
+        self::assertSame(
+            ['**/fileadmin/**', '**/*.pdf'],
+            $this->subject()->getScanCrawlExcludeGlobs(18),
+        );
+    }
+
+    public function testCrawlExcludeGlobsAreTrimmedDedupedAndEmptiesDropped(): void
+    {
+        $this->writeScanCrawlExcludeGlobsSiteSettings([' **/fileadmin/** ', '', '**/fileadmin/**', '**/*.pdf']);
+
+        self::assertSame(
+            ['**/fileadmin/**', '**/*.pdf'],
+            $this->subject()->getScanCrawlExcludeGlobs(18),
+        );
+    }
+
+    public function testCrawlExcludeGlobsAreCappedAtTwenty(): void
+    {
+        $globs = [];
+        for ($i = 0; $i < 25; $i++) {
+            $globs[] = '**/dir' . $i . '/**';
+        }
+        $this->writeScanCrawlExcludeGlobsSiteSettings($globs);
+
+        self::assertCount(20, $this->subject()->getScanCrawlExcludeGlobs(18));
+    }
+
+    public function testCrawlExcludeGlobsEmptyWhenUnset(): void
+    {
+        $this->writeDefaultSiteConfiguration();
+
+        self::assertSame([], $this->subject()->getScanCrawlExcludeGlobs(18));
+    }
+
+    public function testCrawlExcludeGlobsEmptyWhenPageHasNoSite(): void
+    {
+        // No site configuration written: SiteFinder cannot resolve page 18.
+        self::assertSame([], $this->subject()->getScanCrawlExcludeGlobs(18));
+    }
 }
