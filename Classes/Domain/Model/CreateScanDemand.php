@@ -54,8 +54,17 @@ final readonly class CreateScanDemand implements SignedDemandInterface
 {
     use SignedDemandTrait;
 
-    /** Scan demands are rendered into the module and may be used after user interaction. */
-    public const LIFETIME = 3600;
+    /**
+     * Scan demands are rendered into the module and may be used after user
+     * interaction (picking a page depth, toggling the AI audit), so the window
+     * covers that — but no longer: a demand captured from the rendered markup
+     * is redeemable by anyone who can also present a session for the same
+     * user. Matches GenerateAltTextDemand::LIFETIME and the bound TYPO3 core
+     * uses for re-verified access (AccessLifetime::medium). Expiry fails
+     * closed with `module.error.invalidSignature`, whose description tells the
+     * editor to refresh.
+     */
+    public const LIFETIME = 900;
 
     /** Stable HMAC domain — change only together with a payload shape/semantics change. */
     public const SIGNING_CONTEXT = 'mindfula11y:demand:create-scan';

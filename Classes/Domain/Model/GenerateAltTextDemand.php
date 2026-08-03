@@ -57,8 +57,17 @@ final readonly class GenerateAltTextDemand implements SignedDemandInterface
 {
     use SignedDemandTrait;
 
-    /** Demands are rendered into FormEngine/module markup that may stay open a while before use. */
-    public const LIFETIME = 3600;
+    /**
+     * Demands are rendered into FormEngine/module markup that may stay open a
+     * while before use, so the window covers a normal editing pause — but no
+     * longer: a demand captured from that markup is redeemable by anyone who
+     * can also present a session for the same user, and this one authorizes a
+     * paid generation. Matches the bound TYPO3 core uses for re-verified
+     * access (AccessLifetime::medium). Expiry fails closed with
+     * `module.error.invalidSignature`, whose description tells the editor to
+     * refresh — do not raise this without a client-side re-issue.
+     */
+    public const LIFETIME = 900;
 
     /** Stable HMAC domain — change only together with a payload shape/semantics change. */
     public const SIGNING_CONTEXT = 'mindfula11y:demand:generate-alt-text';
