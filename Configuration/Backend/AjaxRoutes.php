@@ -21,6 +21,7 @@ declare(strict_types=1);
  */
 
 use MindfulMarkup\MindfulA11y\Controller\AltTextAjaxController;
+use MindfulMarkup\MindfulA11y\Controller\InteractiveLabelContextReviewAjaxController;
 use MindfulMarkup\MindfulA11y\Controller\ScanAjaxController;
 use MindfulMarkup\MindfulA11y\Controller\StructureAnalysisEnrichmentAjaxController;
 use MindfulMarkup\MindfulA11y\Controller\StructureAnalysisTicketAjaxController;
@@ -47,6 +48,12 @@ return [
     'mindfula11y_scan_cancel' => [
         'path' => '/mindfula11y/scan/cancel',
         'target' => ScanAjaxController::class . '::cancelAction',
+        'methods' => ['POST'],
+        'inheritAccessFromModule' => 'mindfula11y_accessibility',
+    ],
+    'mindfula11y_interactivelabel_aireview' => [
+        'path' => '/mindfula11y/interactive-label/ai-review',
+        'target' => InteractiveLabelContextReviewAjaxController::class . '::assessAction',
         'methods' => ['POST'],
         'inheritAccessFromModule' => 'mindfula11y_accessibility',
     ],

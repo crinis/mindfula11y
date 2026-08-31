@@ -1,17 +1,22 @@
 <html xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers" data-namespace-typo3-fluid="true">
 <f:if
-    condition="{hasMissingAltTextAccess} && {fileReferenceCount} > 0 || ({previewUrl} && ({hasHeadingStructureAccess} || {hasLandmarkStructureAccess})) || ({hasScanAccess} && {createScanDemand})">
+    condition="
+        ({hasMissingAltTextAccess} && {fileReferenceCount} > 0)
+        || ({previewUrl} && ({hasHeadingStructureAccess} || {hasLandmarkStructureAccess}))
+        || ({hasScanAccess} && {createScanDemand})
+        || {interactiveLabelCount} > 0
+    ">
     <section class="callout callout-notice">
         <div class="callout-content">
             <div class="callout-title">
                 <h{headingLevel}>
-                    <f:translate
-                        key="LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:mlang_labels_tablabel" />
+                <f:translate
+                    key="LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:mlang_labels_tablabel" />
                 </h{headingLevel}>
             </div>
             <div class="callout-body d-flex flex-column gap-3">
                 <f:if condition="{hasMissingAltTextAccess} && {fileReferenceCount} > 0">
-                    <mindfula11y-notice state="warning" count="{fileReferenceCount}">
+                    <mindfula11y-notice state="warning" count="{fileReferenceCount}" >
                         <span>
                             <f:translate
                                 key="LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:altText.count" />
@@ -34,17 +39,47 @@
                         </f:if>
                     </mindfula11y-notice>
                 </f:if>
+
+                <f:if condition="{interactiveLabelCount} > 0">
+
+                    <mindfula11y-notice
+                        state="warning"
+                        count="{interactiveLabelCount}"
+                        class="summary-notice-count"
+                    >
+        <span>
+            <f:translate
+                key="LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:interactiveLabels"
+            />
+        </span>
+
+                        <f:if condition="{interactiveLabelUri}">
+                            <a slot="trailing" href="{interactiveLabelUri}">
+                                <f:translate
+                                    key="LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:general.viewDetails"
+                                />
+                            </a>
+                        </f:if>
+                    </mindfula11y-notice>
+                </f:if>
+
                 <f:if condition="{hasScanAccess} && ({scanId} || {createScanDemand})">
                     <mindfula11y-scan-issue-count create-scan-demand="{createScanDemand -> f:format.json()}"
-                        scan-id="{scanId}" scan-uri="{scanUri}" {f:if(condition: autoCreateScan, then: 'auto-create-scan')}
-                        page-url-filter="{pageUrlFilter -> f:format.json()}">
+                                                  scan-id="{scanId}" scan-uri="{scanUri}" {f:if(condition: autoCreateScan, then: 'auto-create-scan')}
+                    page-url-filter="{pageUrlFilter -> f:format.json()}">
                     </mindfula11y-scan-issue-count>
                 </f:if>
                 <f:if condition="{previewUrl} && ({hasHeadingStructureAccess} || {hasLandmarkStructureAccess})">
-                    <mindfula11y-structure page-id="{pageId}" language-id="{languageId}"
-                        {f:if(condition: collapsibleStructure, then: 'collapsible')}
-                        {f:if(condition: hasHeadingStructureAccess, then: 'has-heading-structure-access')}
-                        {f:if(condition: hasLandmarkStructureAccess, then: 'has-landmark-structure-access')}>
+                    <mindfula11y-structure page-id="{pageId}" language-id="{languageId}" interactive-label-count="{interactiveLabelCount}"
+                    {f:if(condition: collapsibleStructure, then: 'collapsible')}
+                    {f:if(condition: hasHeadingStructureAccess, then: 'has-heading-structure-access')}
+                    {f:if(condition: hasLandmarkStructureAccess, then: 'has-landmark-structure-access')}
+                    {f:if(condition: interactiveLabelCount, then: 'has-interactive-labels')}
+                    >
+                    <mindfula11y-interactive-labels
+                        slot="interactive-labels"
+                        findings="{interactiveLabelFindings -> f:format.json()}"
+                    ></mindfula11y-interactive-labels>
                     </mindfula11y-structure>
                 </f:if>
             </div>

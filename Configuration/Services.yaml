@@ -37,6 +37,9 @@ services:
   MindfulMarkup\MindfulA11y\Controller\ScanAjaxController:
     public: true
 
+  MindfulMarkup\MindfulA11y\Controller\InteractiveLabelContextReviewAjaxController:
+    public: true
+
   MindfulMarkup\MindfulA11y\Controller\StructureAnalysisEnrichmentAjaxController:
     public: true
 

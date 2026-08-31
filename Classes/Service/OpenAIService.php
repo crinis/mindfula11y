@@ -58,10 +58,16 @@ final readonly class OpenAIService
      * 
      * @param string $instructions The system instructions for the model.
      * @param array  $messages     Array of message objects, each with `role` and `content`.
-     * 
+     * @param array{name: string, schema: array<string, mixed>}|null $jsonSchema
+     *   When given, constrains the response to this JSON schema via the
+     *   Responses API's `text.format` (Structured Outputs, `strict: true`).
+     *   The returned string is then the schema-conformant JSON itself rather
+     *   than free-form text — callers still get it back exactly as `output_text`,
+     *   json_decode() is theirs to do.
+     *
      * @return string|null The generated text or null if the request fails.
      */
-    public function respond(string $instructions, array $messages): ?string
+    public function respond(string $instructions, array $messages, ?array $jsonSchema = null): ?string
     {
         $apiKey = $this->getApiKey();
         $model = $this->getModelName();
@@ -75,6 +81,16 @@ final readonly class OpenAIService
             'instructions' => $instructions,
             'input' => $messages,
         ];
+        if ($jsonSchema !== null) {
+            $body['text'] = [
+                'format' => [
+                    'type' => 'json_schema',
+                    'name' => $jsonSchema['name'],
+                    'schema' => $jsonSchema['schema'],
+                    'strict' => true,
+                ],
+            ];
+        }
         try {
             $options = [
                 'headers' => $headers,
@@ -171,9 +187,18 @@ final readonly class OpenAIService
      */
     public function isEnabledAndConfigured(): bool
     {
-        $configuration = $this->getConfiguration();
+        return !(bool)($this->getConfiguration()['disableAltTextGeneration'] ?? false)
+            && $this->isApiKeyConfigured();
+    }
 
-        return !(bool)($configuration['disableAltTextGeneration'] ?? false)
-            && !empty($configuration['openAIApiKey'] ?? '');
+    /**
+     * Whether an OpenAI API key is configured, independent of any
+     * feature-specific disable flag (those are each feature's own gate —
+     * e.g. isEnabledAndConfigured() above for alt text). Shared by every
+     * OpenAI-backed feature so the "is a key present" check exists once.
+     */
+    public function isApiKeyConfigured(): bool
+    {
+        return !empty($this->getConfiguration()['openAIApiKey'] ?? '');
     }
 }

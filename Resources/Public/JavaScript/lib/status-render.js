@@ -74,6 +74,15 @@ const renderNoticeBody = (view) => html`<span>
         <span class="notice-title">${view.title}</span>
         ${view.description}
     </span>`;
+const renderSaveButton = (options) => html`<button type="button" class="button" aria-disabled=${options.disabled ? "true" : nothing} @click=${options.onClick}>
+        ${options.saving ? html`<typo3-backend-spinner size="small"></typo3-backend-spinner>` : html`<typo3-backend-icon identifier=${options.icon ?? "actions-save"} size="small"></typo3-backend-icon>`}
+        ${lll(options.labelKey)}
+    </button>`;
+const renderSaveStatusRegion = (options) => html`<div class="status-region" role="status">
+        ${options.error !== null ? html`<mindfula11y-notice class="status" state="danger">${renderNoticeBody(options.error)}</mindfula11y-notice>` : options.saved ? html`<mindfula11y-notice class="status" state="success"
+                        ><span>${lll(options.successLabelKey)}</span></mindfula11y-notice
+                    >` : nothing}
+    </div>`;
 const renderDisclosureMarker = (slot = null) => html`<typo3-backend-icon
         slot=${slot ?? nothing}
         class="marker"
@@ -99,6 +108,8 @@ export {
   renderLoadingPlaceholder,
   renderNoticeBody,
   renderProgressNotice,
+  renderSaveButton,
+  renderSaveStatusRegion,
   renderSeverityChip,
   renderSeverityLabel,
   renderViewportBadges,

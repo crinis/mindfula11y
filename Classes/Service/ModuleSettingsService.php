@@ -22,6 +22,7 @@ declare(strict_types=1);
 
 namespace MindfulMarkup\MindfulA11y\Service;
 
+use MindfulMarkup\MindfulA11y\Enum\InteractiveLabelType;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Exception\SiteNotFoundException;
 use TYPO3\CMS\Core\Site\SiteFinder;
@@ -133,6 +134,124 @@ final readonly class ModuleSettingsService
     public function hasLandmarkStructureAccess(array $pageTsConfig): bool
     {
         return (bool)($this->moduleTsConfig($pageTsConfig)['landmarkStructure']['enable'] ?? false);
+    }
+
+    /**
+     * Check if the user has access to the interactive labels feature.
+     *
+     * @param array<string, mixed> $pageTsConfig
+     */
+    public function hasInteractiveLabelsAccess(array $pageTsConfig): bool
+    {
+        return (bool) ($this->moduleTsConfig($pageTsConfig)['interactiveLabels']['enable'] ?? false);
+    }
+
+    /**
+     * Check if the AI context review is offered for interactive-label
+     * findings. Opt-in and off by default, mirroring hasAiAuditAccess()'s
+     * scan.aiAudit.enable gate: an AI opinion is only offered where an
+     * integrator has explicitly asked for it.
+     *
+     * @param array<string, mixed> $pageTsConfig
+     */
+    public function hasInteractiveLabelAiReviewAccess(array $pageTsConfig): bool
+    {
+        return (bool)($this->moduleTsConfig($pageTsConfig)['interactiveLabels']['aiReview']['enable'] ?? false);
+    }
+
+/**
+ * Get configured database fields containing interactive labels.
+ *
+ * @param array<string, mixed> $pageTsConfig
+ *
+ * @return array<string, array<string, string[]>>
+ */
+public function getInteractiveLabelFields(
+    array $pageTsConfig,
+): array {
+    $configuration = $this->moduleTsConfig($pageTsConfig)
+    ['interactiveLabels']['fields']
+        ?? [];
+
+    if (!is_array($configuration)) {
+        return [];
+    }
+
+    $result = [];
+
+    foreach (InteractiveLabelType::cases() as $type) {
+        $tables = $configuration[$type->value] ?? [];
+
+        if (!is_array($tables)) {
+            continue;
+        }
+
+        foreach ($tables as $table => $fields) {
+            if (!is_string($table) || $table === '') {
+                continue;
+            }
+
+            $fieldNames = GeneralUtility::trimExplode(
+                ',',
+                (string)$fields,
+                true,
+            );
+
+            if ($fieldNames === []) {
+                continue;
+            }
+
+            $result[$type->value][$table] = $fieldNames;
+        }
+    }
+
+    return $result;
+}
+
+    /**
+     * Get project-specific terms to flag as vague interactive labels,
+     * alongside the extension's built-in per-locale term list.
+     *
+     * @param array<string, mixed> $pageTsConfig
+     * @return string[]
+     */
+    public function getAdditionalVagueLabels(array $pageTsConfig): array
+    {
+        return GeneralUtility::trimExplode(
+            ',',
+            (string)($this->moduleTsConfig($pageTsConfig)['interactiveLabels']['additionalVagueLabels'] ?? ''),
+            true,
+        );
+    }
+
+    /**
+     * Get built-in (or project-specific) vague-label terms to exempt for this project.
+     *
+     * @param array<string, mixed> $pageTsConfig
+     * @return string[]
+     */
+    public function getIgnoredLabels(array $pageTsConfig): array
+    {
+        return GeneralUtility::trimExplode(
+            ',',
+            (string)($this->moduleTsConfig($pageTsConfig)['interactiveLabels']['ignoredLabels'] ?? ''),
+            true,
+        );
+    }
+
+    /**
+     * Get the occurrence count at which a repeated generic label is flagged.
+     * Mirrors InteractiveLabelAggregator::DEFAULT_REPEATED_THRESHOLD as the
+     * fallback so an unset or non-positive TSconfig value behaves the same
+     * as before this setting existed.
+     *
+     * @param array<string, mixed> $pageTsConfig
+     */
+    public function getRepeatedLabelThreshold(array $pageTsConfig): int
+    {
+        $threshold = (int)($this->moduleTsConfig($pageTsConfig)['interactiveLabels']['repeatedLabelThreshold'] ?? 2);
+
+        return $threshold >= 1 ? $threshold : 2;
     }
 
     /**

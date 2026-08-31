@@ -27,6 +27,7 @@ import '@typo3/backend/element/icon-element.js';
 import '@typo3/backend/element/spinner-element.js';
 import '../heading-structure/heading-structure.js';
 import '../landmark-structure/landmark-structure.js';
+import '../interactive-labels/interactive-labels.js';
 import '../notice/notice.js';
 import { LiveAnnouncer } from '../../lib/live-announcer.js';
 import {
@@ -75,6 +76,9 @@ const EXPANDED_STORAGE_KEY: string = 'mindfula11y-structure-expanded';
 /** Per-domain analysis slice, before it is narrowed to the concrete heading/landmark shape. */
 type DomainAnalysis = HeadingAnalysis | LandmarkAnalysis;
 
+/** Tabs shown in the page-module overview. Interactive labels are UI-only and are not part of the structure analysis. */
+type OverviewTab = StructureDomain | 'interactiveLabels';
+
 /**
  * Everything that differs between the heading and landmark domains, looked up
  * once per call site instead of branching on `tab === 'headings'` throughout
@@ -98,9 +102,9 @@ const DOMAINS: Record<StructureDomain, DomainDescriptor> = {
         analysisOf: (analysis: StructureAnalysis): DomainAnalysis | null => analysis.headings,
         renderView: (analysis: DomainAnalysis | null, pageLevelErrors: StructureError[]): TemplateResult =>
             html`<mindfula11y-heading-structure
-                .nodes=${analysis?.nodes ?? []}
-                .pageErrors=${pageLevelErrors}
-            ></mindfula11y-heading-structure>`,
+        .nodes=${analysis?.nodes ?? []}
+        .pageErrors=${pageLevelErrors}
+      ></mindfula11y-heading-structure>`,
     },
     landmarks: {
         labelKey: 'mindfula11y.structure.landmarks',
@@ -108,9 +112,9 @@ const DOMAINS: Record<StructureDomain, DomainDescriptor> = {
         analysisOf: (analysis: StructureAnalysis): DomainAnalysis | null => analysis.landmarks,
         renderView: (analysis: DomainAnalysis | null, pageLevelErrors: StructureError[]): TemplateResult =>
             html`<mindfula11y-landmark-structure
-                .nodes=${analysis?.nodes ?? []}
-                .pageErrors=${pageLevelErrors}
-            ></mindfula11y-landmark-structure>`,
+        .nodes=${analysis?.nodes ?? []}
+        .pageErrors=${pageLevelErrors}
+      ></mindfula11y-landmark-structure>`,
     },
 };
 
@@ -144,6 +148,8 @@ export class Structure extends LitElement {
     @property({ type: Boolean, attribute: 'has-heading-structure-access' }) hasHeadingStructureAccess: boolean = false;
     @property({ type: Boolean, attribute: 'has-landmark-structure-access' }) hasLandmarkStructureAccess: boolean =
         false;
+    @property({ type: Number, attribute: 'interactive-label-count' }) interactiveLabelCount: number = 0;
+    @property({ type: Boolean, attribute: 'has-interactive-labels' }) hasInteractiveLabels: boolean = false;
     /**
      * Page-module mode: the trees sit behind a disclosure so the widget does
      * not push the content elements below the fold. Set from Fluid in
@@ -163,7 +169,7 @@ export class Structure extends LitElement {
 
     private readonly announcer: LiveAnnouncer = new LiveAnnouncer(this);
     private readonly coordinator: StructureAnalysisCoordinator = StructureAnalysisCoordinator.createDefault();
-    private readonly tabs: TabsController<StructureDomain> = new TabsController(
+    private readonly tabs: TabsController<OverviewTab> = new TabsController(
         this,
         () => this.enabledTabs(),
         DEFAULT_DOMAIN,
@@ -221,7 +227,12 @@ export class Structure extends LitElement {
     }
 
     protected override willUpdate(changed: PropertyValues<this>): void {
-        if (changed.has('hasHeadingStructureAccess') || changed.has('hasLandmarkStructureAccess')) {
+        if (
+            changed.has('hasHeadingStructureAccess') ||
+            changed.has('hasLandmarkStructureAccess') ||
+            changed.has('interactiveLabelCount') ||
+            changed.has('hasInteractiveLabels')
+        ) {
             this.tabs.ensureActive(DEFAULT_DOMAIN);
         }
     }
@@ -235,21 +246,45 @@ export class Structure extends LitElement {
         </div>`;
     }
 
-    private enabledTabs(): StructureDomain[] {
+    private enabledStructureTabs(): StructureDomain[] {
         return enabledDomains({
             headings: this.hasHeadingStructureAccess,
             landmarks: this.hasLandmarkStructureAccess,
         });
     }
 
-    private renderTablist(tabs: readonly StructureDomain[]): TemplateResult | typeof nothing {
+    private enabledTabs(): OverviewTab[] {
+        const tabs: OverviewTab[] = [...this.enabledStructureTabs()];
+
+        if (this.hasInteractiveLabels && this.interactiveLabelCount > 0) {
+            tabs.push('interactiveLabels');
+        }
+
+        return tabs;
+    }
+
+    private renderTablist(tabs: readonly OverviewTab[]): TemplateResult | typeof nothing {
         return this.tabs.renderTablist({
             ariaLabel: lll('mindfula11y.structure'),
             tabs: tabs.map((tab) => this.tabDescriptor(tab)),
         });
     }
 
-    private tabDescriptor(tab: StructureDomain): TabDescriptor<StructureDomain> {
+    private tabDescriptor(tab: OverviewTab): TabDescriptor<OverviewTab> {
+        // Interactive labels are rendered from the Fluid slot and therefore
+        // only have a total count, not structure-analysis severity counts.
+        if (tab === 'interactiveLabels') {
+            return {
+                id: tab,
+                label: this.tabLabel(tab),
+                badge: renderCountBadge(
+                    impactState('minor'),
+                    this.interactiveLabelCount,
+                    `${this.interactiveLabelCount} ${this.tabLabel(tab)}`,
+                ),
+            };
+        }
+
         // No disabled state: while the first analysis is pending, renderBody
         // shows the progress notice without a tablist, so descriptors are only
         // built once an analysis (or its superseded predecessor) is present.
@@ -281,8 +316,8 @@ export class Structure extends LitElement {
                 ? lll(`mindfula11y.structure.error.rendering.${error.code}`)
                 : lll('mindfula11y.structure.error.rendering.description');
         return html`<mindfula11y-notice state="danger">
-            ${renderNoticeBody({ title: lll('mindfula11y.structure.error.rendering'), description })}
-        </mindfula11y-notice>`;
+      ${renderNoticeBody({ title: lll('mindfula11y.structure.error.rendering'), description })}
+    </mindfula11y-notice>`;
     }
 
     /**
@@ -301,25 +336,25 @@ export class Structure extends LitElement {
         const error = this.analyzeTask.error;
         const pageUrl = error instanceof StructureAnalysisError ? error.pageUrl : undefined;
         return html`<div class="error-actions">
-            <button
-                type="button"
-                class="button retry"
-                @click=${(): void => {
-                    void this.analyzeTask.run();
-                }}
-            >
-                ${lll('mindfula11y.structure.retry')}
-            </button>
-            ${
-                pageUrl === undefined
-                    ? nothing
-                    : renderExternalLink({
-                          className: 'button open-page',
-                          href: pageUrl,
-                          content: lll('mindfula11y.structure.error.rendering.openPage'),
-                      })
-            }
-        </div>`;
+      <button
+        type="button"
+        class="button retry"
+        @click=${(): void => {
+            void this.analyzeTask.run();
+        }}
+      >
+        ${lll('mindfula11y.structure.retry')}
+      </button>
+      ${
+          pageUrl === undefined
+              ? nothing
+              : renderExternalLink({
+                    className: 'button open-page',
+                    href: pageUrl,
+                    content: lll('mindfula11y.structure.error.rendering.openPage'),
+                })
+}
+    </div>`;
     }
 
     /**
@@ -337,16 +372,17 @@ export class Structure extends LitElement {
         }
 
         const tabs = this.enabledTabs();
+        const structureTabs = this.enabledStructureTabs();
         const content = html`${this.renderTablist(tabs)}${tabs.map((tab) => this.renderPanel(tab))}`;
-        const statusRow = this.renderStatusRow(severityCounts(this.analysis, tabs));
+        const statusRow = this.renderStatusRow(severityCounts(this.analysis, structureTabs));
 
         if (!this.collapsible) {
             return html`${statusRow}${content}`;
         }
         return html`<details ?open=${this.expanded} @toggle=${(event: Event): void => this.handleToggle(event)}>
-            <summary class="disclosure">${statusRow}</summary>
-            <div class="body">${content}</div>
-        </details>`;
+      <summary class="disclosure">${statusRow}</summary>
+      <div class="body">${content}</div>
+    </details>`;
     }
 
     /**
@@ -354,7 +390,16 @@ export class Structure extends LitElement {
      * into the view right below them, so listing another tab's findings here
      * would offer jumps into a hidden panel.
      */
-    private renderPanel(tab: StructureDomain): TemplateResult {
+    private renderPanel(tab: OverviewTab): TemplateResult {
+        if (tab === 'interactiveLabels') {
+            return this.tabs.renderPanel({
+                tab,
+                busy: false,
+                content: html`<slot name="interactive-labels"></slot>`,
+                label: this.tabLabel(tab),
+            });
+        }
+
         const domain = DOMAINS[tab];
         const analysis = this.analysis === null ? null : domain.analysisOf(this.analysis);
         return this.tabs.renderPanel({
@@ -401,12 +446,12 @@ export class Structure extends LitElement {
         const worst = worstImpact(totals);
         if (worst === undefined) {
             return html`<mindfula11y-notice state="success">
-                <span>${lll('mindfula11y.structure.noIssues')}</span>${this.renderMarker()}
-            </mindfula11y-notice>`;
+        <span>${lll('mindfula11y.structure.noIssues')}</span>${this.renderMarker()}
+      </mindfula11y-notice>`;
         }
         return html`<mindfula11y-notice state=${impactState(worst)} count=${totalCount(totals)}>
-            ${renderSeverityLabel(worst, 'mindfula11y.structure.issuesFound')}${this.renderMarker()}
-        </mindfula11y-notice>`;
+      ${renderSeverityLabel(worst, 'mindfula11y.structure.issuesFound')}${this.renderMarker()}
+    </mindfula11y-notice>`;
     }
 
     /** The disclosure chevron — part of the status row on the page-module surface only. */
@@ -422,19 +467,23 @@ export class Structure extends LitElement {
             return nothing;
         }
         return html`<ul class="findings" aria-label=${lll('mindfula11y.structureErrors')}>
-            ${findings.map((finding) =>
-                renderFindingPill(
-                    finding.severity,
-                    (): void => this.focusFinding(tab, finding.key),
-                    html`${renderSeverityChip(finding.severity, finding.key)}
-                    <strong class="finding-count">${lll('mindfula11y.structure.findingCount', finding.count)}</strong>
-                    ${renderViewportBadges(finding.viewports)}`,
-                ),
-            )}
-        </ul>`;
+      ${findings.map((finding) =>
+          renderFindingPill(
+              finding.severity,
+              (): void => this.focusFinding(tab, finding.key),
+              html`${renderSeverityChip(finding.severity, finding.key)}
+          <strong class="finding-count">${lll('mindfula11y.structure.findingCount', finding.count)}</strong>
+          ${renderViewportBadges(finding.viewports)}`,
+          ),
+      )}
+    </ul>`;
     }
 
-    private tabLabel(tab: StructureDomain): string {
+    private tabLabel(tab: OverviewTab): string {
+        if (tab === 'interactiveLabels') {
+            return 'Labels';
+        }
+
         return lll(DOMAINS[tab].labelKey);
     }
 
@@ -453,7 +502,7 @@ export class Structure extends LitElement {
      * best practices; a future higher-impact rule must extend the label).
      */
     private async announceResult(signal: AbortSignal, isRefresh: boolean): Promise<void> {
-        const { moderate, minor } = severityCounts(this.analysis, this.enabledTabs());
+        const { moderate, minor } = severityCounts(this.analysis, this.enabledStructureTabs());
         const key = isRefresh ? 'mindfula11y.structure.updated' : 'mindfula11y.structure.analyzed';
         await this.announcer.announce(lll(key, moderate, minor), signal);
     }

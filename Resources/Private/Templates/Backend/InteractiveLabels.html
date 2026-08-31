@@ -1,0 +1,81 @@
+<html
+    xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
+    xmlns:be="http://typo3.org/ns/TYPO3/CMS/Backend/ViewHelpers"
+    data-namespace-typo3-fluid="true"
+>
+<f:layout name="Module" />
+
+<f:section name="Content">
+    <section>
+        <h1 class="mb-3">
+            <f:translate
+                key="LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:interactiveLabels"
+            />
+        </h1>
+        <f:if condition="{findings -> f:count()} > 0">
+            <f:then>
+                <ul class="list-unstyled mb-0" role="list">
+                    <f:for
+                        each="{findings}"
+                        as="finding"
+                        iteration="iterator"
+                    >
+                        <li class="{f:if(condition: iterator.isLast, else: 'mb-3')}">
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <!--
+                                            Replaces the previous f:switch over
+                                            finding.rule plus two duplicated
+                                            f:if(isRepeated)/f:if(hasDifferentTargets)
+                                            blocks — up to three near-identical
+                                            <mindfula11y-notice> copies per
+                                            finding. mindfula11y-interactive-label-finding
+                                            resolves the same "primary rule, plus
+                                            secondary page-wide issues if not
+                                            already primary" logic once, in JS,
+                                            from the finding data alone, and also
+                                            owns the editable label field and the
+                                            save action (via TYPO3's DataHandler).
+                                        -->
+                                        <mindfula11y-interactive-label-finding
+                                            class="d-block"
+                                            finding="{finding -> f:format.json()}"
+                                        ></mindfula11y-interactive-label-finding>
+                                    </div>
+                                    <f:if condition="{finding.editable}">
+                                        <div class="border-top pt-3">
+                                            <be:link.editRecord
+                                                class="text-decoration-underline"
+                                                uid="{finding.uid}"
+                                                table="{finding.table}"
+                                                returnUrl="{f:be.uri(
+                                                    route: 'mindfula11y_accessibility',
+                                                    parameters: '{id: pageId, feature: \'interactiveLabels\'}'
+                                                )}"
+                                            >
+                                                <f:translate
+                                                    key="LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:interactiveLabels.editRecord.label"
+                                                />
+                                            </be:link.editRecord>
+                                        </div>
+                                    </f:if>
+                                </div>
+                            </div>
+                        </li>
+                    </f:for>
+                </ul>
+            </f:then>
+            <f:else>
+                <mindfula11y-notice state="success">
+                    <span>
+                        <f:translate
+                            key="LLL:EXT:mindfula11y/Resources/Private/Language/Modules/Accessibility.xlf:interactiveLabels.noFindings"
+                        />
+                    </span>
+                </mindfula11y-notice>
+            </f:else>
+        </f:if>
+    </section>
+</f:section>
+</html>

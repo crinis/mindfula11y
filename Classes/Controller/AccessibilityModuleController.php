@@ -25,6 +25,7 @@ namespace MindfulMarkup\MindfulA11y\Controller;
 
 use InvalidArgumentException;
 use MindfulMarkup\MindfulA11y\Backend\DocHeaderMenuBuilder;
+use MindfulMarkup\MindfulA11y\Backend\InteractiveLabelsFeatureRenderer;
 use MindfulMarkup\MindfulA11y\Backend\MissingAltTextFeatureRenderer;
 use MindfulMarkup\MindfulA11y\Backend\ModuleContext;
 use MindfulMarkup\MindfulA11y\Backend\ModuleNoticeTrait;
@@ -71,16 +72,17 @@ final readonly class AccessibilityModuleController
         private UriBuilder $backendUriBuilder,
         private PageRenderer $pageRenderer,
         private FlashMessageService $flashMessageService,
-        private PermissionService $permissionService,
-        private ModuleSettingsService $moduleSettingsService,
-        private PagePreviewService $pagePreviewService,
-        private ModuleLabelService $moduleLabelService,
-        private DocHeaderMenuBuilder $menuBuilder,
-        private OverviewFeatureRenderer $overviewFeatureRenderer,
-        private MissingAltTextFeatureRenderer $missingAltTextFeatureRenderer,
-        private ScanFeatureRenderer $scanFeatureRenderer,
-        private BackendUserProvider $backendUserProvider,
-        private BackendPageLanguageService $backendPageLanguageService,
+        private PermissionService                $permissionService,
+        private ModuleSettingsService            $moduleSettingsService,
+        private PagePreviewService               $pagePreviewService,
+        private ModuleLabelService               $moduleLabelService,
+        private DocHeaderMenuBuilder             $menuBuilder,
+        private OverviewFeatureRenderer          $overviewFeatureRenderer,
+        private MissingAltTextFeatureRenderer    $missingAltTextFeatureRenderer,
+        private ScanFeatureRenderer              $scanFeatureRenderer,
+        private BackendUserProvider              $backendUserProvider,
+        private BackendPageLanguageService       $backendPageLanguageService,
+        private InteractiveLabelsFeatureRenderer $interactiveLabelsFeatureRenderer,
     ) {}
 
     /**
@@ -169,6 +171,7 @@ final readonly class AccessibilityModuleController
         return match ($context->feature) {
             Feature::OVERVIEW => $this->overviewFeatureRenderer->render($context),
             Feature::MISSING_ALT_TEXT => $this->missingAltTextFeatureRenderer->render($context),
+            Feature::INTERACTIVE_LABELS => $this->interactiveLabelsFeatureRenderer->render($context),
             Feature::SCAN => $this->scanFeatureRenderer->render($context),
         };
     }
@@ -181,6 +184,7 @@ final readonly class AccessibilityModuleController
             $enabled = match ($feature) {
                 Feature::OVERVIEW => true,
                 Feature::MISSING_ALT_TEXT => $this->moduleSettingsService->hasMissingAltTextAccess($context->pageTsConfig),
+                Feature::INTERACTIVE_LABELS => $this->moduleSettingsService->hasInteractiveLabelsAccess($context->pageTsConfig),
                 Feature::SCAN => $this->moduleSettingsService->hasScanAccess($context->pageTsConfig),
             };
             if ($enabled) {

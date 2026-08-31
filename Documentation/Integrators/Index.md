@@ -86,6 +86,18 @@ mod {
         landmarkStructure {
             enable = 1
         }
+        interactiveLabels {
+            enable = 1
+            # additionalVagueLabels = jetzt, hier entlang
+            # ignoredLabels = mehr, ok
+            # repeatedLabelThreshold = 3
+            aiReview {
+                # Offer an "Assess with AI" opinion on already rule-flagged labels.
+                # Requires openAIApiKey (Extension Configuration) — reuses the same
+                # OpenAI setup as alt-text generation, no MindfulAPI involved.
+                enable = 0
+            }
+        }
         scan {
             enable = 0
             autoCreate = 1
@@ -109,6 +121,32 @@ TCEFORM.tt_content.tx_mindfula11y_landmark {
 }
 ```
 
+The block above ships with the extension as its defaults — it is not meant to be edited directly. To change any option for your project (enable a feature, set `interactiveLabels.fields` for your own content elements, add `additionalVagueLabels`, and so on), add your **own** Page TSconfig with just the keys you want to override; TSconfig overrides apply on top of the shipped defaults. Two common ways to do that:
+
+- **From a site package** (recommended when you already have one): a Page TSconfig file included site-wide, e.g. via a TYPO3 v13 Site Set's `page.tsconfig`, or an `@import` glob such as `@import 'EXT:my_sitepackage/Configuration/TsConfig/Page/*.tsconfig'` referenced from your site package's own `page.tsconfig`. Versioned alongside your code, reviewable in a PR.
+- **Without a site package**: paste the same syntax directly into a page's **Page properties → Resources → TSconfig** field (applies to that page and everything below it — put it on the site root page to affect the whole site), or into a `sys_template` record's *Include TSconfig* field.
+
+For example, a site package that enables the scanner and points the interactive-labels check at its own content elements needs only this — not a copy of the full defaults block:
+
+```typoscript
+# Configuration/TsConfig/Page/mindfula11y.tsconfig (your site package)
+mod.mindfula11y_accessibility {
+    scan {
+        enable = 1
+    }
+    interactiveLabels {
+        fields {
+            button {
+                tx_myext_cta_element = button_label
+            }
+        }
+        additionalVagueLabels = jetzt, hier entlang
+    }
+}
+```
+
+Either way, every option documented below is a Page TSconfig path under `mod.mindfula11y_accessibility` — override only the keys you need; everything else keeps its shipped default.
+
 ### TSconfig options explained
 
 | Option | Used for |
@@ -118,6 +156,11 @@ TCEFORM.tt_content.tx_mindfula11y_landmark {
 | `mod.mindfula11y_accessibility.missingAltText.ignoreFileMetadata` | With `0` (default), editors can filter out references covered by file metadata alternative text, matching TYPO3's rendered `FileReference`. Set `1` to ignore metadata and require alternative text directly on every file reference. |
 | `mod.mindfula11y_accessibility.headingStructure.enable` | Enables heading structure checks in module. |
 | `mod.mindfula11y_accessibility.landmarkStructure.enable` | Enables landmark structure checks in module. |
+| `mod.mindfula11y_accessibility.interactiveLabels.enable` | Enables interactive labels (vague link/button text) checks in module. |
+| `mod.mindfula11y_accessibility.interactiveLabels.additionalVagueLabels` | Comma-separated project-specific terms flagged as vague, alongside the extension's built-in per-locale term list, e.g. `additionalVagueLabels = jetzt, hier entlang`. |
+| `mod.mindfula11y_accessibility.interactiveLabels.ignoredLabels` | Comma-separated built-in (or additional) terms exempted for this project, e.g. `ignoredLabels = mehr, ok`. |
+| `mod.mindfula11y_accessibility.interactiveLabels.repeatedLabelThreshold` | Occurrence count at which the same generic label used repeatedly on a page is flagged. Defaults to `2`. |
+| `mod.mindfula11y_accessibility.interactiveLabels.aiReview.enable` | Offers an "Assess with AI" opinion on already rule-flagged labels (see [AI context review for interactive labels](#ai-context-review-for-interactive-labels)). Defaults to `0`. |
 | `mod.mindfula11y_accessibility.scan.enable` | Enables scanner feature in module. |
 | `mod.mindfula11y_accessibility.scan.autoCreate` | Auto-starts new scan on module load when content changed. |
 | `mod.mindfula11y_accessibility.scan.basicAuthUsername` | Deprecated — use the site setting `mindfula11y.scan.basicAuth.username` (see [Scanning pages behind HTTP Basic Authentication](#scanning-pages-behind-http-basic-authentication)). |
@@ -130,6 +173,33 @@ TCEFORM.tt_content.tx_mindfula11y_landmark {
 Heading and landmark checks render the real frontend preview in isolated iframes at 375 × 812 and 1280 × 900 CSS pixels. Site roots on another domain are supported without MindfulAPI: the authenticated backend issues a signed, stateless ticket that is valid for 15 seconds and bound to the exact page, language, workspace, frontend URL, backend origin, and backend user. Current module, account, DB-mount, page, workspace, and language permissions are checked again whenever the ticket is redeemed. The ticket is intentionally reusable during its short validity window; it is not stored in a cache or database. HTTPS should be used, and reverse proxies or application monitoring should avoid recording sensitive query strings.
 
 The frontend returns the result through a `MessageChannel`. The extension adds the required per-request CSP permissions and runs only its analysis module; ordinary page scripts and JavaScript-generated structure are not included. Responses use `no-store` and `no-referrer`, and the iframe has an opaque sandbox origin. Web-server or reverse-proxy `X-Frame-Options`/CSP headers added after TYPO3 can still prevent framing and must allow the TYPO3 backend origin.
+
+### AI context review for interactive labels
+
+Beyond the rule-based term list (built-in per-locale vague-label terms plus `additionalVagueLabels`/`ignoredLabels`, see above), the interactive labels module can optionally ask OpenAI for a **second opinion** on an already-flagged label — never a replacement for the rule-based check, and never its own scan: the button only appears next to a finding the rule-based check produced.
+
+This talks to OpenAI **directly**, exactly like alt-text generation — it does not involve MindfulAPI or the scanner's separate "[AI review (agent audit)](#ai-review-agent-audit)" feature below, which is a different mechanism entirely.
+
+Requirements and configuration:
+
+1. Configure `openAIApiKey` (the same key used for alt-text generation, see [Extension configuration](#extension-configuration)).
+2. Enable per page tree via Page TSconfig:
+
+```typoscript
+mod.mindfula11y_accessibility.interactiveLabels.aiReview {
+    enable = 1
+}
+```
+
+If either the API key is missing or `aiReview.enable` is off, the "Assess with AI" button is simply not rendered — editors never see a button that would just fail.
+
+What it does and does not do:
+
+- **Opt-in per click.** The AI runs only when an editor clicks "Assess with AI" on a specific finding — never automatically when the module loads, so browsing the backend never incurs LLM cost.
+- **Limited input, by design.** The AI receives only the current label text (as currently typed, not necessarily the saved value), the element type, the target/action if known, the rule that flagged it, the page title, and a coarse structural hint (record type and field name) — not the rendered page or any neighboring content. Suggestion quality depends heavily on how descriptive the target and page title are; a label with no target and a generic page title gives the AI very little to work with.
+- **Three possible verdicts, never a WCAG decision.** The response is always one of `likely_clear`, `likely_unclear`, or `uncertain`, with a plain-language reason and, optionally, a suggested label — presented in the UI as an AI opinion with an explicit disclaimer, never as an accessibility/WCAG conformance verdict.
+- **Never saved automatically.** "Apply suggestion" only writes the suggested text into the (still unsaved) input field. Persisting it still requires the normal Save action — the AI review endpoint never touches the database itself.
+- **Costs real tokens per click.** Consider a spend limit and usage alert on the OpenAI project used for `openAIApiKey`, particularly before enabling this broadly across a page tree — see your OpenAI project's Limits settings.
 
 ## Scanner integration
 

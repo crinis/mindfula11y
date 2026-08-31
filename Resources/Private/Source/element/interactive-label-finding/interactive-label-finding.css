@@ -1,0 +1,64 @@
+@layer component {
+    .notices {
+        display: flex;
+        flex-direction: column;
+        gap: var(--mindfula11y-space-2xs);
+        padding: var(--mindfula11y-space-2xs);
+        background-color: var(--mindfula11y-component-bg);
+    }
+
+    .editor {
+        display: flex;
+        flex-direction: column;
+        gap: var(--mindfula11y-space-2xs);
+        margin-block-end: var(--mindfula11y-space-fixed-s);
+    }
+
+    .label {
+        font-weight: 600;
+    }
+
+    /* Read-only fallback (dl.editor > dt.label + dd.readonly-value) for a finding the current user cannot edit. */
+    .readonly-value {
+        margin-inline-start: 0;
+    }
+
+    .input {
+        inline-size: 100%;
+        max-inline-size: var(--mindfula11y-line-limit);
+        padding-block: var(--mindfula11y-control-padding-block);
+        padding-inline: var(--mindfula11y-control-padding-inline);
+        color: var(--mindfula11y-input-color);
+        background-color: var(--mindfula11y-input-bg);
+        border: 1px solid color-mix(in srgb, var(--mindfula11y-input-border), var(--mindfula11y-text) 25%);
+        border-radius: var(--mindfula11y-input-radius);
+
+        &:hover {
+            border-color: color-mix(in srgb, var(--mindfula11y-input-hover-border), var(--mindfula11y-text) 25%);
+        }
+    }
+
+    .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--mindfula11y-space-fixed-2xs);
+        margin-block-start: var(--mindfula11y-space-fixed-s);
+    }
+
+    .status-region {
+        margin-block-start: var(--mindfula11y-space-fixed-s);
+    }
+
+    .ai-review {
+        display: flex;
+        flex-direction: column;
+        gap: var(--mindfula11y-space-fixed-2xs);
+        align-items: flex-start;
+        margin-block-start: var(--mindfula11y-space-fixed-s);
+    }
+
+    .ai-disclaimer {
+        display: block;
+        margin-block-start: var(--mindfula11y-space-2xs);
+    }
+}
