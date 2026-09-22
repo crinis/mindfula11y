@@ -1,0 +1,118 @@
+@layer component {
+    .interactive-labels {
+        display: flex;
+        flex-direction: column;
+        gap: var(--mindfula11y-space-2xs);
+        padding-block: var(--mindfula11y-space-xs);
+    }
+
+    .interactive-label-row {
+        --mindfula11y-interactive-labels-accent: var(--mindfula11y-state-warning-border);
+        overflow: hidden;
+
+        background-color: var(--mindfula11y-component-bg);
+        border: 1px solid var(--mindfula11y-border);
+        border-radius: var(--mindfula11y-radius);
+    }
+
+    .row-summary {
+        display: flex;
+
+        gap: var(--mindfula11y-space-xs);
+        align-items: center;
+
+        padding-block: var(--mindfula11y-space-2xs);
+        padding-inline: var(--mindfula11y-space-xs);
+
+        cursor: pointer;
+        list-style: none;
+    }
+
+    .row-summary::-webkit-details-marker {
+        display: none;
+    }
+
+    .row-summary::before {
+        font-size: 0.75em;
+        line-height: 1;
+        color: var(--mindfula11y-text-subtle);
+        content: "▶";
+    }
+
+    .interactive-label-row:where([open]) .row-summary::before {
+        content: "▼";
+    }
+
+    .value {
+        display: inline-flex;
+        align-items: center;
+        padding-block: var(--mindfula11y-control-padding-block);
+        padding-inline: var(--mindfula11y-control-padding-inline);
+        font-weight: 700;
+        color: var(--mindfula11y-input-color);
+        background-color: color-mix(
+            in srgb,
+            var(--mindfula11y-interactive-labels-accent) 14%,
+            var(--mindfula11y-input-bg)
+        );
+        border: 1px solid
+            color-mix(in srgb, var(--mindfula11y-interactive-labels-accent) 45%, var(--mindfula11y-input-border));
+        border-radius: 999em;
+    }
+
+    .rule-title {
+        min-inline-size: 0;
+        color: var(--mindfula11y-text-subtle);
+        overflow-wrap: anywhere;
+    }
+
+    /*
+     * Scoped under .row-summary rather than a bare `.count`: this stylesheet
+     * is adopted by other components too, and an unscoped `.count` would
+     * override the shared pill from styles/notice.css wherever both sheets
+     * land in the same shadow root (e.g. structure.ts's own tab badges).
+     */
+    .row-summary .count {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-inline-size: var(--mindfula11y-control-min-size);
+        padding-block: 0;
+        padding-inline: 0.4em;
+
+        margin-inline-start: auto;
+        font-size: var(--mindfula11y-font-size-xs);
+        font-weight: 600;
+        color: var(--mindfula11y-input-color);
+        background-color: color-mix(
+            in srgb,
+            var(--mindfula11y-interactive-labels-accent) 14%,
+            var(--mindfula11y-input-bg)
+        );
+        border: 1px solid
+            color-mix(in srgb, var(--mindfula11y-interactive-labels-accent) 45%, var(--mindfula11y-input-border));
+        border-radius: 999em;
+    }
+
+    .rule-description {
+        padding-block: var(--mindfula11y-space-xs);
+        padding-inline: var(--mindfula11y-space-xs);
+
+        color: var(--mindfula11y-text-subtle);
+        background-color: var(--mindfula11y-surface);
+
+        border-block-start: 1px solid var(--mindfula11y-border);
+    }
+
+    .rule-description-text {
+        max-inline-size: 70ch;
+        margin: 0;
+        line-height: 1.5;
+    }
+
+    @container (inline-size >= 24rem) {
+        .row-summary {
+            gap: var(--mindfula11y-space-3xs);
+        }
+    }
+}

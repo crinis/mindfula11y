@@ -31,7 +31,7 @@ use RuntimeException;
 
 /**
  * Class OpenAIService.
- * 
+ *
  * This class is responsible for interacting with OpenAI's API.
  */
 final readonly class OpenAIService
@@ -46,22 +46,29 @@ final readonly class OpenAIService
         private ExtensionConfiguration $extensionConfiguration,
         private RequestFactory $requestFactory,
         private LoggerInterface $logger,
-    ) {}
+    ) {
+    }
 
     /**
      * Generate a response via the OpenAI Responses API (/v1/responses).
-     * 
+     *
      * All supported models (gpt-5.4-mini, gpt-5.4-nano, gpt-5-mini, gpt-5-nano, gpt-5.1, gpt-5.2) are
      * served exclusively through this endpoint. The `instructions` parameter carries
      * the system prompt; image content items use type `input_image` with a plain
      * string `image_url` and a `detail` level.
-     * 
+     *
      * @param string $instructions The system instructions for the model.
      * @param array  $messages     Array of message objects, each with `role` and `content`.
-     * 
+     * @param array{name: string, schema: array<string, mixed>}|null $jsonSchema
+     *   When given, constrains the response to this JSON schema via the
+     *   Responses API's `text.format` (Structured Outputs, `strict: true`).
+     *   The returned string is then the schema-conformant JSON itself rather
+     *   than free-form text — callers still get it back exactly as `output_text`,
+     *   json_decode() is theirs to do.
+     *
      * @return string|null The generated text or null if the request fails.
      */
-    public function respond(string $instructions, array $messages): ?string
+    public function respond(string $instructions, array $messages, ?array $jsonSchema = null): ?string
     {
         $apiKey = $this->getApiKey();
         $model = $this->getModelName();
@@ -75,6 +82,16 @@ final readonly class OpenAIService
             'instructions' => $instructions,
             'input' => $messages,
         ];
+        if ($jsonSchema !== null) {
+            $body['text'] = [
+                'format' => [
+                    'type' => 'json_schema',
+                    'name' => $jsonSchema['name'],
+                    'schema' => $jsonSchema['schema'],
+                    'strict' => true,
+                ],
+            ];
+        }
         try {
             $options = [
                 'headers' => $headers,
@@ -114,7 +131,7 @@ final readonly class OpenAIService
 
     /**
      * Get the configured OpenAI model name.
-     * 
+     *
      * @return string The OpenAI model name.
      */
     private function getModelName(): string
@@ -143,7 +160,7 @@ final readonly class OpenAIService
 
     /**
      * Get OpenAI API key from extension configuration.
-     * 
+     *
      * @return string The OpenAI API key.
      */
     private function getApiKey(): string
@@ -153,9 +170,9 @@ final readonly class OpenAIService
 
     /**
      * Check if the file extension is supported for vision input.
-     * 
+     *
      * @param string $extension
-     * 
+     *
      * @return bool
      */
     public function isFileExtSupported(string $extension): bool
@@ -166,14 +183,23 @@ final readonly class OpenAIService
 
     /**
      * Is OpenAI service enabled and configured.
-     * 
+     *
      * @return bool True if enabled and configured, false otherwise.
      */
     public function isEnabledAndConfigured(): bool
     {
-        $configuration = $this->getConfiguration();
+        return !(bool)($this->getConfiguration()['disableAltTextGeneration'] ?? false)
+            && $this->isApiKeyConfigured();
+    }
 
-        return !(bool)($configuration['disableAltTextGeneration'] ?? false)
-            && !empty($configuration['openAIApiKey'] ?? '');
+    /**
+     * Whether an OpenAI API key is configured, independent of any
+     * feature-specific disable flag (those are each feature's own gate —
+     * e.g. isEnabledAndConfigured() above for alt text). Shared by every
+     * OpenAI-backed feature so the "is a key present" check exists once.
+     */
+    public function isApiKeyConfigured(): bool
+    {
+        return !empty($this->getConfiguration()['openAIApiKey'] ?? '');
     }
 }

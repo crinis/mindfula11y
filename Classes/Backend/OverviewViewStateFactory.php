@@ -23,8 +23,11 @@ declare(strict_types=1);
 namespace MindfulMarkup\MindfulA11y\Backend;
 
 use MindfulMarkup\MindfulA11y\Enum\Feature;
+use MindfulMarkup\MindfulA11y\Enum\InteractiveLabelType;
 use MindfulMarkup\MindfulA11y\Service\AltTextFinderService;
 use MindfulMarkup\MindfulA11y\Service\DemandSignatureService;
+use MindfulMarkup\MindfulA11y\Service\InteractiveLabelAggregator;
+use MindfulMarkup\MindfulA11y\Service\InteractiveLabelFinderService;
 use MindfulMarkup\MindfulA11y\Service\ModuleSettingsService;
 use MindfulMarkup\MindfulA11y\Service\PagePreviewService;
 use MindfulMarkup\MindfulA11y\Service\ScanApiService;
@@ -34,6 +37,7 @@ use MindfulMarkup\MindfulA11y\Service\StructureAnalysisFramingService;
 use TYPO3\CMS\Backend\Routing\PreviewUriBuilder;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Core\Page\PageRenderer;
+use TYPO3\CMS\Core\Site\SiteFinder;
 
 /**
  * Assembles the view state of the accessibility overview card.
@@ -51,13 +55,17 @@ final readonly class OverviewViewStateFactory
         private PagePreviewService $pagePreviewService,
         private ScanStateService $scanStateService,
         private ScanDemandFactory $scanDemandFactory,
+        private SiteFinder $siteFinder,
         private DemandSignatureService $demandSignatureService,
         private AltTextFinderService $altTextFinderService,
+        private InteractiveLabelAggregator $interactiveLabelAggregator,
+        private InteractiveLabelFinderService $interactiveLabelFinderService,
         private ScanApiService $scanApiService,
         private StructureAnalysisFramingService $framingService,
         private UriBuilder $backendUriBuilder,
         private PageRenderer $pageRenderer,
-    ) {}
+    ) {
+    }
 
     /**
      * Build the template variables for the overview card.
@@ -95,6 +103,61 @@ final readonly class OverviewViewStateFactory
             $missingAltTextUri = $this->buildFeatureUri(Feature::MISSING_ALT_TEXT, $pageId, $languageId);
         }
 
+        // Same gate and same table/field configuration the full feature uses
+        // (ModuleSettingsService::getInteractiveLabelFields()) — the overview
+        // must not diverge from what InteractiveLabelsFeatureRenderer counts,
+        // or "View details" would open a list that doesn't match the badge.
+        //
+        // interactiveLabelFindings is handed to <mindfula11y-structure> as a
+        // JSON attribute (its "Beschriftungen" tab), so its default MUST be
+        // an empty array here, not left undefined — the return array below
+        // references it unconditionally.
+        $hasInteractiveLabelsAccess = $this->moduleSettingsService->hasInteractiveLabelsAccess($pageTsConfig);
+
+        $interactiveLabelUri = null;
+        $interactiveLabelCount = 0;
+        $interactiveLabelFindings = [];
+
+        if ($hasInteractiveLabelsAccess) {
+            $site = $this->siteFinder->getSiteByPageId($pageId);
+            $siteLanguage = $site->getLanguageById($languageId);
+            $locale = $siteLanguage->getLocale()->getName();
+
+            $fieldsConfig = $this->moduleSettingsService->getInteractiveLabelFields($pageTsConfig);
+
+            $additionalVagueLabels = $this->moduleSettingsService->getAdditionalVagueLabels($pageTsConfig);
+            $ignoredLabels = $this->moduleSettingsService->getIgnoredLabels($pageTsConfig);
+            $repeatedLabelThreshold = $this->moduleSettingsService->getRepeatedLabelThreshold($pageTsConfig);
+            $targetFieldsConfig = $this->moduleSettingsService->getInteractiveLabelTargetFields($pageTsConfig);
+
+            $labels = [];
+
+            foreach (InteractiveLabelType::cases() as $type) {
+                $tableFields = $fieldsConfig[$type->value] ?? [];
+
+                foreach ($tableFields as $table => $fields) {
+                    $labels = [
+                        ...$labels,
+                        ...$this->interactiveLabelFinderService->find(
+                            $pageId,
+                            $languageId,
+                            $locale,
+                            $table,
+                            $fields,
+                            $type,
+                            $additionalVagueLabels,
+                            $ignoredLabels,
+                            $targetFieldsConfig[$table] ?? '',
+                        ),
+                    ];
+                }
+            }
+
+            $interactiveLabelFindings = $this->interactiveLabelAggregator->annotate($labels, $repeatedLabelThreshold);
+            $interactiveLabelCount = count($interactiveLabelFindings);
+            $interactiveLabelUri = $this->buildFeatureUri(Feature::INTERACTIVE_LABELS, $pageId, $languageId);
+        }
+
         $scanUri = null;
         $scanId = null;
         $createScanDemand = null;
@@ -123,6 +186,10 @@ final readonly class OverviewViewStateFactory
             'missingAltTextUri' => $missingAltTextUri,
             'hasMissingAltTextAccess' => $hasMissingAltTextAccess,
             'hasHeadingStructureAccess' => $this->moduleSettingsService->hasHeadingStructureAccess($pageTsConfig),
+            'hasInteractiveLabelsAccess' => $hasInteractiveLabelsAccess,
+            'interactiveLabelCount' => $interactiveLabelCount,
+            'interactiveLabelUri' => $interactiveLabelUri,
+            'interactiveLabelFindings' => $interactiveLabelFindings,
             'hasLandmarkStructureAccess' => $this->moduleSettingsService->hasLandmarkStructureAccess($pageTsConfig),
             'hasScanAccess' => $hasScanAccess,
             'scanId' => $scanId,
@@ -141,6 +208,7 @@ final readonly class OverviewViewStateFactory
     public function hasAnyFeatureAccess(array $viewState): bool
     {
         return ($viewState['hasMissingAltTextAccess'] ?? false)
+            || ($viewState['hasInteractiveLabelsAccess'] ?? false)
             || ($viewState['hasHeadingStructureAccess'] ?? false)
             || ($viewState['hasLandmarkStructureAccess'] ?? false)
             || ($viewState['hasScanAccess'] ?? false);

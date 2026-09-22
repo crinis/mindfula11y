@@ -1,0 +1,9 @@
+"pages"
+,"uid","pid","title","doktype","slug","is_siteroot","hidden","editlock","sys_language_uid","l10n_parent","perms_userid","perms_groupid","perms_user","perms_group","perms_everybody","TSconfig"
+,610,1,"Overview Ignored Label",1,"/overview-ignored-label",0,0,0,0,0,0,0,0,0,19,"mod.mindfula11y_accessibility.interactiveLabels.enable = 1
+mod.mindfula11y_accessibility.interactiveLabels.fields.button.tt_content = header
+mod.mindfula11y_accessibility.interactiveLabels.ignoredLabels = continue"
+
+"tt_content"
+,"uid","pid","CType","header","sys_language_uid","l18n_parent","editlock"
+,600,610,"text","continue",0,0,0

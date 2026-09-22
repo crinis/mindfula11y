@@ -251,6 +251,10 @@
                 <source>Missing alternative text</source>
                 <target>Fehlender Alternativtext</target>
             </trans-unit>
+            <trans-unit id="module.menu.features.interactiveLabels" resname="module.menu.features.interactiveLabels">
+                <source>Link and Button labels</source>
+                <target>Link- und Button-Beschriftungen</target>
+            </trans-unit>
             <trans-unit id="module.menu.features.scan" resname="module.menu.features.scan">
                 <source>Scanner</source>
                 <target>Scanner</target>
@@ -424,6 +428,145 @@
                 </source>
                 <target>Bitte wählen Sie einen Datensatztyp, auf den Sie Zugriff haben, oder wenden Sie sich an Ihren Administrator.</target>
             </trans-unit>
+
+			<trans-unit id="interactiveLabels" resname="interactiveLabels">
+				<source>Link and Button labels</source>
+				<target>Link- und Button-Beschriftungen</target>
+			</trans-unit>
+			<trans-unit id="interactiveLabels.noFindings" resname="interactiveLabels.noFindings">
+				<source>
+					No issues with interactive element labels were found.
+				</source>
+				<target>
+					Es wurden keine Probleme mit Beschriftungen interaktiver Elemente gefunden.
+				</target>
+			</trans-unit>
+			<trans-unit id="interactiveLabels.editRecord.label" resname="interactiveLabels.editRecord.label">
+				<source>Edit element</source>
+				<target>Element bearbeiten</target>
+			</trans-unit>
+
+			<trans-unit id="findings.rule.description.potentially_vague_interactive_label" resname="findings.rule.description.potentially_vague_interactive_label">
+				<source>The label may not clearly describe the purpose of the action or link. Please review whether a more specific label would make it easier to understand.</source>
+				<target>Die Beschriftung beschreibt den Zweck der Aktion oder des Links möglicherweise nicht eindeutig. Bitte prüfen Sie, ob eine spezifischere Beschriftung verständlicher wäre.</target>
+			</trans-unit>
+
+			<trans-unit id="findings.rule.description.symbol_only_label" resname="findings.rule.description.symbol_only_label">
+				<source>The label contains only symbols and no textual description. Please review whether the meaning of the control is clear.</source>
+				<target>Die Beschriftung enthält nur Symbole und keine textuelle Beschreibung. Bitte prüfen Sie, ob die Bedeutung des Bedienelements eindeutig ist.</target>
+			</trans-unit>
+
+			<trans-unit id="findings.rule.description.repeated_generic_label" resname="findings.rule.description.repeated_generic_label">
+				<source>The same generic label is used multiple times on this page. Please review whether the labels can be made more descriptive.</source>
+				<target>Dieselbe unspezifische Beschriftung wird mehrfach auf dieser Seite verwendet. Bitte prüfen Sie, ob die Beschriftungen aussagekräftiger formuliert werden können.</target>
+			</trans-unit>
+
+			<trans-unit id="findings.rule.description.generic_label_different_targets" resname="findings.rule.description.generic_label_different_targets">
+				<source>The same generic label is used for different destinations. Consider making the destination clear in each label.</source>
+				<target>Dieselbe unspezifische Beschriftung wird für unterschiedliche Ziele verwendet. Erwägen Sie, das jeweilige Ziel in der Beschriftung deutlicher zu benennen.</target>
+			</trans-unit>
+
+			<trans-unit id="findings.label" resname="findings.label">
+				<source>Label</source>
+				<target>Label</target>
+			</trans-unit>
+			<trans-unit id="findings.save" resname="findings.save">
+				<source>Save</source>
+				<target>Speichern</target>
+			</trans-unit>
+			<trans-unit id="findings.save.success" resname="findings.save.success">
+				<source>Changes saved</source>
+				<target>Änderungen gespeichert</target>
+			</trans-unit>
+			<trans-unit id="findings.save.error" resname="findings.save.error">
+				<source>Could not save changes</source>
+				<target>Änderungen konnten nicht gespeichert werden</target>
+			</trans-unit>
+			<trans-unit id="findings.save.error.description" resname="findings.save.error.description">
+				<source>The change was not stored. Please try again or edit the record directly.</source>
+				<target>Die Änderung wurde nicht gespeichert. Bitte versuchen Sie es erneut oder bearbeiten Sie den Datensatz direkt.</target>
+			</trans-unit>
+			<trans-unit id="findings.rule.title.potentially_vague_interactive_label"
+						resname="findings.rule.title.potentially_vague_interactive_label">
+				<source>Potentially vague label</source>
+				<target>Potenziell unklare Beschriftung</target>
+			</trans-unit>
+			<trans-unit id="findings.rule.title.symbol_only_label"
+						resname="findings.rule.title.symbol_only_label">
+				<source>Symbol-only label</source>
+				<target>Nur-Symbol-Beschriftung</target>
+			</trans-unit>
+			<trans-unit id="findings.rule.title.repeated_generic_label"
+						resname="findings.rule.title.repeated_generic_label">
+				<source>Repeated label</source>
+				<target>Wiederholte Beschriftung</target>
+			</trans-unit>
+			<trans-unit id="findings.rule.title.generic_label_different_targets"
+						resname="findings.rule.title.generic_label_different_targets">
+				<source>Same generic label with different targets</source>
+				<target>Gleiche, allgemeine Beschriftung mit unterschiedlichen Zielen</target>
+			</trans-unit>
+
+			<trans-unit id="findings.aiReview.button" resname="findings.aiReview.button">
+				<source>Assess with AI</source>
+				<target>Mit KI bewerten</target>
+			</trans-unit>
+			<trans-unit id="findings.aiReview.assessing" resname="findings.aiReview.assessing">
+				<source>Assessing…</source>
+				<target>Wird bewertet …</target>
+			</trans-unit>
+			<trans-unit id="findings.aiReview.disclaimer" resname="findings.aiReview.disclaimer">
+				<source>AI opinion, not a final accessibility decision — please review before applying.</source>
+				<target>KI-Einschätzung, keine endgültige Barrierefreiheits-Entscheidung — bitte vor der Übernahme prüfen.</target>
+			</trans-unit>
+			<trans-unit id="findings.aiReview.assessment.likely_clear" resname="findings.aiReview.assessment.likely_clear">
+				<source>Likely clear</source>
+				<target>Wahrscheinlich verständlich</target>
+			</trans-unit>
+			<trans-unit id="findings.aiReview.assessment.likely_unclear" resname="findings.aiReview.assessment.likely_unclear">
+				<source>Likely unclear</source>
+				<target>Wahrscheinlich unklar</target>
+			</trans-unit>
+			<trans-unit id="findings.aiReview.assessment.uncertain" resname="findings.aiReview.assessment.uncertain">
+				<source>Uncertain</source>
+				<target>Unklar/unsicher</target>
+			</trans-unit>
+			<trans-unit id="findings.aiReview.applySuggestion" resname="findings.aiReview.applySuggestion">
+				<source>Apply suggestion</source>
+				<target>Vorschlag übernehmen</target>
+			</trans-unit>
+			<trans-unit id="findings.aiReview.error" resname="findings.aiReview.error">
+				<source>AI assessment failed</source>
+				<target>KI-Bewertung fehlgeschlagen</target>
+			</trans-unit>
+			<trans-unit id="findings.aiReview.error.description" resname="findings.aiReview.error.description">
+				<source>Please try again, or review and edit the label yourself.</source>
+				<target>Bitte versuchen Sie es erneut, oder bearbeiten Sie die Beschriftung selbst.</target>
+			</trans-unit>
+			<trans-unit id="interactiveLabels.aiReview.error.notAllowed" resname="interactiveLabels.aiReview.error.notAllowed">
+				<source>AI review is not enabled</source>
+				<target>KI-Bewertung ist nicht aktiviert</target>
+			</trans-unit>
+			<trans-unit id="interactiveLabels.aiReview.error.notAllowed.description" resname="interactiveLabels.aiReview.error.notAllowed.description">
+				<source>An administrator has not enabled the AI context review for this page tree.</source>
+				<target>Ein Administrator hat die KI-Kontextbewertung für diesen Seitenbaum nicht aktiviert.</target>
+			</trans-unit>
+			<trans-unit id="interactiveLabels.aiReview.error.notConfigured" resname="interactiveLabels.aiReview.error.notConfigured">
+				<source>AI review is not configured</source>
+				<target>KI-Bewertung ist nicht konfiguriert</target>
+			</trans-unit>
+			<trans-unit id="interactiveLabels.aiReview.error.notConfigured.description" resname="interactiveLabels.aiReview.error.notConfigured.description">
+				<source>No OpenAI API key is configured for this installation.</source>
+				<target>Für diese Installation ist kein OpenAI-API-Schlüssel konfiguriert.</target>
+			</trans-unit>
+			<trans-unit id="interactiveLabels.aiReview.error.openAIConnection" resname="interactiveLabels.aiReview.error.openAIConnection">
+				<source>AI assessment failed</source>
+				<target>KI-Bewertung fehlgeschlagen</target>
+			</trans-unit>
+			<trans-unit id="interactiveLabels.aiReview.error.openAIConnection.description" resname="interactiveLabels.aiReview.error.openAIConnection.description">
+				<source>The AI service could not be reached or returned an unexpected response. Please try again.</source>
+				<target>Der KI-Dienst war nicht erreichbar oder hat eine unerwartete Antwort geliefert. Bitte versuchen Sie es erneut.</target>
+			</trans-unit>
 
             <trans-unit id="structure.headings" resname="structure.headings">
                 <source>Headings</source>
@@ -698,6 +841,11 @@
                 <source>Unlabeled landmark</source>
                 <target>Landmark ohne Bezeichnung</target>
             </trans-unit>
+
+			<trans-unit id="structure.interactiveLabels" resname="structure.interactiveLabels">
+				<source>Labels</source>
+				<target>Labels</target>
+			</trans-unit>
 
             <!-- General Errors -->
             <trans-unit id="error.invalidRequest" resname="error.invalidRequest">

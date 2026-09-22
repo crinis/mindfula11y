@@ -159,4 +159,100 @@ final class ModuleSettingsServiceTest extends AbstractAuthorizationTestCase
 
         self::assertNull($this->subject()->getScanBasicAuth(18, []));
     }
+
+    /** @return array<string, mixed> */
+    private function interactiveLabelsTsConfig(array $settings): array
+    {
+        return [
+            'mod' => [
+                'mindfula11y_accessibility' => [
+                    'interactiveLabels' => $settings,
+                ],
+            ],
+        ];
+    }
+
+    public function testAdditionalVagueLabelsDefaultToEmpty(): void
+    {
+        self::assertSame([], $this->subject()->getAdditionalVagueLabels([]));
+    }
+
+    public function testAdditionalVagueLabelsAreTrimmedAndSplitOnComma(): void
+    {
+        $tsConfig = $this->interactiveLabelsTsConfig(['additionalVagueLabels' => ' jetzt , hier entlang ']);
+
+        self::assertSame(['jetzt', 'hier entlang'], $this->subject()->getAdditionalVagueLabels($tsConfig));
+    }
+
+    public function testIgnoredLabelsDefaultToEmpty(): void
+    {
+        self::assertSame([], $this->subject()->getIgnoredLabels([]));
+    }
+
+    public function testIgnoredLabelsAreTrimmedAndSplitOnComma(): void
+    {
+        $tsConfig = $this->interactiveLabelsTsConfig(['ignoredLabels' => ' mehr , ok ']);
+
+        self::assertSame(['mehr', 'ok'], $this->subject()->getIgnoredLabels($tsConfig));
+    }
+
+    public function testRepeatedLabelThresholdDefaultsToTwo(): void
+    {
+        self::assertSame(2, $this->subject()->getRepeatedLabelThreshold([]));
+    }
+
+    public function testRepeatedLabelThresholdReadsTsConfig(): void
+    {
+        $tsConfig = $this->interactiveLabelsTsConfig(['repeatedLabelThreshold' => '3']);
+
+        self::assertSame(3, $this->subject()->getRepeatedLabelThreshold($tsConfig));
+    }
+
+    public function testRepeatedLabelThresholdFallsBackToDefaultWhenNotPositive(): void
+    {
+        $tsConfig = $this->interactiveLabelsTsConfig(['repeatedLabelThreshold' => '0']);
+
+        self::assertSame(2, $this->subject()->getRepeatedLabelThreshold($tsConfig));
+    }
+
+    public function testTargetFieldsDefaultToEmpty(): void
+    {
+        self::assertSame([], $this->subject()->getInteractiveLabelTargetFields([]));
+    }
+
+    public function testTargetFieldsReadPerTable(): void
+    {
+        $tsConfig = $this->interactiveLabelsTsConfig([
+            'targetFields' => [
+                'tx_myext_cta_element' => 'button_link',
+                'tt_content' => ' header_link ',
+            ],
+        ]);
+
+        self::assertSame(
+            ['tx_myext_cta_element' => 'button_link', 'tt_content' => 'header_link'],
+            $this->subject()->getInteractiveLabelTargetFields($tsConfig),
+        );
+    }
+
+    public function testTargetFieldsIgnoreBlankValues(): void
+    {
+        $tsConfig = $this->interactiveLabelsTsConfig([
+            'targetFields' => ['tx_myext_cta_element' => '   '],
+        ]);
+
+        self::assertSame([], $this->subject()->getInteractiveLabelTargetFields($tsConfig));
+    }
+
+    public function testAiReviewAccessDefaultsToDisabled(): void
+    {
+        self::assertFalse($this->subject()->hasInteractiveLabelAiReviewAccess([]));
+    }
+
+    public function testAiReviewAccessIsEnabledViaTsConfig(): void
+    {
+        $tsConfig = $this->interactiveLabelsTsConfig(['aiReview' => ['enable' => '1']]);
+
+        self::assertTrue($this->subject()->hasInteractiveLabelAiReviewAccess($tsConfig));
+    }
 }

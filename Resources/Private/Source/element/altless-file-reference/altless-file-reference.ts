@@ -26,7 +26,12 @@ import '@typo3/backend/element/icon-element.js';
 import '@typo3/backend/element/spinner-element.js';
 import '../notice/notice.js';
 import { LiveAnnouncer } from '../../lib/live-announcer.js';
-import { renderExternalLink, renderNoticeBody } from '../../lib/status-render.js';
+import {
+    renderExternalLink,
+    renderNoticeBody,
+    renderSaveButton,
+    renderSaveStatusRegion,
+} from '../../lib/status-render.js';
 import type { GenerateAltTextDemand } from '../../service/alt-text-api.js';
 import { AltTextApi } from '../../service/alt-text-api.js';
 import { RecordApi } from '../../service/record-api.js';
@@ -181,39 +186,21 @@ export class AltlessFileReference extends LitElement {
                           </button>`
                         : nothing
                 }
-                <button
-                    type="button"
-                    class="button"
-                    aria-disabled=${
+                ${renderSaveButton({
+                    saving: this.busy === 'saving',
+                    disabled:
                         this.busy !== 'idle' ||
-                        (this.value === this.lastSavedValue && this.decorative === this.lastSavedDecorative)
-                            ? 'true'
-                            : nothing
-                    }
-                    @click=${this.handleSave}
-                >
-                    ${
-                        this.busy === 'saving'
-                            ? html`<typo3-backend-spinner size="small"></typo3-backend-spinner>`
-                            : html`<typo3-backend-icon identifier="actions-save" size="small"></typo3-backend-icon>`
-                    }
-                    ${lll('mindfula11y.altText.save')}
-                </button>
+                        (this.value === this.lastSavedValue && this.decorative === this.lastSavedDecorative),
+                    labelKey: 'mindfula11y.altText.save',
+                    onClick: () => this.handleSave(),
+                })}
             </div>
             ${this.announcer.render()}
-            <div class="status-region" role="status">
-                ${
-                    this.actionError !== null
-                        ? html`<mindfula11y-notice class="status" state="danger">
-                              ${renderNoticeBody(this.actionError)}
-                          </mindfula11y-notice>`
-                        : this.saved
-                          ? html`<mindfula11y-notice class="status" state="success">
-                                <span>${lll('mindfula11y.altText.save.success')}</span>
-                            </mindfula11y-notice>`
-                          : nothing
-                }
-            </div>
+            ${renderSaveStatusRegion({
+                error: this.actionError,
+                saved: this.saved,
+                successLabelKey: 'mindfula11y.altText.save.success',
+            })}
         </div>`;
     }
 

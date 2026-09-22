@@ -72,4 +72,70 @@ final class OpenAIServiceTest extends TestCase
 
         self::assertNull($this->openAIService($requestFactory, $logger)->respond('instructions', []));
     }
+
+    #[Test]
+    public function respondSendsTheGivenJsonSchemaAsStructuredOutputFormat(): void
+    {
+        $requestFactory = $this->createMock(RequestFactory::class);
+        $requestFactory->expects(self::once())->method('request')->with(
+            self::anything(),
+            self::anything(),
+            self::callback(function (array $options): bool {
+                $body = json_decode((string)$options['body'], true, flags: JSON_THROW_ON_ERROR);
+                self::assertSame('json_schema', $body['text']['format']['type']);
+                self::assertSame('a_schema', $body['text']['format']['name']);
+                self::assertTrue($body['text']['format']['strict']);
+                self::assertSame(['type' => 'object'], $body['text']['format']['schema']);
+
+                return true;
+            }),
+        )->willThrowException(new \RuntimeException('stop after asserting the request body'));
+
+        $this->openAIService($requestFactory, $this->createMock(LoggerInterface::class))->respond(
+            'instructions',
+            [],
+            ['name' => 'a_schema', 'schema' => ['type' => 'object']],
+        );
+    }
+
+    #[Test]
+    public function respondOmitsTextFormatWhenNoJsonSchemaIsGiven(): void
+    {
+        $requestFactory = $this->createMock(RequestFactory::class);
+        $requestFactory->expects(self::once())->method('request')->with(
+            self::anything(),
+            self::anything(),
+            self::callback(function (array $options): bool {
+                $body = json_decode((string)$options['body'], true, flags: JSON_THROW_ON_ERROR);
+                self::assertArrayNotHasKey('text', $body);
+
+                return true;
+            }),
+        )->willThrowException(new \RuntimeException('stop after asserting the request body'));
+
+        $this->openAIService($requestFactory, $this->createMock(LoggerInterface::class))->respond('instructions', []);
+    }
+
+    #[Test]
+    public function isApiKeyConfiguredIsIndependentOfTheAltTextDisableFlag(): void
+    {
+        $requestFactory = $this->createMock(RequestFactory::class);
+        $logger = $this->createMock(LoggerInterface::class);
+
+        $service = $this->openAIService($requestFactory, $logger, [
+            'openAIApiKey' => 'sk-test',
+            'disableAltTextGeneration' => true,
+        ]);
+
+        self::assertTrue($service->isApiKeyConfigured(), 'a configured key is a configured key regardless of the alt-text feature flag');
+        self::assertFalse($service->isEnabledAndConfigured(), 'alt text itself must still honor its own disable flag');
+    }
+
+    #[Test]
+    public function isApiKeyConfiguredIsFalseWithoutAKey(): void
+    {
+        $service = $this->openAIService($this->createMock(RequestFactory::class), $this->createMock(LoggerInterface::class), []);
+
+        self::assertFalse($service->isApiKeyConfigured());
+    }
 }

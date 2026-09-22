@@ -1,0 +1,4 @@
+"pages"
+,"uid","pid","title","doktype","slug","is_siteroot","hidden","editlock","sys_language_uid","l10n_parent","perms_userid","perms_groupid","perms_user","perms_group","perms_everybody","TSconfig"
+,600,1,"AI Review Enabled",1,"/ai-review",0,0,0,0,0,0,0,0,0,19,"mod.mindfula11y_accessibility.interactiveLabels.aiReview.enable = 1"
+,601,1,"AI Review Disabled",1,"/ai-review-disabled",0,0,0,0,0,0,0,0,0,19,"mod.mindfula11y_accessibility.interactiveLabels.aiReview.enable = 0"

@@ -49,4 +49,113 @@
         border: 1px solid var(--mindfula11y-notice-border);
         border-radius: 999em;
     }
+    .finding-summary {
+        position: relative;
+        padding-right: 4rem !important;
+    }
+
+    .finding-summary-content {
+        display: inline;
+    }
+
+    .finding-summary-label {
+        margin-right: 0.5rem;
+        font-weight: 600;
+    }
+
+    .finding-summary-count {
+        position: absolute;
+        top: 50%;
+        right: 1rem;
+        transform: translateY(-50%);
+    }
+
+    .mindfula11y-finding-disclosure {
+        border-bottom: 1px solid var(--mindfula11y-border);
+    }
+
+    .mindfula11y-finding-summary {
+        display: grid;
+        grid-template-columns: auto 1fr auto auto;
+        gap: 0.75rem;
+        align-items: center;
+    }
+
+    .mindfula11y-finding-summary__icon,
+    .mindfula11y-finding-summary__value,
+    .mindfula11y-finding-summary__toggle {
+        display: inline-flex;
+        align-items: center;
+    }
+
+    .mindfula11y-finding-summary__value {
+        flex-shrink: 0;
+        justify-content: center;
+        min-width: 1.5rem;
+        height: 1.5rem;
+        padding-inline: 0.35rem;
+        font-weight: 600;
+        border: 1px solid currentColor;
+        border-radius: 999px;
+    }
+
+    .mindfula11y-finding-summary__toggle {
+        white-space: nowrap;
+    }
+
+    .mindfula11y-finding-disclosure__content {
+        padding: 0 calc(1.5rem + var(--mindfula11y-space-xs));
+    }
+
+    .mindfula11y-label-overview {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        margin-block-start: 1rem;
+    }
+
+    .mindfula11y-label-overview__item {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+        justify-content: space-between;
+
+        padding: 0.75rem 1rem;
+
+        background: #fff;
+        border: 1px solid #d7d7d7;
+        border-radius: 4px;
+    }
+
+    .mindfula11y-label-overview__content {
+        display: flex;
+        gap: 1rem;
+        align-items: baseline;
+        min-width: 0;
+    }
+
+    .mindfula11y-label-overview__value {
+        min-width: 8rem;
+        font-weight: 600;
+    }
+
+    .mindfula11y-label-overview__rule {
+        color: #555;
+    }
+
+    .mindfula11y-label-overview__count {
+        display: inline-flex;
+        flex-shrink: 0;
+        align-items: center;
+        justify-content: center;
+
+        min-width: 1.75rem;
+        height: 1.75rem;
+        padding-inline: 0.4rem;
+
+        font-weight: 600;
+
+        border: 1px solid #f2a900;
+        border-radius: 999px;
+    }
 }

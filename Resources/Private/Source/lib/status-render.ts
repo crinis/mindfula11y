@@ -27,6 +27,7 @@
 import { lll } from '@typo3/core/lit-helper.js';
 import type { TemplateResult } from 'lit';
 import { html, nothing } from 'lit';
+import type { ErrorView } from '../service/request-error.js';
 import type { StructureViewport } from './structure/types.js';
 import type { ImpactSeverity } from './types.js';
 import { IMPACT_ORDER } from './types.js';
@@ -213,6 +214,52 @@ export const renderNoticeBody = (view: { title: string; description: string }): 
         <span class="notice-title">${view.title}</span>
         ${view.description}
     </span>`;
+
+/**
+ * The save button every inline-editable card (altless-file-reference,
+ * interactive-label-finding) renders: spinner-or-icon swap while saving, plus
+ * the aria-disabled busy/dirty guard — a real `disabled` would strand
+ * keyboard focus on `<body>` for the whole async window, so callers keep the
+ * button focusable and rely on their own click-handler guard instead.
+ */
+export const renderSaveButton = (options: {
+    saving: boolean;
+    disabled: boolean;
+    labelKey: string;
+    onClick: () => void;
+    /** Icon shown while idle (swapped for a spinner while saving). Defaults to the save icon. */
+    icon?: string;
+}): TemplateResult =>
+    html`<button type="button" class="button" aria-disabled=${options.disabled ? 'true' : nothing} @click=${options.onClick}>
+        ${
+            options.saving
+                ? html`<typo3-backend-spinner size="small"></typo3-backend-spinner>`
+                : html`<typo3-backend-icon identifier=${options.icon ?? 'actions-save'} size="small"></typo3-backend-icon>`
+        }
+        ${lll(options.labelKey)}
+    </button>`;
+
+/**
+ * The feedback region below a save button: the failed-save notice (via
+ * {@link renderNoticeBody}) takes priority over the transient "saved"
+ * success notice, matching every save flow's own error > success precedence.
+ */
+export const renderSaveStatusRegion = (options: {
+    error: ErrorView | null;
+    saved: boolean;
+    successLabelKey: string;
+}): TemplateResult =>
+    html`<div class="status-region" role="status">
+        ${
+            options.error !== null
+                ? html`<mindfula11y-notice class="status" state="danger">${renderNoticeBody(options.error)}</mindfula11y-notice>`
+                : options.saved
+                  ? html`<mindfula11y-notice class="status" state="success"
+                        ><span>${lll(options.successLabelKey)}</span></mindfula11y-notice
+                    >`
+                  : nothing
+        }
+    </div>`;
 
 /**
  * The indicator of a native disclosure's `<summary>` — the markup half of the

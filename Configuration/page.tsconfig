@@ -17,9 +17,33 @@ mod {
         landmarkStructure {
             enable = 1
         }
+        interactiveLabels {
+            enable = 1
+            # Additional project-specific terms to flag as vague, alongside
+            # the extension's built-in per-locale term list:
+            # additionalVagueLabels = now, follow this link
+            # Built-in (or additional) terms to exempt for this project:
+            ignoredLabels = more, ok
+            # Field holding the link/href a label points to, per table —
+            # enables the "identical label, different targets" check for
+            # that table. No default: the field name is project-specific.
+            # targetFields {
+            #     <table> = <field>
+            # }
+            # Occurrence count at which a repeated generic label is flagged:
+            # repeatedLabelThreshold = 3
+            aiReview {
+                # Offer an optional "Assess with AI" opinion on already-flagged
+                # labels. Requires openAIApiKey (see Extension Configuration) —
+                # reuses the same OpenAI setup as alt-text generation, no
+                # scanner/MindfulAPI involved. Advisory only: never a final
+                # WCAG decision, never applied without the editor's own save.
+                enable = 1
+            }
+        }
         scan {
             enable = 0
-            autoCreate = 1
+            autoCreate = 0
             # Deprecated: basicAuthUsername / basicAuthPassword. Configure the site
             # settings mindfula11y.scan.basicAuth.username/password instead
             # (config/sites/<identifier>/settings.yaml, tree form; the password may be

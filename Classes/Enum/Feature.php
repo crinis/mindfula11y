@@ -14,5 +14,6 @@ enum Feature: string
 {
     case OVERVIEW = 'overview';
     case MISSING_ALT_TEXT = 'missingAltText';
+    case INTERACTIVE_LABELS = 'interactiveLabels';
     case SCAN = 'scan';
 }
