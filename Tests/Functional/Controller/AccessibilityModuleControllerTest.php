@@ -16,6 +16,7 @@ namespace MindfulMarkup\MindfulA11y\Tests\Functional\Controller;
 
 use MindfulMarkup\MindfulA11y\Controller\AccessibilityModuleController;
 use MindfulMarkup\MindfulA11y\Tests\Functional\AbstractAuthorizationTestCase;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Backend\Module\ModuleData;
 use TYPO3\CMS\Backend\Module\ModuleProvider;
@@ -190,6 +191,33 @@ final class AccessibilityModuleControllerTest extends AbstractAuthorizationTestC
         ]));
 
         self::assertSame(200, $response->getStatusCode());
+    }
+
+    /**
+     * `feature` is GET-writable and BackendModuleValidator persists whatever
+     * arrives — `?feature[]=x` stores an array. An unknown or non-string value
+     * must fall back to the overview instead of failing with a TypeError.
+     *
+     * @return array<string, array{mixed}>
+     */
+    public static function invalidFeatureProvider(): array
+    {
+        return [
+            'array value' => [['x']],
+            'unknown string' => ['general'],
+        ];
+    }
+
+    #[DataProvider('invalidFeatureProvider')]
+    public function testInvalidFeatureFallsBackToTheOverview(mixed $feature): void
+    {
+        $this->logInBackendUser(2);
+
+        $response = $this->mainAction($this->buildModuleRequest(10, ['feature' => $feature]));
+
+        self::assertSame(200, $response->getStatusCode());
+        $response->getBody()->rewind();
+        self::assertStringContainsString('<mindfula11y-structure', (string)$response->getBody());
     }
 
     public function testAuthorizedRequestRendersTheModule(): void

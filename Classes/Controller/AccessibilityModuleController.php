@@ -113,6 +113,10 @@ final readonly class AccessibilityModuleController
         if (null === $moduleData) {
             throw new InvalidArgumentException('Module data is not set.', 1745686754);
         }
+        // Module data is GET-writable and persisted as given (`?feature[]=x`
+        // stores an array). Unknown values — including the pre-rename
+        // 'general' — reset to the default, the overview.
+        $moduleData->clean('feature', array_column(Feature::cases(), 'value'));
 
         // Clamped: negative values reach this unvalidated from the URL, and
         // checkLanguageAccess() waves -1 ("all languages") through even for
@@ -154,8 +158,7 @@ final readonly class AccessibilityModuleController
             request: $request,
             moduleTemplate: $moduleTemplate,
             moduleData: $moduleData,
-            // Unknown persisted values (e.g. the pre-rename 'general') fall back to the overview.
-            feature: Feature::tryFrom($moduleData->get('feature', Feature::OVERVIEW->value)) ?? Feature::OVERVIEW,
+            feature: Feature::from((string)$moduleData->get('feature')),
             pageId: $pageId,
             languageId: $languageId,
             pageInfo: $pageInfo,
