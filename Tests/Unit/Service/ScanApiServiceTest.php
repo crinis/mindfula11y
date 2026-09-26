@@ -171,6 +171,48 @@ final class ScanApiServiceTest extends TestCase
     }
 
     /**
+     * Redaction is a single pass: a short secret must not match inside the
+     * "[redacted]" marker inserted for a longer one, and a secret contained in
+     * another must not break the longer match.
+     */
+    #[Test]
+    public function redactionDoesNotRewriteItsOwnMarkerOrSplitNestedSecrets(): void
+    {
+        $extensionConfiguration = $this->createMock(ExtensionConfiguration::class);
+        $extensionConfiguration->method('get')->with('mindfula11y')->willReturn([
+            'scannerApiUrl' => 'https://scanner.example',
+        ]);
+
+        $stream = $this->createMock(\Psr\Http\Message\StreamInterface::class);
+        $stream->method('__toString')->willReturn(json_encode([
+            'title' => 'Bad Request',
+            'detail' => 'Rejected credentials act / act-staging-2026',
+        ], JSON_THROW_ON_ERROR));
+        $response = $this->createMock(\Psr\Http\Message\ResponseInterface::class);
+        $response->method('getStatusCode')->willReturn(400);
+        $response->method('getBody')->willReturn($stream);
+
+        $requestFactory = $this->createMock(RequestFactory::class);
+        $requestFactory->method('request')->willReturn($response);
+
+        $service = new ScanApiService(
+            $extensionConfiguration,
+            $requestFactory,
+            $this->createMock(LoggerInterface::class),
+        );
+
+        try {
+            $service->createScan(
+                ['https://example.com/'],
+                scanOptions: ['basicAuth' => ['username' => 'act', 'password' => 'act-staging-2026']],
+            );
+            self::fail('the scanner rejection must surface as an exception');
+        } catch (\MindfulMarkup\MindfulA11y\Exception\ScanApiRequestException $exception) {
+            self::assertSame('Rejected credentials [redacted] / [redacted]', $exception->getProblemDetail());
+        }
+    }
+
+    /**
      * An unbounded upstream string would turn a backend error message into a
      * channel for bulk third-party output.
      */

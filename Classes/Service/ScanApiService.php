@@ -147,12 +147,12 @@ final readonly class ScanApiService
             // credential, and over-redaction beats leaking it.
             static fn(mixed $secret): bool => is_string($secret) && $secret !== '',
         );
-        // Longest first, so a secret that is a substring of another (e.g. the
-        // username inside a derived password) cannot break the longer match.
-        usort($secrets, static fn(string $a, string $b): int => strlen($b) <=> strlen($a));
-
+        // strtr() replaces in a single pass, preferring the longest match, so a
+        // secret contained in another (e.g. the username inside a derived
+        // password) cannot break the longer match, and a short secret cannot
+        // match inside an already inserted "[redacted]".
         if ($secrets !== []) {
-            $detail = str_replace($secrets, '[redacted]', $detail);
+            $detail = strtr($detail, array_fill_keys($secrets, '[redacted]'));
         }
 
         return mb_strimwidth($detail, 0, self::MAX_CLIENT_DETAIL_LENGTH, '…');
