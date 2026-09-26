@@ -1,7 +1,3 @@
-CREATE TABLE sys_file_reference (
-	tx_mindfula11y_decorative smallint(5) unsigned DEFAULT '0' NOT NULL
-);
-
 CREATE TABLE tt_content (
 	# Explicit definitions: the heading-type selects carry an itemsProcFunc, so
 	# schema auto-generation falls back to a nullable TEXT column for these
