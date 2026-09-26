@@ -46,9 +46,13 @@ export const toRequestError = async (error: unknown): Promise<unknown> => {
         return error;
     }
     try {
-        const data = (await response.clone().json()) as { error?: { title?: string; description?: string } };
-        if (data.error?.title !== undefined) {
-            return new RequestError(data.error.title, data.error.description ?? '', response.status);
+        // Validated, not cast (a wire payload): a non-string title would
+        // otherwise render as "[object Object]".
+        const data: unknown = await response.clone().json();
+        const body = isObject(data) && isObject(data.error) ? data.error : undefined;
+        if (body !== undefined && typeof body.title === 'string') {
+            const description = typeof body.description === 'string' ? body.description : '';
+            return new RequestError(body.title, description, response.status);
         }
     } catch {
         // Non-JSON error body — fall through to the original error.

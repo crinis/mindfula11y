@@ -27,6 +27,37 @@ describe('toRequestError', () => {
     it('passes a primitive rejection value through unchanged', async () => {
         await expect(toRequestError('boom')).resolves.toBe('boom');
     });
+
+    /** An AjaxRequest-style rejection carrying the given JSON error body. */
+    const rejectionWith = (body: unknown, status: number = 400): { response: Response } => ({
+        response: new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } }),
+    });
+
+    it('converts a structured error body into a RequestError', async () => {
+        const converted = await toRequestError(
+            rejectionWith({ error: { title: 'Denied', description: 'No access.' } }, 403),
+        );
+
+        expect(converted).toBeInstanceOf(RequestError);
+        expect(converted).toMatchObject({ message: 'Denied', description: 'No access.', status: 403 });
+    });
+
+    it('drops a non-string description instead of rendering it', async () => {
+        const converted = await toRequestError(rejectionWith({ error: { title: 'Denied', description: { html: 1 } } }));
+
+        expect(converted).toMatchObject({ message: 'Denied', description: '' });
+    });
+
+    it.each([
+        ['a non-string title', { error: { title: { text: 'Denied' } } }],
+        ['a non-object error', { error: 'Denied' }],
+        ['a null body', null],
+        ['an array body', [{ title: 'Denied' }]],
+    ])('passes the original error through for %s', async (_case, body) => {
+        const rejection = rejectionWith(body);
+
+        await expect(toRequestError(rejection)).resolves.toBe(rejection);
+    });
 });
 
 describe('errorView', () => {

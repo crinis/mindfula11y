@@ -15,8 +15,10 @@ const toRequestError = async (error) => {
   }
   try {
     const data = await response.clone().json();
-    if (data.error?.title !== void 0) {
-      return new RequestError(data.error.title, data.error.description ?? "", response.status);
+    const body = isObject(data) && isObject(data.error) ? data.error : void 0;
+    if (body !== void 0 && typeof body.title === "string") {
+      const description = typeof body.description === "string" ? body.description : "";
+      return new RequestError(body.title, description, response.status);
     }
   } catch {
   }
