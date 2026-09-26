@@ -327,6 +327,22 @@
                 </source>
                 <target>Es ist ein unbekannter Fehler aufgetreten. Bitte wenden Sie sich an Ihren Administrator oder versuchen Sie es später erneut.</target>
             </trans-unit>
+            <trans-unit id="altText.generate.error.disabled" resname="altText.generate.error.disabled">
+                <source>Text generation is disabled</source>
+                <target>Textgenerierung ist deaktiviert</target>
+            </trans-unit>
+            <trans-unit id="altText.generate.error.disabled.description" resname="altText.generate.error.disabled.description">
+                <source>
+                    Alternative text generation has been disabled by an
+                    administrator. Reload the page to update the offered
+                    controls.
+                </source>
+                <target>
+                    Die Generierung von Alternativtexten wurde von einer
+                    Administrator:in deaktiviert. Laden Sie die Seite neu, um
+                    die angebotenen Bedienelemente zu aktualisieren.
+                </target>
+            </trans-unit>
             <trans-unit id="altText.generate.error.openAIConnection" resname="altText.generate.error.openAIConnection">
                 <source>OpenAI connection error</source>
                 <target>OpenAI-Verbindungsfehler</target>

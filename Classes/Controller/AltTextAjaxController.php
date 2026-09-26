@@ -29,6 +29,7 @@ use MindfulMarkup\MindfulA11y\Service\AltTextDemandAuthorizationService;
 use MindfulMarkup\MindfulA11y\Service\AltTextGeneratorService;
 use MindfulMarkup\MindfulA11y\Service\BackendUserProvider;
 use MindfulMarkup\MindfulA11y\Service\DemandSignatureService;
+use MindfulMarkup\MindfulA11y\Service\OpenAIService;
 use MindfulMarkup\MindfulA11y\Service\PermissionService;
 use MindfulMarkup\MindfulA11y\Service\SiteLanguageService;
 use Psr\Http\Message\ResponseInterface;
@@ -55,6 +56,7 @@ final readonly class AltTextAjaxController
         private SiteLanguageService $siteLanguageService,
         private PermissionService $permissionService,
         private BackendUserProvider $backendUserProvider,
+        private OpenAIService $openAIService,
     ) {}
 
     /**
@@ -67,6 +69,13 @@ final readonly class AltTextAjaxController
     {
         if ($error = $this->requireModuleAccess()) {
             return $error;
+        }
+
+        // Re-check the integration's off-switch at redemption: a demand issued
+        // while generation was enabled must not outlive the admin disabling it
+        // (every other mutable gate is re-checked at redemption, too).
+        if (!$this->openAIService->isEnabled()) {
+            return $this->errorResponse('altText.generate.error.disabled', 403);
         }
 
         $demand = GenerateAltTextDemand::fromRequestData($this->parseJsonBody($request));

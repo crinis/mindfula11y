@@ -260,6 +260,18 @@
                     later.
                 </source>
             </trans-unit>
+            <trans-unit id="altText.generate.error.disabled"
+                resname="altText.generate.error.disabled">
+                <source>Text generation is disabled</source>
+            </trans-unit>
+            <trans-unit id="altText.generate.error.disabled.description"
+                resname="altText.generate.error.disabled.description">
+                <source>
+                    Alternative text generation has been disabled by an
+                    administrator. Reload the page to update the offered
+                    controls.
+                </source>
+            </trans-unit>
             <trans-unit id="altText.generate.error.openAIConnection"
                 resname="altText.generate.error.openAIConnection">
                 <source>OpenAI connection error</source>

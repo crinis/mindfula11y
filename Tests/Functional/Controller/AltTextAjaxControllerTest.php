@@ -137,6 +137,23 @@ final class AltTextAjaxControllerTest extends AbstractAuthorizationTestCase
         $this->assertErrorResponse($response, 403, 'error.forbidden');
     }
 
+    /**
+     * The extension-configuration off-switch is the one mutable gate an
+     * already-issued demand could otherwise outlive: controls stop rendering
+     * once disableAltTextGeneration is set, but a captured demand stays
+     * signature-valid for its full lifetime. Redemption must re-check the
+     * switch, like every other gate is re-checked.
+     */
+    public function testDisabledIntegrationDeniesRedemptionOfAnIssuedDemand(): void
+    {
+        $this->logInBackendUser(2);
+        $payload = $this->demandPayload(2);
+
+        $GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS']['mindfula11y']['disableAltTextGeneration'] = '1';
+
+        $this->assertErrorResponse($this->generate($payload), 403, 'altText.generate.error.disabled');
+    }
+
     // ---------------------------------------------------------------
     // B. Malformed body
     // ---------------------------------------------------------------
