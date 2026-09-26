@@ -19,8 +19,17 @@ class StructureAnalysisCoordinator {
     return new StructureAnalysisCoordinator(api, new RenderedPageLoader(api));
   }
   async analyze(options, parent, signal) {
-    const load = (viewport) => this.loader.load(viewport, parent, signal, options);
-    const [mobile, desktop] = await Promise.all([load("mobile"), load("desktop")]);
+    const viewports = new AbortController();
+    const loadSignal = AbortSignal.any([signal, viewports.signal]);
+    const load = (viewport) => this.loader.load(viewport, parent, loadSignal, options);
+    let mobile;
+    let desktop;
+    try {
+      [mobile, desktop] = await Promise.all([load("mobile"), load("desktop")]);
+    } catch (error) {
+      viewports.abort();
+      throw error;
+    }
     const analysis = {
       headings: this.mergeDomain(options.headings, mobile.headings, desktop.headings),
       landmarks: this.mergeDomain(options.landmarks, mobile.landmarks, desktop.landmarks)

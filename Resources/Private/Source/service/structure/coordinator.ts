@@ -52,12 +52,24 @@ export class StructureAnalysisCoordinator {
         parent: ParentNode,
         signal: AbortSignal,
     ): Promise<StructureAnalysis> {
-        const load = (viewport: StructureViewport): Promise<RenderedStructureAnalysis> =>
-            this.loader.load(viewport, parent, signal, options);
-
         // Each viewport owns its ticket, iframe, and request ID, so the renders
-        // are independent and can run concurrently.
-        const [mobile, desktop] = await Promise.all([load('mobile'), load('desktop')]);
+        // are independent and can run concurrently. They share an internal
+        // abort chained to the caller's signal: once one viewport fails the
+        // result is lost anyway, and the survivor must not keep loading until
+        // its timeout (a Retry would stack another pair on top).
+        const viewports = new AbortController();
+        const loadSignal = AbortSignal.any([signal, viewports.signal]);
+        const load = (viewport: StructureViewport): Promise<RenderedStructureAnalysis> =>
+            this.loader.load(viewport, parent, loadSignal, options);
+
+        let mobile: RenderedStructureAnalysis;
+        let desktop: RenderedStructureAnalysis;
+        try {
+            [mobile, desktop] = await Promise.all([load('mobile'), load('desktop')]);
+        } catch (error) {
+            viewports.abort();
+            throw error;
+        }
         const analysis: StructureAnalysis = {
             headings: this.mergeDomain(options.headings, mobile.headings, desktop.headings),
             landmarks: this.mergeDomain(options.landmarks, mobile.landmarks, desktop.landmarks),

@@ -130,4 +130,56 @@ describe('StructureAnalysisCoordinator', () => {
         ).rejects.toMatchObject({ code: 'payload' });
         expect(backend.fetchRecordMetadata).not.toHaveBeenCalled();
     });
+
+    it('aborts the other viewport when one fails, so it does not keep loading', async () => {
+        const signals = new Map<StructureViewport, AbortSignal>();
+        const failure = new Error('mobile render failed');
+        const loader = {
+            load: vi.fn((viewport: StructureViewport, _parent: ParentNode, signal: AbortSignal) => {
+                signals.set(viewport, signal);
+                return viewport === 'mobile' ? Promise.reject(failure) : new Promise<never>(() => {});
+            }),
+        };
+        const backend = { fetchRecordMetadata: vi.fn(async () => new Map()) };
+        const coordinator = new StructureAnalysisCoordinator(backend, loader);
+        const outer = new AbortController();
+
+        await expect(
+            coordinator.analyze(
+                { pageId: 42, languageId: 0, headings: true, landmarks: false },
+                document,
+                outer.signal,
+            ),
+        ).rejects.toBe(failure);
+
+        expect(signals.get('desktop')?.aborted).toBe(true);
+        // The caller's own signal is left alone — only the internal pair is torn down.
+        expect(outer.signal.aborted).toBe(false);
+    });
+
+    it('forwards an abort of the caller signal to both viewport loads', async () => {
+        const signals: AbortSignal[] = [];
+        const loader = {
+            load: vi.fn(
+                (_viewport: StructureViewport, _parent: ParentNode, signal: AbortSignal) =>
+                    new Promise<never>((_resolve, reject) => {
+                        signals.push(signal);
+                        signal.addEventListener('abort', () => reject(signal.reason), { once: true });
+                    }),
+            ),
+        };
+        const backend = { fetchRecordMetadata: vi.fn(async () => new Map()) };
+        const coordinator = new StructureAnalysisCoordinator(backend, loader);
+        const outer = new AbortController();
+
+        const analyzing = coordinator.analyze(
+            { pageId: 42, languageId: 0, headings: true, landmarks: false },
+            document,
+            outer.signal,
+        );
+        outer.abort();
+
+        await expect(analyzing).rejects.toMatchObject({ name: 'AbortError' });
+        expect(signals.map((signal) => signal.aborted)).toEqual([true, true]);
+    });
 });
