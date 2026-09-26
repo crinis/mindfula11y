@@ -85,6 +85,8 @@ upload comment. Manual `v*` tags are blocked by a repository ruleset.
 - Scans of sites with a relative base (`base: /` in the site configuration) are scoped correctly: the crawl stays within the selected language, and a page's scan result shows that page's issues instead of the whole crawl's. The site's URL space now resolves against the host the backend is accessed on.
 - AI alternative-text generation gives up after 60 seconds (10 seconds to connect) instead of waiting indefinitely for an unresponsive OpenAI API.
 - The Missing Alternative Texts list checks each file reference once per page view instead of twice, which noticeably speeds it up on large page trees.
+- Closing the record editor opened from a Missing Alternative Texts entry returns to the list instead of leaving the Accessibility module.
+- On TYPO3 v13, an integer passed as `type` to the heading ViewHelpers no longer aborts rendering with a type error; like any other unknown type it renders the default tag.
 
 ### Security
 

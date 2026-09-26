@@ -18,7 +18,9 @@ use MindfulMarkup\MindfulA11y\Service\AltTextFinderService;
 use MindfulMarkup\MindfulA11y\Tests\Functional\AbstractAuthorizationTestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
+use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Core\Database\ConnectionPool;
+use TYPO3\CMS\Core\Http\ServerRequest;
 use TYPO3\CMS\Fluid\Core\Rendering\RenderingContextFactory;
 use TYPO3Fluid\Fluid\View\TemplateView;
 
@@ -62,13 +64,13 @@ final class AltlessFileReferenceViewHelperTest extends AbstractAuthorizationTest
             ]);
     }
 
-    private function renderFirstListedReference(): string
+    private function renderFirstListedReference(?ServerRequestInterface $request = null): string
     {
         $references = $this->get(AltTextFinderService::class)
             ->findAltlessFileReferencePage(10, 0, 0, [], 1, 100, tableName: 'tt_content')['items'];
         self::assertNotSame([], $references, 'the listing must surface a reference to render');
 
-        $context = $this->get(RenderingContextFactory::class)->create();
+        $context = $this->get(RenderingContextFactory::class)->create([], $request);
         $context->getTemplatePaths()->setTemplateSource(
             '<html xmlns:mindfula11y="http://typo3.org/ns/MindfulMarkup/MindfulA11y/ViewHelpers" data-namespace-typo3-fluid="true">'
             . '<mindfula11y:altlessFileReference fileReference="{reference}" />'
@@ -140,5 +142,29 @@ final class AltlessFileReferenceViewHelperTest extends AbstractAuthorizationTest
         $view->assign('reference', $references[0]);
 
         self::assertStringContainsString('fallback-alternative="Inherited alternative"', $view->render());
+    }
+
+    #[Test]
+    public function recordEditLinkReturnsToTheCurrentModuleRequest(): void
+    {
+        $this->logInBackendUser(2);
+        $moduleUri = 'https://backend.example/typo3/module/web/mindfula11y?id=10&feature=missingAltText';
+
+        $output = $this->renderFirstListedReference(new ServerRequest($moduleUri));
+
+        self::assertSame(1, preg_match('/record-edit-link="([^"]+)"/', $output, $matches), 'the editor must get an edit link');
+        parse_str((string)parse_url(html_entity_decode($matches[1]), PHP_URL_QUERY), $query);
+        self::assertSame($moduleUri, $query['returnUrl'] ?? null);
+    }
+
+    #[Test]
+    public function recordEditLinkOmitsReturnUrlWithoutARequest(): void
+    {
+        $this->logInBackendUser(2);
+
+        $output = $this->renderFirstListedReference();
+
+        self::assertSame(1, preg_match('/record-edit-link="([^"]+)"/', $output, $matches), 'the editor must get an edit link');
+        self::assertStringNotContainsString('returnUrl', html_entity_decode($matches[1]));
     }
 }

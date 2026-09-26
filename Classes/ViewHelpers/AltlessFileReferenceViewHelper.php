@@ -34,6 +34,7 @@ use MindfulMarkup\MindfulA11y\Service\ModuleLabelService;
 use MindfulMarkup\MindfulA11y\Service\ModuleSettingsService;
 use MindfulMarkup\MindfulA11y\Service\OpenAIService;
 use MindfulMarkup\MindfulA11y\Service\PermissionService;
+use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Localization\LanguageService;
@@ -163,23 +164,38 @@ class AltlessFileReferenceViewHelper extends AbstractTagBasedViewHelper
 
         [$recordTableName, $recordColumnName, $recordUid] = $this->getRecordCoordinates($fileReference);
 
-        $record = BackendUtility::getRecordWSOL($recordTableName, (int)$recordUid);
+        // Coordinates and the cheap grants first: the record is only fetched
+        // for a reference the user could edit at all.
+        $record = $recordTableName !== ''
+            && $recordColumnName !== ''
+            && $this->permissionService->checkTableWriteAccess('sys_file_reference')
+            && $this->permissionService->checkNonExcludeFields('sys_file_reference', ['alternative'])
+            ? BackendUtility::getRecordWSOL($recordTableName, $recordUid)
+            : null;
 
         if (
-            $this->permissionService->checkTableWriteAccess('sys_file_reference')
-            && $this->permissionService->checkNonExcludeFields('sys_file_reference', ['alternative'])
-            && !empty($recordTableName)
-            && !empty($recordColumnName)
-            && null !== $record
+            null !== $record
             && $this->permissionService->checkRecordEditAccess($recordTableName, $record, [$recordColumnName])
         ) {
-            $this->tag->addAttribute('record-edit-link', $this->backendUriBuilder->buildUriFromRoute('record_edit', [
+            $editRouteParameters = [
                 'edit' => [
                     $recordTableName => [
                         $recordUid => 'edit'
                     ]
                 ],
-            ]));
+            ];
+            // "Close" in the record editor returns to the module view that
+            // rendered this link. Without a request (CLI, bare rendering) there
+            // is nothing to return to, so the parameter is omitted.
+            if ($this->renderingContext->hasAttribute(ServerRequestInterface::class)) {
+                $editRouteParameters['returnUrl'] = (string)$this->renderingContext
+                    ->getAttribute(ServerRequestInterface::class)
+                    ->getUri();
+            }
+            $this->tag->addAttribute(
+                'record-edit-link',
+                (string)$this->backendUriBuilder->buildUriFromRoute('record_edit', $editRouteParameters),
+            );
             $this->tag->addAttribute('record-edit-link-label', sprintf($this->getLanguageService()->sL(ModuleLabelService::LANGUAGE_FILE . 'altText.editRecord.label'), $recordTableName, $recordUid));
             // Mirrors the DataHandler guard's own condition. The toggle itself
             // always needs its grant; the BLANKED_FIELDS grants are only
@@ -209,7 +225,7 @@ class AltlessFileReferenceViewHelper extends AbstractTagBasedViewHelper
                 if ($demand !== null) {
                     $this->tag->addAttribute(
                         'generate-alt-text-demand',
-                        json_encode($this->demandSignatureService->serialize($demand))
+                        json_encode($this->demandSignatureService->serialize($demand), JSON_THROW_ON_ERROR)
                     );
                 }
             }
