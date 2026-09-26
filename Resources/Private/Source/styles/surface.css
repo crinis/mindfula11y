@@ -22,10 +22,11 @@
  * the heading tree, the landmark schematic, scan violation and AI finding
  * cards, the alt-text record card. Combine with the role class
  * (`class="surface card"`); the role class, adopted later, adds padding and
- * layout and may re-point the background.
+ * layout and may re-point the background. `:where()` keeps the recipe at
+ * zero specificity so every role rule wins without specificity gymnastics.
  */
 @layer component {
-    .surface {
+    :where(.surface) {
         background-color: var(--mindfula11y-component-bg);
         border: 1px solid var(--mindfula11y-border);
         border-radius: var(--mindfula11y-radius);

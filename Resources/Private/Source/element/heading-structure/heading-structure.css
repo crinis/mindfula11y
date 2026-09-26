@@ -261,10 +261,10 @@
      * so it otherwise renders ~5px shorter than an identically padded
      * button or span; pinning the height makes a select, a locked chip and a
      * relation jump button share one baseline, which is what keeps rows the
-     * same height. The shared
-     * `--mindfula11y-control-height` is that height for every padded one-line
-     * control, so the row's elbow can center on the same value; still em-based,
-     * so the hit target stays >= 24px at every zoom level.
+     * same height. The shared `--mindfula11y-control-height` is that height
+     * for every padded one-line control, so the row's elbow can center on the
+     * same value; still em-based, so the hit target stays >= 24px at every
+     * zoom level.
      */
     :where(.level, .child-level) {
         min-block-size: var(--mindfula11y-control-height);
