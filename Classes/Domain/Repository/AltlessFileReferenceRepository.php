@@ -48,7 +48,7 @@ use TYPO3\CMS\Extbase\Persistence\Generic\Mapper\DataMapper;
  */
 final readonly class AltlessFileReferenceRepository
 {
-    private const COUNT_FILTER_CHUNK_SIZE = 500;
+    private const CHUNK_SIZE = 500;
 
     public function __construct(
         private ConnectionPool $connectionPool,
@@ -72,7 +72,7 @@ final readonly class AltlessFileReferenceRepository
      * @param int $workspaceId The workspace ID to select file references for.
      * @param callable(\TYPO3\CMS\Core\Resource\FileInterface): bool $fileFilter File-access filter applied before paging.
      * @param int $firstResult The offset for the query.
-     * @param int|null $maxResults The maximum number of results to return, or null for no limit.
+     * @param int $maxResults The maximum number of results to return.
      * @param bool $filterFileMetaData If true, filter rows if they have alternative text in the file metadata.
      * @param bool $includeDecorative If true, include references marked as decorative.
      * @param bool $includeAllReferences If true, include references that already have reference-level alternative text.
@@ -80,8 +80,6 @@ final readonly class AltlessFileReferenceRepository
      * @return array<AltlessFileReference> An array of file reference rows.
      * 
      * @throws Exception If there is an error executing the query.
-     * 
-     * @todo Check for language fallbacks and respect transOrig field and pass an appropriate array of language IDs.
      */
     public function findForTables(
         array $tables,
@@ -89,7 +87,7 @@ final readonly class AltlessFileReferenceRepository
         int $workspaceId,
         callable $fileFilter,
         int $firstResult = 0,
-        ?int $maxResults = 100,
+        int $maxResults = 100,
         bool $filterFileMetaData = true,
         bool $includeDecorative = false,
         bool $includeAllReferences = false,
@@ -103,7 +101,7 @@ final readonly class AltlessFileReferenceRepository
             }
 
             $selectedReferenceUids[] = $referenceUid;
-            if ($maxResults !== null && count($selectedReferenceUids) >= $maxResults) {
+            if (count($selectedReferenceUids) >= $maxResults) {
                 break;
             }
         }
@@ -116,6 +114,55 @@ final readonly class AltlessFileReferenceRepository
             AltlessFileReference::class,
             $this->fetchReferenceRowsForReferenceUids($selectedReferenceUids)
         );
+    }
+
+    /**
+     * One page of file references without alternative text plus the total.
+     *
+     * Consumes the permission-filtered stream exactly once: every accessible
+     * reference is counted (its file hydrated for the FAL check anyway), but
+     * only the requested page is mapped to models. The page is clamped to the
+     * last one the total allows before the offset is derived, so an
+     * out-of-range or extreme page yields the last page's slice instead of an
+     * empty one or an overflowing offset.
+     *
+     * @param array<AltlessFileReferenceTable> $tables Array of table configurations to select file references by.
+     * @param callable(\TYPO3\CMS\Core\Resource\FileInterface): bool $fileFilter File-access filter applied before paging.
+     * @param int $currentPage 1-based page number, clamped to [1, last page].
+     * @param int<1, max> $itemsPerPage
+     * @return array{items: list<AltlessFileReference>, total: int}
+     *
+     * @throws Exception If there is an error executing the query.
+     */
+    public function findPageForTables(
+        array $tables,
+        int $languageId,
+        int $workspaceId,
+        callable $fileFilter,
+        int $currentPage,
+        int $itemsPerPage,
+        bool $filterFileMetaData = true,
+        bool $includeDecorative = false,
+        bool $includeAllReferences = false,
+    ): array {
+        $referenceUids = iterator_to_array(
+            $this->streamAccessibleReferenceUids($tables, $languageId, $workspaceId, $filterFileMetaData, $includeDecorative, $includeAllReferences, $fileFilter),
+            false
+        );
+        $total = count($referenceUids);
+        $lastPage = max(1, (int)ceil($total / $itemsPerPage));
+        $currentPage = min(max(1, $currentPage), $lastPage);
+        $selectedReferenceUids = array_slice($referenceUids, ($currentPage - 1) * $itemsPerPage, $itemsPerPage);
+
+        return [
+            'items' => $selectedReferenceUids === []
+                ? []
+                : array_values($this->dataMapper->map(
+                    AltlessFileReference::class,
+                    $this->fetchReferenceRowsForReferenceUids($selectedReferenceUids)
+                )),
+            'total' => $total,
+        ];
     }
 
     /**
@@ -189,7 +236,7 @@ final readonly class AltlessFileReferenceRepository
                 continue;
             }
 
-            foreach ($this->fetchFileRowsForReferenceUids($workspaceId, $filterFileMetaData, $includeDecorative, $includeAllReferences, $resolvedReferenceUids) as $fileRow) {
+            foreach ($this->fetchFileRowsForReferenceUids($resolvedReferenceUids, $workspaceId, $filterFileMetaData, $includeDecorative, $includeAllReferences) as $fileRow) {
                 $referenceUid = (int)$fileRow['reference_uid'];
                 unset($fileRow['reference_uid']);
 
@@ -197,7 +244,7 @@ final readonly class AltlessFileReferenceRepository
                     yield $referenceUid;
                 }
             }
-        } while (count($referenceUids) === self::COUNT_FILTER_CHUNK_SIZE);
+        } while (count($referenceUids) === self::CHUNK_SIZE);
     }
 
     /**
@@ -222,7 +269,7 @@ final readonly class AltlessFileReferenceRepository
                 ->select('sys_file_reference.uid')
                 ->andWhere($queryBuilder->expr()->gt('sys_file_reference.uid', $queryBuilder->createNamedParameter($lastReferenceUid, Connection::PARAM_INT)))
                 ->orderBy('sys_file_reference.uid', 'ASC')
-                ->setMaxResults(self::COUNT_FILTER_CHUNK_SIZE)
+                ->setMaxResults(self::CHUNK_SIZE)
                 ->executeQuery()
                 ->fetchFirstColumn()
         );
@@ -261,11 +308,11 @@ final readonly class AltlessFileReferenceRepository
      * @return array<array<string, mixed>>
      */
     private function fetchFileRowsForReferenceUids(
+        array $referenceUids,
         int $workspaceId,
         bool $filterFileMetaData,
         bool $includeDecorative,
-        bool $includeAllReferences,
-        array $referenceUids
+        bool $includeAllReferences
     ): array {
         $queryBuilder = $this->connectionPool->getQueryBuilderForTable('sys_file_reference');
         $queryBuilder->getRestrictions()
@@ -491,7 +538,7 @@ final readonly class AltlessFileReferenceRepository
                 // of the reference's OWN language, so the inherited text shown
                 // beside that verdict has to come from the same row.
                 $queryBuilder->expr()->eq(
-                    $this->getLanguageField('sys_file_metadata'),
+                    TranslationFields::languageFieldName('sys_file_metadata'),
                     $queryBuilder->createNamedParameter($languageId, Connection::PARAM_INT)
                 ),
             )
@@ -573,10 +620,9 @@ final readonly class AltlessFileReferenceRepository
             ->add(GeneralUtility::makeInstance(DeletedRestriction::class))
             ->add(GeneralUtility::makeInstance(WorkspaceRestriction::class, $workspaceId));
 
+        // No select() here: the chunk query sets its own column list.
         $queryBuilder
-            ->select(
-                'sys_file_reference.*',
-            )->from('sys_file_reference')
+            ->from('sys_file_reference')
             ->innerJoin(
                 'sys_file_reference',
                 'sys_file',
@@ -585,7 +631,7 @@ final readonly class AltlessFileReferenceRepository
             )->where(
                 $queryBuilder->expr()->in('mindfula11y_sys_file.extension', $queryBuilder->createNamedParameter($this->getImageFileExtensions(), Connection::PARAM_STR_ARRAY)),
                 $queryBuilder->expr()->eq(
-                    'sys_file_reference.' . $this->getLanguageField('sys_file_reference'),
+                    'sys_file_reference.' . TranslationFields::languageFieldName('sys_file_reference'),
                     $queryBuilder->createNamedParameter($languageId, Connection::PARAM_INT)
                 )
             );
@@ -665,7 +711,7 @@ final readonly class AltlessFileReferenceRepository
      *
      * @param QueryBuilder $queryBuilder The query builder instance.
      */
-    private function addFileMetaDataJoin(QueryBuilder $queryBuilder): QueryBuilder
+    private function addFileMetaDataJoin(QueryBuilder $queryBuilder): void
     {
         $queryBuilder->leftJoin(
             'sys_file_reference',
@@ -673,11 +719,9 @@ final readonly class AltlessFileReferenceRepository
             'mindfula11y_sys_file_metadata',
             $queryBuilder->expr()->and(
                 $queryBuilder->expr()->eq('sys_file_reference.uid_local', $queryBuilder->quoteIdentifier('mindfula11y_sys_file_metadata.file')),
-                $queryBuilder->expr()->eq('sys_file_reference.' . $this->getLanguageField('sys_file_reference'), $queryBuilder->quoteIdentifier('mindfula11y_sys_file_metadata.' . $this->getLanguageField('sys_file_metadata')))
+                $queryBuilder->expr()->eq('sys_file_reference.' . TranslationFields::languageFieldName('sys_file_reference'), $queryBuilder->quoteIdentifier('mindfula11y_sys_file_metadata.' . TranslationFields::languageFieldName('sys_file_metadata')))
             )
         );
-
-        return $queryBuilder;
     }
 
     /**
@@ -699,15 +743,5 @@ final readonly class AltlessFileReferenceRepository
     private function getImageFileExtensions(): array
     {
         return explode(',', $GLOBALS['TYPO3_CONF_VARS']['GFX']['imagefile_ext'] ?? '');
-    }
-
-    /**
-     * Get language field for a TCA table.
-     * 
-     * @param string $tableName The name of the table.
-     */
-    private function getLanguageField(string $tableName): string
-    {
-        return TranslationFields::languageFieldName($tableName);
     }
 }

@@ -100,6 +100,55 @@ final readonly class AltTextFinderService
     }
 
     /**
+     * One page of altless file references plus the total, in a single pass.
+     *
+     * The listing needs both; counting and fetching separately would walk the
+     * permission-filtered stream (one FAL file hydration and permission check
+     * per candidate) twice. Applies the same filters as
+     * getAltlessFileReferences(); the page is clamped to the last one the
+     * total allows.
+     *
+     * @param array<string, mixed> $pageTsConfig The Page TSConfig for the current page.
+     * @param int $currentPage 1-based page number, clamped to [1, last page].
+     * @param int<1, max> $itemsPerPage
+     * @param string|null $tableName Restrict to a single table; null queries every table with file columns.
+     *
+     * @return array{items: list<AltlessFileReference>, total: int}
+     *
+     * @throws \Exception If there is an error executing the query.
+     */
+    public function findAltlessFileReferencePage(
+        int $pageId,
+        int $pageLevels,
+        int $languageId,
+        array $pageTsConfig,
+        int $currentPage,
+        int $itemsPerPage,
+        bool $filterFileMetaData = true,
+        ?string $tableName = null,
+        bool $includeDecorative = false,
+        bool $includeAllReferences = false,
+    ): array {
+        $tables = $this->buildTables($tableName, $pageId, $pageLevels, $pageTsConfig);
+        // Fail closed — see getAltlessFileReferences().
+        if ([] === $tables) {
+            return ['items' => [], 'total' => 0];
+        }
+
+        return $this->altlessFileReferenceRepository->findPageForTables(
+            $tables,
+            $languageId,
+            $this->backendUserProvider->get()->workspace,
+            $this->permissionService->checkFileReadAccess(...),
+            $currentPage,
+            $itemsPerPage,
+            $filterFileMetaData,
+            $includeDecorative,
+            $includeAllReferences
+        );
+    }
+
+    /**
      * Count altless file references.
      * 
      * Counts file references that are missing alternative text, applying filters based on user
