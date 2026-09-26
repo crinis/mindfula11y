@@ -140,8 +140,13 @@ class HeadingTypeStringMigrationWizard implements UpgradeWizardInterface
     private function pendingMigrationConstraint(QueryBuilder $queryBuilder): CompositeExpression
     {
         return $queryBuilder->expr()->and(
-            $queryBuilder->expr()->isNotNull(self::OLD_FIELD_NAME),
-            $queryBuilder->expr()->neq(self::OLD_FIELD_NAME, $queryBuilder->createNamedParameter('')),
+            // The legacy column is an INTEGER: 0 means "unset" and must not
+            // migrate. Compare as an integer — an int/string comparison
+            // throws on PostgreSQL.
+            $queryBuilder->expr()->neq(
+                self::OLD_FIELD_NAME,
+                $queryBuilder->createNamedParameter(0, ParameterType::INTEGER)
+            ),
             // Never overwrite an already-migrated (or manually set) value on a re-run.
             $queryBuilder->expr()->or(
                 $queryBuilder->expr()->isNull(self::NEW_FIELD_NAME),
@@ -153,16 +158,11 @@ class HeadingTypeStringMigrationWizard implements UpgradeWizardInterface
     /**
      * Convert old numeric value to new string value.
      */
-    private function convertOldValueToNewValue($oldValue): ?string
+    private function convertOldValueToNewValue(mixed $oldValue): ?string
     {
-        // Both integer and string representations of the old numeric values.
+        // Drivers may hand the INTEGER column over as int or numeric string.
         if (is_numeric($oldValue)) {
             return self::VALUE_MAPPING[(int)$oldValue] ?? null;
-        }
-
-        // Already a valid heading type: keep it (VALUE_MAPPING holds only strings).
-        if (in_array($oldValue, self::VALUE_MAPPING, true)) {
-            return $oldValue;
         }
 
         return null;
