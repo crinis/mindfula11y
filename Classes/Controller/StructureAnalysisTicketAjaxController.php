@@ -111,7 +111,10 @@ final readonly class StructureAnalysisTicketAjaxController
 
     /**
      * Deliberately uniform across all authorization failures: the response
-     * must not reveal which specific check rejected the request.
+     * must not reveal which specific check rejected the request. Failures
+     * after authorization has passed (e.g. a preview URL the ticket service
+     * cannot sign, answered with 400 structure.error.previewUrl) are specific,
+     * since they disclose nothing the caller may not already know.
      */
     private function unavailableResponse(): JsonResponse
     {
