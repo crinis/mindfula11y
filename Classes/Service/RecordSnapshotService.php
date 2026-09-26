@@ -16,7 +16,7 @@ namespace MindfulMarkup\MindfulA11y\Service;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 
 /** Creates stable fingerprints of persisted database records. */
-final readonly class RecordSnapshotService
+final class RecordSnapshotService
 {
     /**
      * Columns of the `pages` row that the structure-analysis ticket and
@@ -79,8 +79,18 @@ final readonly class RecordSnapshotService
      */
     public const FINGERPRINT_PATTERN = '/^[a-f0-9]{64}$/';
 
+    /**
+     * Sorted schema column names per table. Doctrine does not cache
+     * listTableColumns(), and one alt-text listing fingerprints several
+     * times per row for up to a page of rows — the schema does not change
+     * within a request, so it is read once per table.
+     *
+     * @var array<string, list<string>>
+     */
+    private array $schemaColumnNames = [];
+
     public function __construct(
-        private ConnectionPool $connectionPool,
+        private readonly ConnectionPool $connectionPool,
     ) {}
 
     /**
@@ -93,13 +103,12 @@ final readonly class RecordSnapshotService
      */
     public function fingerprint(string $table, array $record, ?array $columns = null): string
     {
-        $columnNames = $columns ?? array_keys(
-            $this->connectionPool
-                ->getConnectionForTable($table)
-                ->createSchemaManager()
-                ->listTableColumns($table)
-        );
-        sort($columnNames);
+        if ($columns !== null) {
+            $columnNames = $columns;
+            sort($columnNames);
+        } else {
+            $columnNames = $this->getSchemaColumnNames($table);
+        }
 
         $persistedRecord = [];
         foreach ($columnNames as $column) {
@@ -111,6 +120,28 @@ final readonly class RecordSnapshotService
         }
 
         return hash('sha256', json_encode($persistedRecord, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES));
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function getSchemaColumnNames(string $table): array
+    {
+        if (!isset($this->schemaColumnNames[$table])) {
+            $columnNames = array_map(
+                'strval',
+                array_keys(
+                    $this->connectionPool
+                        ->getConnectionForTable($table)
+                        ->createSchemaManager()
+                        ->listTableColumns($table)
+                )
+            );
+            sort($columnNames);
+            $this->schemaColumnNames[$table] = $columnNames;
+        }
+
+        return $this->schemaColumnNames[$table];
     }
 
     /**
