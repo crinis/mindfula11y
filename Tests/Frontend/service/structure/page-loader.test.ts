@@ -42,6 +42,14 @@ const transferredPort = (spy: { mock: { calls: unknown[][] } }): MessagePort => 
 describe('RenderedPageLoader', () => {
     beforeEach(() => {
         document.body.replaceChildren();
+        // Setting `src` would make happy-dom navigate the frame for real —
+        // network requests (NetworkError/AbortError noise, and a dependence on
+        // whatever answers on its default origin). The suite drives the
+        // protocol by dispatching load/message events itself, and the
+        // about:blank document happy-dom attaches on insertion already gives
+        // every frame its `contentWindow`; happy-dom's `disableIframePageLoading`
+        // setting is no alternative, as it also fails that about:blank load.
+        vi.spyOn(HTMLIFrameElement.prototype, 'src', 'set').mockImplementation(() => undefined);
     });
 
     afterEach(() => {
