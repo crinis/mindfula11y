@@ -150,6 +150,7 @@ final readonly class AltlessFileReferenceRepository
             false
         );
         $total = count($referenceUids);
+        $itemsPerPage = max(1, $itemsPerPage);
         $lastPage = max(1, (int)ceil($total / $itemsPerPage));
         $currentPage = min(max(1, $currentPage), $lastPage);
         $selectedReferenceUids = array_slice($referenceUids, ($currentPage - 1) * $itemsPerPage, $itemsPerPage);
