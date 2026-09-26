@@ -187,6 +187,8 @@ final readonly class SiteLanguageService
      * same host core's preview links resolve against. A base without scheme
      * (`//example.com/`) takes the request's scheme. Null when the base is not
      * absolute and no request is available to complete it (fail closed).
+     * The completed origin comes from the request's Host header, so it relies
+     * on `trustedHostsPattern` rejecting forged hosts.
      */
     private function toAbsoluteBase(UriInterface $base): ?string
     {

@@ -143,4 +143,14 @@ final class SiteLanguageServiceTest extends AbstractAuthorizationTestCase
         self::assertNull($this->subject()->getAbsoluteLanguageBase(10, 1));
         self::assertSame([], $this->subject()->filterUrlsToSiteBases(['https://backend.example:8443/editable'], 10));
     }
+
+    public function testRelativeSiteBaseWithRequestLackingNormalizedParamsFailsClosed(): void
+    {
+        $this->writeRelativeSiteConfiguration();
+        $GLOBALS['TYPO3_REQUEST'] = (new ServerRequest('https://backend.example:8443/typo3/module/web/accessibility'))
+            ->withAttribute('applicationType', SystemEnvironmentBuilder::REQUESTTYPE_BE);
+
+        self::assertNull($this->subject()->getAbsoluteLanguageBase(10, 1));
+        self::assertSame([], $this->subject()->filterUrlsToSiteBases(['https://backend.example:8443/editable'], 10));
+    }
 }
