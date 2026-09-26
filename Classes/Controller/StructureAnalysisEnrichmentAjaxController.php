@@ -158,18 +158,24 @@ final readonly class StructureAnalysisEnrichmentAjaxController
 
     /**
      * Whether Page TSconfig enables at least one structure feature for the
-     * page this record lives on (for pages records: the page itself — the
-     * settings service reads a translated page's gate from its default-language
-     * page, which Page TSconfig belongs to). getPagesTSconfig() caches per page
-     * id, so batches spanning few pages stay cheap.
+     * page this record lives on. A pages record goes through the settings
+     * service, which reads a translated page's gate from its default-language
+     * page (one record lookup). Any other record's pid is always a
+     * default-language page, so its gate is read directly without that lookup;
+     * getPagesTSconfig() caches per page id, so batches spanning few pages stay
+     * cheap.
      *
      * @param array<string, mixed> $record
      */
     private function isStructureAnalysisEnabledForRecord(string $tableName, int $uid, array $record): bool
     {
-        $pageUid = $tableName === 'pages' ? $uid : (int)($record['pid'] ?? 0);
+        if ($tableName === 'pages') {
+            return $this->moduleSettingsService->isStructureAnalysisEnabledForPage($uid);
+        }
 
-        return $this->moduleSettingsService->isStructureAnalysisEnabledForPage($pageUid);
+        return $this->moduleSettingsService->hasStructureAnalysisAccess(
+            $this->moduleSettingsService->getConvertedPageTsConfig((int)($record['pid'] ?? 0))
+        );
     }
 
     /**
