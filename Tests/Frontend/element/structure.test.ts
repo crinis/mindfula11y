@@ -94,6 +94,14 @@ describe('Structure', () => {
      * findings pills below are plain buttons, not notice elements.
      */
     const statusRow = (view: Structure): Element | null => view.renderRoot.querySelector('mindfula11y-notice');
+    /** The error recovery actions, found by what they are and say — classes are styling-only. */
+    const openPageLink = (view: Structure): HTMLAnchorElement | null =>
+        view.renderRoot.querySelector<HTMLAnchorElement>('a[target="_blank"]');
+    const retryButton = (view: Structure): HTMLButtonElement | undefined =>
+        [...view.renderRoot.querySelectorAll('button')].find(
+            (button) => button.textContent?.trim() === 'mindfula11y.structure.retry',
+        );
+    const FindingsList = 'ul[aria-label="mindfula11y.structureErrors"]';
 
     const renderFailed = async (error: StructureAnalysisError): Promise<Structure> => {
         analyzeMock.mockRejectedValueOnce(error);
@@ -115,36 +123,36 @@ describe('Structure', () => {
         );
 
         expect(view.renderRoot.textContent).toContain('mindfula11y.structure.error.rendering.auth');
-        const link = view.renderRoot.querySelector('a.open-page') as HTMLAnchorElement | null;
+        const link = openPageLink(view);
         expect(link?.getAttribute('href')).toBe('https://staging.example/protected');
         expect(link?.target).toBe('_blank');
         expect(link?.rel).toBe('noreferrer');
         expect(link?.querySelector('.sr-only')?.textContent).toContain('mindfula11y.general.opensNewTab');
         expect(link?.textContent).toContain('mindfula11y.structure.error.rendering.openPage');
-        expect(view.renderRoot.querySelector('button.retry')).not.toBeNull();
+        expect(retryButton(view)).toBeDefined();
     });
 
     it('offers the open-page link for framing failures too, but not without a page URL', async () => {
         const withUrl = await renderFailed(
             new StructureAnalysisError('framing', 'refused', undefined, 'https://staging.example/page'),
         );
-        expect(withUrl.renderRoot.querySelector('a.open-page')).not.toBeNull();
+        expect(openPageLink(withUrl)).not.toBeNull();
         document.body.replaceChildren();
         analyzeMock.mockReset();
 
         const withoutUrl = await renderFailed(new StructureAnalysisError('timeout', 'slow'));
-        expect(withoutUrl.renderRoot.querySelector('a.open-page')).toBeNull();
-        expect(withoutUrl.renderRoot.querySelector('button.retry')).not.toBeNull();
+        expect(openPageLink(withoutUrl)).toBeNull();
+        expect(retryButton(withoutUrl)).toBeDefined();
     });
 
     it('labels and emphasizes the occurrence count in the findings overview', async () => {
         const view = await render({ analysis: twoHeadingErrors });
 
-        const count = view.renderRoot.querySelector('.finding-count');
+        const count = view.renderRoot.querySelector(`${FindingsList} button strong`);
 
         expect(count?.tagName).toBe('STRONG');
         expect(count?.textContent?.trim()).toBe('mindfula11y.structure.findingCount: 2');
-        expect(count?.closest('ul.findings')).not.toBeNull();
+        expect(count?.closest(FindingsList)).not.toBeNull();
     });
 
     it('summarizes the analysis as a standardized status row', async () => {
@@ -211,7 +219,7 @@ describe('Structure', () => {
         expect(row?.querySelector('.marker')).not.toBeNull();
         // Tablist, findings pills and panels all live inside the disclosure.
         expect(details?.querySelector('[role="tablist"]')).not.toBeNull();
-        expect(details?.querySelector('ul.findings')).not.toBeNull();
+        expect(details?.querySelector(FindingsList)).not.toBeNull();
         expect(details?.querySelectorAll('[role="tabpanel"]').length).toBe(2);
     });
 
@@ -245,7 +253,7 @@ describe('Structure', () => {
         const view = await render({ analysis, landmarks: true });
 
         const findingsOf = (tab: string): string[] =>
-            Array.from(view.renderRoot.querySelectorAll(`#panel-${tab} ul.findings button.finding`)).map(
+            Array.from(view.renderRoot.querySelectorAll(`#panel-${tab} ${FindingsList} button`)).map(
                 (button) => button.textContent?.replace(/\s+/g, ' ').trim() ?? '',
             );
 

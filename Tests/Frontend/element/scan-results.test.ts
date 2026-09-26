@@ -64,9 +64,12 @@ const mount = async (result: ScanResult): Promise<ScanResults> => {
     return view;
 };
 
+/** The rule id a violation card's summary names (its `<code>`) — classes are styling-only. */
+const ruleIdOf = (details: Element): string | null | undefined => details.querySelector('summary code')?.textContent;
+
 const card = (view: ScanResults, ruleId: string): HTMLDetailsElement => {
-    for (const details of view.renderRoot.querySelectorAll<HTMLDetailsElement>('details.violation')) {
-        if (details.querySelector('.rule-id')?.textContent === ruleId) {
+    for (const details of view.renderRoot.querySelectorAll<HTMLDetailsElement>('details[data-impact]')) {
+        if (ruleIdOf(details) === ruleId) {
             return details;
         }
     }
@@ -82,7 +85,7 @@ describe('ScanResults', () => {
         const violations = [violation('minor-rule', 'minor'), violation('critical-rule', 'critical')];
         const view = await mount(resultWith({ violations }));
 
-        const ids = [...view.renderRoot.querySelectorAll('.rule-id')].map((node) => node.textContent);
+        const ids = [...view.renderRoot.querySelectorAll('details[data-impact]')].map(ruleIdOf);
         expect(ids).toEqual(['critical-rule', 'minor-rule']);
         // toSorted: the caller-owned result object must stay untouched.
         expect(violations[0]?.rule.id).toBe('minor-rule');
@@ -101,7 +104,7 @@ describe('ScanResults', () => {
         view.result = resultWith({ violations: [violation('alpha', 'critical'), violation('beta', 'minor')] });
         await view.updateComplete;
 
-        const ids = [...view.renderRoot.querySelectorAll('.rule-id')].map((node) => node.textContent);
+        const ids = [...view.renderRoot.querySelectorAll('details[data-impact]')].map(ruleIdOf);
         expect(ids).toEqual(['alpha', 'beta']);
         expect(card(view, 'alpha').open).toBe(true);
         expect(card(view, 'beta').open).toBe(false);
