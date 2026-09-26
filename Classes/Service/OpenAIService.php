@@ -37,6 +37,17 @@ use RuntimeException;
 final readonly class OpenAIService
 {
     /**
+     * Upper bound for one generation request (seconds). Core's HTTP.timeout
+     * default is 0 — wait forever — so a stalled upstream would otherwise
+     * hang the editor's request; image-input generations routinely take
+     * tens of seconds, hence the generous bound.
+     */
+    private const REQUEST_TIMEOUT = 60;
+
+    /** Upper bound for establishing the connection (seconds). */
+    private const CONNECT_TIMEOUT = 10;
+
+    /**
      * Constructor.
      *
      * @param ExtensionConfiguration $extensionConfiguration
@@ -82,6 +93,8 @@ final readonly class OpenAIService
                 // record-derived content) must fail cleanly instead of
                 // sending a literal `false` as the request body.
                 'body' => json_encode($body, JSON_THROW_ON_ERROR),
+                'timeout' => self::REQUEST_TIMEOUT,
+                'connect_timeout' => self::CONNECT_TIMEOUT,
             ];
             /** @var ResponseInterface $response */
             $response = $this->requestFactory->request($url, 'POST', $options);
@@ -103,7 +116,15 @@ final readonly class OpenAIService
             if (($outputItem['type'] ?? '') === 'message') {
                 foreach ($outputItem['content'] ?? [] as $contentItem) {
                     if (($contentItem['type'] ?? '') === 'output_text') {
-                        return $contentItem['text'] ?? null;
+                        $text = $contentItem['text'] ?? null;
+                        if (is_string($text)) {
+                            return $text;
+                        }
+                        $this->logger->warning('OpenAI response carried non-string output text', [
+                            'model' => $model,
+                            'type' => get_debug_type($text),
+                        ]);
+                        return null;
                     }
                 }
             }

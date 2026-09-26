@@ -72,4 +72,42 @@ final class OpenAIServiceTest extends TestCase
 
         self::assertNull($this->openAIService($requestFactory, $logger)->respond('instructions', []));
     }
+
+    #[Test]
+    public function requestIsBoundedByATimeout(): void
+    {
+        // Core's HTTP.timeout default is 0 (wait forever): without an explicit
+        // bound a stalled upstream hangs the editor's generation request.
+        $requestFactory = $this->createMock(RequestFactory::class);
+        $requestFactory->expects(self::once())
+            ->method('request')
+            ->with(
+                self::anything(),
+                'POST',
+                self::callback(static fn(array $options): bool => ($options['timeout'] ?? null) === 60
+                    && ($options['connect_timeout'] ?? null) === 10),
+            )
+            ->willThrowException(new \RuntimeException('timed out'));
+
+        self::assertNull($this->openAIService($requestFactory, $this->createMock(LoggerInterface::class))->respond('instructions', []));
+    }
+
+    #[Test]
+    public function nonStringOutputTextIsLoggedAndReturnsNull(): void
+    {
+        $stream = $this->createMock(\Psr\Http\Message\StreamInterface::class);
+        $stream->method('getContents')->willReturn(json_encode([
+            'output' => [
+                ['type' => 'message', 'content' => [['type' => 'output_text', 'text' => ['not', 'a', 'string']]]],
+            ],
+        ], JSON_THROW_ON_ERROR));
+        $response = $this->createMock(\Psr\Http\Message\ResponseInterface::class);
+        $response->method('getBody')->willReturn($stream);
+        $requestFactory = $this->createMock(RequestFactory::class);
+        $requestFactory->method('request')->willReturn($response);
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects(self::once())->method('warning');
+
+        self::assertNull($this->openAIService($requestFactory, $logger)->respond('instructions', []));
+    }
 }
