@@ -203,7 +203,7 @@ final readonly class ScanAjaxController
         }
 
         // Recheck current read access at redemption. The demand was only issued
-        // from an authorized module view, but its one-hour lifetime must not let
+        // from an authorized module view, but its lifetime must not let
         // a later PAGE_SHOW revocation survive until the next reload.
         if (!$this->permissionService->checkPageReadAccess($page)) {
             return $this->errorResponse('error.noPageAccess', 403);

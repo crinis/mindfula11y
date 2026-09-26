@@ -47,8 +47,8 @@
                 <target>Ungültige Anfrage-Signatur</target>
             </trans-unit>
             <trans-unit id="module.error.invalidSignature.description" resname="module.error.invalidSignature.description">
-                <source>The request signature is invalid. Please refresh the page and try again.</source>
-                <target>Die Anfrage-Signatur ist ungültig. Bitte laden Sie die Seite neu und versuchen Sie es erneut.</target>
+                <source>The request has expired or is invalid. Save any unsaved changes, then reload the page and try again.</source>
+                <target>Die Anfrage ist abgelaufen oder ungültig. Speichern Sie ungesicherte Änderungen, laden Sie dann die Seite neu und versuchen Sie es erneut.</target>
             </trans-unit>
 
             <trans-unit id="module.menu.language" resname="module.menu.language">
