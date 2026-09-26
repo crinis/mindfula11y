@@ -24,7 +24,7 @@ import { customElement, property, state } from 'lit/decorators.js';
 import { LiveAnnouncer } from '../../lib/live-announcer.js';
 import type { CreateScanDemand, ScanResult } from '../../lib/scan/types.js';
 import { isScanInProgress, ScanStatus } from '../../lib/scan/types.js';
-import { impactState, renderCountBadge, worstSeverity } from '../../lib/status-render.js';
+import { renderImpactCountBadge, worstSeverity } from '../../lib/status-render.js';
 import { type TabDescriptor, TabsController } from '../../lib/tabs.js';
 import { dispatch } from '../../lib/types.js';
 import { type ErrorView, errorView, RequestError } from '../../service/request-error.js';
@@ -148,8 +148,8 @@ export class Scan extends LitElement {
             return nothing;
         }
         const worst = worstSeverity(result.violations, (violation) => violation.impact);
-        return renderCountBadge(
-            impactState(worst ?? 'minor'),
+        return renderImpactCountBadge(
+            worst ?? 'minor',
             result.totalIssueCount,
             lll(
                 result.totalIssueCount === 1 ? 'mindfula11y.scan.issueCount' : 'mindfula11y.scan.issuesCount',

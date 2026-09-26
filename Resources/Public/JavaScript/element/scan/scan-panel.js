@@ -8,7 +8,8 @@ import {
   renderExternalLink,
   renderLoadingPlaceholder,
   renderNoticeBody,
-  renderProgressNotice
+  renderProgressNotice,
+  renderStatusRegion
 } from "../../lib/status-render.js";
 import { withQueryParams } from "../../lib/url.js";
 import "../notice/notice.js";
@@ -194,7 +195,7 @@ function renderPanelContent(data, callbacks) {
         ${renderHints(data)}
         ${renderAiToggle(data, callbacks.onAiToggleChange)}
         ${renderActions(data, () => callbacks.onTrigger(data.tab), callbacks.onCancel)}
-        <div class="status-region" role="status">${renderRequestError(data)}</div>
+        ${renderStatusRegion(renderRequestError(data))}
         ${renderErrorActions(data, callbacks.onReload)}
         ${renderBody(data)}`;
 }

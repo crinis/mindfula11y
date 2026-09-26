@@ -28,6 +28,9 @@ function renderCountBadge(state, count, srText) {
         >${srText === void 0 ? count : html`<span aria-hidden="true">${count}</span><span class="sr-only">${srText}</span>`}</span
     >`;
 }
+function renderImpactCountBadge(worst, count, srText) {
+  return renderCountBadge(impactState(worst), count, srText);
+}
 function severityLabelKey(severity) {
   return `mindfula11y.severity.${severity}`;
 }
@@ -80,6 +83,7 @@ const renderDisclosureMarker = (slot = null) => html`<typo3-backend-icon
         identifier="actions-chevron-down"
         size="small"
     ></typo3-backend-icon>`;
+const renderStatusRegion = (content) => html`<div class="status-region" role="status">${content}</div>`;
 const renderProgressNotice = (title, progressText = null) => html`<mindfula11y-notice state="info">
         <typo3-backend-spinner slot="icon" size="small"></typo3-backend-spinner>
         <span>${title}${progressText !== null ? html` — ${progressText}` : nothing}</span>
@@ -96,11 +100,13 @@ export {
   renderDisclosureMarker,
   renderExternalLink,
   renderFindingPill,
+  renderImpactCountBadge,
   renderLoadingPlaceholder,
   renderNoticeBody,
   renderProgressNotice,
   renderSeverityChip,
   renderSeverityLabel,
+  renderStatusRegion,
   renderViewportBadges,
   severityLabelKey,
   totalCount,

@@ -112,6 +112,14 @@ export function renderCountBadge(state: NoticeState, count: number, srText?: str
 }
 
 /**
+ * {@link renderCountBadge} in the palette of an impact — the tab badges'
+ * "worst impact present → badge tint" rule, implemented once.
+ */
+export function renderImpactCountBadge(worst: ImpactSeverity, count: number, srText?: string): TemplateResult {
+    return renderCountBadge(impactState(worst), count, srText);
+}
+
+/**
  * Inline-label key naming a severity for assistive technology — the state
  * icons are aria-hidden (core hardcodes that in Icon::render()), so text
  * must carry the severity distinction.
@@ -228,6 +236,22 @@ export const renderDisclosureMarker = (slot: string | null = null): TemplateResu
         identifier="actions-chevron-down"
         size="small"
     ></typo3-backend-icon>`;
+
+/**
+ * The pre-rendered `role="status"` live region a view's action/error notices
+ * swap into. Render it unconditionally from the first render on (§5:
+ * announcements are unreliable when the region itself is inserted) and pass
+ * `nothing` while there is nothing to announce — the `.status-region:empty`
+ * utility then keeps the idle region out of the layout, which is why the
+ * content sits directly inside the tag without surrounding whitespace.
+ *
+ * Controls belonging to a notice (Retry, Reload, open page) are rendered
+ * OUTSIDE this region, next to it: role="status" is implicitly atomic, so an
+ * embedded control would be re-announced as status text — and a live region
+ * must not contain interactive content.
+ */
+export const renderStatusRegion = (content: TemplateResult | typeof nothing): TemplateResult =>
+    html`<div class="status-region" role="status">${content}</div>`;
 
 /**
  * In-progress status notice: the shared "spinner in the icon slot" contract

@@ -16,7 +16,7 @@ import "@typo3/backend/element/icon-element.js";
 import "@typo3/backend/element/spinner-element.js";
 import "../notice/notice.js";
 import { LiveAnnouncer } from "../../lib/live-announcer.js";
-import { renderExternalLink, renderNoticeBody } from "../../lib/status-render.js";
+import { renderExternalLink, renderNoticeBody, renderStatusRegion } from "../../lib/status-render.js";
 import { AltTextApi } from "../../service/alt-text-api.js";
 import { RecordApi } from "../../service/record-api.js";
 import { errorView } from "../../service/request-error.js";
@@ -141,14 +141,21 @@ let AltlessFileReference = class extends LitElement {
                 </button>
             </div>
             ${this.announcer.render()}
-            <div class="status-region" role="status">
-                ${this.actionError !== null ? html`<mindfula11y-notice class="status" state="danger">
-                              ${renderNoticeBody(this.actionError)}
-                          </mindfula11y-notice>` : this.saved ? html`<mindfula11y-notice class="status" state="success">
-                                <span>${lll("mindfula11y.altText.save.success")}</span>
-                            </mindfula11y-notice>` : nothing}
-            </div>
+            ${renderStatusRegion(this.renderActionStatus())}
         </div>`;
+  }
+  renderActionStatus() {
+    if (this.actionError !== null) {
+      return html`<mindfula11y-notice class="status" state="danger">
+                ${renderNoticeBody(this.actionError)}
+            </mindfula11y-notice>`;
+    }
+    if (this.saved) {
+      return html`<mindfula11y-notice class="status" state="success">
+                <span>${lll("mindfula11y.altText.save.success")}</span>
+            </mindfula11y-notice>`;
+    }
+    return nothing;
   }
   renderReadOnlyState() {
     if (this.decorative) {

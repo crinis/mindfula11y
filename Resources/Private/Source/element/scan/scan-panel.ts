@@ -30,6 +30,7 @@ import {
     renderLoadingPlaceholder,
     renderNoticeBody,
     renderProgressNotice,
+    renderStatusRegion,
 } from '../../lib/status-render.js';
 import { withQueryParams } from '../../lib/url.js';
 import type { ErrorView } from '../../service/request-error.js';
@@ -278,11 +279,7 @@ function renderRequestError(data: ScanPanelData): TemplateResult | typeof nothin
     return nothing;
 }
 
-/**
- * Rendered OUTSIDE the role="status" container: role="status" is implicitly
- * atomic, so an embedded control would be re-announced as status text — and
- * a live region must not contain interactive content.
- */
+/** Rendered outside the status region — see `renderStatusRegion`. */
 function renderErrorActions(data: ScanPanelData, onReload: () => void): TemplateResult | typeof nothing {
     if (data.controllerState !== 'error') {
         return nothing;
@@ -320,7 +317,7 @@ export function renderPanelContent(data: ScanPanelData, callbacks: ScanPanelCall
         ${renderHints(data)}
         ${renderAiToggle(data, callbacks.onAiToggleChange)}
         ${renderActions(data, () => callbacks.onTrigger(data.tab), callbacks.onCancel)}
-        <div class="status-region" role="status">${renderRequestError(data)}</div>
+        ${renderStatusRegion(renderRequestError(data))}
         ${renderErrorActions(data, callbacks.onReload)}
         ${renderBody(data)}`;
 }

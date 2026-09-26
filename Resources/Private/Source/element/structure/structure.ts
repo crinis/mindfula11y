@@ -31,14 +31,15 @@ import '../notice/notice.js';
 import { LiveAnnouncer } from '../../lib/live-announcer.js';
 import {
     impactState,
-    renderCountBadge,
     renderDisclosureMarker,
     renderExternalLink,
     renderFindingPill,
+    renderImpactCountBadge,
     renderNoticeBody,
     renderProgressNotice,
     renderSeverityChip,
     renderSeverityLabel,
+    renderStatusRegion,
     renderViewportBadges,
     severityLabelKey,
     totalCount,
@@ -245,7 +246,7 @@ export class Structure extends LitElement {
     override render(): TemplateResult {
         return html`<div class="structure">
             ${this.announcer.render()}
-            <div class="status-region" role="status">${this.renderError()}</div>
+            ${renderStatusRegion(this.renderError())}
             ${this.renderErrorActions()}
             ${this.renderBody()}
         </div>`;
@@ -282,7 +283,7 @@ export class Structure extends LitElement {
         if (worst === undefined) {
             return nothing;
         }
-        return renderCountBadge(impactState(worst), counts[worst], `${counts[worst]} ${lll(severityLabelKey(worst))}`);
+        return renderImpactCountBadge(worst, counts[worst], `${counts[worst]} ${lll(severityLabelKey(worst))}`);
     }
 
     private renderError(): TemplateResult | typeof nothing {
@@ -302,9 +303,7 @@ export class Structure extends LitElement {
     }
 
     /**
-     * Rendered OUTSIDE the role="status" container: role="status" is
-     * implicitly atomic, so an embedded control would be re-announced as
-     * status text — and a live region must not contain interactive content.
+     * Rendered outside the status region — see `renderStatusRegion`.
      * The open-page link is the recovery path for pages behind HTTP auth:
      * a top-level navigation gets the browser sign-in prompt the sandboxed
      * frame cannot show, and the per-origin auth cache then lets Retry
