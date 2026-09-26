@@ -109,6 +109,12 @@ TCEFORM.tt_content.tx_mindfula11y_landmark {
 }
 ```
 
+The `removeItems` default hides the structural landmark roles (`main`, `banner`,
+`contentinfo`, `form`) from the FormEngine select so editors do not create
+duplicate landmarks that belong to the template. Like all `TCEFORM` options it
+adjusts the form UI only — it is an editorial guardrail, not an enforced
+restriction.
+
 ### TSconfig options explained
 
 | Option | Used for |

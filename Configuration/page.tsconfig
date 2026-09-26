@@ -45,8 +45,11 @@ mod {
     }
 }
 
-# Hide structural landmarks from content editors by default
-# These should typically be controlled at template level
+# Hide structural landmarks from content editors by default.
+# These should typically be controlled at template level.
+# Note: TCEFORM.removeItems is a FormEngine (UI) default only — DataHandler
+# does not validate select values against the reduced item list, so this is
+# an editorial guardrail, not an enforced restriction.
 TCEFORM.tt_content.tx_mindfula11y_landmark {
     removeItems = main,banner,contentinfo,form
 }

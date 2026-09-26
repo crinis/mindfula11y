@@ -86,6 +86,7 @@ upload comment. Manual `v*` tags are blocked by a repository ruleset.
 ### Documentation
 
 - The integrator documentation shows how to keep `openAIApiKey` and `scannerApiToken` out of the versioned `config/system/settings.php` using environment variables in `config/system/additional.php`, explains how HTTP Basic Authentication interacts with the structure analysis (browser sign-in) as opposed to the scanner (site-settings credentials), and documents the shipped `aiAudit` defaults.
+- The integrator documentation states explicitly that the shipped landmark default (`TCEFORM.tt_content.tx_mindfula11y_landmark.removeItems` hiding `main`, `banner`, `contentinfo` and `form`) adjusts the FormEngine select only and is an editorial guardrail, not an enforced restriction.
 
 ## [0.12.0] - 2026-07-12
 
