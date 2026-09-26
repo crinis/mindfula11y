@@ -55,6 +55,9 @@ const twoHeadingErrors: StructureAnalysis = {
     landmarks: null,
 };
 
+/** The findings overview list, found by its accessible name — classes are styling-only. */
+const FINDINGS_LIST = 'ul[aria-label="mindfula11y.structureErrors"]';
+
 describe('Structure', () => {
     beforeEach(() => {
         analyzeMock.mockReset();
@@ -101,7 +104,6 @@ describe('Structure', () => {
         [...view.renderRoot.querySelectorAll('button')].find(
             (button) => button.textContent?.trim() === 'mindfula11y.structure.retry',
         );
-    const FindingsList = 'ul[aria-label="mindfula11y.structureErrors"]';
 
     const renderFailed = async (error: StructureAnalysisError): Promise<Structure> => {
         analyzeMock.mockRejectedValueOnce(error);
@@ -148,11 +150,11 @@ describe('Structure', () => {
     it('labels and emphasizes the occurrence count in the findings overview', async () => {
         const view = await render({ analysis: twoHeadingErrors });
 
-        const count = view.renderRoot.querySelector(`${FindingsList} button strong`);
+        const count = view.renderRoot.querySelector(`${FINDINGS_LIST} button strong`);
 
         expect(count?.tagName).toBe('STRONG');
         expect(count?.textContent?.trim()).toBe('mindfula11y.structure.findingCount: 2');
-        expect(count?.closest(FindingsList)).not.toBeNull();
+        expect(count?.closest(FINDINGS_LIST)).not.toBeNull();
     });
 
     it('summarizes the analysis as a standardized status row', async () => {
@@ -171,7 +173,7 @@ describe('Structure', () => {
         expect(row?.textContent).toContain('mindfula11y.structure.issuesFound');
         expect(row?.getAttribute('count')).toBe('2');
         // The disclosure marker belongs to the collapsible layout only.
-        expect(row?.querySelector('.marker')).toBeNull();
+        expect(row?.querySelector('[slot="trailing"]')).toBeNull();
     });
 
     it('reports a clean page as a success row', async () => {
@@ -216,10 +218,10 @@ describe('Structure', () => {
         // The status row is the disclosure's summary and carries the marker.
         const row = details?.querySelector('summary > mindfula11y-notice');
         expect(row).not.toBeNull();
-        expect(row?.querySelector('.marker')).not.toBeNull();
+        expect(row?.querySelector('[slot="trailing"]')).not.toBeNull();
         // Tablist, findings pills and panels all live inside the disclosure.
         expect(details?.querySelector('[role="tablist"]')).not.toBeNull();
-        expect(details?.querySelector(FindingsList)).not.toBeNull();
+        expect(details?.querySelector(FINDINGS_LIST)).not.toBeNull();
         expect(details?.querySelectorAll('[role="tabpanel"]').length).toBe(2);
     });
 
@@ -230,7 +232,7 @@ describe('Structure', () => {
         const view = await render({ analysis: twoHeadingErrors });
 
         expect(view.renderRoot.querySelector('[role="tablist"]')).toBeNull();
-        const panel = view.renderRoot.querySelector('.panel');
+        const panel = view.renderRoot.querySelector('[role="region"], [role="tabpanel"]');
         expect(panel?.getAttribute('role')).toBe('region');
         expect(panel?.getAttribute('aria-label')).toBe('mindfula11y.structure.headings');
     });
@@ -253,7 +255,7 @@ describe('Structure', () => {
         const view = await render({ analysis, landmarks: true });
 
         const findingsOf = (tab: string): string[] =>
-            Array.from(view.renderRoot.querySelectorAll(`#panel-${tab} ${FindingsList} button`)).map(
+            Array.from(view.renderRoot.querySelectorAll(`#panel-${tab} ${FINDINGS_LIST} button`)).map(
                 (button) => button.textContent?.replace(/\s+/g, ' ').trim() ?? '',
             );
 

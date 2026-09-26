@@ -128,11 +128,12 @@ describe('ScanResults', () => {
             }),
         );
 
-        const sections = [...view.renderRoot.querySelectorAll('.skill')];
-        const titles = sections.map((section) => section.querySelector('.skill-title')?.textContent?.trim() ?? '');
-        expect(titles[0]).toContain('mindfula11y.scan.aiAudit.skill.alt_text');
-        expect(titles[1]).toContain('mindfula11y.scan.aiAudit.skill.link_purpose');
-        expect(sections[0]?.querySelectorAll('.card')).toHaveLength(2);
-        expect(sections[1]?.querySelectorAll('.card')).toHaveLength(1);
+        // One section per skill, each headed by an h3 naming the skill.
+        const titles = [...view.renderRoot.querySelectorAll('section > h3')];
+        const sections = titles.map((title) => title.parentElement);
+        expect(titles[0]?.textContent).toContain('mindfula11y.scan.aiAudit.skill.alt_text');
+        expect(titles[1]?.textContent).toContain('mindfula11y.scan.aiAudit.skill.link_purpose');
+        expect(sections[0]?.querySelectorAll(':scope > ul > li')).toHaveLength(2);
+        expect(sections[1]?.querySelectorAll(':scope > ul > li')).toHaveLength(1);
     });
 });
