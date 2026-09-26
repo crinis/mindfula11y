@@ -69,7 +69,9 @@ export class GenerateAltTextControl {
             return;
         }
         this.busy = true;
-        const icon = control.firstElementChild;
+        // Every child node, not just the icon element: an anchor without an
+        // element child would otherwise keep the spinner forever.
+        const children = Array.from(control.childNodes);
         const spinner = document.createElement('typo3-backend-spinner');
         spinner.setAttribute('size', 'small');
         control.setAttribute('aria-busy', 'true');
@@ -86,9 +88,7 @@ export class GenerateAltTextControl {
             const view = errorView(error, 'mindfula11y.altText.generate.error.unknown');
             Notification.error(view.title, view.description);
         } finally {
-            if (icon !== null) {
-                control.replaceChildren(icon);
-            }
+            control.replaceChildren(...children);
             control.removeAttribute('aria-busy');
             this.busy = false;
         }
