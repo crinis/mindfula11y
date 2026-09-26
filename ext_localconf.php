@@ -42,6 +42,8 @@ defined('TYPO3') or die();
         = ScanStateDataHandlerGuard::class;
     $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['t3lib/class.t3lib_tcemain.php']['processDatamapClass'][DecorativeFileReferenceDataHandlerGuard::class]
         = DecorativeFileReferenceDataHandlerGuard::class;
+    $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['t3lib/class.t3lib_tcemain.php']['processCmdmapClass'][ScanStateDataHandlerGuard::class]
+        = ScanStateDataHandlerGuard::class;
     $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['t3lib/class.t3lib_tcemain.php']['processCmdmapClass'][DecorativeFileReferenceDataHandlerGuard::class]
         = DecorativeFileReferenceDataHandlerGuard::class;
 

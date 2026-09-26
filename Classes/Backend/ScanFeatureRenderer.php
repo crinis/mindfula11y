@@ -100,7 +100,10 @@ final readonly class ScanFeatureRenderer implements FeatureRendererInterface
 
         // Reuse the stored scan only while the page content is unchanged —
         // stored per language on $finalPageInfo.
-        $scanId = $this->scanStateService->resolveEffectiveScanId($finalPageInfo, (int)($context->pageInfo['SYS_LASTCHANGED'] ?? 0));
+        $scanId = $this->scanStateService->resolveEffectiveScanId(
+            $this->scanStateService->withLiveScanState($finalPageInfo),
+            (int)($context->pageInfo['SYS_LASTCHANGED'] ?? 0)
+        );
 
         // Filter by the current page URL only when scanning a single page (pageLevels = 0).
         // When pageLevels > 0 the scan covers multiple pages and all results should be shown.

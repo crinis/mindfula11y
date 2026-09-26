@@ -100,7 +100,10 @@ final readonly class OverviewViewStateFactory
         $createScanDemand = null;
         if ($hasScanAccess && $this->scanApiService->isConfigured()) {
             // Reuse the stored scan only while the page content is unchanged.
-            $scanId = $this->scanStateService->resolveEffectiveScanId($finalPageInfo, (int)($pageInfo['SYS_LASTCHANGED'] ?? 0));
+            $scanId = $this->scanStateService->resolveEffectiveScanId(
+                $this->scanStateService->withLiveScanState($finalPageInfo),
+                (int)($pageInfo['SYS_LASTCHANGED'] ?? 0)
+            );
 
             if (null !== $previewUri) {
                 // The factory signs the language of $finalPageInfo — language 0

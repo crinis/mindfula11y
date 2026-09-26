@@ -23,10 +23,25 @@ declare(strict_types=1);
 namespace MindfulMarkup\MindfulA11y\Hooks;
 
 use MindfulMarkup\MindfulA11y\Service\ScanStateService;
+use Symfony\Component\DependencyInjection\Attribute\Autoconfigure;
+use TYPO3\CMS\Core\Database\Connection;
+use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
 use TYPO3\CMS\Core\SysLog\Action\Database as SystemLogDatabaseAction;
 use TYPO3\CMS\Core\SysLog\Error as SystemLogErrorClassification;
+use TYPO3\CMS\Core\Utility\MathUtility;
 
+/**
+ * Keeps the page scan state (tx_mindfula11y_scanid / _scanupdated) owned by
+ * ScanCreationService and by the live page row.
+ *
+ * Scans only run in the live workspace and are stored on the live row, and
+ * the scan id is the authorization anchor for the stored scan. So: external
+ * datamap writes are stripped, copies do not inherit the state, and
+ * publishing a workspace version does not overwrite it with the copy the
+ * version was created with.
+ */
+#[Autoconfigure(public: true)]
 final class ScanStateDataHandlerGuard
 {
     /**
@@ -37,7 +52,37 @@ final class ScanStateDataHandlerGuard
         ScanStateService::FIELD_SCAN_UPDATED,
     ];
 
+    /**
+     * Commands whose nested DataHandler run creates a duplicate of an existing
+     * record (copyRecord() / localize() hand the source row to a fresh
+     * DataHandler as a NEW record).
+     *
+     * @var list<string>
+     */
+    private const DUPLICATING_COMMANDS = ['copy', 'localize', 'copyToLanguage', 'inlineLocalizeSynchronize'];
+
+    /**
+     * EXT:workspaces' publish actions of the "version" command (both majors
+     * accept either; the workspace module sends "publish", older API
+     * consumers "swap").
+     *
+     * @var list<string>
+     */
+    private const PUBLISH_ACTIONS = ['publish', 'swap'];
+
     private static int $internalWriteDepth = 0;
+
+    /**
+     * Nesting depth of duplicating commands in progress. Static because the
+     * nested copy DataHandler gets its own hook instance. Should a command
+     * throw between pre- and post-processing, the depth stays raised; the only
+     * effect is that a later strip goes unlogged — it still strips.
+     */
+    private static int $duplicationDepth = 0;
+
+    public function __construct(
+        private readonly ConnectionPool $connectionPool,
+    ) {}
 
     public static function withInternalWriteScope(callable $callback): mixed
     {
@@ -74,6 +119,76 @@ final class ScanStateDataHandlerGuard
     }
 
     /**
+     * Runs for every command before any processCmdmap() hook executes it —
+     * in particular before EXT:workspaces' processCmdmap() performs the
+     * publish swap (its processCmdmap_beforeStart() only expands the command
+     * map; it touches no rows). Same order on TYPO3 13 and 14.
+     */
+    public function processCmdmap_preProcess(string $command, string $table, mixed $id, mixed $value, DataHandler $dataHandler): void
+    {
+        if (in_array($command, self::DUPLICATING_COMMANDS, true)) {
+            self::$duplicationDepth++;
+        }
+
+        if ($table === 'pages'
+            && $command === 'version'
+            && is_array($value)
+            && in_array($value['action'] ?? null, self::PUBLISH_ACTIONS, true)
+        ) {
+            $this->alignVersionScanStateWithLive((int)$id, (int)($value['swapWith'] ?? 0));
+        }
+    }
+
+    public function processCmdmap_postProcess(string $command, string $table, mixed $id, mixed $value, DataHandler $dataHandler): void
+    {
+        if (in_array($command, self::DUPLICATING_COMMANDS, true) && self::$duplicationDepth > 0) {
+            self::$duplicationDepth--;
+        }
+    }
+
+    /**
+     * Publishing swaps every column of the version over the live row, except
+     * the few EXT:workspaces keeps (unique/uuid fields). The version still
+     * holds the scan state it was copied with at versioning time, so a scan
+     * taken since would be replaced by a stale one. Writing the live values
+     * onto the version first makes the swap a no-op for these columns.
+     *
+     * Only a genuine version of $liveUid is touched: the command is user
+     * input, and the publish permission checks run later, inside the swap.
+     */
+    private function alignVersionScanStateWithLive(int $liveUid, int $versionUid): void
+    {
+        if ($liveUid <= 0 || $versionUid <= 0) {
+            return;
+        }
+
+        $queryBuilder = $this->connectionPool->getQueryBuilderForTable('pages');
+        $queryBuilder->getRestrictions()->removeAll();
+        $liveRow = $queryBuilder
+            ->select(...self::SCAN_STATE_FIELDS)
+            ->from('pages')
+            ->where(
+                $queryBuilder->expr()->eq('uid', $queryBuilder->createNamedParameter($liveUid, Connection::PARAM_INT)),
+                $queryBuilder->expr()->eq('t3ver_oid', $queryBuilder->createNamedParameter(0, Connection::PARAM_INT))
+            )
+            ->executeQuery()
+            ->fetchAssociative();
+        if (!is_array($liveRow)) {
+            return;
+        }
+
+        $this->connectionPool->getConnectionForTable('pages')->update(
+            'pages',
+            $liveRow,
+            ['uid' => $versionUid, 't3ver_oid' => $liveUid],
+            [
+                ScanStateService::FIELD_SCAN_ID => Connection::PARAM_STR,
+                ScanStateService::FIELD_SCAN_UPDATED => Connection::PARAM_INT,
+            ]
+        );
+    }
+
+    /**
      * @param array<string, mixed> $fieldArray
      */
     private function stripScanStateFields(array &$fieldArray, string $table, int|string $id, DataHandler $dataHandler): void
@@ -89,6 +204,12 @@ final class ScanStateDataHandlerGuard
 
         foreach ($submittedScanFields as $fieldName) {
             unset($fieldArray[$fieldName]);
+        }
+
+        // A copied page carries its source's scan state in the duplicated row:
+        // stripped all the same, but nobody attempted to write it.
+        if (self::$duplicationDepth > 0 && !MathUtility::canBeInterpretedAsInteger($id)) {
+            return;
         }
 
         $dataHandler->log(

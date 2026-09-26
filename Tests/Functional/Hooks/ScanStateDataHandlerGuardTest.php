@@ -17,8 +17,10 @@ namespace MindfulMarkup\MindfulA11y\Tests\Functional\Hooks;
 use MindfulMarkup\MindfulA11y\Hooks\ScanStateDataHandlerGuard;
 use MindfulMarkup\MindfulA11y\Service\ScanStateService;
 use MindfulMarkup\MindfulA11y\Tests\Functional\AbstractAuthorizationTestCase;
+use PHPUnit\Framework\Attributes\DataProvider;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Cache\CacheManager;
+use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
@@ -29,7 +31,8 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
  * of the record saves normally — while ScanCreationService's internal write
  * scope may persist them. The guard is an integrity gate, not a permission
  * gate: it applies to admins too, and the internal scope does NOT lift
- * core's own page permissions.
+ * core's own page permissions. Copies never inherit the state, and publishing
+ * a workspace version never overwrites the live row's state.
  */
 final class ScanStateDataHandlerGuardTest extends AbstractAuthorizationTestCase
 {
@@ -164,6 +167,195 @@ final class ScanStateDataHandlerGuardTest extends AbstractAuthorizationTestCase
 
         self::assertSame('protected-scan', $this->fetchPage(14)[ScanStateService::FIELD_SCAN_ID], 'no-access page unchanged');
         self::assertNotSame([], $dataHandler->errorLog, 'DataHandler denied the write itself');
+    }
+
+    /**
+     * Stripping an external write is recorded in sys_log — the note that
+     * someone tried to forge scanner state stays for every such write.
+     */
+    public function testExternalWriteIsLogged(): void
+    {
+        $backendUser = $this->logInBackendUser(2);
+
+        $this->runDataHandler([
+            'pages' => [
+                10 => [
+                    ScanStateService::FIELD_SCAN_ID => 'forged-scan',
+                ],
+            ],
+        ], $backendUser);
+
+        self::assertSame(1, $this->countBlockedLogEntries());
+    }
+
+    /**
+     * Copying a page duplicates its row — scan state included — through a
+     * nested DataHandler. The copy must not inherit the scan id (it is the
+     * authorization anchor of the source's scan), but nobody attempted to
+     * write scanner state either: no "blocked" log entry per copied page.
+     */
+    public function testPageCopyStripsScanStateWithoutLogging(): void
+    {
+        $this->seedScanState(10, 'source-scan', 1000);
+        $backendUser = $this->logInBackendUser(1);
+
+        $dataHandler = $this->runCommandMap(['pages' => [10 => ['copy' => 1]]], $backendUser);
+
+        $copyUid = (int)($dataHandler->copyMappingArray_merged['pages'][10] ?? 0);
+        self::assertGreaterThan(0, $copyUid, 'the page was copied');
+        $copy = $this->fetchPageRaw($copyUid);
+        self::assertSame('', (string)$copy[ScanStateService::FIELD_SCAN_ID], 'the copy does not inherit the scan id');
+        self::assertSame(0, (int)$copy[ScanStateService::FIELD_SCAN_UPDATED], 'nor the scan timestamp');
+        self::assertSame(0, $this->countBlockedLogEntries(), 'a copy is not a forgery attempt');
+    }
+
+    /**
+     * Localizing a page creates the translation from the language overlay
+     * fields only — scan state is neither carried over nor reported.
+     */
+    public function testPageLocalizeCarriesNoScanStateAndLogsNothing(): void
+    {
+        $this->writeDefaultSiteConfiguration();
+        $this->seedScanState(13, 'source-scan', 1000);
+        $backendUser = $this->logInBackendUser(1);
+
+        $dataHandler = $this->runCommandMap(['pages' => [13 => ['localize' => 1]]], $backendUser);
+
+        $translationUid = (int)($dataHandler->copyMappingArray_merged['pages'][13] ?? 0);
+        self::assertGreaterThan(0, $translationUid, 'the page was localized');
+        self::assertSame('', (string)$this->fetchPageRaw($translationUid)[ScanStateService::FIELD_SCAN_ID]);
+        self::assertSame(0, $this->countBlockedLogEntries());
+    }
+
+    /**
+     * Versioning a page copies its scan state into the workspace version, and
+     * publishing swaps the version's columns over live. Scan state is owned by
+     * live (scans only run there), so a scan taken after the draft was created
+     * must survive the publish instead of being replaced by the stale copy.
+     */
+    #[DataProvider('publishActionProvider')]
+    public function testPublishingAWorkspaceVersionKeepsTheLiveScanState(string $action): void
+    {
+        $this->seedScanState(10, 'scan-before-draft', 1000);
+        $versionUid = $this->createWorkspaceVersionOfPage10();
+
+        // A newer live scan lands while the draft waits for publishing.
+        $this->seedScanState(10, 'scan-after-draft', 2000);
+
+        $dataHandler = $this->runCommandMap(
+            ['pages' => [10 => ['version' => ['action' => $action, 'swapWith' => $versionUid]]]],
+            $this->logInBackendUser(1, 1)
+        );
+
+        $live = $this->fetchPageRaw(10);
+        self::assertSame([], $dataHandler->errorLog, 'the publish itself succeeded');
+        self::assertSame('Draft title', $live['title'], 'fixture guard: the draft was published');
+        self::assertSame('scan-after-draft', $live[ScanStateService::FIELD_SCAN_ID], 'the newer live scan id survives');
+        self::assertSame(2000, (int)$live[ScanStateService::FIELD_SCAN_UPDATED], 'the newer live scan timestamp survives');
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function publishActionProvider(): array
+    {
+        return [
+            'publish' => ['publish'],
+            'swap' => ['swap'],
+        ];
+    }
+
+    /**
+     * The pre-publish alignment only ever touches a genuine version of the
+     * record being published. A crafted command pointing swapWith at an
+     * unrelated live page must not copy scan state onto it — workspaces then
+     * rejects the swap on its own.
+     */
+    public function testPublishAlignmentIgnoresASwapTargetThatIsNotAVersionOfTheRecord(): void
+    {
+        $this->seedScanState(10, 'scan-of-10', 2000);
+        $this->seedScanState(13, 'scan-of-13', 1000);
+
+        $this->runCommandMap(
+            ['pages' => [10 => ['version' => ['action' => 'publish', 'swapWith' => 13]]]],
+            $this->logInBackendUser(1, 1)
+        );
+
+        $unrelated = $this->fetchPageRaw(13);
+        self::assertSame('scan-of-13', $unrelated[ScanStateService::FIELD_SCAN_ID]);
+        self::assertSame(1000, (int)$unrelated[ScanStateService::FIELD_SCAN_UPDATED]);
+    }
+
+    /**
+     * Edit page 10 in workspace 1 and return the created version's uid.
+     */
+    private function createWorkspaceVersionOfPage10(): int
+    {
+        $this->runDataHandler(['pages' => [10 => ['title' => 'Draft title']]], $this->logInBackendUser(1, 1));
+
+        $versionUid = (int)$this->getConnectionPool()
+            ->getConnectionForTable('pages')
+            ->select(['uid'], 'pages', ['t3ver_oid' => 10, 't3ver_wsid' => 1])
+            ->fetchOne();
+        self::assertGreaterThan(0, $versionUid, 'fixture guard: the edit created a workspace version');
+        self::assertSame(
+            'scan-before-draft',
+            $this->fetchPageRaw($versionUid)[ScanStateService::FIELD_SCAN_ID],
+            'fixture guard: versioning copied the scan state into the version row'
+        );
+
+        return $versionUid;
+    }
+
+    /**
+     * @param array<string, array<int, array<string, mixed>>> $cmdmap
+     */
+    private function runCommandMap(array $cmdmap, BackendUserAuthentication $backendUser): DataHandler
+    {
+        GeneralUtility::makeInstance(CacheManager::class)->getCache('runtime')->flush();
+
+        $dataHandler = GeneralUtility::makeInstance(DataHandler::class);
+        $dataHandler->start([], $cmdmap, $backendUser);
+        $dataHandler->process_cmdmap();
+
+        return $dataHandler;
+    }
+
+    private function countBlockedLogEntries(): int
+    {
+        $queryBuilder = $this->getConnectionPool()->getQueryBuilderForTable('sys_log');
+        $queryBuilder->getRestrictions()->removeAll();
+
+        return (int)$queryBuilder
+            ->count('uid')
+            ->from('sys_log')
+            ->where($queryBuilder->expr()->like(
+                'details',
+                $queryBuilder->createNamedParameter('%internal Mindful A11y scanner state fields was blocked%')
+            ))
+            ->executeQuery()
+            ->fetchOne();
+    }
+
+    /**
+     * Restriction-free read: copied pages are hidden, versions are filtered by
+     * the default workspace restriction.
+     *
+     * @return array<string, mixed>
+     */
+    private function fetchPageRaw(int $uid): array
+    {
+        $queryBuilder = $this->getConnectionPool()->getQueryBuilderForTable('pages');
+        $queryBuilder->getRestrictions()->removeAll();
+        $row = $queryBuilder
+            ->select('*')
+            ->from('pages')
+            ->where($queryBuilder->expr()->eq('uid', $queryBuilder->createNamedParameter($uid, Connection::PARAM_INT)))
+            ->executeQuery()
+            ->fetchAssociative();
+        self::assertIsArray($row, 'page ' . $uid . ' exists');
+
+        return $row;
     }
 
     /**

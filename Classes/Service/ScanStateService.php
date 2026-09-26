@@ -23,6 +23,7 @@ declare(strict_types=1);
 namespace MindfulMarkup\MindfulA11y\Service;
 
 use TYPO3\CMS\Backend\Utility\BackendUtility;
+use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
 use TYPO3\CMS\Core\Database\Query\Restriction\WorkspaceRestriction;
@@ -86,6 +87,43 @@ final readonly class ScanStateService
     }
 
     /**
+     * Replace the scan state of a workspace version with the live row's.
+     *
+     * Scans run only in the live workspace and are stored on the live row; a
+     * workspace version merely carries the state it was copied with when the
+     * page was versioned. Rows that are neither a workspace overlay nor a
+     * version row are returned unchanged.
+     *
+     * @param array<string, mixed> $pageInfo A page record, possibly workspace-overlaid.
+     * @return array<string, mixed>
+     */
+    public function withLiveScanState(array $pageInfo): array
+    {
+        // BackendUtility::workspaceOL() keeps the live uid in 'uid' and moves
+        // the version's own uid to '_ORIG_uid'; a raw version row points at
+        // its live row through t3ver_oid.
+        $liveUid = match (true) {
+            isset($pageInfo['_ORIG_uid']) => (int)($pageInfo['uid'] ?? 0),
+            (int)($pageInfo['t3ver_oid'] ?? 0) > 0 => (int)$pageInfo['t3ver_oid'],
+            default => 0,
+        };
+        if ($liveUid <= 0) {
+            return $pageInfo;
+        }
+
+        $queryBuilder = $this->connectionPool->getQueryBuilderForTable('pages');
+        $queryBuilder->getRestrictions()->removeAll();
+        $liveRow = $queryBuilder
+            ->select(self::FIELD_SCAN_ID, self::FIELD_SCAN_UPDATED)
+            ->from('pages')
+            ->where($queryBuilder->expr()->eq('uid', $queryBuilder->createNamedParameter($liveUid, Connection::PARAM_INT)))
+            ->executeQuery()
+            ->fetchAssociative();
+
+        return is_array($liveRow) ? array_replace($pageInfo, $liveRow) : $pageInfo;
+    }
+
+    /**
      * Get the workspace-overlaid page record carrying the given scan ID.
      *
      * @return array<string, mixed>|null The page record or null if not found.
@@ -110,9 +148,10 @@ final readonly class ScanStateService
             return null;
         }
 
-        // Resolve the Live UID: since TYPO3 v11 workspace version rows keep the
-        // page's pid and reference their live counterpart in t3ver_oid (the old
-        // pid = -1 convention is gone), so t3ver_oid > 0 identifies a version.
+        // Resolve the live uid. Under the default-mode WorkspaceRestriction
+        // the only matching rows with t3ver_oid > 0 are move pointers (plain
+        // versions are filtered out, new placeholders carry t3ver_oid = 0);
+        // a move pointer references its live counterpart in t3ver_oid.
         $liveUid = (int)($result['t3ver_oid'] ?? 0) > 0
             ? (int)$result['t3ver_oid']
             : (int)($result['uid'] ?? 0);
