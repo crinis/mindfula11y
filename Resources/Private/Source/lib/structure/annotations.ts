@@ -27,6 +27,16 @@
 import type { RecordReference } from '../types.js';
 
 /**
+ * Parses an annotation's record uid, or `null` unless it is a canonical
+ * positive integer. Deliberately as strict as the iframe protocol's record
+ * guard (`protocol.ts`): `parseInt` would accept `0`, negatives or `12abc`,
+ * and one such annotation would fail the whole viewport as `invalid-result`
+ * instead of just dropping that node's record.
+ */
+const parseUid = (raw: string | undefined): number | null =>
+    raw !== undefined && /^[1-9]\d*$/.test(raw) ? Number(raw) : null;
+
+/**
  * Reads the record coordinates an annotated element points at, or `null` when
  * the dataset is incomplete. Editing metadata is deliberately resolved later
  * by the authenticated backend endpoint.
@@ -34,8 +44,8 @@ import type { RecordReference } from '../types.js';
 export const extractRecord = (element: HTMLElement): RecordReference | null => {
     const tableName = element.dataset.mindfula11yRecordTableName ?? '';
     const columnName = element.dataset.mindfula11yRecordColumnName ?? '';
-    const uid = Number.parseInt(element.dataset.mindfula11yRecordUid ?? '', 10);
-    if (tableName === '' || columnName === '' || Number.isNaN(uid)) {
+    const uid = parseUid(element.dataset.mindfula11yRecordUid);
+    if (tableName === '' || columnName === '' || uid === null) {
         return null;
     }
     // Present (possibly empty = "automatic") only when the stored value can differ
@@ -52,8 +62,8 @@ export const extractRecord = (element: HTMLElement): RecordReference | null => {
 export const extractChildTypeRecord = (element: HTMLElement): RecordReference | null => {
     const tableName = element.dataset.mindfula11yChildtypeTableName ?? '';
     const columnName = element.dataset.mindfula11yChildtypeColumnName ?? '';
-    const uid = Number.parseInt(element.dataset.mindfula11yChildtypeUid ?? '', 10);
-    if (tableName === '' || columnName === '' || Number.isNaN(uid)) {
+    const uid = parseUid(element.dataset.mindfula11yChildtypeUid);
+    if (tableName === '' || columnName === '' || uid === null) {
         return null;
     }
     return { tableName, columnName, uid, editLink: '', storedValue: element.dataset.mindfula11yChildtypeValue ?? '' };

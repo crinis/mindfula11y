@@ -16,6 +16,11 @@ import {
     extractRecord,
     indexStructureNodes,
 } from '../../../../Resources/Private/Source/lib/structure/annotations.js';
+import {
+    isStructureAnalysisResultMessage,
+    STRUCTURE_ANALYSIS_PROTOCOL,
+} from '../../../../Resources/Private/Source/lib/structure/protocol.js';
+import type { RecordReference } from '../../../../Resources/Private/Source/lib/types.js';
 
 const makeElement = (record?: { tableName: string; columnName: string; uid: number | string }): HTMLElement => {
     const element = document.createElement('div');
@@ -49,6 +54,70 @@ describe('extractRecord', () => {
 
     it('yields null for an element without any annotation', () => {
         expect(extractRecord(makeElement())).toBeNull();
+    });
+});
+
+describe('record uid parsing', () => {
+    const RequestId = '0123456789abcdef0123456789abcdef';
+
+    /** Whether the iframe protocol guard accepts a heading node carrying this record. */
+    const wireAccepts = (record: RecordReference): boolean =>
+        isStructureAnalysisResultMessage(
+            {
+                protocol: STRUCTURE_ANALYSIS_PROTOCOL,
+                type: 'result',
+                requestId: RequestId,
+                viewport: 'mobile',
+                headings: {
+                    nodes: [
+                        {
+                            id: 'heading:1',
+                            documentOrder: 0,
+                            kind: 'heading',
+                            level: 1,
+                            label: 'Title',
+                            availableTypes: {},
+                            availableChildTypes: {},
+                            record,
+                            childTypeRecord: record,
+                            relationId: '',
+                            relation: null,
+                            skippedLevels: 0,
+                            viewports: ['mobile'],
+                            errors: [],
+                            children: [],
+                        },
+                    ],
+                    errors: [],
+                },
+                landmarks: null,
+            },
+            RequestId,
+            'mobile',
+        );
+
+    const makeChildTypeElement = (uid: string): HTMLElement => {
+        const element = document.createElement('div');
+        element.dataset.mindfula11yChildtypeTableName = 'tt_content';
+        element.dataset.mindfula11yChildtypeColumnName = 'tx_mindfula11y_childheadingtype';
+        element.dataset.mindfula11yChildtypeUid = uid;
+        element.dataset.mindfula11yChildtypeValue = '';
+        return element;
+    };
+
+    it.each(['0', '-3', '12abc', '1.5', '1e3', ' 7', '007', ''])('rejects the malformed uid %j', (uid) => {
+        expect(extractRecord(makeElement({ tableName: 'tt_content', columnName: 'header_type', uid }))).toBeNull();
+        expect(extractChildTypeRecord(makeChildTypeElement(uid))).toBeNull();
+    });
+
+    it.each(['1', '42', '1000000'])('agrees with the wire guard on the valid uid %j', (uid) => {
+        const record = extractRecord(makeElement({ tableName: 'tt_content', columnName: 'header_type', uid }));
+        const childTypeRecord = extractChildTypeRecord(makeChildTypeElement(uid));
+
+        expect(record?.uid).toBe(Number(uid));
+        expect(childTypeRecord?.uid).toBe(Number(uid));
+        expect(record !== null && wireAccepts(record)).toBe(true);
+        expect(childTypeRecord !== null && wireAccepts(childTypeRecord)).toBe(true);
     });
 });
 

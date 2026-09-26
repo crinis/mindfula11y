@@ -1,8 +1,9 @@
+const parseUid = (raw) => raw !== void 0 && /^[1-9]\d*$/.test(raw) ? Number(raw) : null;
 const extractRecord = (element) => {
   const tableName = element.dataset.mindfula11yRecordTableName ?? "";
   const columnName = element.dataset.mindfula11yRecordColumnName ?? "";
-  const uid = Number.parseInt(element.dataset.mindfula11yRecordUid ?? "", 10);
-  if (tableName === "" || columnName === "" || Number.isNaN(uid)) {
+  const uid = parseUid(element.dataset.mindfula11yRecordUid);
+  if (tableName === "" || columnName === "" || uid === null) {
     return null;
   }
   const storedValue = element.dataset.mindfula11yRecordValue;
@@ -11,8 +12,8 @@ const extractRecord = (element) => {
 const extractChildTypeRecord = (element) => {
   const tableName = element.dataset.mindfula11yChildtypeTableName ?? "";
   const columnName = element.dataset.mindfula11yChildtypeColumnName ?? "";
-  const uid = Number.parseInt(element.dataset.mindfula11yChildtypeUid ?? "", 10);
-  if (tableName === "" || columnName === "" || Number.isNaN(uid)) {
+  const uid = parseUid(element.dataset.mindfula11yChildtypeUid);
+  if (tableName === "" || columnName === "" || uid === null) {
     return null;
   }
   return { tableName, columnName, uid, editLink: "", storedValue: element.dataset.mindfula11yChildtypeValue ?? "" };
