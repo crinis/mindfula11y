@@ -107,8 +107,8 @@ class DescendantViewHelper extends AbstractHeadingViewHelper
      */
     protected function resolveRelatedHeadingType(): ?HeadingType
     {
-        // Cast: Fluid v2 (TYPO3 13) passes an integer value (e.g. {data.uid})
-        // into string-typed arguments uncast; Fluid v4 casts it.
+        // Cast: Fluid 4 (TYPO3 13) passes an integer value (e.g. {data.uid})
+        // into string-typed arguments uncast; Fluid 5 (TYPO3 14) casts it.
         $relation = $this->headingRelationRegistry->resolve((string)$this->arguments['ancestorId']);
 
         if (null !== $relation?->childType) {
