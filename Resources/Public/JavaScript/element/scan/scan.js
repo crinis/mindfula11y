@@ -160,7 +160,7 @@ let Scan = class extends LitElement {
   }
   async handleTrigger(tab) {
     const demand = this.tabDemand(tab);
-    if (demand === null || this.actionBusy) {
+    if (demand === null || this.actionBusy || this.isScanRunning()) {
       return;
     }
     this.actionBusy = true;

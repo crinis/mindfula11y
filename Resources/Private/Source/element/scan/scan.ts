@@ -215,7 +215,9 @@ export class Scan extends LitElement {
 
     private async handleTrigger(tab: ScanTab): Promise<void> {
         const demand = this.tabDemand(tab);
-        if (demand === null || this.actionBusy) {
+        // Mirrors the trigger's aria-disabled condition: the button stays
+        // focusable while a scan runs, and a second create would orphan it.
+        if (demand === null || this.actionBusy || this.isScanRunning()) {
             return;
         }
         this.actionBusy = true;
