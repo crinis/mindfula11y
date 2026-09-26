@@ -76,6 +76,49 @@ final class ScanStateDataHandlerGuardTest extends AbstractAuthorizationTestCase
     }
 
     /**
+     * TCAdefaults (page/user TSconfig) are applied by DataHandler AFTER the
+     * pre-process hook, so stripping the submitted datamap alone would let a
+     * TSconfig entry seed a chosen scan id onto every new page — and the scan
+     * id is the authorization anchor for existing scans. The guard strips the
+     * fields again after defaults were applied.
+     *
+     * Version note: on v14, newFieldArray() only iterates the record type's
+     * sub-schema fields, and the scan-state columns are in no showitem — the
+     * seed is already refused structurally (this test then passes without the
+     * post-process hook and acts as a regression tripwire). On v13,
+     * newFieldArray() iterates ALL schema columns and the hook is the only
+     * protection; the subtitle control below proves TCAdefaults were actually
+     * applied in this run, keeping the scan-id assertion non-vacuous.
+     */
+    public function testTcaDefaultsCannotSeedScanStateOntoANewPage(): void
+    {
+        $this->getConnectionPool()->getConnectionForTable('pages')->update(
+            'pages',
+            ['TSconfig' => "TCAdefaults.pages." . ScanStateService::FIELD_SCAN_ID . " = seeded-scan\nTCAdefaults.pages.subtitle = seeded-sub"],
+            ['uid' => 10],
+        );
+        $backendUser = $this->logInBackendUser(1);
+
+        $dataHandler = $this->runDataHandler([
+            'pages' => [
+                'NEW_SEEDED' => [
+                    'pid' => 10,
+                    'title' => 'Fresh page',
+                    // New pages default to hidden=1; fetchPage() selects through
+                    // the restriction-aware builder and would not see the row.
+                    'hidden' => 0,
+                ],
+            ],
+        ], $backendUser);
+
+        $newUid = (int)($dataHandler->substNEWwithIDs['NEW_SEEDED'] ?? 0);
+        self::assertGreaterThan(0, $newUid, 'the page itself is created');
+        $page = $this->fetchPage($newUid);
+        self::assertSame('seeded-sub', (string)$page['subtitle'], 'fixture guard: TCAdefaults were applied to this record at all');
+        self::assertSame('', (string)$page[ScanStateService::FIELD_SCAN_ID], 'a TSconfig default must not seed a scan id');
+    }
+
+    /**
      * The sanctioned path (mirrors ScanCreationService::storeScanId): inside
      * withInternalWriteScope() the same datamap persists.
      */

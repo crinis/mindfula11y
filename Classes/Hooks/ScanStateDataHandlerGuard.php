@@ -54,17 +54,41 @@ final class ScanStateDataHandlerGuard
      */
     public function processDatamap_preProcessFieldArray(&$incomingFieldArray, string $table, int|string $id, DataHandler $dataHandler): void
     {
-        if ($table !== 'pages' || self::$internalWriteDepth > 0 || !is_array($incomingFieldArray)) {
+        if (!is_array($incomingFieldArray)) {
+            return;
+        }
+        $this->stripScanStateFields($incomingFieldArray, $table, $id, $dataHandler);
+    }
+
+    /**
+     * Second pass after DataHandler applied field defaults: TCAdefaults from
+     * page/user TSconfig are merged in AFTER the pre-process hook, so a
+     * TSconfig entry could otherwise seed a chosen scan id onto every new
+     * page — and the scan id is the authorization anchor for existing scans.
+     *
+     * @param array<string, mixed> $fieldArray
+     */
+    public function processDatamap_postProcessFieldArray(string $status, string $table, int|string $id, array &$fieldArray, DataHandler $dataHandler): void
+    {
+        $this->stripScanStateFields($fieldArray, $table, $id, $dataHandler);
+    }
+
+    /**
+     * @param array<string, mixed> $fieldArray
+     */
+    private function stripScanStateFields(array &$fieldArray, string $table, int|string $id, DataHandler $dataHandler): void
+    {
+        if ($table !== 'pages' || self::$internalWriteDepth > 0) {
             return;
         }
 
-        $submittedScanFields = array_intersect(self::SCAN_STATE_FIELDS, array_keys($incomingFieldArray));
+        $submittedScanFields = array_intersect(self::SCAN_STATE_FIELDS, array_keys($fieldArray));
         if ($submittedScanFields === []) {
             return;
         }
 
         foreach ($submittedScanFields as $fieldName) {
-            unset($incomingFieldArray[$fieldName]);
+            unset($fieldArray[$fieldName]);
         }
 
         $dataHandler->log(
