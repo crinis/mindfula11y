@@ -14,13 +14,13 @@ declare(strict_types=1);
 namespace MindfulMarkup\MindfulA11y\Service;
 
 use MindfulMarkup\MindfulA11y\Domain\Model\StructureAnalysisTicket;
+use MindfulMarkup\MindfulA11y\Tca\VersionedRecord;
 use TYPO3\CMS\Backend\Module\ModuleProvider;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Type\Bitmask\Permission;
 use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
-use TYPO3\CMS\Core\Versioning\VersionState;
 
 /** Applies TYPO3's backend authorization model to structure-analysis capabilities. */
 final readonly class StructureAnalysisAuthorizationService
@@ -106,7 +106,7 @@ final readonly class StructureAnalysisAuthorizationService
         }
         BackendUtility::workspaceOL('pages', $page, $workspaceId);
         if (!is_array($page)
-            || VersionState::tryFrom((int)($page['t3ver_state'] ?? 0)) === VersionState::DELETE_PLACEHOLDER
+            || VersionedRecord::isDeletePlaceholder($page)
             // TYPO3 documents DB-mount containment and the page Show bit as
             // separate requirements. Keep both checks explicit even though
             // current calcPerms() also fails pages outside a web mount.
@@ -136,7 +136,7 @@ final readonly class StructureAnalysisAuthorizationService
         $translation = $this->pagePreviewService->getLocalizedPageRecord($pageId, $languageId, $workspaceId);
 
         return is_array($translation)
-            && VersionState::tryFrom((int)($translation['t3ver_state'] ?? 0)) !== VersionState::DELETE_PLACEHOLDER;
+            && !VersionedRecord::isDeletePlaceholder($translation);
     }
 
     /**

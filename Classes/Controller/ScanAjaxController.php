@@ -37,12 +37,12 @@ use MindfulMarkup\MindfulA11y\Service\ScanApiService;
 use MindfulMarkup\MindfulA11y\Service\ScanCreationService;
 use MindfulMarkup\MindfulA11y\Service\ScanDemandFactory;
 use MindfulMarkup\MindfulA11y\Service\SiteLanguageService;
+use MindfulMarkup\MindfulA11y\Tca\VersionedRecord;
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Http\JsonResponse;
-use TYPO3\CMS\Core\Versioning\VersionState;
 
 /**
  * Handles the AJAX endpoints of the accessibility-scanner feature.
@@ -176,7 +176,7 @@ final readonly class ScanAjaxController
         // reported as "scanning disabled" instead of "not found".
         $page = BackendUtility::getRecordWSOL('pages', $pageId);
 
-        if (null === $page || VersionState::tryFrom((int)$page['t3ver_state']) === VersionState::DELETE_PLACEHOLDER) {
+        if (null === $page || VersionedRecord::isDeletePlaceholder($page)) {
             return $this->errorResponse('scan.error.pageNotFound', 404);
         }
 

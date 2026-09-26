@@ -24,6 +24,7 @@ declare(strict_types=1);
 namespace MindfulMarkup\MindfulA11y\Service;
 
 use MindfulMarkup\MindfulA11y\Tca\TranslationFields;
+use MindfulMarkup\MindfulA11y\Tca\VersionedRecord;
 use TYPO3\CMS\Backend\Module\ModuleProvider;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
@@ -31,7 +32,6 @@ use TYPO3\CMS\Core\Resource\FileInterface;
 use TYPO3\CMS\Core\Schema\Capability\TcaSchemaCapability;
 use TYPO3\CMS\Core\Schema\TcaSchemaFactory;
 use TYPO3\CMS\Core\Type\Bitmask\Permission;
-use TYPO3\CMS\Core\Versioning\VersionState;
 
 /**
  * Class PermissionService.
@@ -147,9 +147,13 @@ final readonly class PermissionService
     /**
      * Check if user has read access to the given table.
      * 
+     * Table-level gate only: the user may select from the table
+     * (tables_select; admins always). Record, page and language permissions
+     * are checked separately.
+     *
      * @param string $tableName The name of the table to check.
-     * 
-     * @return bool True if file references can be listed, false otherwise.
+     *
+     * @return bool True if the user may read records of the table, false otherwise.
      */
     public function checkTableReadAccess(string $tableName): bool
     {
@@ -176,9 +180,14 @@ final readonly class PermissionService
     /**
      * Check if user has write access to the given table.
      * 
+     * Table-level gate only: the table is not readOnly, not adminOnly for
+     * non-admins, granted via tables_modify, and writable in the current
+     * workspace (workspace-aware, or live editing allowed). Record, page and
+     * language permissions are checked by checkRecordEditAccess().
+     *
      * @param string $tableName The name of the table to check.
-     * 
-     * @return bool True if file references can be listed, false otherwise.
+     *
+     * @return bool True if the user may modify records of the table, false otherwise.
      */
     public function checkTableWriteAccess(string $tableName): bool
     {
@@ -242,10 +251,9 @@ final readonly class PermissionService
 
         BackendUtility::workspaceOL($tableName, $row);
 
-        // workspaceOL() may replace the row by the current workspace version.
-        // Keep these structural checks ahead of the admin shortcut: neither
-        // FormEngine nor DataHandler may edit delete placeholders or a version
-        // owned by a workspace other than the one active in the session.
+        // workspaceOL() may replace the row by the current workspace version,
+        // so the structural checks run on the overlaid row, ahead of the admin
+        // shortcut (see isDeletePlaceholderOrForeignVersion()).
         if (!is_array($row)) {
             return false;
         }
@@ -253,14 +261,12 @@ final readonly class PermissionService
             if (!array_key_exists('t3ver_wsid', $row) || !array_key_exists('t3ver_state', $row)) {
                 return false;
             }
-            if (VersionState::tryFrom((int)$row['t3ver_state']) === VersionState::DELETE_PLACEHOLDER) {
+            if ($this->isDeletePlaceholderOrForeignVersion($row, $backendUser)) {
                 return false;
             }
-            $recordWorkspace = (int)$row['t3ver_wsid'];
-            if ($recordWorkspace > 0
-                && ($backendUser->workspace !== $recordWorkspace
-                    || !$backendUser->workspaceCheckStageForCurrent(0))
-            ) {
+            // A version of the active workspace is only editable while the
+            // workspace stage permits editing.
+            if ((int)$row['t3ver_wsid'] > 0 && !$backendUser->workspaceCheckStageForCurrent(0)) {
                 return false;
             }
         }
@@ -311,7 +317,7 @@ final readonly class PermissionService
             $l10nParent = TranslationFields::translationParentUid($tableName, $row);
             $pageRow = $l10nParent > 0 ? BackendUtility::getRecordWSOL($tableName, $l10nParent) : $row;
 
-            if (!is_array($pageRow) || VersionState::tryFrom((int)($pageRow['t3ver_state'] ?? 0)) === VersionState::DELETE_PLACEHOLDER) {
+            if (!is_array($pageRow) || VersionedRecord::isDeletePlaceholder($pageRow)) {
                 return false;
             }
 
@@ -345,7 +351,7 @@ final readonly class PermissionService
 
             $pageRow = BackendUtility::getRecordWSOL('pages', (int)$row['pid']);
 
-            if (!is_array($pageRow) || VersionState::tryFrom((int)($pageRow['t3ver_state'] ?? 0)) === VersionState::DELETE_PLACEHOLDER) {
+            if (!is_array($pageRow) || VersionedRecord::isDeletePlaceholder($pageRow)) {
                 return false;
             }
 
@@ -428,14 +434,9 @@ final readonly class PermissionService
             return false;
         }
 
-        // Keep these structural checks ahead of the admin shortcut, mirroring
-        // checkRecordEditAccess(): a delete placeholder or a version owned by
-        // another workspace is not readable for anyone in this session.
-        if (VersionState::tryFrom((int)($pageRecord['t3ver_state'] ?? 0)) === VersionState::DELETE_PLACEHOLDER) {
-            return false;
-        }
-        $recordWorkspace = (int)($pageRecord['t3ver_wsid'] ?? 0);
-        if ($recordWorkspace > 0 && $backendUser->workspace !== $recordWorkspace) {
+        // Structural checks run ahead of the admin shortcut (see
+        // isDeletePlaceholderOrForeignVersion()).
+        if ($this->isDeletePlaceholderOrForeignVersion($pageRecord, $backendUser)) {
             return false;
         }
 
@@ -455,16 +456,34 @@ final readonly class PermissionService
         if ($translationParentUid > 0) {
             $pageRecord = BackendUtility::getRecordWSOL('pages', $translationParentUid);
             
-            if (!$pageRecord || VersionState::tryFrom((int)($pageRecord['t3ver_state'] ?? 0)) === VersionState::DELETE_PLACEHOLDER) {
+            if (!$pageRecord || VersionedRecord::isDeletePlaceholder($pageRecord)) {
                 return false;
             }
         }
 
-        // Check Standard Page Access (PAGE_SHOW)
-        // We use calcPerms on the passed record (which should be fully overlaid with valid PID)
-        // to respect any permission changes made in the workspace version.
-        $perms = $backendUser->calcPerms($pageRecord);
-        return ($perms & Permission::PAGE_SHOW) === Permission::PAGE_SHOW;
+        // Check Standard Page Access (PAGE_SHOW) on the passed record (which
+        // should be fully overlaid with valid PID) to respect any permission
+        // changes made in the workspace version.
+        return $backendUser->doesUserHaveAccess($pageRecord, Permission::PAGE_SHOW);
+    }
+
+    /**
+     * Structural checks shared by checkRecordEditAccess() and
+     * checkPageReadAccess(). They precede the admin shortcut in both, because
+     * no one in this session may act on these rows — DataHandler parity:
+     * neither FormEngine nor DataHandler edit a delete placeholder or a
+     * version owned by a workspace other than the one active in the session.
+     *
+     * @param array<string, mixed> $row A workspace-overlaid record row.
+     */
+    private function isDeletePlaceholderOrForeignVersion(array $row, BackendUserAuthentication $backendUser): bool
+    {
+        if (VersionedRecord::isDeletePlaceholder($row)) {
+            return true;
+        }
+        $recordWorkspace = (int)($row['t3ver_wsid'] ?? 0);
+
+        return $recordWorkspace > 0 && $backendUser->workspace !== $recordWorkspace;
     }
 
     /**

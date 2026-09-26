@@ -23,6 +23,7 @@ declare(strict_types=1);
 namespace MindfulMarkup\MindfulA11y\Domain\Repository;
 
 use MindfulMarkup\MindfulA11y\Tca\TranslationFields;
+use MindfulMarkup\MindfulA11y\Tca\VersionedRecord;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
@@ -35,7 +36,6 @@ use Doctrine\DBAL\Exception;
 use MindfulMarkup\MindfulA11y\Domain\Model\AltlessFileReference;
 use MindfulMarkup\MindfulA11y\Domain\Model\AltlessFileReferenceTable;
 use TYPO3\CMS\Core\Database\Query\QueryBuilder;
-use TYPO3\CMS\Core\Versioning\VersionState;
 use TYPO3\CMS\Extbase\Persistence\Generic\Mapper\DataMapper;
 
 /**
@@ -491,7 +491,7 @@ final readonly class AltlessFileReferenceRepository
             return $liveAlternative;
         }
 
-        if (VersionState::tryFrom((int)$versionRow['t3ver_state']) === VersionState::DELETE_PLACEHOLDER) {
+        if (VersionedRecord::isDeletePlaceholder($versionRow)) {
             return null;
         }
 
