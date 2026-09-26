@@ -116,15 +116,14 @@ final readonly class PagePreviewService
             return false;
         }
 
-        $feGroup = (string)($pageRecord['fe_group'] ?? '');
-        if ($feGroup !== '' && $feGroup !== '0') {
+        if (!$this->isPublicFrontendGroupList((string)($pageRecord['fe_group'] ?? ''))) {
             return false;
         }
 
         // Check ancestor pages for inherited restrictions via extendToSubpages.
-        // Use the original-language uid (l10n_parent) when the record is a translation overlay,
+        // Use the original-language uid when the record is a translation overlay,
         // since RootlineUtility is designed for default-language page uids.
-        $pageId = (int)(($pageRecord['l10n_parent'] ?? 0) ?: ($pageRecord['uid'] ?? 0));
+        $pageId = TranslationFields::translationParentUid('pages', $pageRecord) ?: (int)($pageRecord['uid'] ?? 0);
         if ($pageId <= 0) {
             return true;
         }
@@ -139,8 +138,7 @@ final readonly class PagePreviewService
                 if (!($ancestor['extendToSubpages'] ?? false)) {
                     continue;
                 }
-                $ancestorFeGroup = (string)($ancestor['fe_group'] ?? '');
-                if ($ancestorFeGroup !== '' && $ancestorFeGroup !== '0') {
+                if (!$this->isPublicFrontendGroupList((string)($ancestor['fe_group'] ?? ''))) {
                     return false;
                 }
                 if (!$this->isPageVisible($ancestor)) {
@@ -153,6 +151,23 @@ final readonly class PagePreviewService
         }
 
         return true;
+    }
+
+    /**
+     * Whether an anonymous visitor — the scanner — passes a record's fe_group
+     * access list.
+     *
+     * Mirrors core's FrontendGroupRestriction: an empty list or "0" means no
+     * restriction, and otherwise ANY listed group grants access. An anonymous
+     * visitor carries the pseudo groups 0 and -1 ("hide at login"), so a list
+     * naming -1 is public, while -2 ("show at any login") and real frontend
+     * groups alone require a login.
+     */
+    private function isPublicFrontendGroupList(string $feGroup): bool
+    {
+        $groupIds = GeneralUtility::intExplode(',', $feGroup, true);
+
+        return $groupIds === [] || array_intersect($groupIds, [0, -1]) !== [];
     }
 
     /**

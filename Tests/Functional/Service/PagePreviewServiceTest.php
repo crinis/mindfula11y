@@ -27,7 +27,9 @@ use MindfulMarkup\MindfulA11y\Tests\Functional\AbstractAuthorizationTestCase;
  *
  * Supplement (PagePreviewSupplement.csv, uids 910+): page 910 "Members Area"
  * (fe_group=-2 show-at-any-login, extendToSubpages=1) with unrestricted
- * child 911.
+ * child 911; page 912 "Guests Only" (fe_group=-1 hide-at-login,
+ * extendToSubpages=1) with unrestricted child 913; page 914 (fe_group=-1,3:
+ * guests plus one frontend group).
  */
 final class PagePreviewServiceTest extends AbstractAuthorizationTestCase
 {
@@ -93,5 +95,29 @@ final class PagePreviewServiceTest extends AbstractAuthorizationTestCase
         $this->logInBackendUser(2);
 
         self::assertFalse($this->subject()->isPageFrontendAccessible($this->fetchPage(911)));
+    }
+
+    /**
+     * "Hide at login" (-1) hides a page from logged-in visitors only; the
+     * scanner visits anonymously and sees it, on the page itself and when
+     * inherited through extendToSubpages.
+     */
+    public function testHideAtLoginPageIsFrontendAccessible(): void
+    {
+        $this->logInBackendUser(2);
+
+        self::assertTrue($this->subject()->isPageFrontendAccessible($this->fetchPage(912)));
+        self::assertTrue($this->subject()->isPageFrontendAccessible($this->fetchPage(913)));
+    }
+
+    /**
+     * fe_group grants visibility to ANY listed group; an anonymous visitor
+     * matches -1, so a list that also names a frontend group stays public.
+     */
+    public function testHideAtLoginCombinedWithAGroupIsFrontendAccessible(): void
+    {
+        $this->logInBackendUser(2);
+
+        self::assertTrue($this->subject()->isPageFrontendAccessible($this->fetchPage(914)));
     }
 }
