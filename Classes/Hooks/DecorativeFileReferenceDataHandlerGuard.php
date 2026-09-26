@@ -44,6 +44,10 @@ use TYPO3\CMS\Core\Utility\MathUtility;
 #[Autoconfigure(public: true)]
 final class DecorativeFileReferenceDataHandlerGuard
 {
+    // A depth left raised by a throwing command only logs a later rejection
+    // as a note instead of an error — the rejection never depends on it.
+    use DuplicatingCommandScopeTrait;
+
     /**
      * The decorative toggle column.
      *
@@ -64,25 +68,6 @@ final class DecorativeFileReferenceDataHandlerGuard
      * @var list<string>
      */
     public const BLANKED_FIELDS = ['alternative', 'title'];
-
-    /**
-     * Commands whose nested DataHandler run creates a duplicate of an existing
-     * record (copyRecord() / localize() hand the source row to a fresh
-     * DataHandler as a NEW record).
-     *
-     * @var list<string>
-     */
-    private const DUPLICATING_COMMANDS = ['copy', 'localize', 'copyToLanguage', 'inlineLocalizeSynchronize'];
-
-    /**
-     * Nesting depth of duplicating commands in progress. Static because core
-     * instantiates the hook object once per DataHandler, and the nested copy
-     * DataHandler is a different instance than the one running the command.
-     * Should a command throw between pre- and post-processing, the depth stays
-     * raised; the only effect is that a later rejection is logged as a note
-     * instead of an error — the rejection itself never depends on it.
-     */
-    private static int $duplicationDepth = 0;
 
     public function __construct(
         private readonly PermissionService $permissionService,
@@ -132,7 +117,7 @@ final class DecorativeFileReferenceDataHandlerGuard
         // that case, though, so dropping it is a note, not an error flash.
         if ($enablesDecorative && !$this->userMayWriteFields($dataHandler, self::BLANKED_FIELDS)) {
             unset($incomingFieldArray[self::FIELD_NAME]);
-            $isDuplicate = self::$duplicationDepth > 0 && !MathUtility::canBeInterpretedAsInteger($id);
+            $isDuplicate = self::isDuplicating() && !MathUtility::canBeInterpretedAsInteger($id);
             $dataHandler->log(
                 $table,
                 MathUtility::canBeInterpretedAsInteger($id) ? (int)$id : 0,
@@ -189,16 +174,12 @@ final class DecorativeFileReferenceDataHandlerGuard
      */
     public function processCmdmap_preProcess(string $command, string $table, mixed $id, mixed $value, DataHandler $dataHandler): void
     {
-        if (in_array($command, self::DUPLICATING_COMMANDS, true)) {
-            self::$duplicationDepth++;
-        }
+        self::enterDuplicatingCommand($command);
     }
 
     public function processCmdmap_postProcess(string $command, string $table, mixed $id, mixed $value, DataHandler $dataHandler): void
     {
-        if (in_array($command, self::DUPLICATING_COMMANDS, true) && self::$duplicationDepth > 0) {
-            self::$duplicationDepth--;
-        }
+        self::leaveDuplicatingCommand($command);
     }
 
     /**

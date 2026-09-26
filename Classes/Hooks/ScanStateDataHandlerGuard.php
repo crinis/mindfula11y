@@ -44,6 +44,10 @@ use TYPO3\CMS\Core\Utility\MathUtility;
 #[Autoconfigure(public: true)]
 final class ScanStateDataHandlerGuard
 {
+    // A depth left raised by a throwing command only leaves a later strip
+    // unlogged — it still strips.
+    use DuplicatingCommandScopeTrait;
+
     /**
      * @var array<string>
      */
@@ -51,15 +55,6 @@ final class ScanStateDataHandlerGuard
         ScanStateService::FIELD_SCAN_ID,
         ScanStateService::FIELD_SCAN_UPDATED,
     ];
-
-    /**
-     * Commands whose nested DataHandler run creates a duplicate of an existing
-     * record (copyRecord() / localize() hand the source row to a fresh
-     * DataHandler as a NEW record).
-     *
-     * @var list<string>
-     */
-    private const DUPLICATING_COMMANDS = ['copy', 'localize', 'copyToLanguage', 'inlineLocalizeSynchronize'];
 
     /**
      * EXT:workspaces' publish actions of the "version" command (both majors
@@ -71,14 +66,6 @@ final class ScanStateDataHandlerGuard
     private const PUBLISH_ACTIONS = ['publish', 'swap'];
 
     private static int $internalWriteDepth = 0;
-
-    /**
-     * Nesting depth of duplicating commands in progress. Static because the
-     * nested copy DataHandler gets its own hook instance. Should a command
-     * throw between pre- and post-processing, the depth stays raised; the only
-     * effect is that a later strip goes unlogged — it still strips.
-     */
-    private static int $duplicationDepth = 0;
 
     public function __construct(
         private readonly ConnectionPool $connectionPool,
@@ -126,9 +113,7 @@ final class ScanStateDataHandlerGuard
      */
     public function processCmdmap_preProcess(string $command, string $table, mixed $id, mixed $value, DataHandler $dataHandler): void
     {
-        if (in_array($command, self::DUPLICATING_COMMANDS, true)) {
-            self::$duplicationDepth++;
-        }
+        self::enterDuplicatingCommand($command);
 
         if ($table === 'pages'
             && $command === 'version'
@@ -141,9 +126,7 @@ final class ScanStateDataHandlerGuard
 
     public function processCmdmap_postProcess(string $command, string $table, mixed $id, mixed $value, DataHandler $dataHandler): void
     {
-        if (in_array($command, self::DUPLICATING_COMMANDS, true) && self::$duplicationDepth > 0) {
-            self::$duplicationDepth--;
-        }
+        self::leaveDuplicatingCommand($command);
     }
 
     /**
@@ -208,7 +191,7 @@ final class ScanStateDataHandlerGuard
 
         // A copied page carries its source's scan state in the duplicated row:
         // stripped all the same, but nobody attempted to write it.
-        if (self::$duplicationDepth > 0 && !MathUtility::canBeInterpretedAsInteger($id)) {
+        if (self::isDuplicating() && !MathUtility::canBeInterpretedAsInteger($id)) {
             return;
         }
 
