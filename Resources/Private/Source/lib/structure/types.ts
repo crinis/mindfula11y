@@ -75,11 +75,23 @@ export interface HeadingRelation {
  */
 export type HeadingNodeKind = 'heading' | 'container' | 'demoted';
 
-/** One heading in the analyzed document, nested by level. */
-export interface HeadingNode {
+/**
+ * The fields every analyzed structure node shares, generic over the concrete
+ * node type — all the viewport merge (analysis.ts) and the shared view base
+ * (element/structure-view) need to know about a node.
+ */
+export interface StructureNodeBase<T> {
     id: string;
     /** Position in the document, stable across viewports; orders the merged tree. */
     documentOrder: number;
+    record: RecordReference | null;
+    viewports: StructureViewport[];
+    errors: StructureError[];
+    children: T[];
+}
+
+/** One heading in the analyzed document, nested by level. */
+export interface HeadingNode extends StructureNodeBase<HeadingNode> {
     kind: HeadingNodeKind;
     /** For containers: the element's own (unrendered) level; 0 when its own type is not h1-h6. */
     level: number;
@@ -94,30 +106,19 @@ export interface HeadingNode {
     availableTypes: Record<string, string>;
     /** Select items of the container-owned child-type column; populated by `applyRecordMetadata`. */
     availableChildTypes: Record<string, string>;
-    record: RecordReference | null;
     /** The container-owned column storing the level of this element's child headings. */
     childTypeRecord: RecordReference | null;
     relationId: string;
     relation: HeadingRelation | null;
     skippedLevels: number;
-    viewports: StructureViewport[];
-    errors: StructureError[];
-    children: HeadingNode[];
 }
 
 /** One landmark in the analyzed document, nested by containment. */
-export interface LandmarkNode {
-    id: string;
-    /** Position in the document, stable across viewports; orders the merged tree. */
-    documentOrder: number;
+export interface LandmarkNode extends StructureNodeBase<LandmarkNode> {
     role: string;
     label: string;
     /** Always `{}` from the analyzer; populated in place by `applyRecordMetadata` after backend enrichment. */
     availableRoles: Record<string, string>;
-    record: RecordReference | null;
-    viewports: StructureViewport[];
-    errors: StructureError[];
-    children: LandmarkNode[];
 }
 
 /** `errors` lists every occurrence (page-level and per-node); nodes share the same objects. */

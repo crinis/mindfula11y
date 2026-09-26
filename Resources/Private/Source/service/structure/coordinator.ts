@@ -8,11 +8,11 @@
  * (at your option) any later version.
  */
 
-import type { MergeableAnalysis, MergeableNode } from '../../lib/structure/analysis.js';
+import type { MergeableAnalysis } from '../../lib/structure/analysis.js';
 import { mergeAnalyses } from '../../lib/structure/analysis.js';
 import { applyRecordMetadata, collectRecordRequests } from '../../lib/structure/enrichment.js';
 import { StructureAnalysisError } from '../../lib/structure/error.js';
-import type { StructureAnalysis, StructureViewport } from '../../lib/structure/types.js';
+import type { StructureAnalysis, StructureNodeBase, StructureViewport } from '../../lib/structure/types.js';
 import { StructureAnalysisApi } from './api.js';
 import { RenderedPageLoader, type RenderedStructureAnalysis, type StructureRenderOptions } from './page-loader.js';
 
@@ -85,7 +85,7 @@ export class StructureAnalysisCoordinator {
     }
 
     /** Merges one domain's viewport pair, or yields null when that domain is disabled. */
-    private mergeDomain<T extends MergeableNode<T>>(
+    private mergeDomain<T extends StructureNodeBase<T>>(
         include: boolean,
         mobile: MergeableAnalysis<T> | null,
         desktop: MergeableAnalysis<T> | null,

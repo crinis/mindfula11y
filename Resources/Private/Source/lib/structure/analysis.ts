@@ -18,7 +18,7 @@
  */
 
 import type { ImpactSeverity } from '../types.js';
-import type { StructureError, StructureViewport } from './types.js';
+import type { StructureError, StructureNodeBase, StructureViewport } from './types.js';
 import { STRUCTURE_VIEWPORT_ORDER } from './types.js';
 
 /** Union of two viewport sets in canonical order — the merge contract's single rule. */
@@ -72,16 +72,8 @@ export const groupBy = <T>(items: readonly T[], keyOf: (item: T) => string | nul
     return groups;
 };
 
-export interface MergeableNode<T> {
-    id: string;
-    documentOrder: number;
-    viewports: StructureViewport[];
-    errors: StructureError[];
-    children: T[];
-}
-
 /** The shape both domain analyses share — all the merge contract needs to know. */
-export interface MergeableAnalysis<T extends MergeableNode<T>> {
+export interface MergeableAnalysis<T extends StructureNodeBase<T>> {
     nodes: T[];
     errors: StructureError[];
 }
@@ -92,7 +84,7 @@ interface TreeIndex<T> {
     order: string[];
 }
 
-const indexTree = <T extends MergeableNode<T>>(roots: T[]): TreeIndex<T> => {
+const indexTree = <T extends StructureNodeBase<T>>(roots: T[]): TreeIndex<T> => {
     const index: TreeIndex<T> = { nodes: new Map(), parents: new Map(), order: [] };
     const visit = (nodes: T[], parentId: string | null): void => {
         for (const node of nodes) {
@@ -122,7 +114,11 @@ const mergeErrors = (analyses: Array<{ errors: StructureError[] }>): StructureEr
     return Array.from(merged.values());
 };
 
-const mergeTrees = <T extends MergeableNode<T>>(mobileRoots: T[], desktopRoots: T[], errors: StructureError[]): T[] => {
+const mergeTrees = <T extends StructureNodeBase<T>>(
+    mobileRoots: T[],
+    desktopRoots: T[],
+    errors: StructureError[],
+): T[] => {
     const mobile = indexTree(mobileRoots);
     const desktop = indexTree(desktopRoots);
     // Both viewports analyze the same document, so documentOrder is comparable
@@ -170,7 +166,7 @@ const mergeTrees = <T extends MergeableNode<T>>(mobileRoots: T[], desktopRoots: 
 };
 
 /** Folds a domain's two viewport analyses into one tree with union viewport membership. */
-export const mergeAnalyses = <T extends MergeableNode<T>>(
+export const mergeAnalyses = <T extends StructureNodeBase<T>>(
     analyses: Record<StructureViewport, MergeableAnalysis<T>>,
 ): MergeableAnalysis<T> => {
     const errors = mergeErrors([analyses.mobile, analyses.desktop]);

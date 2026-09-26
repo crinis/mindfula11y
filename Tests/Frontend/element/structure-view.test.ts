@@ -41,12 +41,11 @@ vi.mock('../../../Resources/Private/Source/service/record-api.js', () => {
     return module;
 });
 
-import type { StructureViewNode } from '../../../Resources/Private/Source/element/structure-view/structure-view.js';
 import { StructureView } from '../../../Resources/Private/Source/element/structure-view/structure-view.js';
-import type { StructureError } from '../../../Resources/Private/Source/lib/structure/types.js';
+import type { StructureError, StructureNodeBase } from '../../../Resources/Private/Source/lib/structure/types.js';
 import type { RecordReference } from '../../../Resources/Private/Source/lib/types.js';
 
-interface TestNode extends StructureViewNode<TestNode> {
+interface TestNode extends StructureNodeBase<TestNode> {
     /** Stored value backing the node's select — what `live()` reverts to. */
     value: string;
 }
@@ -101,6 +100,7 @@ const makeRecord = (over: Partial<RecordReference> = {}): RecordReference => ({
 
 const makeNode = (id: string, over: Partial<TestNode> = {}): TestNode => ({
     id,
+    documentOrder: 0,
     record: makeRecord(),
     value: 'h2',
     viewports: ['desktop'],

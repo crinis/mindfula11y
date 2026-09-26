@@ -27,7 +27,7 @@ import '@typo3/backend/element/icon-element.js';
 import '@typo3/backend/element/spinner-element.js';
 import { scrollIntoViewCentered } from '../../lib/dom.js';
 import { impactState, renderSeverityChip, renderViewportBadges } from '../../lib/status-render.js';
-import type { StructureError, StructureViewport } from '../../lib/structure/types.js';
+import type { StructureError, StructureNodeBase } from '../../lib/structure/types.js';
 import type { RecordReference } from '../../lib/types.js';
 import { dispatch } from '../../lib/types.js';
 import { RecordApi } from '../../service/record-api.js';
@@ -35,15 +35,6 @@ import { baseStyles } from '../../styles/base-styles.js';
 import noticeStyles from '../../styles/notice.css.js';
 import structureViewStyles from '../../styles/structure-view.css.js';
 import viewportStyles from '../../styles/viewport.css.js';
-
-/** Node shape the analyzers share, generic over the concrete node type. */
-export interface StructureViewNode<T> {
-    id: string;
-    record: RecordReference | null;
-    viewports: StructureViewport[];
-    errors: StructureError[];
-    children: T[];
-}
 
 /** Minor presentation adjustments supported by the shared inline issue renderer. */
 export interface StructureIssueRenderOptions {
@@ -78,7 +69,7 @@ interface StructureFocusOptions {
  * the container to re-analyze. Subclasses render the node markup;
  * `styles/structure-view.css` owns the matching shared chrome.
  */
-export abstract class StructureView<T extends StructureViewNode<T>> extends LitElement {
+export abstract class StructureView<T extends StructureNodeBase<T>> extends LitElement {
     /**
      * Shared foundation + the chrome/viewport/notice modules both structure
      * views adopt; each subclass appends its own component stylesheet:
