@@ -34,12 +34,6 @@ export interface TabDescriptor<T extends string = string> {
     id: T;
     label: string;
     badge?: TemplateResult | typeof nothing;
-    /**
-     * Defensive option — no current caller renders a disabled tab
-     * (structure.ts shows no tablist at all while its first analysis is
-     * pending). The guards below keep a tablist safe if one ever does.
-     */
-    disabled?: boolean;
 }
 
 /** Renders the `role="tablist"` wrapper and its `role="tab"` buttons. */
@@ -62,16 +56,7 @@ export const renderTablist = <T extends string>(opts: {
                 aria-selected=${selected ? 'true' : 'false'}
                 aria-controls="panel-${tab.id}"
                 tabindex=${selected ? '0' : '-1'}
-                aria-disabled=${(tab.disabled ?? false) ? 'true' : nothing}
-                @click=${(): void => {
-                    // aria-disabled (not the disabled attribute): a natively
-                    // disabled *selected* tab would be unfocusable and, with
-                    // every other tab at tabindex -1, drop the whole tablist
-                    // out of the tab order.
-                    if (tab.disabled !== true) {
-                        onSelect(tab.id);
-                    }
-                }}
+                @click=${(): void => onSelect(tab.id)}
                 @keydown=${onKeydown}
             >
                 ${tab.label} ${tab.badge ?? nothing}
@@ -170,50 +155,26 @@ export async function activateTabFromKeydown<T extends string>(
     if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft' && event.key !== 'Home' && event.key !== 'End') {
         return;
     }
-    // Disabled tabs are skipped, not landed on: this tablist activates on
-    // focus (automatic activation), so cycling onto a disabled tab would
-    // activate it. Disabled state is read from the rendered buttons — the
-    // callers pass ids only, and the DOM is the single source of truth. The
-    // filter runs only for handled keys (it queries the DOM per tab).
-    const enabled = tabs.filter(
-        (tab) => host.renderRoot.querySelector(`[data-tab="${tab}"]`)?.getAttribute('aria-disabled') !== 'true',
-    );
-    if (enabled.length === 0) {
+    if (tabs.length === 0) {
         return;
     }
-    // Arrows walk cyclically from the active tab's position in the FULL tab
-    // order to the nearest enabled neighbor. Indexing the enabled-only list
-    // would go wrong exactly when the active tab is itself disabled
-    // (indexOf -1): the neighbor walk keeps "left of the current tab"
-    // meaning the adjacent tab either way.
+    // Cyclic walk from the active tab's position; Home/End jump to the ends.
     const from = tabs.indexOf(activeTab);
-    const nearestEnabled = (direction: 1 | -1): T | undefined => {
-        for (let step = 1; step <= tabs.length; step++) {
-            const index = (((from + direction * step) % tabs.length) + tabs.length) % tabs.length;
-            const candidate = tabs[index];
-            if (candidate !== undefined && enabled.includes(candidate)) {
-                return candidate;
-            }
-        }
-        return undefined;
-    };
-    let next: T | undefined;
+    let index: number;
     switch (event.key) {
         case 'ArrowRight':
-            next = nearestEnabled(1);
+            index = (from + 1) % tabs.length;
             break;
         case 'ArrowLeft':
-            next = nearestEnabled(-1);
+            index = (from - 1 + tabs.length) % tabs.length;
             break;
         case 'Home':
-            next = enabled[0];
-            break;
-        case 'End':
-            next = enabled[enabled.length - 1];
+            index = 0;
             break;
         default:
-            return;
+            index = tabs.length - 1;
     }
+    const next = tabs[index];
     if (next === undefined) {
         return;
     }
@@ -301,14 +262,7 @@ export class TabsController<T extends string> implements ReactiveController {
             ...opts,
             withTablist: this.withTablist,
             active: this.active === opts.tab,
-            onReveal: (): void => {
-                // Mirrors the click/arrow guards: a find-in-page match inside
-                // a disabled tab's panel must not activate the disabled tab.
-                const button = this.host.renderRoot.querySelector(`[data-tab="${opts.tab}"]`);
-                if (button?.getAttribute('aria-disabled') !== 'true') {
-                    this.select(opts.tab);
-                }
-            },
+            onReveal: (): void => this.select(opts.tab),
         });
     }
 

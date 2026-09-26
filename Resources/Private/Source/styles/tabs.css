@@ -62,13 +62,6 @@
             background-color: var(--mindfula11y-component-bg);
             border-color: var(--mindfula11y-border);
         }
-
-        /* aria-disabled, not disabled: a natively disabled selected tab would
-           be unfocusable and take the whole roving-tabindex tablist with it. */
-        &[aria-disabled="true"] {
-            color: var(--mindfula11y-text-subtle);
-            cursor: default;
-        }
     }
 
     /* Mobile-first: the track stretches and tabs share it; wide hosts hug content. */

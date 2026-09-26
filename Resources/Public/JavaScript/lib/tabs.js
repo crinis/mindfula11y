@@ -12,12 +12,7 @@ const renderTablist = (opts) => {
                 aria-selected=${selected ? "true" : "false"}
                 aria-controls="panel-${tab.id}"
                 tabindex=${selected ? "0" : "-1"}
-                aria-disabled=${tab.disabled ?? false ? "true" : nothing}
-                @click=${() => {
-      if (tab.disabled !== true) {
-        onSelect(tab.id);
-      }
-    }}
+                @click=${() => onSelect(tab.id)}
                 @keydown=${onKeydown}
             >
                 ${tab.label} ${tab.badge ?? nothing}
@@ -51,40 +46,25 @@ async function activateTabFromKeydown(host, event, tabs, activeTab, activate) {
   if (event.key !== "ArrowRight" && event.key !== "ArrowLeft" && event.key !== "Home" && event.key !== "End") {
     return;
   }
-  const enabled = tabs.filter(
-    (tab) => host.renderRoot.querySelector(`[data-tab="${tab}"]`)?.getAttribute("aria-disabled") !== "true"
-  );
-  if (enabled.length === 0) {
+  if (tabs.length === 0) {
     return;
   }
   const from = tabs.indexOf(activeTab);
-  const nearestEnabled = (direction) => {
-    for (let step = 1; step <= tabs.length; step++) {
-      const index = ((from + direction * step) % tabs.length + tabs.length) % tabs.length;
-      const candidate = tabs[index];
-      if (candidate !== void 0 && enabled.includes(candidate)) {
-        return candidate;
-      }
-    }
-    return void 0;
-  };
-  let next;
+  let index;
   switch (event.key) {
     case "ArrowRight":
-      next = nearestEnabled(1);
+      index = (from + 1) % tabs.length;
       break;
     case "ArrowLeft":
-      next = nearestEnabled(-1);
+      index = (from - 1 + tabs.length) % tabs.length;
       break;
     case "Home":
-      next = enabled[0];
-      break;
-    case "End":
-      next = enabled[enabled.length - 1];
+      index = 0;
       break;
     default:
-      return;
+      index = tabs.length - 1;
   }
+  const next = tabs[index];
   if (next === void 0) {
     return;
   }
@@ -153,12 +133,7 @@ class TabsController {
       ...opts,
       withTablist: this.withTablist,
       active: this.active === opts.tab,
-      onReveal: () => {
-        const button = this.host.renderRoot.querySelector(`[data-tab="${opts.tab}"]`);
-        if (button?.getAttribute("aria-disabled") !== "true") {
-          this.select(opts.tab);
-        }
-      }
+      onReveal: () => this.select(opts.tab)
     });
   }
 }

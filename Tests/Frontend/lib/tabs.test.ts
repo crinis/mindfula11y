@@ -28,14 +28,13 @@ type TestTab = 'one' | 'two' | 'three';
 
 class TabsHost extends LitElement {
     availableTabs: TestTab[] = ['one', 'two', 'three'];
-    disabledTabs: Set<TestTab> = new Set();
 
     readonly tabs: TabsController<TestTab> = new TabsController(this, () => this.availableTabs, 'one');
 
     override render(): TemplateResult {
         return html`${this.tabs.renderTablist({
             ariaLabel: 'Test tabs',
-            tabs: this.availableTabs.map((id) => ({ id, label: id, disabled: this.disabledTabs.has(id) })),
+            tabs: this.availableTabs.map((id) => ({ id, label: id })),
         })}
         ${this.availableTabs.map((tab) =>
             this.tabs.renderPanel({ tab, busy: false, content: html`<p>${tab}</p>`, label: tab }),
@@ -207,70 +206,6 @@ describe('TabsController', () => {
         expect(tabButton(host, 'two').getAttribute('tabindex')).toBe('0');
         expect(host.shadowRoot?.querySelector('#panel-two')?.hasAttribute('hidden')).toBe(false);
         expect(host.shadowRoot?.querySelector('#panel-one')?.getAttribute('hidden')).toBe('until-found');
-    });
-
-    it('renders disabled tabs focusable via aria-disabled and ignores their clicks', async () => {
-        const host = await mount();
-        host.disabledTabs = new Set<TestTab>(['two']);
-        host.requestUpdate();
-        await host.updateComplete;
-
-        const disabled = tabButton(host, 'two');
-        // aria-disabled, never the disabled attribute: a natively disabled
-        // selected tab would drop the whole roving-tabindex tablist from the
-        // keyboard tab order.
-        expect(disabled.hasAttribute('disabled')).toBe(false);
-        expect(disabled.getAttribute('aria-disabled')).toBe('true');
-
-        disabled.click();
-        await host.updateComplete;
-        expect(host.tabs.activeTab).toBe('one');
-    });
-
-    it('skips disabled tabs when cycling with arrow keys', async () => {
-        const host = await mount();
-        host.disabledTabs = new Set<TestTab>(['two']);
-        host.requestUpdate();
-        await host.updateComplete;
-
-        // Automatic activation: landing on a disabled tab would activate it,
-        // so cycling passes over it in both directions.
-        await pressKey(host, 'one', 'ArrowRight');
-        expect(host.tabs.activeTab).toBe('three');
-
-        await pressKey(host, 'three', 'ArrowLeft');
-        expect(host.tabs.activeTab).toBe('one');
-    });
-
-    it('steps to the adjacent enabled tab when the active tab is itself disabled', async () => {
-        const host = await mount();
-        host.tabs.select('two');
-        host.disabledTabs = new Set<TestTab>(['two']);
-        host.requestUpdate();
-        await host.updateComplete;
-
-        // The walk starts from the active tab's position in the FULL order, so
-        // "left of two" is one — not an end of the enabled-only list.
-        await pressKey(host, 'two', 'ArrowLeft');
-        expect(host.tabs.activeTab).toBe('one');
-
-        host.tabs.select('two');
-        await host.updateComplete;
-        await pressKey(host, 'two', 'ArrowRight');
-        expect(host.tabs.activeTab).toBe('three');
-    });
-
-    it('does not select a disabled tab when find-in-page reveals its panel', async () => {
-        const host = await mount();
-        host.disabledTabs = new Set<TestTab>(['two']);
-        host.requestUpdate();
-        await host.updateComplete;
-
-        host.shadowRoot?.querySelector('#panel-two')?.dispatchEvent(new Event('beforematch'));
-        await host.updateComplete;
-
-        expect(host.tabs.activeTab).toBe('one');
-        expect(tabButton(host, 'two').getAttribute('aria-selected')).toBe('false');
     });
 
     it('names the single view as a region when there is no tablist to name it', async () => {

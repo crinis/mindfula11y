@@ -267,9 +267,9 @@ export class Structure extends LitElement {
     }
 
     private tabDescriptor(tab: StructureDomain): TabDescriptor<StructureDomain> {
-        // No disabled state: while the first analysis is pending, renderBody
-        // shows the progress notice without a tablist, so descriptors are only
-        // built once an analysis (or its superseded predecessor) is present.
+        // While the first analysis is pending, renderBody shows the progress
+        // notice without a tablist, so descriptors are only built once an
+        // analysis (or its superseded predecessor) is present.
         return {
             id: tab,
             label: this.tabLabel(tab),
