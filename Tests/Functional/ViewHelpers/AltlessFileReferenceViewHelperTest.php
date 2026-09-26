@@ -20,6 +20,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Core\Database\ConnectionPool;
+use TYPO3\CMS\Core\Http\NormalizedParams;
 use TYPO3\CMS\Core\Http\ServerRequest;
 use TYPO3\CMS\Fluid\Core\Rendering\RenderingContextFactory;
 use TYPO3Fluid\Fluid\View\TemplateView;
@@ -148,13 +149,36 @@ final class AltlessFileReferenceViewHelperTest extends AbstractAuthorizationTest
     public function recordEditLinkReturnsToTheCurrentModuleRequest(): void
     {
         $this->logInBackendUser(2);
-        $moduleUri = 'https://backend.example/typo3/module/web/mindfula11y?id=10&feature=missingAltText';
+        // Core's relative form (normalizedParams' request URI): an absolute URI
+        // behind a TLS-terminating proxy would carry http:// and fail
+        // sanitizeLocalUrl() against the https:// site URL.
+        $request = new ServerRequest(
+            'https://backend.example/typo3/module/web/mindfula11y?id=10&feature=missingAltText',
+            'GET',
+            'php://temp',
+            [],
+            ['HTTP_HOST' => 'backend.example', 'HTTPS' => 'on', 'REQUEST_URI' => '/typo3/module/web/mindfula11y?id=10&feature=missingAltText'],
+        );
+        $request = $request->withAttribute('normalizedParams', NormalizedParams::createFromRequest($request));
 
-        $output = $this->renderFirstListedReference(new ServerRequest($moduleUri));
+        $output = $this->renderFirstListedReference($request);
 
         self::assertSame(1, preg_match('/record-edit-link="([^"]+)"/', $output, $matches), 'the editor must get an edit link');
         parse_str((string)parse_url(html_entity_decode($matches[1]), PHP_URL_QUERY), $query);
-        self::assertSame($moduleUri, $query['returnUrl'] ?? null);
+        self::assertSame('/typo3/module/web/mindfula11y?id=10&feature=missingAltText', $query['returnUrl'] ?? null);
+    }
+
+    #[Test]
+    public function recordEditLinkOmitsReturnUrlWithoutNormalizedParams(): void
+    {
+        $this->logInBackendUser(2);
+
+        $output = $this->renderFirstListedReference(
+            new ServerRequest('https://backend.example/typo3/module/web/mindfula11y?id=10')
+        );
+
+        self::assertSame(1, preg_match('/record-edit-link="([^"]+)"/', $output, $matches), 'the editor must get an edit link');
+        self::assertStringNotContainsString('returnUrl', html_entity_decode($matches[1]));
     }
 
     #[Test]

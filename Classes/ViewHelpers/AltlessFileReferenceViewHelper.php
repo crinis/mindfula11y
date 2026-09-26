@@ -37,6 +37,7 @@ use MindfulMarkup\MindfulA11y\Service\PermissionService;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
+use TYPO3\CMS\Core\Http\NormalizedParams;
 use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractTagBasedViewHelper;
 
@@ -185,12 +186,16 @@ class AltlessFileReferenceViewHelper extends AbstractTagBasedViewHelper
                 ],
             ];
             // "Close" in the record editor returns to the module view that
-            // rendered this link. Without a request (CLI, bare rendering) there
-            // is nothing to return to, so the parameter is omitted.
-            if ($this->renderingContext->hasAttribute(ServerRequestInterface::class)) {
-                $editRouteParameters['returnUrl'] = (string)$this->renderingContext
-                    ->getAttribute(ServerRequestInterface::class)
-                    ->getUri();
+            // rendered this link. Relative request URI like core's own modules:
+            // an absolute URI can carry http:// behind a TLS-terminating proxy
+            // and would then fail sanitizeLocalUrl() against the https:// site
+            // URL. Without a request (CLI, bare rendering) or its
+            // normalizedParams there is nothing to return to — omitted.
+            $normalizedParams = $this->renderingContext->hasAttribute(ServerRequestInterface::class)
+                ? $this->renderingContext->getAttribute(ServerRequestInterface::class)->getAttribute('normalizedParams')
+                : null;
+            if ($normalizedParams instanceof NormalizedParams && $normalizedParams->getRequestUri() !== '') {
+                $editRouteParameters['returnUrl'] = $normalizedParams->getRequestUri();
             }
             $this->tag->addAttribute(
                 'record-edit-link',
