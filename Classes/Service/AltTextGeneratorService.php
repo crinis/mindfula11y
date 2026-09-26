@@ -25,7 +25,6 @@ namespace MindfulMarkup\MindfulA11y\Service;
 
 use Psr\Log\LoggerInterface;
 use TYPO3\CMS\Core\Resource\FileInterface;
-use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
 
 /**
  * Class AltTextGeneratorService.
@@ -34,12 +33,6 @@ use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
  */
 final readonly class AltTextGeneratorService
 {
-    /**
-     * Constructor.
-     *
-     * @param OpenAIService $openAIService The OpenAI service instance.
-     * @param ExtensionConfiguration $extensionConfiguration The extension configuration instance.
-     */
     /**
      * Largest image this service will encode and send.
      *
@@ -53,7 +46,6 @@ final readonly class AltTextGeneratorService
 
     public function __construct(
         private OpenAIService $openAIService,
-        private ExtensionConfiguration $extensionConfiguration,
         private LoggerInterface $logger,
     ) {}
 
@@ -104,7 +96,7 @@ final readonly class AltTextGeneratorService
                         [
                             'type' => 'input_image',
                             'image_url' => $imageUrl,
-                            'detail' => $this->getChatImageDetail(),
+                            'detail' => $this->openAIService->getChatImageDetail(),
                         ],
                     ],
                 ],
@@ -122,25 +114,6 @@ final readonly class AltTextGeneratorService
     private function buildInstructions(string $languageCode): string
     {
         return 'You are an accessibility specialist generating WCAG 2.1 compliant alt text for web images. Respond in the language identified by this ISO language code: ' . $languageCode . '. Follow these rules strictly: (1) Describe the essential meaning and purpose of the image — not a literal catalogue of visual details. (2) Be concise, ideally under 125 characters. (3) Never begin with "image of", "photo of", "picture of", or equivalent phrases — screen readers already announce the element as an image. (4) If the image contains readable text, transcribe it verbatim. (5) If the image is purely decorative and conveys no meaningful information, respond with exactly: DECORATIVE. (6) Respond with only the alt text string — no surrounding quotes, no trailing punctuation, no explanations.';
-    }
-
-    /**
-     * Get OpenAI chat image detail from extension configuration.
-     * 
-     * @return string The OpenAI chat image detail.
-     */
-    private function getChatImageDetail(): string
-    {
-        try {
-            $configuration = $this->extensionConfiguration->get('mindfula11y');
-        } catch (\TYPO3\CMS\Core\Configuration\Exception\ExtensionConfigurationExtensionNotConfiguredException) {
-            // Unsynced/legacy deployments have no extension configuration at
-            // all; fall back to the default detail instead of aborting the
-            // generation.
-            return 'auto';
-        }
-
-        return $configuration['openAIChatImageDetail'] ?? 'auto';
     }
 
     /**

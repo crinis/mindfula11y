@@ -26,7 +26,6 @@ namespace MindfulMarkup\MindfulA11y\Service;
 use MindfulMarkup\MindfulA11y\Exception\ScanApiRequestException;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Log\LoggerInterface;
-use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
 use TYPO3\CMS\Core\Http\RequestFactory;
 
 /**
@@ -54,34 +53,15 @@ final readonly class ScanApiService
     /**
      * Constructor.
      *
-     * @param ExtensionConfiguration $extensionConfiguration The extension configuration instance.
+     * @param ExtensionSettings $extensionSettings The extension settings.
      * @param RequestFactory $requestFactory The HTTP request factory.
      * @param LoggerInterface $logger The logger instance.
      */
     public function __construct(
-        private ExtensionConfiguration $extensionConfiguration,
+        private ExtensionSettings $extensionSettings,
         private RequestFactory $requestFactory,
         private LoggerInterface $logger,
     ) {}
-
-    /**
-     * The extension configuration, or an empty array when it is missing
-     * entirely (unsynced/legacy deployments where extension:setup has not
-     * run): isConfigured() runs on every module render, and
-     * ExtensionConfiguration::get() throwing must not break render paths.
-     *
-     * @return array<string, mixed>
-     */
-    private function getConfiguration(): array
-    {
-        try {
-            $configuration = $this->extensionConfiguration->get('mindfula11y');
-        } catch (\TYPO3\CMS\Core\Configuration\Exception\ExtensionConfigurationExtensionNotConfiguredException) {
-            return [];
-        }
-
-        return is_array($configuration) ? $configuration : [];
-    }
 
     /**
      * Get the API URL from extension configuration.
@@ -90,7 +70,7 @@ final readonly class ScanApiService
      */
     private function getApiUrl(): string
     {
-        return rtrim($this->getConfiguration()['scannerApiUrl'] ?? '', '/');
+        return rtrim($this->extensionSettings->get('scannerApiUrl', ''), '/');
     }
 
     /**
@@ -108,7 +88,7 @@ final readonly class ScanApiService
      */
     private function getApiToken(): string
     {
-        return $this->getConfiguration()['scannerApiToken'] ?? '';
+        return $this->extensionSettings->get('scannerApiToken', '');
     }
 
     /**

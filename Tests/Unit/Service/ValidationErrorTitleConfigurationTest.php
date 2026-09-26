@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace MindfulMarkup\MindfulA11y\Tests\Unit\Service;
 
+use MindfulMarkup\MindfulA11y\Service\ExtensionSettings;
 use MindfulMarkup\MindfulA11y\Service\ValidationErrorTitleConfiguration;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -34,7 +35,7 @@ final class ValidationErrorTitleConfigurationTest extends TestCase
             ),
         );
 
-        $subject = new ValidationErrorTitleConfiguration($extensionConfiguration);
+        $subject = new ValidationErrorTitleConfiguration(new ExtensionSettings($extensionConfiguration));
 
         self::assertFalse($subject->isEnabled());
     }
@@ -43,9 +44,9 @@ final class ValidationErrorTitleConfigurationTest extends TestCase
     public function storedTruthyValueReadsAsEnabled(): void
     {
         $extensionConfiguration = $this->createMock(ExtensionConfiguration::class);
-        $extensionConfiguration->method('get')->with('mindfula11y', 'enableValidationErrorTitlePrefix')->willReturn('1');
+        $extensionConfiguration->method('get')->with('mindfula11y')->willReturn(['enableValidationErrorTitlePrefix' => '1']);
 
-        $subject = new ValidationErrorTitleConfiguration($extensionConfiguration);
+        $subject = new ValidationErrorTitleConfiguration(new ExtensionSettings($extensionConfiguration));
 
         self::assertTrue($subject->isEnabled());
     }

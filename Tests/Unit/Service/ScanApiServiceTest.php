@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace MindfulMarkup\MindfulA11y\Tests\Unit\Service;
 
+use MindfulMarkup\MindfulA11y\Service\ExtensionSettings;
 use MindfulMarkup\MindfulA11y\Service\ScanApiService;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -41,7 +42,7 @@ final class ScanApiServiceTest extends TestCase
             ),
         );
         $service = new ScanApiService(
-            $extensionConfiguration,
+            new ExtensionSettings($extensionConfiguration),
             $this->createMock(RequestFactory::class),
             $this->createMock(LoggerInterface::class),
         );
@@ -63,7 +64,7 @@ final class ScanApiServiceTest extends TestCase
         $logger = $this->createMock(LoggerInterface::class);
         $logger->expects(self::once())->method('error');
 
-        $service = new ScanApiService($extensionConfiguration, $requestFactory, $logger);
+        $service = new ScanApiService(new ExtensionSettings($extensionConfiguration), $requestFactory, $logger);
 
         // "\xB1\x31" is malformed UTF-8 — json_encode() cannot represent it.
         self::assertNull($service->createScan(['https://example.com/'], scanOptions: ['auth' => "\xB1\x31"]));
@@ -100,7 +101,7 @@ final class ScanApiServiceTest extends TestCase
         $requestFactory->method('request')->willReturn($response);
 
         $service = new ScanApiService(
-            $extensionConfiguration,
+            new ExtensionSettings($extensionConfiguration),
             $requestFactory,
             $this->createMock(LoggerInterface::class),
         );
@@ -149,7 +150,7 @@ final class ScanApiServiceTest extends TestCase
         $requestFactory->method('request')->willReturn($response);
 
         $service = new ScanApiService(
-            $extensionConfiguration,
+            new ExtensionSettings($extensionConfiguration),
             $requestFactory,
             $this->createMock(LoggerInterface::class),
         );
@@ -195,7 +196,7 @@ final class ScanApiServiceTest extends TestCase
         $requestFactory->method('request')->willReturn($response);
 
         $service = new ScanApiService(
-            $extensionConfiguration,
+            new ExtensionSettings($extensionConfiguration),
             $requestFactory,
             $this->createMock(LoggerInterface::class),
         );
@@ -235,7 +236,7 @@ final class ScanApiServiceTest extends TestCase
         $requestFactory->method('request')->willReturn($response);
 
         $service = new ScanApiService(
-            $extensionConfiguration,
+            new ExtensionSettings($extensionConfiguration),
             $requestFactory,
             $this->createMock(LoggerInterface::class),
         );
@@ -280,7 +281,7 @@ final class ScanApiServiceTest extends TestCase
         $requestFactory = $this->createMock(RequestFactory::class);
         $requestFactory->method('request')->willReturn($response);
 
-        return new ScanApiService($extensionConfiguration, $requestFactory, $logger);
+        return new ScanApiService(new ExtensionSettings($extensionConfiguration), $requestFactory, $logger);
     }
 
     /**

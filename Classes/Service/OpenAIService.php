@@ -26,7 +26,6 @@ namespace MindfulMarkup\MindfulA11y\Service;
 use TYPO3\CMS\Core\Http\RequestFactory;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Log\LoggerInterface;
-use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
 use RuntimeException;
 
 /**
@@ -50,11 +49,11 @@ final readonly class OpenAIService
     /**
      * Constructor.
      *
-     * @param ExtensionConfiguration $extensionConfiguration
+     * @param ExtensionSettings $extensionSettings
      * @param RequestFactory $requestFactory
      */
     public function __construct(
-        private ExtensionConfiguration $extensionConfiguration,
+        private ExtensionSettings $extensionSettings,
         private RequestFactory $requestFactory,
         private LoggerInterface $logger,
     ) {}
@@ -140,26 +139,17 @@ final readonly class OpenAIService
      */
     private function getModelName(): string
     {
-        return $this->getConfiguration()['openAIChatModel'] ?? 'gpt-5.4-mini';
+        return $this->extensionSettings->get('openAIChatModel', 'gpt-5.4-mini');
     }
 
     /**
-     * The extension configuration, or an empty array when it is missing
-     * entirely (unsynced/legacy deployments where extension:setup has not
-     * run): every consumer treats absent keys as "feature disabled", and
-     * ExtensionConfiguration::get() throwing must not break render paths.
+     * Get the OpenAI image detail level (low/high/auto) from extension configuration.
      *
-     * @return array<string, mixed>
+     * @return string The OpenAI image detail level.
      */
-    private function getConfiguration(): array
+    public function getChatImageDetail(): string
     {
-        try {
-            $configuration = $this->extensionConfiguration->get('mindfula11y');
-        } catch (\TYPO3\CMS\Core\Configuration\Exception\ExtensionConfigurationExtensionNotConfiguredException) {
-            return [];
-        }
-
-        return is_array($configuration) ? $configuration : [];
+        return $this->extensionSettings->get('openAIChatImageDetail', 'auto');
     }
 
     /**
@@ -169,7 +159,7 @@ final readonly class OpenAIService
      */
     private function getApiKey(): string
     {
-        return $this->getConfiguration()['openAIApiKey'] ?? '';
+        return $this->extensionSettings->get('openAIApiKey', '');
     }
 
     /**
@@ -196,9 +186,7 @@ final readonly class OpenAIService
      */
     public function isEnabledAndConfigured(): bool
     {
-        $configuration = $this->getConfiguration();
-
-        return !(bool)($configuration['disableAltTextGeneration'] ?? false)
-            && !empty($configuration['openAIApiKey'] ?? '');
+        return !(bool)$this->extensionSettings->get('disableAltTextGeneration', false)
+            && !empty($this->extensionSettings->get('openAIApiKey', ''));
     }
 }

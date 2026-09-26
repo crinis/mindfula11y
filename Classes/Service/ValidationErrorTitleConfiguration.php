@@ -22,23 +22,16 @@ declare(strict_types=1);
 
 namespace MindfulMarkup\MindfulA11y\Service;
 
-use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
-
 final readonly class ValidationErrorTitleConfiguration
 {
     public function __construct(
-        private ExtensionConfiguration $extensionConfiguration,
+        private ExtensionSettings $extensionSettings,
     ) {}
 
     public function isEnabled(): bool
     {
         // The prefix is opt-in: a missing or unsynced extension configuration
-        // (e.g. before extension:setup ran) must read as disabled, not throw.
-        try {
-            return (bool)$this->extensionConfiguration->get('mindfula11y', 'enableValidationErrorTitlePrefix');
-        } catch (\TYPO3\CMS\Core\Configuration\Exception\ExtensionConfigurationExtensionNotConfiguredException
-            | \TYPO3\CMS\Core\Configuration\Exception\ExtensionConfigurationPathDoesNotExistException) {
-            return false;
-        }
+        // (e.g. before extension:setup ran) reads as disabled.
+        return (bool)$this->extensionSettings->get('enableValidationErrorTitlePrefix', false);
     }
 }

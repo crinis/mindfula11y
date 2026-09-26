@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace MindfulMarkup\MindfulA11y\Tests\Unit\Service;
 
+use MindfulMarkup\MindfulA11y\Service\ExtensionSettings;
 use MindfulMarkup\MindfulA11y\Service\OpenAIService;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -36,7 +37,7 @@ final class OpenAIServiceTest extends TestCase
         $extensionConfiguration = $this->createMock(ExtensionConfiguration::class);
         $extensionConfiguration->method('get')->with('mindfula11y')->willReturn($configuration);
 
-        return new OpenAIService($extensionConfiguration, $requestFactory, $logger);
+        return new OpenAIService(new ExtensionSettings($extensionConfiguration), $requestFactory, $logger);
     }
 
     #[Test]
@@ -54,7 +55,7 @@ final class OpenAIServiceTest extends TestCase
             ),
         );
         $service = new OpenAIService(
-            $extensionConfiguration,
+            new ExtensionSettings($extensionConfiguration),
             $this->createMock(RequestFactory::class),
             $this->createMock(LoggerInterface::class),
         );

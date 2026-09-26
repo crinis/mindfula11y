@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace MindfulMarkup\MindfulA11y\Tests\Unit\Service;
 
 use MindfulMarkup\MindfulA11y\Service\AltTextGeneratorService;
+use MindfulMarkup\MindfulA11y\Service\ExtensionSettings;
 use MindfulMarkup\MindfulA11y\Service\OpenAIService;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -67,8 +68,7 @@ final class AltTextGeneratorServiceTest extends TestCase
         $file->method('getMimeType')->willReturn('image/png');
 
         $service = new AltTextGeneratorService(
-            new OpenAIService($extensionConfiguration, $requestFactory, $this->createMock(LoggerInterface::class)),
-            $extensionConfiguration,
+            new OpenAIService(new ExtensionSettings($extensionConfiguration), $requestFactory, $this->createMock(LoggerInterface::class)),
             $this->createMock(LoggerInterface::class),
         );
 
@@ -97,8 +97,7 @@ final class AltTextGeneratorServiceTest extends TestCase
         $file->expects(self::never())->method('getContents');
 
         $service = new AltTextGeneratorService(
-            new OpenAIService($extensionConfiguration, $requestFactory, $this->createMock(LoggerInterface::class)),
-            $extensionConfiguration,
+            new OpenAIService(new ExtensionSettings($extensionConfiguration), $requestFactory, $this->createMock(LoggerInterface::class)),
             $this->createMock(LoggerInterface::class),
         );
 
@@ -138,8 +137,7 @@ final class AltTextGeneratorServiceTest extends TestCase
         );
 
         $service = new AltTextGeneratorService(
-            new OpenAIService($extensionConfiguration, $requestFactory, $this->createMock(LoggerInterface::class)),
-            $extensionConfiguration,
+            new OpenAIService(new ExtensionSettings($extensionConfiguration), $requestFactory, $this->createMock(LoggerInterface::class)),
             $logger,
         );
 
