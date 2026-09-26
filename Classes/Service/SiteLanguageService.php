@@ -49,13 +49,17 @@ final readonly class SiteLanguageService
     /**
      * Get the language code by language UID and page ID.
      *
+     * A page ID of 0 (root-level records such as sys_file_metadata) has no
+     * site of its own; the code is then resolved from any site configuring
+     * the language (see getLanguageCodeFromAnySite()).
+     *
      * @param int $languageUid The UID of the language.
-     * @param int $pageId The ID of the page.
+     * @param int $pageId The ID of the page, or 0 for root-level records.
      * 
      * @return string The language code.
      * 
-     * @throws SiteNotFoundException If the site is not found.
-     * @throws InvalidArgumentException If the language UID is invalid or page ID is 0.
+     * @throws SiteNotFoundException If the page belongs to no site.
+     * @throws InvalidArgumentException If the page's site does not configure the language UID.
      */
     public function getLanguageCode(int $languageUid, int $pageId): string
     {
@@ -84,11 +88,10 @@ final readonly class SiteLanguageService
         }
 
         // Fall back to the default language of the first available site
-        foreach ($this->siteFinder->getAllSites() as $site) {
-            return $site->getDefaultLanguage()->getLocale()->getLanguageCode();
-        }
+        $sites = $this->siteFinder->getAllSites();
+        $firstSite = reset($sites);
 
-        return 'en';
+        return $firstSite !== false ? $firstSite->getDefaultLanguage()->getLocale()->getLanguageCode() : 'en';
     }
 
     /**
@@ -100,14 +103,10 @@ final readonly class SiteLanguageService
      * @return SiteLanguage
      * 
      * @throws SiteNotFoundException If the site is not found.
-     * @throws InvalidArgumentException If the language UID is invalid or page ID is 0.
+     * @throws InvalidArgumentException If the language UID is invalid.
      */
     private function getSiteLanguage(int $pageId, int $languageUid): SiteLanguage
     {
-        if (0 === $pageId) {
-            throw new InvalidArgumentException('Page ID cannot be 0.', 1634567890);
-        }
-
         $site = $this->siteFinder->getSiteByPageId($pageId);
         return $site->getLanguageById($languageUid);
     }

@@ -52,7 +52,7 @@ final readonly class ScanStateService
      *   Pass this when $pageInfo is a translation overlay, as overlays may not have SYS_LASTCHANGED updated.
      * @return bool True if the scan should be invalidated (new scan needed), false otherwise.
      */
-    public function shouldInvalidateScan(array $pageInfo, int $fallbackSysLastChanged = 0): bool
+    private function shouldInvalidateScan(array $pageInfo, int $fallbackSysLastChanged = 0): bool
     {
         $sysLastChanged = max((int)($pageInfo['SYS_LASTCHANGED'] ?? 0), $fallbackSysLastChanged);
         $scanUpdated = $pageInfo[self::FIELD_SCAN_UPDATED] ?? null;

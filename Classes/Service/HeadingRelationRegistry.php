@@ -53,10 +53,12 @@ use MindfulMarkup\MindfulA11y\Domain\Model\HeadingRelation;
  * themselves (see vendor/typo3/cms-fluid/Configuration/Services.php) so each tag occurrence
  * gets a fresh ViewHelper instance — but this registry is a regular service injected into
  * those ViewHelpers, so it stays `shared: true` (a singleton) for the lifetime of the DI
- * container that constructed it. TYPO3 builds a fresh container for every incoming request
- * (\TYPO3\CMS\Core\Core\Bootstrap::init()), so under PHP-FPM (with or without process
- * recycling) two consecutive requests each get their own container and therefore their own
- * registry instance with an empty array — nothing leaks between requests.
+ * container that constructed it. TYPO3 builds the container once per PHP process
+ * execution (\TYPO3\CMS\Core\Core\Bootstrap::init()), which under PHP-FPM's
+ * shared-nothing model is one request: two consecutive requests each get their own
+ * container and therefore their own registry instance with an empty array — nothing leaks
+ * between requests. A long-running worker runtime would have to reset the container
+ * between requests for the same guarantee.
  */
 final class HeadingRelationRegistry
 {
