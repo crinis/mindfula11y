@@ -50,8 +50,15 @@ final readonly class StructureAnalysisAuthenticationMiddleware implements Middle
             return $handler->handle($request);
         }
 
-        $requestOrigin = $this->ticketService->originFromUrl((string)$request->getUri());
-        $requestTarget = $this->ticketService->normalizeTarget((string)$request->getUri());
+        // A request URL the ticket service cannot normalize (e.g. a host that
+        // fails hostname validation) can never match a signed ticket: treat it
+        // as carrying no ticket and render publicly instead of failing.
+        try {
+            $requestOrigin = $this->ticketService->originFromUrl((string)$request->getUri());
+            $requestTarget = $this->ticketService->normalizeTarget((string)$request->getUri());
+        } catch (\InvalidArgumentException) {
+            return $handler->handle($request);
+        }
         $language = $request->getAttribute('language');
         if ($ticket->frontendOrigin !== $requestOrigin
             || $ticket->target !== $requestTarget
