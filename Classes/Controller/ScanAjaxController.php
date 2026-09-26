@@ -171,6 +171,15 @@ final readonly class ScanAjaxController
             return $this->errorResponse('error.invalidWorkspace', 403);
         }
 
+        // Looked up before the TSconfig gate: a page id without a record has
+        // no rootline to inherit scan.enable from, and would otherwise be
+        // reported as "scanning disabled" instead of "not found".
+        $page = BackendUtility::getRecordWSOL('pages', $pageId);
+
+        if (null === $page || VersionState::tryFrom((int)$page['t3ver_state']) === VersionState::DELETE_PLACEHOLDER) {
+            return $this->errorResponse('scan.error.pageNotFound', 404);
+        }
+
         // Check TSConfig access for scan feature
         $pageTsConfig = $this->moduleSettingsService->getConvertedPageTsConfig($pageId);
         if (!$this->moduleSettingsService->hasScanAccess($pageTsConfig)) {
@@ -185,12 +194,6 @@ final readonly class ScanAjaxController
                 return $this->errorResponse('scan.error.aiAuditNotAllowed', 403);
             }
             $aiAuditSkills = $this->moduleSettingsService->getAiAuditSkills($pageTsConfig);
-        }
-
-        $page = BackendUtility::getRecordWSOL('pages', $pageId);
-
-        if (null === $page || VersionState::tryFrom((int)$page['t3ver_state']) === VersionState::DELETE_PLACEHOLDER) {
-            return $this->errorResponse('scan.error.pageNotFound', 404);
         }
 
         if ($languageId > 0) {
@@ -217,6 +220,17 @@ final readonly class ScanAjaxController
         // Check if page is visible (not hidden and within start/end time)
         if (!$this->pagePreviewService->isPageVisible($page)) {
             return $this->errorResponse('scan.error.pageVisible', 403);
+        }
+
+        // The scanner fetches pages as a public visitor. Multi-page scans skip
+        // pages restricted to frontend user groups (directly or inherited via
+        // extendToSubpages) in PagePreviewService::generatePageUrls(); a
+        // single-page scan refuses such a page instead of scanning its login wall.
+        if (!$demand->getCrawl()
+            && $demand->getPageLevels() === 0
+            && !$this->pagePreviewService->isPageFrontendAccessible($page)
+        ) {
+            return $this->errorResponse('scan.error.pageRestricted', 403);
         }
 
         // The HMAC authenticates the issued preview URL and page/language

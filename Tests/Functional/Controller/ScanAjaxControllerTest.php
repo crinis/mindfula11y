@@ -21,6 +21,7 @@ use MindfulMarkup\MindfulA11y\Service\PagePreviewService;
 use MindfulMarkup\MindfulA11y\Service\RecordSnapshotService;
 use MindfulMarkup\MindfulA11y\Service\ScanStateService;
 use MindfulMarkup\MindfulA11y\Tests\Functional\AbstractAuthorizationTestCase;
+use PHPUnit\Framework\Attributes\DataProvider;
 use TYPO3\CMS\Backend\Routing\PreviewUriBuilder;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 
@@ -266,27 +267,18 @@ final class ScanAjaxControllerTest extends AbstractAuthorizationTestCase
         $this->assertErrorResponse($response, 500, 'scan.error.notConfigured');
     }
 
-    public function testCreateActionNonexistentPageIsDeniedByTsConfigGateBeforePageLookup(): void
+    public function testCreateActionNonexistentPageReturnsPageNotFound(): void
     {
-        // FINDING (not a security gap — fail-closed, more restrictive than
-        // expected): the TSconfig scan-access gate runs BEFORE the
-        // page-existence check in createAction(). ModuleSettingsService::
-        // getConvertedPageTsConfig() resolves Page TSconfig via the page's
-        // own rootline (BackendUtility::getPagesTSconfig() ->
-        // RootlineUtility); for a uid with no 'pages' row at all, the
-        // rootline cannot be resolved and comes back empty, so
-        // hasScanAccess() sees no inherited scan.enable and denies with
-        // scan.noAccess — the dedicated scan.error.pageNotFound (404) branch
-        // further down is never reached for a page id that never existed.
-        // That branch IS reachable (see
-        // testCreateActionMissingTranslationReturnsPageNotFound below, whose
-        // page genuinely exists but the requested translation does not).
+        // The page lookup runs before the TSconfig gate: a uid with no
+        // 'pages' row has no rootline and hence no inherited scan.enable, so
+        // the reverse order answered 403 scan.noAccess for a page that simply
+        // does not exist.
         $this->logInBackendUser(2);
         $payload = $this->signedCreateDemandPayload(2, 99999, previewUrl: 'https://example.com/does-not-exist');
 
         $response = $this->controller()->createAction($this->createJsonRequest($payload));
 
-        $this->assertErrorResponse($response, 403, 'scan.noAccess');
+        $this->assertErrorResponse($response, 404, 'scan.error.pageNotFound');
     }
 
     public function testCreateActionMissingTranslationReturnsPageNotFound(): void
@@ -418,6 +410,35 @@ final class ScanAjaxControllerTest extends AbstractAuthorizationTestCase
         $response = $this->controller()->createAction($this->createJsonRequest($payload));
 
         $this->assertErrorResponse($response, 403, 'scan.error.pageVisible');
+    }
+
+    /**
+     * The external scanner fetches pages as a public visitor. A page limited
+     * to frontend user groups — directly (910) or inherited through
+     * extendToSubpages (911) — is excluded from multi-page scans by
+     * PagePreviewService::generatePageUrls(); a single-page scan must refuse
+     * it the same way instead of scanning the login wall.
+     *
+     * @return array<string, array{int, string}>
+     */
+    public static function frontendRestrictedPageProvider(): array
+    {
+        return [
+            'fe_group on the page' => [910, 'https://example.com/members'],
+            'fe_group inherited via extendToSubpages' => [911, 'https://example.com/members/sub'],
+        ];
+    }
+
+    #[DataProvider('frontendRestrictedPageProvider')]
+    public function testCreateActionFrontendRestrictedPageIsRefused(int $pageId, string $previewUrl): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/PagePreviewSupplement.csv');
+        $this->logInBackendUser(2);
+        $payload = $this->signedCreateDemandPayload(2, $pageId, previewUrl: $previewUrl);
+
+        $response = $this->controller()->createAction($this->createJsonRequest($payload));
+
+        $this->assertErrorResponse($response, 403, 'scan.error.pageRestricted');
     }
 
     public function testCreateActionFullyAuthorizedEndsInScanApiFailure(): void

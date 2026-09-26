@@ -1218,6 +1218,14 @@
                 <source>The page is hidden or not yet published. The external accessibility scanner cannot access it.</source>
                 <target>Die Seite ist ausgeblendet oder noch nicht veröffentlicht. Der externe Barrierefreiheits-Scanner kann nicht auf sie zugreifen.</target>
             </trans-unit>
+            <trans-unit id="scan.error.pageRestricted" resname="scan.error.pageRestricted">
+                <source>Page restricted to frontend users</source>
+                <target>Seite auf Frontend-Benutzer beschränkt</target>
+            </trans-unit>
+            <trans-unit id="scan.error.pageRestricted.description" resname="scan.error.pageRestricted.description">
+                <source>The page, or a parent page extending its restrictions to subpages, is only accessible to logged-in frontend user groups. The external accessibility scanner cannot access it.</source>
+                <target>Die Seite oder eine übergeordnete Seite, die ihre Einschränkungen auf Unterseiten vererbt, ist nur für angemeldete Frontend-Benutzergruppen zugänglich. Der externe Barrierefreiheits-Scanner kann nicht auf sie zugreifen.</target>
+            </trans-unit>
             <trans-unit id="scan.error.accessDenied" resname="scan.error.accessDenied">
                 <source>Access denied</source>
                 <target>Zugriff verweigert</target>

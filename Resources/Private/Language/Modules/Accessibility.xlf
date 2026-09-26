@@ -958,6 +958,12 @@
             <trans-unit id="scan.error.pageVisible.description" resname="scan.error.pageVisible.description">
                 <source>The page is hidden or not yet published. The external accessibility scanner cannot access it.</source>
             </trans-unit>
+            <trans-unit id="scan.error.pageRestricted" resname="scan.error.pageRestricted">
+                <source>Page restricted to frontend users</source>
+            </trans-unit>
+            <trans-unit id="scan.error.pageRestricted.description" resname="scan.error.pageRestricted.description">
+                <source>The page, or a parent page extending its restrictions to subpages, is only accessible to logged-in frontend user groups. The external accessibility scanner cannot access it.</source>
+            </trans-unit>
             <trans-unit id="scan.error.accessDenied" resname="scan.error.accessDenied">
                 <source>Access denied</source>
             </trans-unit>
