@@ -185,6 +185,24 @@ final readonly class DocHeaderMenuBuilder
     }
 
     /**
+     * Show the selected page in the doc header (page path / breadcrumb).
+     *
+     * Without it, TYPO3 v14 falls back to a breadcrumb of the site root and
+     * v13 shows no page path. v14 replaces setMetaInformation() (deprecated
+     * there, #107813) with setPageBreadcrumb(), which v13 does not have.
+     *
+     * @param array<string, mixed> $pageRecord
+     */
+    public function addPageInformation(ModuleTemplate $moduleTemplate, array $pageRecord): void
+    {
+        if ($this->isTypo3VersionAtLeast('14.0')) {
+            $moduleTemplate->getDocHeaderComponent()->setPageBreadcrumb($pageRecord);
+            return;
+        }
+        $moduleTemplate->getDocHeaderComponent()->setMetaInformation($pageRecord);
+    }
+
+    /**
      * Create a backend dropdown button.
      *
      * Uses GeneralUtility::makeInstance() directly instead of

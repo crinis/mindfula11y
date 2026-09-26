@@ -50,6 +50,7 @@ upload comment. Manual `v*` tags are blocked by a repository ruleset.
 
 ### Fixed
 
+- The Accessibility module's doc header shows the selected page: on TYPO3 14 its breadcrumb previously showed only the site root, and on TYPO3 13 the page path was missing.
 - The Missing Alternative Texts list and count now reflect the editor's workspace. File references with a workspace version disappeared entirely (any draft edit of a content element with images hid its references), alternative text added or removed only in a draft was ignored, and a row could advertise live metadata alternative text as inherited when the draft had cleared it. Metadata drafts no longer bleed into other workspaces.
 - Structure-editing and alt-text controls now target the rendered translation and the current workspace draft, and heading types stored on records honour the previewed workspace. Landmark changes no longer update the default-language record from a translated preview, and stale controls for deleted or foreign-workspace records are withheld.
 - Heading and landmark editing controls and alternative-text saving now work in offline workspaces; an over-strict permission check previously locked them for every workspace user. Editors switched into a workspace also get the module's features back — table *read* access was wrongly denied for every workspace-capable table. Scans remain limited to the live workspace and are simply not offered elsewhere, instead of failing with a misleading permission error.

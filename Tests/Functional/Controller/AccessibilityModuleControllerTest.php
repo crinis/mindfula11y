@@ -202,6 +202,21 @@ final class AccessibilityModuleControllerTest extends AbstractAuthorizationTestC
     }
 
     /**
+     * The doc header shows the selected page (v14 breadcrumb / v13 page path).
+     * Without it, TYPO3 v14 renders a breadcrumb of the site root instead.
+     */
+    public function testDocHeaderShowsTheSelectedPage(): void
+    {
+        $this->logInBackendUser(2);
+
+        $body = (string)$this->mainAction($this->buildModuleRequest(10))->getBody();
+
+        $docHeaderEnd = strpos($body, 'module-body');
+        self::assertNotFalse($docHeaderEnd, 'fixture guard: the module layout rendered');
+        self::assertStringContainsString('Editable', substr($body, 0, $docHeaderEnd), 'the page title appears in the doc header');
+    }
+
+    /**
      * Renderer-level TSconfig gate through the real dispatch path: page 17
      * disables scans via TSconfig, so requesting the scan feature there must
      * yield the renderer's 403 — deep-linking the feature URL cannot bypass

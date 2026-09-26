@@ -107,6 +107,7 @@ final readonly class AccessibilityModuleController
         if (false === $pageInfo) {
             return $this->noticeResponse($moduleTemplate, 'error.noPageAccess', ContextualFeedbackSeverity::ERROR, 403);
         }
+        $this->menuBuilder->addPageInformation($moduleTemplate, $pageInfo);
 
         $moduleData = $request->getAttribute('moduleData', null);
         if (null === $moduleData) {
