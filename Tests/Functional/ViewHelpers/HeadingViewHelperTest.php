@@ -17,6 +17,7 @@ namespace MindfulMarkup\MindfulA11y\Tests\Functional\ViewHelpers;
 use MindfulMarkup\MindfulA11y\Domain\Model\StructureAnalysisTicket;
 use MindfulMarkup\MindfulA11y\Enum\HeadingType;
 use MindfulMarkup\MindfulA11y\Tca\HeadingTypeItemsProcessor;
+use MindfulMarkup\MindfulA11y\ViewHelpers\HeadingViewHelper;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use Psr\Http\Message\ServerRequestInterface;
@@ -247,6 +248,23 @@ final class HeadingViewHelperTest extends FunctionalTestCase
 
         self::assertStringContainsString('<h3>Child</h3>', $output);
         self::assertStringContainsString('<h2>Sibling</h2>', $output);
+    }
+
+    #[Test]
+    public function integerTypeArgumentIsCastInsteadOfThrowing(): void
+    {
+        // Fluid 4 (TYPO3 13) passes an integer variable into the string-typed
+        // `type` argument uncast, while Fluid 5 coerces it first — so the
+        // arguments are set directly, as Fluid 4 hands them over, instead of
+        // rendering a template. HeadingType::tryFrom() must not throw a
+        // TypeError under strict_types; an integer is no valid type.
+        $viewHelper = $this->get(HeadingViewHelper::class);
+        $viewHelper->setRenderingContext($this->get(RenderingContextFactory::class)->create());
+        $viewHelper->setArguments(['type' => 1]);
+
+        $resolveHeadingType = new \ReflectionMethod($viewHelper, 'resolveHeadingType');
+
+        self::assertNull($resolveHeadingType->invoke($viewHelper));
     }
 
     #[Test]

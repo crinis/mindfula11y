@@ -272,7 +272,7 @@ abstract class AbstractHeadingViewHelper extends AbstractTagBasedViewHelper
     protected function resolveHeadingType(): ?HeadingType
     {
         if (!empty($this->arguments['type'])) {
-            return HeadingType::tryFrom($this->arguments['type']);
+            return HeadingType::tryFrom((string)$this->arguments['type']);
         }
 
         $relatedType = $this->resolveRelatedHeadingType();
