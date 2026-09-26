@@ -27,12 +27,4 @@ return [
         'provider' => SvgIconProvider::class,
         'source' => 'EXT:mindfula11y/Resources/Public/Icons/AccessibilityModule.svg',
     ],
-    'tx-mindfula11y-module-missingalttext' => [
-        'provider' => SvgIconProvider::class,
-        'source' => 'EXT:mindfula11y/Resources/Public/Icons/MissingAltTextModule.svg',
-    ],
-    'tx-mindfula11y-module-headingstructure' => [
-        'provider' => SvgIconProvider::class,
-        'source' => 'EXT:mindfula11y/Resources/Public/Icons/HeadingStructureModule.svg',
-    ],
 ];

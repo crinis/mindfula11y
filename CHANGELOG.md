@@ -48,6 +48,10 @@ upload comment. Manual `v*` tags are blocked by a repository ruleset.
 
 - The Page TSconfig keys `mod.mindfula11y_accessibility.scan.basicAuthUsername` / `basicAuthPassword`: use `mindfula11y.scan.basicAuth.username` / `…password` in the site configuration instead (see Added). The TSconfig keys keep working as a fallback but will be removed in a future release; they cannot reference environment variables and apply per page tree rather than per site.
 
+### Removed
+
+- The unused icon identifiers `tx-mindfula11y-module-missingalttext` and `tx-mindfula11y-module-headingstructure` are no longer registered. Code that referenced them should use `tx-mindfula11y-module-accessibility`.
+
 ### Fixed
 
 - The Accessibility module's doc header shows the selected page: on TYPO3 14 its breadcrumb previously showed only the site root, and on TYPO3 13 the page path was missing.
