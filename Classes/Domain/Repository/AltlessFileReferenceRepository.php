@@ -588,17 +588,17 @@ final readonly class AltlessFileReferenceRepository
         foreach ($tables as $table) {
             $queryBuilder->leftJoin(
                 'sys_file_reference',
-                $table->getTableName(),
-                $table->getTableName(),
+                $table->tableName,
+                $table->tableName,
                 (string)$queryBuilder->expr()->and(
-                    $queryBuilder->expr()->eq('sys_file_reference.uid_foreign', $queryBuilder->quoteIdentifier($table->getTableName() . '.uid')),
-                    $queryBuilder->expr()->eq('sys_file_reference.tablenames', $queryBuilder->createNamedParameter($table->getTableName(), Connection::PARAM_STR)),
+                    $queryBuilder->expr()->eq('sys_file_reference.uid_foreign', $queryBuilder->quoteIdentifier($table->tableName . '.uid')),
+                    $queryBuilder->expr()->eq('sys_file_reference.tablenames', $queryBuilder->createNamedParameter($table->tableName, Connection::PARAM_STR)),
                 )
             );
 
             $authModeClauses = [];
-            foreach ($table->getAuthModeColumns() as $columnName => $allowedValues) {
-                $columnReference = $table->getTableName() . '.' . $columnName;
+            foreach ($table->authModeColumns as $columnName => $allowedValues) {
+                $columnReference = $table->tableName . '.' . $columnName;
                 $valueClause = $queryBuilder->expr()->in(
                     $columnReference,
                     $queryBuilder->createNamedParameter($allowedValues, Connection::PARAM_STR_ARRAY)
@@ -632,10 +632,10 @@ final readonly class AltlessFileReferenceRepository
                 // whose parent was deleted, regardless of the value that parent
                 // used to store; a table declaring no authMode column at all
                 // would carry no parent predicate whatsoever.
-                $queryBuilder->expr()->isNotNull($table->getTableName() . '.uid'),
-                $queryBuilder->expr()->eq('sys_file_reference.tablenames', $queryBuilder->createNamedParameter($table->getTableName(), Connection::PARAM_STR)),
-                $queryBuilder->expr()->in('sys_file_reference.fieldname', $queryBuilder->createNamedParameter($table->getFileColumnNames(), Connection::PARAM_STR_ARRAY)),
-                $queryBuilder->expr()->in('sys_file_reference.pid', $queryBuilder->createNamedParameter($table->getPageIds(), Connection::PARAM_INT_ARRAY)),
+                $queryBuilder->expr()->isNotNull($table->tableName . '.uid'),
+                $queryBuilder->expr()->eq('sys_file_reference.tablenames', $queryBuilder->createNamedParameter($table->tableName, Connection::PARAM_STR)),
+                $queryBuilder->expr()->in('sys_file_reference.fieldname', $queryBuilder->createNamedParameter($table->fileColumnNames, Connection::PARAM_STR_ARRAY)),
+                $queryBuilder->expr()->in('sys_file_reference.pid', $queryBuilder->createNamedParameter($table->pageIds, Connection::PARAM_INT_ARRAY)),
                 !empty($authModeClauses) ? $queryBuilder->expr()->and(...$authModeClauses) : null
             );
         }
