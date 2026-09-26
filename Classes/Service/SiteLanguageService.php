@@ -23,7 +23,10 @@ declare(strict_types=1);
 namespace MindfulMarkup\MindfulA11y\Service;
 
 use InvalidArgumentException;
+use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Message\UriInterface;
 use TYPO3\CMS\Core\Exception\SiteNotFoundException;
+use TYPO3\CMS\Core\Http\NormalizedParams;
 use TYPO3\CMS\Core\Site\Entity\SiteLanguage;
 use TYPO3\CMS\Core\Site\SiteFinder;
 
@@ -113,10 +116,12 @@ final readonly class SiteLanguageService
      * Resolve the absolute base URL of a site language.
      *
      * Language bases in TYPO3 site configuration may be relative (e.g. /de/) or absolute
-     * (e.g. https://de.example.com/). This method always returns an absolute URL without
-     * a trailing slash, suitable for URL comparisons or crawler glob patterns.
+     * (e.g. https://de.example.com/); core already prefixes a relative language base with
+     * an absolute site base. This method always returns an absolute URL without a
+     * trailing slash, suitable for URL comparisons or crawler glob patterns.
      *
-     * Returns null if the site or language cannot be resolved.
+     * Returns null if the site or language cannot be resolved, or if the base is
+     * relative (site `base: /`) and no current backend request supplies the origin.
      *
      * @param int $pageId Page ID within the target site.
      * @param int $languageId Language ID.
@@ -126,18 +131,7 @@ final readonly class SiteLanguageService
     {
         try {
             $site = $this->siteFinder->getSiteByPageId($pageId);
-            $langBase = $site->getLanguageById($languageId)->getBase();
-            if (!empty($langBase->getScheme())) {
-                // Absolute language base (e.g. https://de.example.com/ or https://example.com/de/)
-                return rtrim((string)$langBase, '/');
-            }
-            // Relative language base (e.g. /de/) — resolve scheme+host from the site base
-            $siteBase = $site->getBase();
-            $origin = $siteBase->getScheme() . '://' . $siteBase->getHost();
-            if ($siteBase->getPort()) {
-                $origin .= ':' . $siteBase->getPort();
-            }
-            return $origin . rtrim($langBase->getPath(), '/');
+            return $this->toAbsoluteBase($site->getLanguageById($languageId)->getBase());
         } catch (\Throwable) {
             return null;
         }
@@ -148,7 +142,9 @@ final readonly class SiteLanguageService
      *
      * Security allowlist for user-influenced URL filters that are forwarded to
      * the external scanner API: everything outside the site's own URL space is
-     * dropped, and any resolution failure drops all URLs (fail closed).
+     * dropped, and any resolution failure drops all URLs (fail closed). A
+     * relative site base admits the current backend request's origin only —
+     * the host the preview URLs are built for.
      *
      * @param list<string> $urls
      * @return list<string>
@@ -162,15 +158,13 @@ final readonly class SiteLanguageService
         try {
             $site = $this->siteFinder->getSiteByPageId($pageId);
             $allowedBases = [];
-            foreach ($site->getLanguages() as $language) {
-                $base = rtrim((string)$language->getBase(), '/');
-                if ($base !== '') {
-                    $allowedBases[] = $base;
+            $bases = array_map(static fn(SiteLanguage $language): UriInterface => $language->getBase(), $site->getLanguages());
+            $bases[] = $site->getBase();
+            foreach ($bases as $base) {
+                $absoluteBase = $this->toAbsoluteBase($base);
+                if ($absoluteBase !== null && $absoluteBase !== '' && !in_array($absoluteBase, $allowedBases, true)) {
+                    $allowedBases[] = $absoluteBase;
                 }
-            }
-            $siteBase = rtrim((string)$site->getBase(), '/');
-            if ($siteBase !== '' && !in_array($siteBase, $allowedBases, true)) {
-                $allowedBases[] = $siteBase;
             }
 
             return array_values(array_filter($urls, static function (string $url) use ($allowedBases): bool {
@@ -184,5 +178,43 @@ final readonly class SiteLanguageService
         } catch (\Exception) {
             return [];
         }
+    }
+
+    /**
+     * A site or language base as an absolute URL without trailing slash.
+     *
+     * A base without host (site `base: /`, which core leaves relative for every
+     * language) is resolved against the current backend request's origin — the
+     * same host core's preview links resolve against. A base without scheme
+     * (`//example.com/`) takes the request's scheme. Null when the base is not
+     * absolute and no request is available to complete it (fail closed).
+     */
+    private function toAbsoluteBase(UriInterface $base): ?string
+    {
+        if ($base->getHost() !== '' && $base->getScheme() !== '') {
+            return rtrim((string)$base, '/');
+        }
+
+        $normalizedParams = $this->getNormalizedParams();
+        if ($normalizedParams === null || $normalizedParams->getRequestHost() === '') {
+            return null;
+        }
+
+        if ($base->getHost() !== '') {
+            return rtrim(($normalizedParams->isHttps() ? 'https:' : 'http:') . (string)$base, '/');
+        }
+
+        return rtrim($normalizedParams->getRequestHost() . '/' . ltrim($base->getPath(), '/'), '/');
+    }
+
+    private function getNormalizedParams(): ?NormalizedParams
+    {
+        $request = $GLOBALS['TYPO3_REQUEST'] ?? null;
+        if (!$request instanceof ServerRequestInterface) {
+            return null;
+        }
+        $normalizedParams = $request->getAttribute('normalizedParams');
+
+        return $normalizedParams instanceof NormalizedParams ? $normalizedParams : null;
     }
 }
