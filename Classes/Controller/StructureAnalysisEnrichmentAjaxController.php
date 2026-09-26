@@ -24,8 +24,10 @@ namespace MindfulMarkup\MindfulA11y\Controller;
 
 use MindfulMarkup\MindfulA11y\Service\ModuleSettingsService;
 use MindfulMarkup\MindfulA11y\Service\PermissionService;
+use MindfulMarkup\MindfulA11y\Tca\TranslationFields;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use Psr\Log\LoggerInterface;
 use TYPO3\CMS\Backend\Form\FormDataCompiler;
 use TYPO3\CMS\Backend\Form\FormDataGroup\TcaDatabaseRecord;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
@@ -49,6 +51,7 @@ final readonly class StructureAnalysisEnrichmentAjaxController
         private FormDataCompiler $formDataCompiler,
         private UriBuilder $backendUriBuilder,
         private BackendLayoutView $backendLayoutView,
+        private LoggerInterface $logger,
     ) {}
 
     public function enrichAction(ServerRequestInterface $request): ResponseInterface
@@ -127,7 +130,14 @@ final readonly class StructureAnalysisEnrichmentAjaxController
                     // discarded here; the processed TCA this reads is unaffected.
                     'inlineResolveExistingChildren' => false,
                 ], $formDataGroup);
-            } catch (\Throwable) {
+            } catch (\Throwable $exception) {
+                // The record is left out of the response (no editing controls);
+                // log why, so a broken TCA/FormEngine setup is diagnosable.
+                $this->logger->warning('Structure analysis enrichment skipped a record: FormEngine data compilation failed', [
+                    'table' => $tableName,
+                    'uid' => $formEngineUid,
+                    'exception' => $exception->getMessage(),
+                ]);
                 continue;
             }
             $editLink = (string)$this->backendUriBuilder->buildUriFromRoute('record_edit', [
@@ -149,15 +159,22 @@ final readonly class StructureAnalysisEnrichmentAjaxController
 
     /**
      * Whether Page TSconfig enables at least one structure feature for the
-     * page this record lives on (for pages records: the page itself).
-     * getPagesTSconfig() caches per page id, so batches spanning few pages
-     * stay cheap.
+     * page this record lives on (for pages records: the page itself — for a
+     * translated page its default-language page, which Page TSconfig belongs
+     * to). getPagesTSconfig() caches per page id, so batches spanning few
+     * pages stay cheap.
      *
      * @param array<string, mixed> $record
      */
     private function isStructureAnalysisEnabledForRecord(string $tableName, int $uid, array $record): bool
     {
-        $pageUid = $tableName === 'pages' ? $uid : (int)($record['pid'] ?? 0);
+        if ($tableName === 'pages') {
+            $pageUid = TranslationFields::languageId('pages', $record) > 0
+                ? TranslationFields::translationParentUid('pages', $record)
+                : $uid;
+        } else {
+            $pageUid = (int)($record['pid'] ?? 0);
+        }
         $pageTsConfig = $this->moduleSettingsService->getConvertedPageTsConfig($pageUid);
 
         return $this->moduleSettingsService->hasStructureAnalysisAccess($pageTsConfig);

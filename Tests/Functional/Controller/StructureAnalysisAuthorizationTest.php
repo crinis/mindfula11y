@@ -40,6 +40,9 @@ use TYPO3\CMS\Core\Versioning\VersionState;
  *    root's TSconfig (both features enabled), but has no sys_language_uid = 1
  *    counterpart — exercises the page-translation-existence gate independently
  *    of language access.
+ *  - page 602 "No Structure Access FR": the language-1 translation of page
+ *    600, carrying no TSconfig of its own — exercises that translated page
+ *    records are gated by their default-language page's TSconfig.
  */
 final class StructureAnalysisAuthorizationTest extends AbstractAuthorizationTestCase
 {
@@ -740,5 +743,33 @@ final class StructureAnalysisAuthorizationTest extends AbstractAuthorizationTest
 
         self::assertSame(200, $response->getStatusCode());
         self::assertSame([], $this->decodeJsonResponse($response)['records']);
+    }
+
+    /**
+     * Page TSconfig belongs to the default-language page: a translated page
+     * record has no rootline of its own to inherit it from. Page 602 is the
+     * language-1 translation of structure-disabled page 600 and must be gated
+     * like it; page 30 (translation of the enabled page 10) is the baseline.
+     *
+     * @return array<string, array{int, bool}>
+     */
+    public static function translatedPageRecordProvider(): array
+    {
+        return [
+            'translation of an enabled page' => [30, true],
+            'translation of a structure-disabled page' => [602, false],
+        ];
+    }
+
+    #[DataProvider('translatedPageRecordProvider')]
+    public function testEnrichActionGatesTranslatedPageRecordsByTheDefaultLanguagePage(int $uid, bool $expectMetadata): void
+    {
+        $this->logInBackendUser(2);
+        $response = $this->enrichmentController()->enrichAction($this->createJsonRequest(['records' => [
+            ['tableName' => 'pages', 'columnName' => 'title', 'uid' => $uid],
+        ]]));
+
+        self::assertSame(200, $response->getStatusCode());
+        self::assertCount($expectMetadata ? 1 : 0, $this->decodeJsonResponse($response)['records']);
     }
 }
