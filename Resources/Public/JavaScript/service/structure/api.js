@@ -3,7 +3,7 @@ import {
   recordKey
 } from "../../lib/structure/enrichment.js";
 import { StructureAnalysisError } from "../../lib/structure/error.js";
-import { postJson } from "../backend-api.js";
+import { hasAjaxRoute, postJson } from "../backend-api.js";
 const MAX_RECORDS_PER_REQUEST = 200;
 class StructureAnalysisApi {
   async issueTicket(pageId, languageId, options) {
@@ -49,7 +49,7 @@ class StructureAnalysisApi {
    * as a plain Error, which the structure views cannot localize.
    */
   async post(endpointKey, code, body, signal) {
-    if (TYPO3.settings.ajaxUrls[endpointKey] === void 0) {
+    if (!hasAjaxRoute(endpointKey)) {
       throw new StructureAnalysisError(code, `The backend AJAX route "${endpointKey}" is not registered.`);
     }
     return postJson(endpointKey, body, { signal });

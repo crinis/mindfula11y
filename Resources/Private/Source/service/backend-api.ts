@@ -23,6 +23,14 @@ import { toRequestError } from './request-error.js';
 const JSON_CONTENT_TYPE_HEADERS = { 'Content-Type': 'application/json; charset=utf-8' };
 
 /**
+ * Whether an AJAX route is registered under this `TYPO3.settings.ajaxUrls`
+ * key — for clients that restate a missing route as their own typed failure
+ * before calling {@link getJson}/{@link postJson}, without reading
+ * `TYPO3.settings` themselves (§3.G).
+ */
+export const hasAjaxRoute = (ajaxUrlKey: string): boolean => TYPO3.settings.ajaxUrls[ajaxUrlKey] !== undefined;
+
+/**
  * Resolves a registered AJAX route by its `TYPO3.settings.ajaxUrls` key.
  * Throws (before any network call) when the key isn't registered — a
  * missing route is a configuration bug, not a transient failure.
@@ -35,16 +43,16 @@ const resolveAjaxUrl = (ajaxUrlKey: string): string => {
     return url;
 };
 
-/**
- * Builds a `RequestInit` that omits `signal` entirely when unset — required
- * under `exactOptionalPropertyTypes`, which rejects an explicit
- * `signal: undefined` against DOM's `signal?: AbortSignal | null` property.
- */
 /** Options accepted by the request helpers and, per §3.G, every API client method. */
 export interface RequestOptions {
     signal?: AbortSignal | undefined;
 }
 
+/**
+ * Builds a `RequestInit` that omits `signal` entirely when unset — required
+ * under `exactOptionalPropertyTypes`, which rejects an explicit
+ * `signal: undefined` against DOM's `signal?: AbortSignal | null` property.
+ */
 const requestInit = (signal: AbortSignal | undefined, headers?: Record<string, string>): RequestInit => {
     const init: RequestInit = {};
     if (headers !== undefined) {

@@ -16,7 +16,7 @@ import {
 } from '../../lib/structure/enrichment.js';
 import type { StructureAnalysisFailureCode } from '../../lib/structure/error.js';
 import { StructureAnalysisError } from '../../lib/structure/error.js';
-import { postJson } from '../backend-api.js';
+import { hasAjaxRoute, postJson } from '../backend-api.js';
 
 /** Must match MAX_RECORDS_PER_REQUEST in Classes/Controller/StructureAnalysisEnrichmentAjaxController.php. */
 const MAX_RECORDS_PER_REQUEST = 200;
@@ -85,7 +85,7 @@ export class StructureAnalysisApi {
         body: Record<string, unknown>,
         signal: AbortSignal,
     ): Promise<T> {
-        if (TYPO3.settings.ajaxUrls[endpointKey] === undefined) {
+        if (!hasAjaxRoute(endpointKey)) {
             throw new StructureAnalysisError(code, `The backend AJAX route "${endpointKey}" is not registered.`);
         }
         return postJson<T>(endpointKey, body, { signal });

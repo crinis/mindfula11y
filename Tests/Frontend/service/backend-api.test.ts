@@ -9,7 +9,7 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { getJson, postJson } from '../../../Resources/Private/Source/service/backend-api.js';
+import { getJson, hasAjaxRoute, postJson } from '../../../Resources/Private/Source/service/backend-api.js';
 import { RequestError } from '../../../Resources/Private/Source/service/request-error.js';
 
 const ajaxGet = vi.hoisted(() => vi.fn());
@@ -51,6 +51,13 @@ describe('backend-api', () => {
         const ajaxUrls = {};
         Reflect.set(ajaxUrls, 'mindfula11y_test', '/test');
         Reflect.set(globalThis, 'TYPO3', { settings: { ajaxUrls } });
+    });
+
+    describe('hasAjaxRoute', () => {
+        it('reports whether the route key is registered', () => {
+            expect(hasAjaxRoute('mindfula11y_test')).toBe(true);
+            expect(hasAjaxRoute('mindfula11y_missing')).toBe(false);
+        });
     });
 
     describe('getJson', () => {

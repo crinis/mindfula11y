@@ -1,6 +1,7 @@
 import AjaxRequest from "@typo3/core/ajax/ajax-request.js";
 import { toRequestError } from "./request-error.js";
 const JSON_CONTENT_TYPE_HEADERS = { "Content-Type": "application/json; charset=utf-8" };
+const hasAjaxRoute = (ajaxUrlKey) => TYPO3.settings.ajaxUrls[ajaxUrlKey] !== void 0;
 const resolveAjaxUrl = (ajaxUrlKey) => {
   const url = TYPO3.settings.ajaxUrls[ajaxUrlKey];
   if (url === void 0) {
@@ -42,5 +43,6 @@ const postJson = async (ajaxUrlKey, body, options) => {
 };
 export {
   getJson,
+  hasAjaxRoute,
   postJson
 };
