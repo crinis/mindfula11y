@@ -30,7 +30,7 @@ use MindfulMarkup\MindfulA11y\Service\PagePreviewService;
 use MindfulMarkup\MindfulA11y\Service\ScanApiService;
 use MindfulMarkup\MindfulA11y\Service\ScanDemandFactory;
 use MindfulMarkup\MindfulA11y\Service\ScanStateService;
-use MindfulMarkup\MindfulA11y\Service\StructureAnalysisFramingService;
+use Psr\Http\Message\UriInterface;
 use TYPO3\CMS\Backend\Routing\PreviewUriBuilder;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Core\Page\PageRenderer;
@@ -54,7 +54,6 @@ final readonly class OverviewViewStateFactory
         private DemandSignatureService $demandSignatureService,
         private AltTextFinderService $altTextFinderService,
         private ScanApiService $scanApiService,
-        private StructureAnalysisFramingService $framingService,
         private UriBuilder $backendUriBuilder,
         private PageRenderer $pageRenderer,
     ) {}
@@ -69,11 +68,10 @@ final readonly class OverviewViewStateFactory
      */
     public function build(int $pageId, int $languageId, array $pageInfo, ?array $localizedPageInfo, array $pageTsConfig): array
     {
-        $finalPageInfo = $localizedPageInfo ?: $pageInfo;
+        $finalPageInfo = ModuleContext::previewPageInfo($pageInfo, $localizedPageInfo);
 
         // Let PreviewUriBuilder decide if a preview can be built. It returns null when a preview is not available.
         $previewUri = PreviewUriBuilder::create($finalPageInfo)->buildUri();
-        $this->framingService->allowFraming($previewUri, $pageTsConfig);
 
         $hasMissingAltTextAccess = $this->moduleSettingsService->hasMissingAltTextAccess($pageTsConfig);
         $hasScanAccess = $this->moduleSettingsService->hasScanAccess($pageTsConfig)
@@ -94,22 +92,12 @@ final readonly class OverviewViewStateFactory
             $missingAltTextUri = $this->buildFeatureUri(Feature::MISSING_ALT_TEXT, $pageId, $languageId);
         }
 
+        // The overview template reads the scan card state only when a scan id
+        // or a create demand exists, i.e. only after buildScanCardState().
         $scanUri = null;
-        $scanId = null;
-        $createScanDemand = null;
+        $scanCardState = ['scanId' => null, 'createScanDemand' => null, 'autoCreateScan' => false, 'pageUrlFilter' => []];
         if ($hasScanAccess && $this->scanApiService->isConfigured()) {
-            // Reuse the stored scan only while the page content is unchanged.
-            $scanId = $this->scanStateService->resolveEffectiveScanId(
-                $this->scanStateService->withLiveScanState($finalPageInfo),
-                (int)($pageInfo['SYS_LASTCHANGED'] ?? 0)
-            );
-
-            if (null !== $previewUri) {
-                // The factory signs the language of $finalPageInfo — language 0
-                // when the selected language has no translation of this page.
-                $createScanDemand = $this->scanDemandFactory->create($finalPageInfo, $pageId, (string)$previewUri);
-            }
-
+            $scanCardState = $this->buildScanCardState($pageId, $pageInfo, $localizedPageInfo, $previewUri, 0, $pageTsConfig);
             $scanUri = $this->buildFeatureUri(Feature::SCAN, $pageId, $languageId);
         }
 
@@ -127,11 +115,56 @@ final readonly class OverviewViewStateFactory
             'hasHeadingStructureAccess' => $this->moduleSettingsService->hasHeadingStructureAccess($pageTsConfig),
             'hasLandmarkStructureAccess' => $this->moduleSettingsService->hasLandmarkStructureAccess($pageTsConfig),
             'hasScanAccess' => $hasScanAccess,
-            'scanId' => $scanId,
             'scanUri' => $scanUri,
+            ...$scanCardState,
+        ];
+    }
+
+    /**
+     * The scan card's state, shared by the overview card and the scan feature
+     * (which layers its own additions on top): the effective scan id, the
+     * signed demand for creating a scan, and the auto-create/URL-filter
+     * switches. The caller has already checked scan access, scanner
+     * configuration and page visibility.
+     *
+     * @param array<string, mixed> $pageInfo Default-language page record (page-permission-checked).
+     * @param array<string, mixed>|null $localizedPageInfo Localized overlay, if the translation exists.
+     * @param UriInterface|null $previewUri Preview URI of the page the scan targets (null: no preview, no demand).
+     * @param int $pageLevels Page levels below $pageId the scan covers (0: this page only).
+     * @param array<string, mixed> $pageTsConfig Converted Page TSconfig.
+     * @return array{scanId: string|null, createScanDemand: array<string, mixed>|null, autoCreateScan: bool, pageUrlFilter: list<string>}
+     */
+    public function buildScanCardState(
+        int $pageId,
+        array $pageInfo,
+        ?array $localizedPageInfo,
+        ?UriInterface $previewUri,
+        int $pageLevels,
+        array $pageTsConfig,
+    ): array {
+        $finalPageInfo = ModuleContext::previewPageInfo($pageInfo, $localizedPageInfo);
+
+        // Reuse the stored scan only while the page content is unchanged —
+        // stored per language on $finalPageInfo.
+        $scanId = $this->scanStateService->resolveEffectiveScanId(
+            $this->scanStateService->withLiveScanState($finalPageInfo),
+            (int)($pageInfo['SYS_LASTCHANGED'] ?? 0)
+        );
+
+        // The factory signs the language of $finalPageInfo — language 0 when
+        // the selected language has no translation of this page — and returns
+        // null when the user cannot trigger scans.
+        $createScanDemand = null !== $previewUri
+            ? $this->scanDemandFactory->create($finalPageInfo, $pageId, (string)$previewUri, pageLevels: $pageLevels)
+            : null;
+
+        return [
+            'scanId' => $scanId,
             'createScanDemand' => $createScanDemand !== null ? $this->demandSignatureService->serialize($createScanDemand) : null,
-            'autoCreateScan' => $this->moduleSettingsService->isAutoCreateScanEnabled($pageTsConfig),
-            'pageUrlFilter' => $previewUri !== null ? [(string)$previewUri] : [],
+            // Auto-creation and the URL filter apply to single-page scans only;
+            // a multi-level scan covers many URLs and shows all their results.
+            'autoCreateScan' => $pageLevels === 0 && $this->moduleSettingsService->isAutoCreateScanEnabled($pageTsConfig),
+            'pageUrlFilter' => $previewUri !== null && $pageLevels === 0 ? [(string)$previewUri] : [],
         ];
     }
 

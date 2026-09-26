@@ -22,6 +22,7 @@ declare(strict_types=1);
 
 namespace MindfulMarkup\MindfulA11y\Backend;
 
+use MindfulMarkup\MindfulA11y\Service\StructureAnalysisFramingService;
 use Psr\Http\Message\ResponseInterface;
 
 /**
@@ -32,17 +33,20 @@ final readonly class OverviewFeatureRenderer implements FeatureRendererInterface
 {
     public function __construct(
         private OverviewViewStateFactory $viewStateFactory,
+        private StructureAnalysisFramingService $framingService,
     ) {}
 
     public function render(ModuleContext $context): ResponseInterface
     {
-        $context->moduleTemplate->assignMultiple($this->viewStateFactory->build(
+        $viewState = $this->viewStateFactory->build(
             $context->pageId,
             $context->languageId,
             $context->pageInfo,
             $context->localizedPageInfo,
             $context->pageTsConfig,
-        ));
+        );
+        $context->moduleTemplate->assignMultiple($viewState);
+        $this->framingService->allowFraming($viewState['previewUrl'], $context->pageTsConfig);
         $this->viewStateFactory->registerJavaScriptModules();
 
         return $context->moduleTemplate->renderResponse('Backend/Overview');

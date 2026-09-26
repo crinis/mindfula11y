@@ -22,7 +22,7 @@ declare(strict_types=1);
 
 namespace MindfulMarkup\MindfulA11y\Service;
 
-use Psr\Http\Message\UriInterface;
+use TYPO3\CMS\Core\Http\Uri;
 use TYPO3\CMS\Core\Security\ContentSecurityPolicy\Directive;
 use TYPO3\CMS\Core\Security\ContentSecurityPolicy\Mutation;
 use TYPO3\CMS\Core\Security\ContentSecurityPolicy\MutationCollection;
@@ -53,15 +53,17 @@ final readonly class StructureAnalysisFramingService
      * feature gates keeps it an invariant of rendering the widget rather than a
      * step each module has to remember.
      *
+     * @param string|null $previewUrl The preview URL the structure views frame (null: no preview).
      * @param array<string, mixed> $pageTsConfig
      */
-    public function allowFraming(?UriInterface $previewUri, array $pageTsConfig): void
+    public function allowFraming(?string $previewUrl, array $pageTsConfig): void
     {
-        if (null === $previewUri
+        if (null === $previewUrl
             || !$this->moduleSettingsService->hasStructureAnalysisAccess($pageTsConfig)
         ) {
             return;
         }
+        $previewUri = new Uri($previewUrl);
 
         // Strip the query before building the CSP source: PreviewUriBuilder adds
         // query parameters for access-restricted pages (ADMCMD_simUser/simTime),

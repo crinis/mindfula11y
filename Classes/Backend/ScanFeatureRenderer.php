@@ -28,7 +28,6 @@ use MindfulMarkup\MindfulA11y\Service\ModuleSettingsService;
 use MindfulMarkup\MindfulA11y\Service\PagePreviewService;
 use MindfulMarkup\MindfulA11y\Service\ScanApiService;
 use MindfulMarkup\MindfulA11y\Service\ScanDemandFactory;
-use MindfulMarkup\MindfulA11y\Service\ScanStateService;
 use Psr\Http\Message\ResponseInterface;
 use TYPO3\CMS\Backend\Routing\PreviewUriBuilder;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
@@ -47,7 +46,6 @@ final readonly class ScanFeatureRenderer implements FeatureRendererInterface
     public function __construct(
         private ModuleSettingsService $moduleSettingsService,
         private PagePreviewService $pagePreviewService,
-        private ScanStateService $scanStateService,
         private ScanApiService $scanApiService,
         private ScanDemandFactory $scanDemandFactory,
         private DemandSignatureService $demandSignatureService,
@@ -55,6 +53,7 @@ final readonly class ScanFeatureRenderer implements FeatureRendererInterface
         private PageRenderer $pageRenderer,
         private FlashMessageService $flashMessageService,
         private DocHeaderMenuBuilder $menuBuilder,
+        private OverviewViewStateFactory $viewStateFactory,
     ) {}
 
     public function render(ModuleContext $context): ResponseInterface
@@ -98,19 +97,15 @@ final readonly class ScanFeatureRenderer implements FeatureRendererInterface
 
         $canTriggerScan = $this->scanDemandFactory->canTriggerScan($finalPageInfo);
 
-        // Reuse the stored scan only while the page content is unchanged —
-        // stored per language on $finalPageInfo.
-        $scanId = $this->scanStateService->resolveEffectiveScanId(
-            $this->scanStateService->withLiveScanState($finalPageInfo),
-            (int)($context->pageInfo['SYS_LASTCHANGED'] ?? 0)
+        $scanCardState = $this->viewStateFactory->buildScanCardState(
+            $context->pageId,
+            $context->pageInfo,
+            $context->localizedPageInfo,
+            $previewUri,
+            $pageLevels,
+            $context->pageTsConfig,
         );
 
-        // Filter by the current page URL only when scanning a single page (pageLevels = 0).
-        // When pageLevels > 0 the scan covers multiple pages and all results should be shown.
-        $pageUrlFilter = $pageLevels === 0 ? [(string)$previewUri] : [];
-
-        // Create scan demand only if user can trigger scans
-        $createScanDemand = null;
         $crawlScanDemand = null;
         $urlList = [];
         if ($canTriggerScan) {
@@ -126,12 +121,6 @@ final readonly class ScanFeatureRenderer implements FeatureRendererInterface
                 ? $this->pagePreviewService->generatePageUrls($context->pageId, $previewLanguageId, $pageLevels, (string)$previewUri)
                 : [(string)$previewUri];
 
-            $createScanDemand = $this->scanDemandFactory->create(
-                $finalPageInfo,
-                $context->pageId,
-                (string)$previewUri,
-                pageLevels: $pageLevels,
-            );
             // Crawl mode is only available for site root pages (check default-language record)
             if ((bool)($context->pageInfo['is_siteroot'] ?? false)) {
                 $crawlScanDemand = $this->scanDemandFactory->create(
@@ -151,11 +140,8 @@ final readonly class ScanFeatureRenderer implements FeatureRendererInterface
         // user can trigger scans at all; the skill list is shown for transparency.
         $aiAuditAvailable = $canTriggerScan && $this->moduleSettingsService->hasAiAuditAccess($context->pageTsConfig);
         $context->moduleTemplate->assignMultiple([
-            'scanId' => $scanId,
-            'createScanDemand' => $createScanDemand !== null ? $this->demandSignatureService->serialize($createScanDemand) : null,
+            ...$scanCardState,
             'crawlScanDemand' => $crawlScanDemand !== null ? $this->demandSignatureService->serialize($crawlScanDemand) : null,
-            'autoCreateScan' => $pageLevels === 0 && $this->moduleSettingsService->isAutoCreateScanEnabled($context->pageTsConfig),
-            'pageUrlFilter' => $pageUrlFilter,
             'urlList' => $urlList,
             'reportBaseUrl' => $reportBaseUrl,
             'aiAuditAvailable' => $aiAuditAvailable,

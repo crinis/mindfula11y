@@ -29,6 +29,7 @@ use MindfulMarkup\MindfulA11y\Service\ModuleLabelService;
 use MindfulMarkup\MindfulA11y\Service\ModuleSettingsService;
 use MindfulMarkup\MindfulA11y\Service\PagePreviewService;
 use MindfulMarkup\MindfulA11y\Service\PermissionService;
+use MindfulMarkup\MindfulA11y\Service\StructureAnalysisFramingService;
 use TYPO3\CMS\Backend\Controller\Event\ModifyPageLayoutContentEvent;
 use TYPO3\CMS\Backend\Module\ModuleData;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
@@ -51,6 +52,7 @@ final readonly class AddOverviewToPageModule
         private ModuleLabelService $moduleLabelService,
         private PageRenderer $pageRenderer,
         private ViewFactoryInterface $viewFactory,
+        private StructureAnalysisFramingService $framingService,
     ) {}
 
     public function __invoke(ModifyPageLayoutContentEvent $event): void
@@ -111,6 +113,7 @@ final readonly class AddOverviewToPageModule
 
         // Load the JavaScript modules; all styling lives in the components'
         // shadow roots, so no global CSS file is needed here.
+        $this->framingService->allowFraming($viewState['previewUrl'], $pageTsConfig);
         $this->viewStateFactory->registerJavaScriptModules();
     }
 

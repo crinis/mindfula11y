@@ -61,6 +61,19 @@ final readonly class ModuleContext
      */
     public function getPreviewPageInfo(): array
     {
-        return $this->localizedPageInfo ?: $this->pageInfo;
+        return self::previewPageInfo($this->pageInfo, $this->localizedPageInfo);
+    }
+
+    /**
+     * getPreviewPageInfo() for callers that hold the two records without a
+     * module context (the page-module overview).
+     *
+     * @param array<string, mixed> $pageInfo
+     * @param array<string, mixed>|null $localizedPageInfo
+     * @return array<string, mixed>
+     */
+    public static function previewPageInfo(array $pageInfo, ?array $localizedPageInfo): array
+    {
+        return $localizedPageInfo ?: $pageInfo;
     }
 }
