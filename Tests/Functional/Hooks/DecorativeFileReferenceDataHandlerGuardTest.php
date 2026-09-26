@@ -15,7 +15,9 @@ declare(strict_types=1);
 namespace MindfulMarkup\MindfulA11y\Tests\Functional\Hooks;
 
 use MindfulMarkup\MindfulA11y\Tests\Functional\AbstractAuthorizationTestCase;
+use PHPUnit\Framework\Attributes\DataProvider;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
+use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
 use TYPO3\CMS\Core\Schema\TcaSchemaFactory;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -39,8 +41,10 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
  *  - sys_file_reference 1 -> tt_content 100 (assets, page 10 editable), decorative 0
  *  - sys_file_reference 700 -> tt_content 700 (assets, page 14 no-access), decorative 0
  *  - sys_file_reference 701 = workspace-1 version of reference 1, decorative 1
+ *  - copy/localize cases only (DecorativeCopySupplement.csv): reference 702,
+ *    decorative with empty alternative/title, on tt_content 702 (page 10)
  *  - user 2 full editor (workspace 1 member), user 4 no tt_content modify,
- *    user 5 no exclude fields.
+ *    user 5 no exclude fields, user 20 only the decorative grant.
  */
 final class DecorativeFileReferenceDataHandlerGuardTest extends AbstractAuthorizationTestCase
 {
@@ -441,6 +445,200 @@ final class DecorativeFileReferenceDataHandlerGuardTest extends AbstractAuthoriz
         $reference = $this->fetchReference(1);
         self::assertSame(0, (int)$reference['tx_mindfula11y_decorative'], 'reference stays non-decorative');
         self::assertSame('hello', (string)$reference['alternative'], 'core alternative stored, guard does not interfere');
+    }
+
+    /**
+     * A decorative reference that is not decorative in the database yet still
+     * gets its submitted text blanked must say so: the save is valid, but the
+     * editor's alternative/title input is discarded. The note is a MESSAGE
+     * (sys_log only), never a USER_ERROR flash.
+     */
+    public function testBlankingSubmittedTextOnDecorativeReferenceIsLoggedAsMessage(): void
+    {
+        $this->seedStoredDecorative(1);
+        $backendUser = $this->logInBackendUser(2);
+
+        $dataHandler = $this->runDataHandler([
+            'sys_file_reference' => [
+                1 => [
+                    'alternative' => 'sneaky',
+                ],
+            ],
+        ], $backendUser);
+
+        self::assertSame('', (string)$this->fetchReference(1)['alternative'], 'alternative still forced empty');
+        self::assertSame([], $dataHandler->errorLog, 'no error: the save is valid');
+        self::assertSame([0], $this->decorativeLogLevels(), 'exactly one MESSAGE-level note about the emptied fields');
+    }
+
+    /**
+     * An already-consistent decorative reference resaved with empty
+     * alternative/title needs no note — nothing the editor typed was dropped.
+     */
+    public function testBlankingAlreadyEmptyFieldsLogsNothing(): void
+    {
+        $this->seedStoredDecorative(1);
+        $backendUser = $this->logInBackendUser(2);
+
+        $this->runDataHandler([
+            'sys_file_reference' => [
+                1 => [
+                    'tx_mindfula11y_decorative' => 1,
+                    'alternative' => '',
+                ],
+            ],
+        ], $backendUser);
+
+        self::assertSame([], $this->decorativeLogLevels());
+    }
+
+    /**
+     * Copying a reference and localizing its parent run a nested DataHandler
+     * over a NEW record carrying the source's decorative flag. An editor
+     * holding every grant keeps the flag on the duplicate, with no error.
+     */
+    #[DataProvider('duplicatingCommandProvider')]
+    public function testDuplicateKeepsDecorativeFlagForEditorWithAllGrants(string $table, string $command, int $target): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/DecorativeCopySupplement.csv');
+        $this->writeDefaultSiteConfiguration();
+        $backendUser = $this->logInBackendUser(2);
+
+        $dataHandler = $this->runCommandMap([$table => [702 => [$command => $target]]], $backendUser);
+
+        $duplicate = $this->fetchDuplicateReference($command, $dataHandler);
+        self::assertSame(1, (int)$duplicate['tx_mindfula11y_decorative'], 'decorative flag carried over');
+        self::assertSame('', (string)$duplicate['alternative'], 'alternative stays empty on the duplicate');
+        self::assertSame([], $dataHandler->errorLog, 'no error for a plain ' . $command);
+        self::assertSame([], $this->decorativeLogLevels(), 'nothing to report');
+    }
+
+    /**
+     * The duplicate of a decorative reference is a NEW record: without the
+     * alternative/title grants DataHandler drops the (empty) values and the
+     * nullable columns fall back to NULL — FAL would then inherit the file
+     * metadata's alternative text on a reference flagged decorative. The flag
+     * is therefore dropped, but the editor did not ask for anything: a
+     * MESSAGE-level note, no USER_ERROR flash for a toggle they never touched.
+     */
+    #[DataProvider('duplicatingCommandProvider')]
+    public function testDuplicateDropsDecorativeFlagQuietlyWithoutAdjacentGrants(string $table, string $command, int $target): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/DecorativeCopySupplement.csv');
+        $this->writeDefaultSiteConfiguration();
+        $backendUser = $this->logInBackendUser(20);
+
+        $dataHandler = $this->runCommandMap([$table => [702 => [$command => $target]]], $backendUser);
+
+        $duplicate = $this->fetchDuplicateReference($command, $dataHandler);
+        self::assertSame(0, (int)$duplicate['tx_mindfula11y_decorative'], 'flag dropped: its blanks cannot be written');
+        self::assertSame([], $dataHandler->errorLog, 'no USER_ERROR for a ' . $command);
+        self::assertSame([0], $this->decorativeLogLevels(), 'one MESSAGE-level note about the dropped flag');
+    }
+
+    /**
+     * Copying the PARENT in live duplicates its references with
+     * copyRecord_raw(), which runs no datamap hooks and copies the row
+     * verbatim — flag and empty strings alike. The result is consistent for
+     * every editor, so the guard has nothing to decide (pinned so a core
+     * change to that path surfaces here).
+     */
+    public function testLiveParentCopyDuplicatesDecorativeReferenceVerbatim(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/DecorativeCopySupplement.csv');
+        $backendUser = $this->logInBackendUser(20);
+
+        $dataHandler = $this->runCommandMap(['tt_content' => [702 => ['copy' => 10]]], $backendUser);
+
+        $copiedParent = (int)($dataHandler->copyMappingArray_merged['tt_content'][702] ?? 0);
+        self::assertGreaterThan(0, $copiedParent, 'the parent was copied');
+        $queryBuilder = $this->getConnectionPool()->getQueryBuilderForTable('sys_file_reference');
+        $queryBuilder->getRestrictions()->removeAll();
+        $duplicate = $queryBuilder
+            ->select('*')
+            ->from('sys_file_reference')
+            ->where($queryBuilder->expr()->eq('uid_foreign', $queryBuilder->createNamedParameter($copiedParent, Connection::PARAM_INT)))
+            ->executeQuery()
+            ->fetchAssociative();
+        self::assertIsArray($duplicate, 'the reference was duplicated with its parent');
+        self::assertSame(1, (int)$duplicate['tx_mindfula11y_decorative']);
+        self::assertSame('', (string)$duplicate['alternative']);
+        self::assertSame([], $dataHandler->errorLog);
+        self::assertSame([], $this->decorativeLogLevels());
+    }
+
+    /**
+     * @return array<string, array{string, string, int}>
+     */
+    public static function duplicatingCommandProvider(): array
+    {
+        return [
+            'copy the reference' => ['sys_file_reference', 'copy', 10],
+            'localize the parent' => ['tt_content', 'localize', 1],
+        ];
+    }
+
+    /**
+     * @param array<string, array<int, array<string, mixed>>> $cmdmap
+     */
+    private function runCommandMap(array $cmdmap, BackendUserAuthentication $backendUser): DataHandler
+    {
+        GeneralUtility::makeInstance(\TYPO3\CMS\Core\Cache\CacheManager::class)
+            ->getCache('runtime')
+            ->flush();
+
+        $dataHandler = GeneralUtility::makeInstance(DataHandler::class);
+        $dataHandler->start([], $cmdmap, $backendUser);
+        $dataHandler->process_cmdmap();
+
+        return $dataHandler;
+    }
+
+    /**
+     * The reference created from fixture reference 702 by the command.
+     *
+     * @return array<string, mixed>
+     */
+    private function fetchDuplicateReference(string $command, DataHandler $dataHandler): array
+    {
+        $queryBuilder = $this->getConnectionPool()->getQueryBuilderForTable('sys_file_reference');
+        $queryBuilder->getRestrictions()->removeAll();
+        $constraint = $command === 'copy'
+            ? $queryBuilder->expr()->eq(
+                'uid',
+                $queryBuilder->createNamedParameter((int)($dataHandler->copyMappingArray_merged['sys_file_reference'][702] ?? 0), Connection::PARAM_INT)
+            )
+            : $queryBuilder->expr()->eq('l10n_parent', $queryBuilder->createNamedParameter(702, Connection::PARAM_INT));
+        $row = $queryBuilder
+            ->select('*')
+            ->from('sys_file_reference')
+            ->where($constraint, $queryBuilder->expr()->neq('uid', $queryBuilder->createNamedParameter(702, Connection::PARAM_INT)))
+            ->executeQuery()
+            ->fetchAssociative();
+        self::assertIsArray($row, 'the ' . $command . ' created a duplicate of reference 702');
+
+        return $row;
+    }
+
+    /**
+     * Error levels of the guard's own sys_log entries (0 = MESSAGE).
+     *
+     * @return list<int>
+     */
+    private function decorativeLogLevels(): array
+    {
+        $queryBuilder = $this->getConnectionPool()->getQueryBuilderForTable('sys_log');
+        $queryBuilder->getRestrictions()->removeAll();
+
+        return array_map('intval', $queryBuilder
+            ->select('error')
+            ->from('sys_log')
+            ->where(
+                $queryBuilder->expr()->eq('tablename', $queryBuilder->createNamedParameter('sys_file_reference')),
+                $queryBuilder->expr()->like('details', $queryBuilder->createNamedParameter('%ecorative%'))
+            )
+            ->executeQuery()
+            ->fetchFirstColumn());
     }
 
     /**

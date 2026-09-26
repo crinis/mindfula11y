@@ -65,6 +65,25 @@ final class DecorativeFileReferenceDataHandlerGuard
      */
     public const BLANKED_FIELDS = ['alternative', 'title'];
 
+    /**
+     * Commands whose nested DataHandler run creates a duplicate of an existing
+     * record (copyRecord() / localize() hand the source row to a fresh
+     * DataHandler as a NEW record).
+     *
+     * @var list<string>
+     */
+    private const DUPLICATING_COMMANDS = ['copy', 'localize', 'copyToLanguage', 'inlineLocalizeSynchronize'];
+
+    /**
+     * Nesting depth of duplicating commands in progress. Static because core
+     * instantiates the hook object once per DataHandler, and the nested copy
+     * DataHandler is a different instance than the one running the command.
+     * Should a command throw between pre- and post-processing, the depth stays
+     * raised; the only effect is that a later rejection is logged as a note
+     * instead of an error — the rejection itself never depends on it.
+     */
+    private static int $duplicationDepth = 0;
+
     public function __construct(
         private readonly PermissionService $permissionService,
     ) {}
@@ -105,15 +124,24 @@ final class DecorativeFileReferenceDataHandlerGuard
         // message on every save while the stored value never changed.
         $enablesDecorative = !empty($incomingFieldArray[self::FIELD_NAME]) && !$storedDecorative;
 
+        // A copy or translation of a decorative reference arrives here as a NEW
+        // record carrying the flag, so it counts as an enable too — rightly: its
+        // empty alternative/title are just as subject to the exclude-field
+        // filter, and the nullable columns would fall back to NULL (inheriting
+        // the file metadata's text). The editor did not ask for the flag in
+        // that case, though, so dropping it is a note, not an error flash.
         if ($enablesDecorative && !$this->userMayWriteFields($dataHandler, self::BLANKED_FIELDS)) {
             unset($incomingFieldArray[self::FIELD_NAME]);
+            $isDuplicate = self::$duplicationDepth > 0 && !MathUtility::canBeInterpretedAsInteger($id);
             $dataHandler->log(
                 $table,
                 MathUtility::canBeInterpretedAsInteger($id) ? (int)$id : 0,
                 SystemLogDatabaseAction::UPDATE,
                 0,
-                SystemLogErrorClassification::USER_ERROR,
-                'Decorative flag not saved: marking a file reference decorative also empties its alternative and title fields, which requires access to both fields.'
+                $isDuplicate ? SystemLogErrorClassification::MESSAGE : SystemLogErrorClassification::USER_ERROR,
+                $isDuplicate
+                    ? 'Decorative flag not carried over to the copied or translated file reference: a decorative reference keeps its alternative and title fields empty, which requires access to both fields.'
+                    : 'Decorative flag not saved: marking a file reference decorative also empties its alternative and title fields, which requires access to both fields.'
             );
         }
 
@@ -131,9 +159,45 @@ final class DecorativeFileReferenceDataHandlerGuard
             : $storedDecorative;
 
         if ($isDecorative) {
+            $discardedFields = [];
             foreach (self::BLANKED_FIELDS as $fieldName) {
+                if ((string)($incomingFieldArray[$fieldName] ?? '') !== '') {
+                    $discardedFields[] = $fieldName;
+                }
                 $incomingFieldArray[$fieldName] = '';
             }
+            // The save is valid, but submitted text is discarded — leave a
+            // note rather than an error flash.
+            if ($discardedFields !== []) {
+                $dataHandler->log(
+                    $table,
+                    MathUtility::canBeInterpretedAsInteger($id) ? (int)$id : 0,
+                    SystemLogDatabaseAction::UPDATE,
+                    0,
+                    SystemLogErrorClassification::MESSAGE,
+                    'Submitted {fields} emptied: the file reference is decorative, so it keeps these fields empty.',
+                    null,
+                    ['fields' => implode(', ', $discardedFields)]
+                );
+            }
+        }
+    }
+
+    /**
+     * Opens the duplication scope that classifies nested NEW-record saves as
+     * copies (see DUPLICATING_COMMANDS). Runs before the command executes.
+     */
+    public function processCmdmap_preProcess(string $command, string $table, mixed $id, mixed $value, DataHandler $dataHandler): void
+    {
+        if (in_array($command, self::DUPLICATING_COMMANDS, true)) {
+            self::$duplicationDepth++;
+        }
+    }
+
+    public function processCmdmap_postProcess(string $command, string $table, mixed $id, mixed $value, DataHandler $dataHandler): void
+    {
+        if (in_array($command, self::DUPLICATING_COMMANDS, true) && self::$duplicationDepth > 0) {
+            self::$duplicationDepth--;
         }
     }
 

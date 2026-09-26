@@ -1,0 +1,6 @@
+"tt_content"
+,"uid","pid","CType","header","sys_language_uid","l18n_parent","editlock","assets"
+,702,10,"textmedia","Decorative image source (copy/localize supplement)",0,0,0,1
+"sys_file_reference"
+,"uid","pid","uid_local","uid_foreign","tablenames","fieldname","sys_language_uid","tx_mindfula11y_decorative","alternative","title","t3ver_oid","t3ver_wsid","t3ver_state"
+,702,10,1,702,"tt_content","assets",0,1,"","",0,0,0
