@@ -71,10 +71,13 @@ final readonly class ScanCreationService
         if ($demand->getCrawl()) {
             // Restrict the crawl to the selected language's URL space via a glob pattern.
             // The base URL is derived from the TYPO3 site configuration — not user-supplied input.
+            // Without a resolvable base the crawl is refused (fail closed): an unscoped
+            // crawl would follow links anywhere the start page leads.
             $base = $this->siteLanguageService->getAbsoluteLanguageBase($demand->getPageId(), $demand->getLanguageId());
-            if ($base !== null) {
-                $crawlOptions['globs'] = [$base . '/**'];
+            if ($base === null) {
+                throw new ScanCreationException('scan.error.createFailed', 500);
             }
+            $crawlOptions['globs'] = [$base . '/**'];
         }
 
         // Read basic auth credentials from the site configuration / PageTS (server-side only,
