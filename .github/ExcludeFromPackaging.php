@@ -2,7 +2,7 @@
 
 /*
  * Packaging excludes for `tailor ter:publish`, wired up via the
- * TYPO3_EXCLUDE_FROM_PACKAGING environment variable in ter-release.yml.
+ * TYPO3_EXCLUDE_FROM_PACKAGING environment variable in workflows/release.yml.
  *
  * Tailor does NOT merge this with its defaults — this file REPLACES
  * conf/ExcludeFromPackaging.php entirely, so the relevant defaults are
