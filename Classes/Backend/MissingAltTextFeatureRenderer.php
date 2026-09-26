@@ -41,7 +41,7 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
  * references without alternative text, with its table, page-levels, and
  * metadata/decorative filter doc-header menus.
  */
-final readonly class MissingAltTextFeatureRenderer implements FeatureRendererInterface
+final readonly class MissingAltTextFeatureRenderer
 {
     use ModuleNoticeTrait;
 

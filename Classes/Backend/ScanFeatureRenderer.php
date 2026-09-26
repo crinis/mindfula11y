@@ -39,7 +39,7 @@ use TYPO3\CMS\Core\Type\ContextualFeedbackSeverity;
  * Renders the accessibility-scanner feature: scan status, results, and the
  * signed demands for triggering new scans.
  */
-final readonly class ScanFeatureRenderer implements FeatureRendererInterface
+final readonly class ScanFeatureRenderer
 {
     use ModuleNoticeTrait;
 

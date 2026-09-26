@@ -29,7 +29,7 @@ use Psr\Http\Message\ResponseInterface;
  * Renders the overview feature: the structure analysis plus status cards for
  * missing alternative texts and the accessibility scanner.
  */
-final readonly class OverviewFeatureRenderer implements FeatureRendererInterface
+final readonly class OverviewFeatureRenderer
 {
     public function __construct(
         private OverviewViewStateFactory $viewStateFactory,
