@@ -74,8 +74,7 @@ final class ScanApiServiceTest extends TestCase
      * that carried this installation's API token and the site's Basic Auth
      * credentials. An upstream that echoes its input back in a validation error
      * would otherwise hand those to any editor able to induce one, so no value
-     * this installation sent may survive into the client-facing message. The
-     * unredacted detail still reaches the server-side log.
+     * this installation sent may survive into the client-facing message.
      */
     #[Test]
     public function reflectedCredentialsAreRedactedFromTheClientFacingDetail(): void
@@ -247,5 +246,104 @@ final class ScanApiServiceTest extends TestCase
         } catch (\MindfulMarkup\MindfulA11y\Exception\ScanApiRequestException $exception) {
             self::assertLessThanOrEqual(500, mb_strlen($exception->getProblemDetail()));
         }
+    }
+
+    /**
+     * A logger that keeps every record, so tests can inspect the context the
+     * service hands to the log.
+     */
+    private function recordingLogger(): \Psr\Log\AbstractLogger
+    {
+        return new class extends \Psr\Log\AbstractLogger {
+            /** @var list<array{level: mixed, message: string, context: array<mixed>}> */
+            public array $records = [];
+
+            public function log($level, string|\Stringable $message, array $context = []): void
+            {
+                $this->records[] = ['level' => $level, 'message' => (string)$message, 'context' => $context];
+            }
+        };
+    }
+
+    private function serviceAnswering(int $status, string $body, LoggerInterface $logger): ScanApiService
+    {
+        $extensionConfiguration = $this->createMock(ExtensionConfiguration::class);
+        $extensionConfiguration->method('get')->with('mindfula11y')->willReturn([
+            'scannerApiUrl' => 'https://scanner.example',
+            'scannerApiToken' => 'super-secret-api-token',
+        ]);
+        $stream = $this->createMock(\Psr\Http\Message\StreamInterface::class);
+        $stream->method('__toString')->willReturn($body);
+        $response = $this->createMock(\Psr\Http\Message\ResponseInterface::class);
+        $response->method('getStatusCode')->willReturn($status);
+        $response->method('getBody')->willReturn($stream);
+        $requestFactory = $this->createMock(RequestFactory::class);
+        $requestFactory->method('request')->willReturn($response);
+
+        return new ScanApiService($extensionConfiguration, $requestFactory, $logger);
+    }
+
+    /**
+     * Valid JSON is not necessarily an object: a scalar body must degrade to
+     * the documented null (logged) instead of a TypeError on the ?array
+     * return type.
+     */
+    #[Test]
+    public function scalarJsonBodyIsLoggedAndReturnsNull(): void
+    {
+        $logger = $this->recordingLogger();
+
+        self::assertNull($this->serviceAnswering(201, '42', $logger)->createScan(['https://example.com/']));
+        self::assertCount(1, $logger->records, 'the unusable body leaves a log trail');
+    }
+
+    /**
+     * Log files are read by more people than the extension configuration:
+     * the problem details logged for a rejected request must carry the same
+     * redaction as the editor-facing message.
+     */
+    #[Test]
+    public function reflectedCredentialsAreRedactedFromTheLogContext(): void
+    {
+        $logger = $this->recordingLogger();
+        $service = $this->serviceAnswering(400, json_encode([
+            'title' => 'Bad token super-secret-api-token',
+            'detail' => 'Invalid request: {"password":"site-password-1234","token":"super-secret-api-token"}',
+            'errors' => [['field' => 'basicAuth.password', 'value' => 'site-password-1234']],
+        ], JSON_THROW_ON_ERROR), $logger);
+
+        try {
+            $service->createScan(
+                ['https://example.com/'],
+                scanOptions: ['basicAuth' => ['username' => 'site-user', 'password' => 'site-password-1234']],
+            );
+            self::fail('the scanner rejection must surface as an exception');
+        } catch (\MindfulMarkup\MindfulA11y\Exception\ScanApiRequestException) {
+        }
+
+        self::assertCount(1, $logger->records);
+        $logged = json_encode($logger->records, JSON_THROW_ON_ERROR);
+        self::assertStringNotContainsString('super-secret-api-token', $logged, 'API token must not reach the log');
+        self::assertStringNotContainsString('site-password-1234', $logged, 'Basic Auth password must not reach the log');
+        self::assertStringContainsString('Invalid request', $logged, 'the diagnostic part survives');
+    }
+
+    #[Test]
+    public function invalidJsonBodyIsRedactedInTheLogContext(): void
+    {
+        $logger = $this->recordingLogger();
+
+        self::assertNull(
+            $this->serviceAnswering(201, '<html>echo: site-password-1234 super-secret-api-token</html>', $logger)->createScan(
+                ['https://example.com/'],
+                scanOptions: ['basicAuth' => ['username' => 'site-user', 'password' => 'site-password-1234']],
+            )
+        );
+
+        self::assertCount(1, $logger->records);
+        $logged = json_encode($logger->records, JSON_THROW_ON_ERROR);
+        self::assertStringNotContainsString('super-secret-api-token', $logged, 'API token must not reach the log');
+        self::assertStringNotContainsString('site-password-1234', $logged, 'Basic Auth password must not reach the log');
+        self::assertStringContainsString('<html>echo', $logged, 'the diagnostic part survives');
     }
 }

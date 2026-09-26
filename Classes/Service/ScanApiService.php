@@ -123,26 +123,22 @@ final readonly class ScanApiService
     }
 
     /**
-     * The problem detail as it may be shown to a backend user.
+     * Replace every secret value a request carried with a marker.
      *
-     * The scanner's own explanation is genuinely useful ("AI audit is not
-     * enabled on this server."), so it is surfaced rather than replaced by a
-     * generic message. But it is third-party text echoing a request that
+     * Upstream text (problem details, raw bodies) may echo a request that
      * carried this installation's API token and, for a scan, the site's Basic
      * Auth credentials — an upstream that reflects its input back in a
-     * validation error would hand those to any editor able to induce one.
-     * Values this installation sent are therefore never allowed to appear in
-     * the message, and its length is bounded so an error page cannot become a
-     * channel for bulk upstream output. The unredacted detail still reaches the
-     * server-side log via logProblem().
+     * validation error would otherwise hand those to whoever reads the text.
+     * Applied to the editor-facing message and to the log alike: log files are
+     * read by more people than the extension configuration.
      *
      * @param array<mixed> $requestSecrets Secret values this request carried, in any shape the caller holds them.
      */
-    private function toClientSafeDetail(string $detail, array $requestSecrets = []): string
+    private function redactSecrets(string $text, array $requestSecrets): string
     {
         $secrets = array_filter(
             [...array_values($requestSecrets), $this->getApiToken()],
-            // Non-strings cannot appear verbatim in the response text. Length is
+            // Non-strings cannot appear verbatim in the text. Length is
             // deliberately no criterion: a short staging password is still a
             // credential, and over-redaction beats leaking it.
             static fn(mixed $secret): bool => is_string($secret) && $secret !== '',
@@ -150,12 +146,28 @@ final readonly class ScanApiService
         // strtr() replaces in a single pass, preferring the longest match, so a
         // secret contained in another (e.g. the username inside a derived
         // password) cannot break the longer match, and a short secret cannot
-        // match inside an already inserted "[redacted]".
-        if ($secrets !== []) {
-            $detail = strtr($detail, array_fill_keys($secrets, '[redacted]'));
+        // match inside an already inserted "[redacted]". The same single-pass
+        // property means a text must never be redacted twice.
+        if ($secrets === []) {
+            return $text;
         }
 
-        return mb_strimwidth($detail, 0, self::MAX_CLIENT_DETAIL_LENGTH, '…');
+        return strtr($text, array_fill_keys($secrets, '[redacted]'));
+    }
+
+    /**
+     * The problem detail as it may be shown to a backend user.
+     *
+     * The scanner's own explanation is genuinely useful ("AI audit is not
+     * enabled on this server."), so it is surfaced rather than replaced by a
+     * generic message — redacted (see redactSecrets()), and length-bounded so
+     * an error page cannot become a channel for bulk upstream output.
+     *
+     * @param array<mixed> $requestSecrets Secret values this request carried, in any shape the caller holds them.
+     */
+    private function toClientSafeDetail(string $detail, array $requestSecrets = []): string
+    {
+        return mb_strimwidth($this->redactSecrets($detail, $requestSecrets), 0, self::MAX_CLIENT_DETAIL_LENGTH, '…');
     }
 
     /**
@@ -231,7 +243,7 @@ final readonly class ScanApiService
         string $level = 'error',
         array $requestSecrets = [],
     ): never {
-        $problem = $this->logProblem($response, $message, $logContext, $level);
+        $problem = $this->logProblem($response, $message, $logContext, $level, $requestSecrets);
 
         throw new ScanApiRequestException(
             $response->getStatusCode(),
@@ -243,17 +255,32 @@ final readonly class ScanApiService
     /**
      * Decode, log, and return the problem details of a failed response.
      *
+     * Only the logged copy is redacted; the returned details stay raw so the
+     * editor-facing message is redacted exactly once (see redactSecrets()).
+     *
      * @param array<string, mixed> $logContext
+     * @param array<mixed> $requestSecrets Credentials this request carried, redacted from the log.
      * @return array{title: string, detail: string, errors: array}
      */
-    private function logProblem(ResponseInterface $response, string $message, array $logContext, string $level = 'error'): array
-    {
+    private function logProblem(
+        ResponseInterface $response,
+        string $message,
+        array $logContext,
+        string $level = 'error',
+        array $requestSecrets = [],
+    ): array {
         $problem = $this->parseProblemDetails($response);
+        $loggedErrors = $problem['errors'];
+        array_walk_recursive($loggedErrors, function (mixed &$value) use ($requestSecrets): void {
+            if (is_string($value)) {
+                $value = $this->redactSecrets($value, $requestSecrets);
+            }
+        });
         $this->logger->log($level, $message, $logContext + [
             'status' => $response->getStatusCode(),
-            'problemTitle' => $problem['title'],
-            'problemDetail' => $problem['detail'],
-            'problemErrors' => $problem['errors'],
+            'problemTitle' => $this->redactSecrets($problem['title'], $requestSecrets),
+            'problemDetail' => $this->redactSecrets($problem['detail'], $requestSecrets),
+            'problemErrors' => $loggedErrors,
         ]);
 
         return $problem;
@@ -263,9 +290,10 @@ final readonly class ScanApiService
      * Decode a JSON response body.
      *
      * @param array<string, mixed> $logContext
-     * @return array|null Null when the body is not valid JSON (logged).
+     * @param array<mixed> $requestSecrets Credentials this request carried, redacted from the logged body.
+     * @return array|null Null when the body is not a JSON object/array (logged).
      */
-    private function decodeJsonBody(ResponseInterface $response, array $logContext): ?array
+    private function decodeJsonBody(ResponseInterface $response, array $logContext, array $requestSecrets = []): ?array
     {
         $body = (string)$response->getBody();
         $data = json_decode($body, true);
@@ -274,8 +302,17 @@ final readonly class ScanApiService
             $this->logger->error('Invalid JSON response from scan API', $logContext + [
                 'json_error' => json_last_error_msg(),
                 // Capped: a misbehaving endpoint may answer with a full HTML
-                // error page that must not land in the log verbatim.
-                'body' => mb_substr($body, 0, 2048),
+                // error page that must not land in the log verbatim. Redacted
+                // before capping, so a cut cannot split a secret past redaction.
+                'body' => mb_substr($this->redactSecrets($body, $requestSecrets), 0, 2048),
+            ]);
+            return null;
+        }
+
+        if (!is_array($data)) {
+            // Valid JSON, but a scalar or null: nothing a caller can read.
+            $this->logger->error('Unexpected JSON response type from scan API', $logContext + [
+                'type' => get_debug_type($data),
             ]);
             return null;
         }
@@ -360,18 +397,19 @@ final readonly class ScanApiService
             return null;
         }
 
+        $requestSecrets = (array)($scanOptions['basicAuth'] ?? []);
         if ($response->getStatusCode() !== 201) {
             // This request carried the site's Basic Auth credentials, so they
-            // join the redaction set for the message the editor receives.
+            // join the redaction set for the editor-facing message and the log.
             $this->throwProblem(
                 $response,
                 'Failed to create scan',
                 [],
-                requestSecrets: (array)($scanOptions['basicAuth'] ?? []),
+                requestSecrets: $requestSecrets,
             );
         }
 
-        return $this->decodeJsonBody($response, []);
+        return $this->decodeJsonBody($response, [], $requestSecrets);
     }
 
     /**
