@@ -23,6 +23,7 @@ declare(strict_types=1);
 namespace MindfulMarkup\MindfulA11y\Backend;
 
 use MindfulMarkup\MindfulA11y\Service\AltTextFinderService;
+use MindfulMarkup\MindfulA11y\Service\ModuleLabelService;
 use MindfulMarkup\MindfulA11y\Service\ModuleSettingsService;
 use MindfulMarkup\MindfulA11y\Service\PermissionService;
 use Psr\Http\Message\ResponseInterface;
@@ -189,7 +190,7 @@ final readonly class MissingAltTextFeatureRenderer
         }
 
         return $this->menuBuilder->buildDropDown(
-            $this->getLanguageService()->sL(self::MODULE_LANGUAGE_FILE . 'module.menu.tables'),
+            $this->getLanguageService()->sL(ModuleLabelService::LANGUAGE_FILE . 'module.menu.tables'),
             $items
         );
     }
@@ -208,7 +209,7 @@ final readonly class MissingAltTextFeatureRenderer
     {
         $languageService = $this->getLanguageService();
         $button = $this->menuBuilder->createDropDownButton()
-            ->setLabel($languageService->sL(self::MODULE_LANGUAGE_FILE . 'module.menu.filter'))
+            ->setLabel($languageService->sL(ModuleLabelService::LANGUAGE_FILE . 'module.menu.filter'))
             ->setShowLabelText(true);
 
         $toggles = [
@@ -231,7 +232,7 @@ final readonly class MissingAltTextFeatureRenderer
                     ...$menuState,
                     $filter => !$isActive,
                 ]))
-                ->setLabel($languageService->sL(self::MODULE_LANGUAGE_FILE . 'module.menu.filter.' . $labelSuffix))
+                ->setLabel($languageService->sL(ModuleLabelService::LANGUAGE_FILE . 'module.menu.filter.' . $labelSuffix))
                 ->setIcon(null);
 
             $button->addItem($toggle);
@@ -246,7 +247,7 @@ final readonly class MissingAltTextFeatureRenderer
     private function getTableTitle(string $tableName): string
     {
         if (empty($tableName)) {
-            return $this->getLanguageService()->sL(self::MODULE_LANGUAGE_FILE . 'module.menu.tables.all');
+            return $this->getLanguageService()->sL(ModuleLabelService::LANGUAGE_FILE . 'module.menu.tables.all');
         }
         if (isset($GLOBALS['TCA'][$tableName]['ctrl']['title'])) {
             return $this->getLanguageService()->sL($GLOBALS['TCA'][$tableName]['ctrl']['title']);

@@ -49,8 +49,6 @@ final readonly class DocHeaderMenuBuilder
      */
     private const PAGE_LEVELS_OPTIONS = [0, 1, 5, 10, 99];
 
-    private const MODULE_LANGUAGE_FILE = ModuleLabelService::LANGUAGE_FILE;
-
     public function __construct(
         private UriBuilder $backendUriBuilder,
     ) {}
@@ -82,7 +80,7 @@ final readonly class DocHeaderMenuBuilder
         $items = [];
         foreach (self::PAGE_LEVELS_OPTIONS as $pageLevels) {
             $items[] = [
-                'title' => $languageService->sL(self::MODULE_LANGUAGE_FILE . 'module.menu.pageLevels.' . $pageLevels),
+                'title' => $languageService->sL(ModuleLabelService::LANGUAGE_FILE . 'module.menu.pageLevels.' . $pageLevels),
                 'href' => $this->buildMenuItemUri($context, [
                     ...$preservedParams,
                     $parameterName => $pageLevels,
@@ -92,7 +90,7 @@ final readonly class DocHeaderMenuBuilder
         }
 
         return $this->buildDropDown(
-            $languageService->sL(self::MODULE_LANGUAGE_FILE . 'module.menu.pageLevels'),
+            $languageService->sL(ModuleLabelService::LANGUAGE_FILE . 'module.menu.pageLevels'),
             $items
         );
     }

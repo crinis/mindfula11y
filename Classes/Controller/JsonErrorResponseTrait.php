@@ -37,8 +37,6 @@ use TYPO3\CMS\Core\Localization\LanguageService;
  */
 trait JsonErrorResponseTrait
 {
-    private const ERROR_LANGUAGE_FILE = ModuleLabelService::LANGUAGE_FILE;
-
     /**
      * Decode a JSON request body, treating anything but a JSON object/array
      * (invalid JSON, scalars) as an empty body.
@@ -64,8 +62,8 @@ trait JsonErrorResponseTrait
         $languageService = $this->getLanguageService();
         return new JsonResponse([
             'error' => [
-                'title' => $languageService->sL(self::ERROR_LANGUAGE_FILE . $labelKey),
-                'description' => $description ?? $languageService->sL(self::ERROR_LANGUAGE_FILE . $labelKey . '.description'),
+                'title' => $languageService->sL(ModuleLabelService::LANGUAGE_FILE . $labelKey),
+                'description' => $description ?? $languageService->sL(ModuleLabelService::LANGUAGE_FILE . $labelKey . '.description'),
             ],
         ], $statusCode);
     }

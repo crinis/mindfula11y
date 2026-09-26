@@ -227,20 +227,35 @@ final readonly class ModuleLabelService
     ];
 
     /**
-     * Returns all inline language labels used in the accessibility module.
+     * Returns the inline language labels used in the accessibility module.
      *
+     * @param list<string>|null $onlyIds Restrict the result to these curated
+     *        label ids (e.g. for a FormEngine control that needs a handful of
+     *        them); the enum-derived label families are then left out.
      * @return array<string, string>
+     * @throws \InvalidArgumentException When $onlyIds names an id not in the curated list.
      */
-    public function getInlineLanguageLabels(): array
+    public function getInlineLanguageLabels(?array $onlyIds = null): array
     {
+        $unknownIds = array_diff($onlyIds ?? [], self::LABEL_IDS);
+        if ($unknownIds !== []) {
+            throw new \InvalidArgumentException(
+                'Not a curated inline label id: ' . implode(', ', $unknownIds),
+                1790463728,
+            );
+        }
+
         // Labels follow the requesting editor's backend language, matching
         // what the surrounding module markup renders with.
         $languageService = $this->languageServiceFactory->createFromUserPreferences(
             $this->backendUserProvider->get(),
         );
         $labels = [];
-        foreach (self::LABEL_IDS as $labelId) {
+        foreach ($onlyIds ?? self::LABEL_IDS as $labelId) {
             $labels['mindfula11y.' . $labelId] = $languageService->sL(self::LANGUAGE_FILE . $labelId);
+        }
+        if ($onlyIds !== null) {
+            return $labels;
         }
         // The role chips of the landmark view are composed per landmark, so the
         // ids are derived from the enum: a new case cannot be forgotten here.

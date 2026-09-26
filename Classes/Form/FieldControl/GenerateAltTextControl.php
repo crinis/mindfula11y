@@ -59,6 +59,7 @@ class GenerateAltTextControl extends AbstractNode
         protected readonly PermissionService $permissionService,
         protected readonly DemandSignatureService $demandSignatureService,
         protected readonly AltTextDemandFactory $altTextDemandFactory,
+        protected readonly ModuleLabelService $moduleLabelService,
     ) {
     }
 
@@ -69,14 +70,14 @@ class GenerateAltTextControl extends AbstractNode
      */
     public function render(): array
     {
+        // The cheap configuration and module checks run before the file lookup.
+        if (!$this->openAIService->isEnabledAndConfigured() || !$this->permissionService->checkModuleAccess()) {
+            return [];
+        }
+
         $table = $this->data['tableName'];
         $file = $this->resolveFile();
-
-        if (
-            null === $file
-            || !$this->openAIService->isEnabledAndConfigured()
-            || !$this->permissionService->checkModuleAccess()
-        ) {
+        if (null === $file) {
             return [];
         }
 
@@ -101,13 +102,13 @@ class GenerateAltTextControl extends AbstractNode
             return [];
         }
 
-        $this->pageRenderer->addInlineLanguageLabelArray([
-            'mindfula11y.altText.generate.loading' => $languageService->sL(ModuleLabelService::LANGUAGE_FILE . 'altText.generate.loading'),
-            'mindfula11y.altText.generate.success' => $languageService->sL(ModuleLabelService::LANGUAGE_FILE . 'altText.generate.success'),
-            'mindfula11y.altText.generate.success.description' => $languageService->sL(ModuleLabelService::LANGUAGE_FILE . 'altText.generate.success.description'),
-            'mindfula11y.altText.generate.error.unknown' => $languageService->sL(ModuleLabelService::LANGUAGE_FILE . 'altText.generate.error.unknown'),
-            'mindfula11y.altText.generate.error.unknown.description' => $languageService->sL(ModuleLabelService::LANGUAGE_FILE . 'altText.generate.error.unknown.description'),
-        ]);
+        $this->pageRenderer->addInlineLanguageLabelArray($this->moduleLabelService->getInlineLanguageLabels([
+            'altText.generate.loading',
+            'altText.generate.success',
+            'altText.generate.success.description',
+            'altText.generate.error.unknown',
+            'altText.generate.error.unknown.description',
+        ]));
 
         $id = StringUtility::getUniqueId('mindfula11y-generate-alt-text-');
 

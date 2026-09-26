@@ -94,7 +94,7 @@ final readonly class AccessibilityModuleController
         $this->assertAllowedHttpMethod($request, 'GET');
         $languageService = $this->getLanguageService();
         $moduleTemplate = $this->moduleTemplateFactory->create($request);
-        $moduleTemplate->setTitle($languageService->sL(self::MODULE_LANGUAGE_FILE . 'mlang_tabs_tab'));
+        $moduleTemplate->setTitle($languageService->sL(ModuleLabelService::LANGUAGE_FILE . 'mlang_tabs_tab'));
 
         $backendUser = $this->backendUserProvider->get();
         $pageId = (int)($request->getQueryParams()['id'] ?? 0);
@@ -189,7 +189,7 @@ final readonly class AccessibilityModuleController
             };
             if ($enabled) {
                 $items[] = [
-                    'title' => $languageService->sL(self::MODULE_LANGUAGE_FILE . 'module.menu.features.' . $feature->value),
+                    'title' => $languageService->sL(ModuleLabelService::LANGUAGE_FILE . 'module.menu.features.' . $feature->value),
                     'href' => $this->menuBuilder->buildMenuItemUri($context, ['feature' => $feature->value]),
                     'active' => $context->feature === $feature,
                 ];
@@ -197,7 +197,7 @@ final readonly class AccessibilityModuleController
         }
 
         return $this->menuBuilder->buildDropDown(
-            $languageService->sL(self::MODULE_LANGUAGE_FILE . 'module.menu.features'),
+            $languageService->sL(ModuleLabelService::LANGUAGE_FILE . 'module.menu.features'),
             $items
         );
     }
@@ -231,7 +231,7 @@ final readonly class AccessibilityModuleController
         }
 
         return $this->menuBuilder->buildDropDown(
-            $this->getLanguageService()->sL(self::MODULE_LANGUAGE_FILE . 'module.menu.language'),
+            $this->getLanguageService()->sL(ModuleLabelService::LANGUAGE_FILE . 'module.menu.language'),
             $items
         );
     }

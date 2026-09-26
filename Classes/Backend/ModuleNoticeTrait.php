@@ -38,8 +38,6 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
  */
 trait ModuleNoticeTrait
 {
-    private const MODULE_LANGUAGE_FILE = ModuleLabelService::LANGUAGE_FILE;
-
     /**
      * Adds a localized flash message: the title from `<labelKey>`, the message
      * body from `<labelKey>.description`.
@@ -49,8 +47,8 @@ trait ModuleNoticeTrait
         $languageService = $this->getLanguageService();
         $flashMessage = GeneralUtility::makeInstance(
             FlashMessage::class,
-            $languageService->sL(self::MODULE_LANGUAGE_FILE . $labelKey . '.description'),
-            $languageService->sL(self::MODULE_LANGUAGE_FILE . $labelKey),
+            $languageService->sL(ModuleLabelService::LANGUAGE_FILE . $labelKey . '.description'),
+            $languageService->sL(ModuleLabelService::LANGUAGE_FILE . $labelKey),
             $severity
         );
         $this->flashMessageService->getMessageQueueByIdentifier()->addMessage($flashMessage);

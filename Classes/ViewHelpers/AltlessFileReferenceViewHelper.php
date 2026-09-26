@@ -28,6 +28,7 @@ use MindfulMarkup\MindfulA11y\Domain\Model\GenerateAltTextDemand;
 use MindfulMarkup\MindfulA11y\Domain\Repository\AltlessFileReferenceRepository;
 use MindfulMarkup\MindfulA11y\Hooks\DecorativeFileReferenceDataHandlerGuard;
 use MindfulMarkup\MindfulA11y\Service\AltTextDemandFactory;
+use MindfulMarkup\MindfulA11y\Service\BackendUserProvider;
 use MindfulMarkup\MindfulA11y\Service\DemandSignatureService;
 use MindfulMarkup\MindfulA11y\Service\ModuleLabelService;
 use MindfulMarkup\MindfulA11y\Service\ModuleSettingsService;
@@ -35,7 +36,6 @@ use MindfulMarkup\MindfulA11y\Service\OpenAIService;
 use MindfulMarkup\MindfulA11y\Service\PermissionService;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
-use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractTagBasedViewHelper;
 
@@ -76,6 +76,8 @@ class AltlessFileReferenceViewHelper extends AbstractTagBasedViewHelper
      * render() for why the file's own property is not the same answer.
      */
     protected readonly AltlessFileReferenceRepository $altlessFileReferenceRepository;
+
+    protected readonly BackendUserProvider $backendUserProvider;
 
     /**
      * Tag name.
@@ -127,6 +129,11 @@ class AltlessFileReferenceViewHelper extends AbstractTagBasedViewHelper
     public function injectAltlessFileReferenceRepository(AltlessFileReferenceRepository $altlessFileReferenceRepository): void
     {
         $this->altlessFileReferenceRepository = $altlessFileReferenceRepository;
+    }
+
+    public function injectBackendUserProvider(BackendUserProvider $backendUserProvider): void
+    {
+        $this->backendUserProvider = $backendUserProvider;
     }
 
     /**
@@ -231,7 +238,7 @@ class AltlessFileReferenceViewHelper extends AbstractTagBasedViewHelper
             // cleared or deleted that metadata.
             $fallbackAlternative = $this->altlessFileReferenceRepository->findEffectiveMetaDataAlternative(
                 (int)$fileReference->getOriginalResource()->getOriginalFile()->getUid(),
-                $this->getBackendUser()?->workspace ?? 0,
+                $this->backendUserProvider->getAuthenticated()?->workspace ?? 0,
                 (int)$fileReference->getOriginalResource()->getReferenceProperty('sys_language_uid'),
             );
             if (is_string($fallbackAlternative) && '' !== $fallbackAlternative) {
@@ -297,10 +304,5 @@ class AltlessFileReferenceViewHelper extends AbstractTagBasedViewHelper
     protected function getLanguageService(): LanguageService
     {
         return $GLOBALS['LANG'];
-    }
-
-    protected function getBackendUser(): ?BackendUserAuthentication
-    {
-        return $GLOBALS['BE_USER'] ?? null;
     }
 }
