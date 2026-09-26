@@ -15,6 +15,7 @@ declare(strict_types=1);
 namespace MindfulMarkup\MindfulA11y\Tests\Functional\Controller;
 
 use MindfulMarkup\MindfulA11y\Controller\AccessibilityModuleController;
+use MindfulMarkup\MindfulA11y\Service\ModuleLabelService;
 use MindfulMarkup\MindfulA11y\Tests\Functional\AbstractAuthorizationTestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Psr\Http\Message\ServerRequestInterface;
@@ -85,6 +86,11 @@ final class AccessibilityModuleControllerTest extends AbstractAuthorizationTestC
         $GLOBALS['TYPO3_REQUEST'] = $request;
 
         return $this->get(AccessibilityModuleController::class)->mainAction($request);
+    }
+
+    private function moduleLabel(string $key): string
+    {
+        return $GLOBALS['LANG']->sL(ModuleLabelService::LANGUAGE_FILE . $key);
     }
 
     public function testMissingAltTextPageScopeDefaultsToCurrentPage(): void
@@ -218,6 +224,63 @@ final class AccessibilityModuleControllerTest extends AbstractAuthorizationTestC
         self::assertSame(200, $response->getStatusCode());
         $response->getBody()->rewind();
         self::assertStringContainsString('<mindfula11y-structure', (string)$response->getBody());
+    }
+
+    /**
+     * A table the user may not read answers with the error notice only: the
+     * renderer's doc-header menus (page scope, record type, filter) would
+     * otherwise frame a 403 with controls for a view that is not shown.
+     */
+    public function testUnreadableTableRendersForbiddenWithoutFeatureMenus(): void
+    {
+        $this->logInBackendUser(2);
+
+        $response = $this->mainAction($this->buildModuleRequest(10, [
+            'feature' => 'missingAltText',
+            'tableName' => 'be_users',
+        ]));
+
+        self::assertSame(403, $response->getStatusCode());
+        $response->getBody()->rewind();
+        $html = (string)$response->getBody();
+        self::assertStringNotContainsString($this->moduleLabel('module.menu.pageLevels'), $html);
+        self::assertStringNotContainsString($this->moduleLabel('module.menu.tables'), $html);
+        self::assertStringNotContainsString($this->moduleLabel('module.menu.filter'), $html);
+    }
+
+    /**
+     * The pagination links carry the resolved view state, like the doc-header
+     * menu links: a manipulated negative languageId is clamped to 0 for the
+     * queries and must not be written back into the next page's link.
+     */
+    public function testPaginationLinksCarryTheClampedLanguage(): void
+    {
+        // 101 altless references on content 100 (page 10): two list pages.
+        $connection = $this->getConnectionPool()->getConnectionForTable('sys_file_reference');
+        for ($uid = 1000; $uid <= 1100; $uid++) {
+            $connection->insert('sys_file_reference', [
+                'uid' => $uid,
+                'pid' => 10,
+                'uid_local' => 1,
+                'uid_foreign' => 100,
+                'tablenames' => 'tt_content',
+                'fieldname' => 'assets',
+                'sys_language_uid' => 0,
+                'alternative' => '',
+            ]);
+        }
+        $this->logInBackendUser(2);
+
+        $response = $this->mainAction($this->buildModuleRequest(10, [
+            'feature' => 'missingAltText',
+            'languageId' => -1,
+        ]));
+
+        self::assertSame(200, $response->getStatusCode());
+        $response->getBody()->rewind();
+        $html = (string)$response->getBody();
+        self::assertStringContainsString('currentPage=2', $html, 'the list paginates');
+        self::assertStringNotContainsString('languageId=-1', $html);
     }
 
     public function testAuthorizedRequestRendersTheModule(): void

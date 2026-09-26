@@ -74,6 +74,18 @@ final readonly class MissingAltTextFeatureRenderer implements FeatureRendererInt
             $tableName = '';
         }
 
+        /**
+         * Protect table records from being shown if the user does not have
+         * read access to the table. Subsequent methods won't do this.
+         * We intentionally ignore "hideTable" as inline records should
+         * be shown even if the table is hidden. Checked before any doc-header
+         * menu is built, so the denial notice renders without the controls
+         * of a view that is not shown.
+         */
+        if ($tableName !== '' && !$this->permissionService->checkTableReadAccess($tableName)) {
+            return $this->noticeResponse($context->moduleTemplate, 'altText.noTableAccess', ContextualFeedbackSeverity::ERROR, 403);
+        }
+
         // Metadata fallback alt text is only considered when the TSconfig option allows
         // it AND the user may read it; the editor toggle then decides per module view.
         $canConsiderFileMetaData = !$this->moduleSettingsService->isFileMetadataIgnored($context->pageTsConfig)
@@ -105,16 +117,6 @@ final readonly class MissingAltTextFeatureRenderer implements FeatureRendererInt
             $this->buildFilterDropDown($context, $menuState, $canConsiderFileMetaData),
             ButtonBar::BUTTON_POSITION_RIGHT
         );
-
-        /**
-         * Protect table records from being shown if the user does not have
-         * read access to the table. Subsequent methods won't do this.
-         * We intentionally ignore "hideTable" as inline records should
-         * be shown even if the table is hidden.
-         */
-        if (!empty($tableName) && !$this->permissionService->checkTableReadAccess($tableName)) {
-            return $this->noticeResponse($context->moduleTemplate, 'altText.noTableAccess', ContextualFeedbackSeverity::ERROR, 403);
-        }
 
         // An empty table selection means "all record types".
         $tableFilter = $tableName !== '' ? $tableName : null;
@@ -156,8 +158,12 @@ final readonly class MissingAltTextFeatureRenderer implements FeatureRendererInt
         $pagination = new SimplePagination($paginator);
 
         $context->moduleTemplate->assignMultiple([
+            // The pagination links carry the resolved view state like the
+            // menu links do, never the raw (unclamped) module data.
             'moduleData' => array_merge($context->moduleData->toArray(), [
                 'id' => $context->pageId,
+                'languageId' => $context->languageId,
+                'feature' => $context->feature->value,
                 'currentPage' => $currentPage,
                 ...$menuState,
             ]),
