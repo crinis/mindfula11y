@@ -713,7 +713,7 @@ final class PermissionServiceTest extends AbstractAuthorizationTestCase
     public function testCheckPageReadAccessDeniedForDeletePlaceholder(): void
     {
         $row = $this->record('pages', 11);
-        $row['t3ver_state'] = 2; // VersionState::DELETE_PLACEHOLDER
+        $row['t3ver_state'] = VersionState::DELETE_PLACEHOLDER->value;
 
         $this->logInBackendUser(2);
         self::assertFalse($this->permissionService()->checkPageReadAccess($row));

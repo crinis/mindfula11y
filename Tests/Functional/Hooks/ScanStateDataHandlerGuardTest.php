@@ -18,11 +18,8 @@ use MindfulMarkup\MindfulA11y\Hooks\ScanStateDataHandlerGuard;
 use MindfulMarkup\MindfulA11y\Service\ScanStateService;
 use MindfulMarkup\MindfulA11y\Tests\Functional\AbstractAuthorizationTestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
-use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
-use TYPO3\CMS\Core\Cache\CacheManager;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
  * Functional coverage of ScanStateDataHandlerGuard: the scan-state fields
@@ -51,7 +48,7 @@ final class ScanStateDataHandlerGuardTest extends AbstractAuthorizationTestCase
             ],
         ], $backendUser);
 
-        $page = $this->fetchPage(10);
+        $page = $this->fetchRow('pages', 10);
         self::assertSame('Renamed by editor', $page['title'], 'the legitimate field of the same save is stored');
         self::assertSame('legit-scan', $page[ScanStateService::FIELD_SCAN_ID], 'scan id survives the forgery attempt');
         self::assertSame(1000, (int)$page[ScanStateService::FIELD_SCAN_UPDATED], 'scan timestamp survives');
@@ -75,7 +72,7 @@ final class ScanStateDataHandlerGuardTest extends AbstractAuthorizationTestCase
             ],
         ], $backendUser);
 
-        self::assertSame('legit-scan', $this->fetchPage(10)[ScanStateService::FIELD_SCAN_ID]);
+        self::assertSame('legit-scan', $this->fetchRow('pages', 10)[ScanStateService::FIELD_SCAN_ID]);
     }
 
     /**
@@ -116,7 +113,7 @@ final class ScanStateDataHandlerGuardTest extends AbstractAuthorizationTestCase
 
         $newUid = (int)($dataHandler->substNEWwithIDs['NEW_SEEDED'] ?? 0);
         self::assertGreaterThan(0, $newUid, 'the page itself is created');
-        $page = $this->fetchPage($newUid);
+        $page = $this->fetchRow('pages', $newUid);
         self::assertSame('seeded-sub', (string)$page['subtitle'], 'fixture guard: TCAdefaults were applied to this record at all');
         self::assertSame('', (string)$page[ScanStateService::FIELD_SCAN_ID], 'a TSconfig default must not seed a scan id');
     }
@@ -139,7 +136,7 @@ final class ScanStateDataHandlerGuardTest extends AbstractAuthorizationTestCase
             ], $backendUser)
         );
 
-        self::assertSame('service-issued', $this->fetchPage(10)[ScanStateService::FIELD_SCAN_ID]);
+        self::assertSame('service-issued', $this->fetchRow('pages', 10)[ScanStateService::FIELD_SCAN_ID]);
         self::assertSame([], $dataHandler->errorLog);
     }
 
@@ -165,7 +162,7 @@ final class ScanStateDataHandlerGuardTest extends AbstractAuthorizationTestCase
             ], $backendUser)
         );
 
-        self::assertSame('protected-scan', $this->fetchPage(14)[ScanStateService::FIELD_SCAN_ID], 'no-access page unchanged');
+        self::assertSame('protected-scan', $this->fetchRow('pages', 14)[ScanStateService::FIELD_SCAN_ID], 'no-access page unchanged');
         self::assertNotSame([], $dataHandler->errorLog, 'DataHandler denied the write itself');
     }
 
@@ -201,6 +198,7 @@ final class ScanStateDataHandlerGuardTest extends AbstractAuthorizationTestCase
 
         $dataHandler = $this->runCommandMap(['pages' => [10 => ['copy' => 1]]], $backendUser);
 
+        self::assertSame([], $dataHandler->errorLog, 'the copy itself succeeded');
         $copyUid = (int)($dataHandler->copyMappingArray_merged['pages'][10] ?? 0);
         self::assertGreaterThan(0, $copyUid, 'the page was copied');
         $copy = $this->fetchPageRaw($copyUid);
@@ -221,6 +219,7 @@ final class ScanStateDataHandlerGuardTest extends AbstractAuthorizationTestCase
 
         $dataHandler = $this->runCommandMap(['pages' => [13 => ['localize' => 1]]], $backendUser);
 
+        self::assertSame([], $dataHandler->errorLog, 'the localization itself succeeded');
         $translationUid = (int)($dataHandler->copyMappingArray_merged['pages'][13] ?? 0);
         self::assertGreaterThan(0, $translationUid, 'the page was localized');
         self::assertSame('', (string)$this->fetchPageRaw($translationUid)[ScanStateService::FIELD_SCAN_ID]);
@@ -307,20 +306,6 @@ final class ScanStateDataHandlerGuardTest extends AbstractAuthorizationTestCase
         return $versionUid;
     }
 
-    /**
-     * @param array<string, array<int, array<string, mixed>>> $cmdmap
-     */
-    private function runCommandMap(array $cmdmap, BackendUserAuthentication $backendUser): DataHandler
-    {
-        GeneralUtility::makeInstance(CacheManager::class)->getCache('runtime')->flush();
-
-        $dataHandler = GeneralUtility::makeInstance(DataHandler::class);
-        $dataHandler->start([], $cmdmap, $backendUser);
-        $dataHandler->process_cmdmap();
-
-        return $dataHandler;
-    }
-
     private function countBlockedLogEntries(): int
     {
         $queryBuilder = $this->getConnectionPool()->getQueryBuilderForTable('sys_log');
@@ -358,20 +343,6 @@ final class ScanStateDataHandlerGuardTest extends AbstractAuthorizationTestCase
         return $row;
     }
 
-    /**
-     * @param array<string, array<int|string, array<string, mixed>>> $datamap
-     */
-    private function runDataHandler(array $datamap, BackendUserAuthentication $backendUser): DataHandler
-    {
-        GeneralUtility::makeInstance(CacheManager::class)->getCache('runtime')->flush();
-
-        $dataHandler = GeneralUtility::makeInstance(DataHandler::class);
-        $dataHandler->start($datamap, [], $backendUser);
-        $dataHandler->process_datamap();
-
-        return $dataHandler;
-    }
-
     private function seedScanState(int $pageUid, string $scanId, int $updated): void
     {
         $this->getConnectionPool()->getConnectionForTable('pages')->update(
@@ -382,19 +353,5 @@ final class ScanStateDataHandlerGuardTest extends AbstractAuthorizationTestCase
             ],
             ['uid' => $pageUid],
         );
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function fetchPage(int $uid): array
-    {
-        $row = $this->getConnectionPool()
-            ->getConnectionForTable('pages')
-            ->select(['*'], 'pages', ['uid' => $uid])
-            ->fetchAssociative();
-        self::assertIsArray($row, 'page ' . $uid . ' exists');
-
-        return $row;
     }
 }

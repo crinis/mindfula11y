@@ -84,29 +84,42 @@ final class StructureAnalysisAuthorizationTest extends AbstractAuthorizationTest
         ], $overrides));
     }
 
-    private function buildTicket(
+    /**
+     * A ticket issued through the real ticket endpoint for the given user,
+     * decoded from the returned preview URL.
+     */
+    private function issueTicketFor(
         int $backendUserId,
         int $pageId = 10,
         int $languageId = 0,
         int $workspaceId = 0,
     ): StructureAnalysisTicket {
-        if ($backendUserId === 2) {
-            $this->logInBackendUser($backendUserId, $workspaceId);
-            $response = $this->ticketController()->ticketAction(
-                $this->createJsonRequest(['pageId' => $pageId, 'languageId' => $languageId])
-            );
-            self::assertSame(200, $response->getStatusCode());
-            $body = $this->decodeJsonResponse($response);
-            $query = [];
-            parse_str((string)parse_url((string)($body['url'] ?? ''), PHP_URL_QUERY), $query);
-            $ticket = $this->get(StructureAnalysisTicketService::class)->validate(
-                (string)($query[StructureAnalysisTicketService::TICKET_QUERY_PARAMETER] ?? '')
-            );
-            self::assertInstanceOf(StructureAnalysisTicket::class, $ticket);
+        $this->logInBackendUser($backendUserId, $workspaceId);
+        $response = $this->ticketController()->ticketAction(
+            $this->createJsonRequest(['pageId' => $pageId, 'languageId' => $languageId])
+        );
+        self::assertSame(200, $response->getStatusCode());
+        $body = $this->decodeJsonResponse($response);
+        $query = [];
+        parse_str((string)parse_url((string)($body['url'] ?? ''), PHP_URL_QUERY), $query);
+        $ticket = $this->get(StructureAnalysisTicketService::class)->validate(
+            (string)($query[StructureAnalysisTicketService::TICKET_QUERY_PARAMETER] ?? '')
+        );
+        self::assertInstanceOf(StructureAnalysisTicket::class, $ticket);
 
-            return $ticket;
-        }
+        return $ticket;
+    }
 
+    /**
+     * A ticket the endpoint would never issue (e.g. for a nonexistent user),
+     * built directly to probe the post-issuance checks.
+     */
+    private function forgeTicket(
+        int $backendUserId,
+        int $pageId = 10,
+        int $languageId = 0,
+        int $workspaceId = 0,
+    ): StructureAnalysisTicket {
         return new StructureAnalysisTicket(
             requestId: bin2hex(random_bytes(16)),
             pageId: $pageId,
@@ -350,14 +363,14 @@ final class StructureAnalysisAuthorizationTest extends AbstractAuthorizationTest
 
     public function testTicketHolderIsAuthorizedForValidTicket(): void
     {
-        $ticket = $this->buildTicket(backendUserId: 2, pageId: 10, languageId: 0, workspaceId: 0);
+        $ticket = $this->issueTicketFor(backendUserId: 2, pageId: 10, languageId: 0, workspaceId: 0);
 
         self::assertTrue($this->authorizationService()->isTicketHolderAuthorized($ticket));
     }
 
     public function testTicketHolderIsAuthorizedForExactTranslatedRecord(): void
     {
-        $ticket = $this->buildTicket(backendUserId: 2, languageId: 1);
+        $ticket = $this->issueTicketFor(backendUserId: 2, languageId: 1);
 
         self::assertTrue($this->authorizationService()->isTicketHolderAuthorized($ticket));
     }
@@ -370,7 +383,7 @@ final class StructureAnalysisAuthorizationTest extends AbstractAuthorizationTest
      */
     public function testTicketHolderRemainsAuthorizedWhenTranslatedContentChanges(): void
     {
-        $ticket = $this->buildTicket(backendUserId: 2, languageId: 1);
+        $ticket = $this->issueTicketFor(backendUserId: 2, languageId: 1);
         $this->getConnectionPool()->getConnectionForTable('pages')->update(
             'pages',
             ['title' => 'Changed translation after ticket issuance'],
@@ -383,14 +396,14 @@ final class StructureAnalysisAuthorizationTest extends AbstractAuthorizationTest
 
     public function testTicketHolderIsAuthorizedInExactSignedWorkspace(): void
     {
-        $ticket = $this->buildTicket(backendUserId: 2, workspaceId: 1);
+        $ticket = $this->issueTicketFor(backendUserId: 2, workspaceId: 1);
 
         self::assertTrue($this->authorizationService()->isTicketHolderAuthorized($ticket));
     }
 
     public function testTicketHolderIsDeniedWhenWorkspaceMembershipIsRevoked(): void
     {
-        $ticket = $this->buildTicket(backendUserId: 2, workspaceId: 1);
+        $ticket = $this->issueTicketFor(backendUserId: 2, workspaceId: 1);
         $this->getConnectionPool()->getConnectionForTable('sys_workspace')->update(
             'sys_workspace',
             ['members' => ''],
@@ -407,7 +420,7 @@ final class StructureAnalysisAuthorizationTest extends AbstractAuthorizationTest
      */
     public function testTicketHolderIsDeniedForDisabledUser(): void
     {
-        $ticket = $this->buildTicket(backendUserId: 2);
+        $ticket = $this->issueTicketFor(backendUserId: 2);
         $this->getConnectionPool()->getConnectionForTable('be_users')
             ->update('be_users', ['disable' => 1], ['uid' => 2]);
 
@@ -416,7 +429,7 @@ final class StructureAnalysisAuthorizationTest extends AbstractAuthorizationTest
 
     public function testTicketHolderIsDeniedForDeletedUser(): void
     {
-        $ticket = $this->buildTicket(backendUserId: 2);
+        $ticket = $this->issueTicketFor(backendUserId: 2);
         $this->getConnectionPool()->getConnectionForTable('be_users')
             ->update('be_users', ['deleted' => 1], ['uid' => 2]);
 
@@ -425,7 +438,7 @@ final class StructureAnalysisAuthorizationTest extends AbstractAuthorizationTest
 
     public function testTicketHolderIsDeniedForNonexistentUser(): void
     {
-        $ticket = $this->buildTicket(backendUserId: 999999);
+        $ticket = $this->forgeTicket(backendUserId: 999999);
 
         self::assertFalse($this->authorizationService()->isTicketHolderAuthorized($ticket));
     }
@@ -455,7 +468,7 @@ final class StructureAnalysisAuthorizationTest extends AbstractAuthorizationTest
      */
     public function testTicketHolderIsDeniedWhenModuleAccessRevoked(): void
     {
-        $ticket = $this->buildTicket(backendUserId: 2);
+        $ticket = $this->issueTicketFor(backendUserId: 2);
         $this->getConnectionPool()->getConnectionForTable('be_groups')
             ->update('be_groups', ['groupMods' => ''], ['uid' => 1]);
 
@@ -464,7 +477,7 @@ final class StructureAnalysisAuthorizationTest extends AbstractAuthorizationTest
 
     public function testTicketHolderIsDeniedWhenStructureFeaturesAreDisabledAfterIssuance(): void
     {
-        $ticket = $this->buildTicket(backendUserId: 2);
+        $ticket = $this->issueTicketFor(backendUserId: 2);
         $this->getConnectionPool()->getConnectionForTable('pages')->update(
             'pages',
             ['TSconfig' => "mod.mindfula11y_accessibility.headingStructure.enable = 0\nmod.mindfula11y_accessibility.landmarkStructure.enable = 0"],
@@ -477,7 +490,7 @@ final class StructureAnalysisAuthorizationTest extends AbstractAuthorizationTest
 
     public function testTicketHolderIsDeniedWhenPreviewUrlChangesAfterIssuance(): void
     {
-        $ticket = $this->buildTicket(backendUserId: 2);
+        $ticket = $this->issueTicketFor(backendUserId: 2);
         $this->getConnectionPool()->getConnectionForTable('pages')->update(
             'pages',
             ['slug' => '/changed-after-ticket-issuance'],
@@ -490,7 +503,7 @@ final class StructureAnalysisAuthorizationTest extends AbstractAuthorizationTest
 
     public function testTicketHolderRemainsAuthorizedWhenPageContentChangesAfterIssuance(): void
     {
-        $ticket = $this->buildTicket(backendUserId: 2);
+        $ticket = $this->issueTicketFor(backendUserId: 2);
         $this->getConnectionPool()->getConnectionForTable('pages')->update(
             'pages',
             ['title' => 'Changed after ticket issuance'],
@@ -511,7 +524,7 @@ final class StructureAnalysisAuthorizationTest extends AbstractAuthorizationTest
      */
     public function testTicketHolderRemainsAuthorizedAfterScanBookkeepingWrite(): void
     {
-        $ticket = $this->buildTicket(backendUserId: 2);
+        $ticket = $this->issueTicketFor(backendUserId: 2);
         $this->getConnectionPool()->getConnectionForTable('pages')->update(
             'pages',
             [
@@ -529,7 +542,7 @@ final class StructureAnalysisAuthorizationTest extends AbstractAuthorizationTest
 
     public function testTicketHolderIsDeniedWhenPageIsHiddenAfterIssuance(): void
     {
-        $ticket = $this->buildTicket(backendUserId: 2);
+        $ticket = $this->issueTicketFor(backendUserId: 2);
         $this->getConnectionPool()->getConnectionForTable('pages')->update(
             'pages',
             ['hidden' => 1],
@@ -542,7 +555,7 @@ final class StructureAnalysisAuthorizationTest extends AbstractAuthorizationTest
 
     public function testTicketHolderIsDeniedWhenPagePermissionsChangeAfterIssuance(): void
     {
-        $ticket = $this->buildTicket(backendUserId: 2);
+        $ticket = $this->issueTicketFor(backendUserId: 2);
         $this->getConnectionPool()->getConnectionForTable('pages')->update(
             'pages',
             ['perms_everybody' => 0],

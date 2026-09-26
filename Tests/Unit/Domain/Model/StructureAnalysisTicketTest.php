@@ -23,7 +23,6 @@ use TYPO3\CMS\Core\Http\ServerRequest;
 final class StructureAnalysisTicketTest extends TestCase
 {
     private const NOW = 1700000000;
-    private const LIFETIME = 15;
 
     /** @return array<string, mixed> */
     private static function validClaims(): array
@@ -39,7 +38,7 @@ final class StructureAnalysisTicketTest extends TestCase
             'backendOrigin' => 'https://backend.example',
             'frontendOrigin' => 'https://frontend.example',
             'target' => '/page?a=1',
-            'expiresAt' => self::NOW + self::LIFETIME,
+            'expiresAt' => self::NOW + StructureAnalysisTicket::LIFETIME,
         ];
     }
 
@@ -67,8 +66,7 @@ final class StructureAnalysisTicketTest extends TestCase
         $ticket = StructureAnalysisTicket::fromClaims(self::validClaims(), self::NOW);
 
         self::assertInstanceOf(SignedScopeInterface::class, $ticket);
-        self::assertSame(self::NOW + self::LIFETIME, $ticket->getExpiresAt());
-        self::assertSame(self::LIFETIME, $ticket->maximumLifetime());
+        self::assertSame(self::NOW + StructureAnalysisTicket::LIFETIME, $ticket->getExpiresAt());
         self::assertSame(StructureAnalysisTicket::LIFETIME, $ticket->maximumLifetime());
     }
 
@@ -101,7 +99,7 @@ final class StructureAnalysisTicketTest extends TestCase
         yield 'non-string frontendOrigin' => [['frontendOrigin' => 42] + $valid];
         yield 'non-string target' => [['target' => null] + $valid];
         yield 'already expired' => [['expiresAt' => self::NOW] + $valid];
-        yield 'expiry beyond maximum lifetime' => [['expiresAt' => self::NOW + self::LIFETIME + 1] + $valid];
+        yield 'expiry beyond maximum lifetime' => [['expiresAt' => self::NOW + StructureAnalysisTicket::LIFETIME + 1] + $valid];
         yield 'expiresAt as string' => [['expiresAt' => (string)(self::NOW + 5)] + $valid];
     }
 

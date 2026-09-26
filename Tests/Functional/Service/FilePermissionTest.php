@@ -61,23 +61,8 @@ final class FilePermissionTest extends AbstractAuthorizationTestCase
         parent::setUp();
         $this->importCSVDataSet(__DIR__ . '/../Fixtures/FilePermissionSupplement.csv');
 
-        // Physical files backing the DB rows: FAL's LocalDriver checks
-        // real filesystem existence/readability (checkFileActionPermission()
-        // Check 5/6), so the sys_file rows alone are not enough.
-        // The instance directory is reused across test methods of this test
-        // case (only the DB is re-imported per test), so guard against the
-        // directories already existing from a previous test method.
-        $fileadmin = $this->instancePath . '/fileadmin';
-        if (!is_dir($fileadmin . '/allowed')) {
-            mkdir($fileadmin . '/allowed', 0777, true);
-        }
-        if (!is_dir($fileadmin . '/restricted')) {
-            mkdir($fileadmin . '/restricted', 0777, true);
-        }
-        file_put_contents($fileadmin . '/allowed/image.jpg', 'dummy-jpg-content');
-        file_put_contents($fileadmin . '/restricted/secret.jpg', 'dummy-jpg-content');
-
-        // Storage 0 (the fallback storage) covers the instance's public web
+        // The fileadmin files backing sys_file 1/2 come from the base setUp();
+        // storage 0 (the fallback storage) covers the instance's public web
         // root directly (Environment::getPublicPath()), not fileadmin/.
         file_put_contents($this->instancePath . '/fallback-file.jpg', 'dummy-jpg-content');
     }

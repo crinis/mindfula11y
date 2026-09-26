@@ -17,8 +17,10 @@ namespace MindfulMarkup\MindfulA11y\Tests\Functional;
 use MindfulMarkup\MindfulA11y\Service\ModuleLabelService;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
+use TYPO3\CMS\Core\Cache\CacheManager;
 use TYPO3\CMS\Core\Configuration\SiteWriter;
 use TYPO3\CMS\Core\Core\SystemEnvironmentBuilder;
+use TYPO3\CMS\Core\DataHandling\DataHandler;
 use TYPO3\CMS\Core\Http\NormalizedParams;
 use TYPO3\CMS\Core\Http\ServerRequest;
 use TYPO3\CMS\Core\Localization\LanguageServiceFactory;
@@ -191,6 +193,58 @@ abstract class AbstractAuthorizationTestCase extends FunctionalTestCase
                 ],
             ],
         ]);
+    }
+
+    /**
+     * Run a DataHandler datamap as the given user. BackendUtility caches record
+     * lookups in the runtime cache; it is flushed so the guards read the current
+     * database state (relevant after direct seeding writes).
+     *
+     * @param array<string, array<int|string, array<string, mixed>>> $datamap
+     */
+    protected function runDataHandler(array $datamap, BackendUserAuthentication $backendUser): DataHandler
+    {
+        GeneralUtility::makeInstance(CacheManager::class)->getCache('runtime')->flush();
+
+        $dataHandler = GeneralUtility::makeInstance(DataHandler::class);
+        $dataHandler->start($datamap, [], $backendUser);
+        $dataHandler->process_datamap();
+
+        return $dataHandler;
+    }
+
+    /**
+     * Run a DataHandler command map as the given user (runtime cache flushed
+     * as in runDataHandler()).
+     *
+     * @param array<string, array<int, array<string, mixed>>> $cmdmap
+     */
+    protected function runCommandMap(array $cmdmap, BackendUserAuthentication $backendUser): DataHandler
+    {
+        GeneralUtility::makeInstance(CacheManager::class)->getCache('runtime')->flush();
+
+        $dataHandler = GeneralUtility::makeInstance(DataHandler::class);
+        $dataHandler->start([], $cmdmap, $backendUser);
+        $dataHandler->process_cmdmap();
+
+        return $dataHandler;
+    }
+
+    /**
+     * Read a row by uid with the connection's default (no) restrictions and
+     * assert that it exists.
+     *
+     * @return array<string, mixed>
+     */
+    protected function fetchRow(string $table, int $uid): array
+    {
+        $row = $this->getConnectionPool()
+            ->getConnectionForTable($table)
+            ->select(['*'], $table, ['uid' => $uid])
+            ->fetchAssociative();
+        self::assertIsArray($row, $table . ' ' . $uid . ' exists');
+
+        return $row;
     }
 
     /**

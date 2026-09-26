@@ -16,11 +16,9 @@ namespace MindfulMarkup\MindfulA11y\Tests\Functional\Hooks;
 
 use MindfulMarkup\MindfulA11y\Tests\Functional\AbstractAuthorizationTestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
-use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
 use TYPO3\CMS\Core\Schema\TcaSchemaFactory;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
  * Functional coverage of DecorativeFileReferenceDataHandlerGuard, the
@@ -72,7 +70,7 @@ final class DecorativeFileReferenceDataHandlerGuardTest extends AbstractAuthoriz
             ],
         ], $backendUser);
 
-        $reference = $this->fetchReference(1);
+        $reference = $this->fetchRow('sys_file_reference', 1);
         self::assertSame(1, (int)$reference['tx_mindfula11y_decorative'], 'decorative toggle stored');
         self::assertSame('', (string)$reference['alternative'], 'alternative blanked by guard');
         self::assertSame('', (string)$reference['title'], 'title blanked by guard');
@@ -97,7 +95,7 @@ final class DecorativeFileReferenceDataHandlerGuardTest extends AbstractAuthoriz
             ],
         ], $backendUser);
 
-        $reference = $this->fetchReference(1);
+        $reference = $this->fetchRow('sys_file_reference', 1);
         self::assertSame(1, (int)$reference['tx_mindfula11y_decorative'], 'decorative stays on');
         self::assertSame('', (string)$reference['alternative'], 'alternative forced empty on decorative reference');
     }
@@ -121,10 +119,10 @@ final class DecorativeFileReferenceDataHandlerGuardTest extends AbstractAuthoriz
             ],
         ], $backendUser);
 
-        $version = $this->fetchReference(701);
+        $version = $this->fetchRow('sys_file_reference', 701);
         self::assertSame(1, (int)$version['tx_mindfula11y_decorative'], 'workspace version stays decorative');
         self::assertSame('', (string)$version['alternative'], 'alternative forced empty on the decorative workspace version');
-        self::assertSame('', (string)$this->fetchReference(1)['alternative'], 'live row untouched by the workspace save');
+        self::assertSame('', (string)$this->fetchRow('sys_file_reference', 1)['alternative'], 'live row untouched by the workspace save');
     }
 
     /**
@@ -144,7 +142,7 @@ final class DecorativeFileReferenceDataHandlerGuardTest extends AbstractAuthoriz
             ],
         ], $backendUser);
 
-        $reference = $this->fetchReference(700);
+        $reference = $this->fetchRow('sys_file_reference', 700);
         self::assertSame(0, (int)$reference['tx_mindfula11y_decorative'], 'decorative unchanged: no page access');
         self::assertNotSame([], $dataHandler->errorLog, 'DataHandler denied the write itself');
     }
@@ -167,7 +165,7 @@ final class DecorativeFileReferenceDataHandlerGuardTest extends AbstractAuthoriz
             ],
         ], $backendUser);
 
-        $reference = $this->fetchReference(1);
+        $reference = $this->fetchRow('sys_file_reference', 1);
         self::assertSame(1, (int)$reference['tx_mindfula11y_decorative'], 'decorative stored under core reference rules');
         self::assertSame('', (string)$reference['alternative'], 'alternative blanked');
         self::assertSame([], $dataHandler->errorLog, 'no denial without parent-table access');
@@ -195,7 +193,7 @@ final class DecorativeFileReferenceDataHandlerGuardTest extends AbstractAuthoriz
             ],
         ], $backendUser);
 
-        $reference = $this->fetchReference(1);
+        $reference = $this->fetchRow('sys_file_reference', 1);
         self::assertSame(0, (int)$reference['tx_mindfula11y_decorative'], 'toggle rejected without alternative/title grants');
         self::assertSame('Existing alt text', (string)$reference['alternative'], 'stored alternative untouched');
         self::assertNotSame([], $dataHandler->errorLog, 'rejection is surfaced, not silent');
@@ -232,7 +230,7 @@ final class DecorativeFileReferenceDataHandlerGuardTest extends AbstractAuthoriz
             ],
         ], $backendUser);
 
-        $reference = $this->fetchReference(1);
+        $reference = $this->fetchRow('sys_file_reference', 1);
         self::assertSame(0, (int)$reference['tx_mindfula11y_decorative'], 'toggle dropped by DataHandler for the missing grant');
         self::assertSame('Existing alt text', (string)$reference['alternative'], 'alternative survives the dropped toggle');
         self::assertSame('Existing title', (string)$reference['title'], 'title survives the dropped toggle');
@@ -257,7 +255,7 @@ final class DecorativeFileReferenceDataHandlerGuardTest extends AbstractAuthoriz
             ],
         ], $backendUser);
 
-        $reference = $this->fetchReference(1);
+        $reference = $this->fetchRow('sys_file_reference', 1);
         self::assertSame(1, (int)$reference['tx_mindfula11y_decorative'], 'decorative stays on');
         self::assertSame([], $dataHandler->errorLog, 'an unchanged resave raises no error');
     }
@@ -300,7 +298,7 @@ final class DecorativeFileReferenceDataHandlerGuardTest extends AbstractAuthoriz
                 ],
             ], $backendUser);
 
-            $reference = $this->fetchReference(1);
+            $reference = $this->fetchRow('sys_file_reference', 1);
             self::assertSame(1, (int)$reference['tx_mindfula11y_decorative'], 'toggle stored without exclude flags');
             self::assertSame('', (string)$reference['alternative'], 'blanking applied');
             self::assertSame([], $dataHandler->errorLog, 'no spurious denial');
@@ -327,7 +325,7 @@ final class DecorativeFileReferenceDataHandlerGuardTest extends AbstractAuthoriz
             ],
         ], $backendUser);
 
-        self::assertSame(0, (int)$this->fetchReference(1)['tx_mindfula11y_decorative'], 'toggle off stored');
+        self::assertSame(0, (int)$this->fetchRow('sys_file_reference', 1)['tx_mindfula11y_decorative'], 'toggle off stored');
         self::assertSame([], $dataHandler->errorLog, 'no denial for disabling');
     }
 
@@ -348,7 +346,7 @@ final class DecorativeFileReferenceDataHandlerGuardTest extends AbstractAuthoriz
             ],
         ], $backendUser);
 
-        $reference = $this->fetchReference(1);
+        $reference = $this->fetchRow('sys_file_reference', 1);
         self::assertSame(0, (int)$reference['tx_mindfula11y_decorative'], 'decorative dropped for exclude-field-less user');
     }
 
@@ -384,7 +382,7 @@ final class DecorativeFileReferenceDataHandlerGuardTest extends AbstractAuthoriz
 
         $referenceUid = (int)($dataHandler->substNEWwithIDs['NEW2'] ?? 0);
         self::assertGreaterThan(0, $referenceUid, 'IRRE child reference was created');
-        $reference = $this->fetchReference($referenceUid);
+        $reference = $this->fetchRow('sys_file_reference', $referenceUid);
         self::assertSame(1, (int)$reference['tx_mindfula11y_decorative'], 'decorative stored on new IRRE child');
         self::assertSame('', (string)$reference['alternative'], 'alternative blanked on new IRRE child');
     }
@@ -442,7 +440,7 @@ final class DecorativeFileReferenceDataHandlerGuardTest extends AbstractAuthoriz
             ],
         ], $backendUser);
 
-        $reference = $this->fetchReference(1);
+        $reference = $this->fetchRow('sys_file_reference', 1);
         self::assertSame(0, (int)$reference['tx_mindfula11y_decorative'], 'reference stays non-decorative');
         self::assertSame('hello', (string)$reference['alternative'], 'core alternative stored, guard does not interfere');
     }
@@ -466,7 +464,7 @@ final class DecorativeFileReferenceDataHandlerGuardTest extends AbstractAuthoriz
             ],
         ], $backendUser);
 
-        self::assertSame('', (string)$this->fetchReference(1)['alternative'], 'alternative still forced empty');
+        self::assertSame('', (string)$this->fetchRow('sys_file_reference', 1)['alternative'], 'alternative still forced empty');
         self::assertSame([], $dataHandler->errorLog, 'no error: the save is valid');
         self::assertSame([0], $this->decorativeLogLevels(), 'exactly one MESSAGE-level note about the emptied fields');
     }
@@ -579,22 +577,6 @@ final class DecorativeFileReferenceDataHandlerGuardTest extends AbstractAuthoriz
     }
 
     /**
-     * @param array<string, array<int, array<string, mixed>>> $cmdmap
-     */
-    private function runCommandMap(array $cmdmap, BackendUserAuthentication $backendUser): DataHandler
-    {
-        GeneralUtility::makeInstance(\TYPO3\CMS\Core\Cache\CacheManager::class)
-            ->getCache('runtime')
-            ->flush();
-
-        $dataHandler = GeneralUtility::makeInstance(DataHandler::class);
-        $dataHandler->start([], $cmdmap, $backendUser);
-        $dataHandler->process_cmdmap();
-
-        return $dataHandler;
-    }
-
-    /**
      * The reference created from fixture reference 702 by the command.
      *
      * @return array<string, mixed>
@@ -639,39 +621,6 @@ final class DecorativeFileReferenceDataHandlerGuardTest extends AbstractAuthoriz
             )
             ->executeQuery()
             ->fetchFirstColumn());
-    }
-
-    /**
-     * @param array<string, array<int|string, array<string, mixed>>> $datamap
-     */
-    private function runDataHandler(array $datamap, BackendUserAuthentication $backendUser): DataHandler
-    {
-        // BackendUtility caches record lookups in the runtime cache; flush it so
-        // the guard reads the current database state (relevant after direct
-        // seeding writes and across cases within one test process).
-        GeneralUtility::makeInstance(\TYPO3\CMS\Core\Cache\CacheManager::class)
-            ->getCache('runtime')
-            ->flush();
-
-        $dataHandler = GeneralUtility::makeInstance(DataHandler::class);
-        $dataHandler->start($datamap, [], $backendUser);
-        $dataHandler->process_datamap();
-
-        return $dataHandler;
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function fetchReference(int $uid): array
-    {
-        $row = $this->getConnectionPool()
-            ->getConnectionForTable('sys_file_reference')
-            ->select(['*'], 'sys_file_reference', ['uid' => $uid])
-            ->fetchAssociative();
-        self::assertIsArray($row, 'sys_file_reference ' . $uid . ' exists');
-
-        return $row;
     }
 
     private function countDecorativeReferences(): int
