@@ -30,7 +30,6 @@ use TYPO3\CMS\Backend\Template\Components\Buttons\DropDownButton;
 use TYPO3\CMS\Backend\Template\ModuleTemplate;
 use TYPO3\CMS\Core\Information\Typo3Version;
 use TYPO3\CMS\Core\Localization\LanguageService;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
  * Builds and places the accessibility module's doc-header selector menus.
@@ -129,7 +128,7 @@ final readonly class DocHeaderMenuBuilder
         $activeTitle = null;
         foreach ($items as $item) {
             /** @var DropDownRadio $radio */
-            $radio = GeneralUtility::makeInstance(DropDownRadio::class)
+            $radio = (new DropDownRadio())
                 ->setLabel($item['title'])
                 ->setHref($item['href'])
                 ->setActive($item['active']);
@@ -203,13 +202,12 @@ final readonly class DocHeaderMenuBuilder
     /**
      * Create a backend dropdown button.
      *
-     * Uses GeneralUtility::makeInstance() directly instead of
-     * ButtonBar::makeDropDownButton(), deprecated on TYPO3 v14 (#107823);
-     * equivalent and dual-compat (v13 + v14).
+     * Instantiated directly instead of via ButtonBar::makeDropDownButton(),
+     * deprecated on TYPO3 v14 (#107823); equivalent and dual-compat (v13 + v14).
      */
     public function createDropDownButton(): DropDownButton
     {
-        return GeneralUtility::makeInstance(DropDownButton::class);
+        return new DropDownButton();
     }
 
     /**

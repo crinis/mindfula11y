@@ -35,7 +35,6 @@ use TYPO3\CMS\Core\Page\PageRenderer;
 use MindfulMarkup\MindfulA11y\Pagination\SlicePaginator;
 use TYPO3\CMS\Core\Pagination\SimplePagination;
 use TYPO3\CMS\Core\Type\ContextualFeedbackSeverity;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
  * Renders the missing-alternative-text feature: the paginated list of file
@@ -226,7 +225,7 @@ final readonly class MissingAltTextFeatureRenderer
         foreach ($toggles as $filter => $labelSuffix) {
             $isActive = (bool)$menuState[$filter];
             /** @var DropDownToggle $toggle */
-            $toggle = GeneralUtility::makeInstance(DropDownToggle::class)
+            $toggle = (new DropDownToggle())
                 ->setActive($isActive)
                 ->setHref($this->menuBuilder->buildMenuItemUri($context, [
                     ...$menuState,
