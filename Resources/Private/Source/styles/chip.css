@@ -1,0 +1,47 @@
+/*
+ * Mindful A11y extension for TYPO3 integrating accessibility tools into the backend.
+ * Copyright (C) 2026  Mindful Markup, Felix Spittel
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+
+/*
+ * Shared control-chip pattern (heading level + child-type chips, landmark
+ * role pill): one solid input look for every structure value select and its
+ * read-only stand-ins (locked span, relation jump button), so a column of
+ * chips scans as one aligned control set. Combine with the role class
+ * (`class="chip level"`); the component stylesheet, adopted after this one,
+ * adds the per-role shape, weight and tint. `:where()` keeps the recipe at
+ * zero specificity so every role rule wins without specificity gymnastics.
+ */
+@layer component {
+    :where(.chip) {
+        display: inline-flex;
+        gap: var(--mindfula11y-space-3xs);
+        align-items: center;
+        min-block-size: var(--mindfula11y-control-min-size);
+        padding-block: var(--mindfula11y-control-padding-block);
+        padding-inline: var(--mindfula11y-control-padding-inline);
+        color: var(--mindfula11y-input-color);
+        background-color: var(--mindfula11y-input-bg);
+        border: 1px solid var(--mindfula11y-input-border);
+        border-radius: var(--mindfula11y-input-radius);
+
+        /* Hover affordance only on interactive chips — a locked span is inert. */
+        &:not([data-locked]):hover {
+            border-color: var(--mindfula11y-input-hover-border);
+        }
+    }
+}

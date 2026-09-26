@@ -20,8 +20,10 @@ import { impactState, renderSeverityChip, renderViewportBadges } from "../../lib
 import { dispatch } from "../../lib/types.js";
 import { RecordApi } from "../../service/record-api.js";
 import { baseStyles } from "../../styles/base-styles.js";
+import chipStyles from "../../styles/chip.css.js";
 import noticeStyles from "../../styles/notice.css.js";
 import structureViewStyles from "../../styles/structure-view.css.js";
+import surfaceStyles from "../../styles/surface.css.js";
 import viewportStyles from "../../styles/viewport.css.js";
 class StructureView extends LitElement {
   constructor() {
@@ -38,13 +40,15 @@ class StructureView extends LitElement {
   }
   static {
     /**
-     * Shared foundation + the chrome/viewport/notice modules both structure
-     * views adopt; each subclass appends its own component stylesheet:
+     * Shared foundation + the chrome/viewport/notice/chip/surface modules both
+     * structure views adopt; each subclass appends its own component stylesheet:
      * `[...StructureView.viewStyles, componentStyles]`.
      */
     this.viewStyles = [
       ...baseStyles,
       noticeStyles,
+      chipStyles,
+      surfaceStyles,
       structureViewStyles,
       viewportStyles
     ];
@@ -188,7 +192,7 @@ class StructureView extends LitElement {
   renderValueSelect(node, opts) {
     return html`<select
             id=${opts.id}
-            class=${opts.className}
+            class="chip ${opts.className}"
             data-control=${opts.className}
             aria-label=${opts.ariaLabel ?? nothing}
             aria-labelledby=${opts.ariaLabelledby ?? nothing}

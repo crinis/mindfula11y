@@ -81,7 +81,7 @@
             gap: var(--mindfula11y-space-xs);
             padding-block: var(--mindfula11y-space-xs);
             padding-inline: var(--mindfula11y-space-s);
-            border-inline-start-width: 0.375rem;
+            border-inline-start-width: var(--mindfula11y-accent-bar-width);
         }
 
         /*

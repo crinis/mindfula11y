@@ -21,9 +21,15 @@
  * Shared segmented-control tab pattern (structure + scan containers): a
  * `.tabs` track holding `[role="tab"]` buttons, the selected tab reading as
  * the raised segment, with an optional severity badge pill (styled by the
- * `.count` rule in styles/notice.css — adopt that sheet too).
+ * `.count` rule in styles/notice.css — adopt that sheet too), and the
+ * `.panel` wrappers lib/tabs.ts renders.
  * The container query needs an ancestor with `container-type: inline-size`
  * — every adopting component sets it on its wrapper element.
+ *
+ * `--mindfula11y-tabs-gap` (parent-overridable, §4.C): the column gap of the
+ * flex container holding the panels. Each container declares it on that
+ * wrapper and lays its column out with it, so the inactive-panel gap
+ * cancellation below always cancels exactly one gap.
  */
 @layer component {
     /* Segmented control track; the selected tab reads as the raised segment. */
@@ -61,6 +67,25 @@
             color: var(--mindfula11y-component-color);
             background-color: var(--mindfula11y-component-bg);
             border-color: var(--mindfula11y-border);
+        }
+    }
+
+    .panel {
+        /*
+         * Inactive panels carry `hidden="until-found"`: the UA hides them via
+         * `content-visibility: hidden`, which keeps their findings reachable
+         * for find-in-page — `display: none` here would defeat that. The
+         * zero-height box still occupies one slot in its container's column
+         * gap; the negative margin cancels exactly that one gap.
+         */
+        &[hidden="until-found"] {
+            margin-block-start: calc(-1 * var(--mindfula11y-tabs-gap, var(--mindfula11y-space-xs)));
+        }
+
+        /* Browsers without until-found get plain [hidden] (lib/tabs.ts); an
+           adopting component's explicit panel display would beat the UA rule. */
+        &[hidden]:not([hidden="until-found"]) {
+            display: none;
         }
     }
 

@@ -84,9 +84,6 @@
         --mindfula11y-heading-structure-row-padding: var(--mindfula11y-space-2xs);
 
         padding-block: var(--mindfula11y-space-3xs);
-        background-color: var(--mindfula11y-component-bg);
-        border: 1px solid var(--mindfula11y-border);
-        border-radius: var(--mindfula11y-radius);
 
         @container (inline-size >= 36rem) {
             --mindfula11y-heading-structure-step: var(--mindfula11y-space-xs);
@@ -200,9 +197,7 @@
            the row's content — and so the rail offset holds either way. */
         border-inline-start: var(--mindfula11y-heading-structure-bar) solid transparent;
 
-        /* :where() keeps the hover at the base specificity so the later
-           shared control-chip recipe doesn't rank as descending. */
-        &:where(:hover) {
+        &:hover {
             background-color: var(--mindfula11y-component-hover-bg);
         }
 
@@ -253,39 +248,27 @@
     }
 
     /*
-     * One control-chip recipe for BOTH selects (the heading-type and the
-     * child-type select) and the level chip's display variants, so every
-     * editable select shares the same solid input look — dashed borders are
-     * reserved for derived, read-only chips. `:where()` keeps the shared
-     * recipe at zero specificity so the per-class rules below always win.
+     * Both selects (the heading-type and the child-type select) and the level
+     * chip's display variants are shared control chips (styles/chip.css) —
+     * dashed borders are reserved for derived, read-only chips. `:where()`
+     * keeps these additions at zero specificity so the per-class rules below
+     * always win.
      *
      * The minimum is the natural height of a one-line chip — line box, the
-     * shared control padding, and the 1px border — rather than the bare 24px
-     * touch minimum. A `<select>` lays out its own internal line box and
-     * ignores the inherited `line-height` (Chromium), so it otherwise renders
-     * ~5px shorter than an identically padded button or span; pinning the
-     * height makes a select, a locked chip and a relation jump button share
-     * one baseline, which is what keeps rows the same height. The shared
+     * shared control padding, and the 1px border — rather than the chip
+     * pattern's bare 24px touch minimum. A `<select>` lays out its own
+     * internal line box and ignores the inherited `line-height` (Chromium),
+     * so it otherwise renders ~5px shorter than an identically padded
+     * button or span; pinning the height makes a select, a locked chip and a
+     * relation jump button share one baseline, which is what keeps rows the
+     * same height. The shared
      * `--mindfula11y-control-height` is that height for every padded one-line
      * control, so the row's elbow can center on the same value; still em-based,
      * so the hit target stays >= 24px at every zoom level.
      */
     :where(.level, .child-level) {
-        display: inline-flex;
-        gap: var(--mindfula11y-space-3xs);
-        align-items: center;
         min-block-size: var(--mindfula11y-control-height);
-        padding-block: var(--mindfula11y-control-padding-block);
-        padding-inline: var(--mindfula11y-control-padding-inline);
         font-variant-numeric: tabular-nums;
-        color: var(--mindfula11y-input-color);
-        background-color: var(--mindfula11y-input-bg);
-        border: 1px solid var(--mindfula11y-input-border);
-        border-radius: var(--mindfula11y-input-radius);
-
-        &:hover {
-            border-color: var(--mindfula11y-input-hover-border);
-        }
     }
 
     /*

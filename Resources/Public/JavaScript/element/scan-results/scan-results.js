@@ -29,6 +29,7 @@ import { baseStyles } from "../../styles/base-styles.js";
 import disclosureStyles from "../../styles/disclosure.css.js";
 import findingsStyles from "../../styles/findings.css.js";
 import noticeStyles from "../../styles/notice.css.js";
+import surfaceStyles from "../../styles/surface.css.js";
 import componentStyles from "./scan-results.css.js";
 const skillLabel = (skill) => {
   const translated = lll(`mindfula11y.scan.aiAudit.skill.${skill}`);
@@ -100,7 +101,7 @@ let ScanResults = class extends LitElement {
     const issueCount = violation.issues.length;
     const helpUrl = violation.rule.helpUrl !== null ? safeHttpUrl(violation.rule.helpUrl) : "#";
     return html`<li>
-            <details class="violation" data-impact=${violation.impact}>
+            <details class="surface violation" data-impact=${violation.impact}>
                 <summary class="disclosure">
                     ${renderDisclosureMarker()}
                     <span class="rule-description">${violation.rule.description}</span>
@@ -203,7 +204,7 @@ let ScanResults = class extends LitElement {
     )}`;
   }
   renderFinding(finding) {
-    return html`<li class="card">
+    return html`<li class="surface card">
             <p class="card-head">
                 <span class="notice" data-state=${impactState(finding.severity)} data-variant="pill"
                     >${lll(`mindfula11y.severity.${finding.severity}`)}</span
@@ -236,6 +237,7 @@ ScanResults.styles = [
   noticeStyles,
   findingsStyles,
   disclosureStyles,
+  surfaceStyles,
   componentStyles
 ];
 __decorateClass([

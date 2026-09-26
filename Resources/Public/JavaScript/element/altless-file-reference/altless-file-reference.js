@@ -23,6 +23,7 @@ import { errorView } from "../../service/request-error.js";
 import { baseStyles } from "../../styles/base-styles.js";
 import buttonStyles from "../../styles/button.css.js";
 import noticeStyles from "../../styles/notice.css.js";
+import surfaceStyles from "../../styles/surface.css.js";
 import componentStyles from "./altless-file-reference.css.js";
 const DECORATIVE_FIELD = "tx_mindfula11y_decorative";
 let AltlessFileReference = class extends LitElement {
@@ -60,7 +61,7 @@ let AltlessFileReference = class extends LitElement {
     }
   }
   render() {
-    return html`<div class="card">
+    return html`<div class="surface card">
             <div class="body">
                 ${this.renderPreview()}
                 <div class="content">
@@ -233,7 +234,7 @@ let AltlessFileReference = class extends LitElement {
     }
   }
 };
-AltlessFileReference.styles = [...baseStyles, noticeStyles, buttonStyles, componentStyles];
+AltlessFileReference.styles = [...baseStyles, noticeStyles, buttonStyles, surfaceStyles, componentStyles];
 __decorateClass([
   property({ attribute: "preview-url" })
 ], AltlessFileReference.prototype, "previewUrl", 2);

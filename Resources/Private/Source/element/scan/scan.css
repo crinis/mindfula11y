@@ -25,9 +25,11 @@
  */
 @layer component {
     .scan {
+        --mindfula11y-tabs-gap: var(--mindfula11y-space-xs);
+
         display: flex;
         flex-direction: column;
-        gap: var(--mindfula11y-space-xs);
+        gap: var(--mindfula11y-tabs-gap);
         container-type: inline-size;
     }
 
@@ -35,22 +37,6 @@
         display: flex;
         flex-direction: column;
         gap: var(--mindfula11y-space-xs);
-
-        /*
-         * Inactive panels carry `hidden="until-found"`: the UA hides them via
-         * `content-visibility: hidden`, which keeps their findings reachable
-         * for find-in-page — `display: none` here would defeat that. The
-         * zero-height box still occupies one slot in `.scan`'s column gap;
-         * the negative margin cancels exactly that one gap.
-         */
-        &[hidden="until-found"] {
-            margin-block-start: calc(-1 * var(--mindfula11y-space-xs));
-        }
-
-        /* The explicit flex display would beat the UA rule for plain [hidden]. */
-        &[hidden]:not([hidden="until-found"]) {
-            display: none;
-        }
     }
 
     .description {

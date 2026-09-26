@@ -34,12 +34,11 @@
         flex-direction: column;
         gap: var(--mindfula11y-space-2xs);
 
+        /* The page frame: a shared surface card (styles/surface.css) on the page background. */
         &[data-root] {
             /* Container edge: the px scale holds the frame under text zoom (WCAG 1.4.10). */
             padding: var(--mindfula11y-space-fixed-xs);
             background-color: var(--mindfula11y-surface);
-            border: 1px solid var(--mindfula11y-border);
-            border-radius: var(--mindfula11y-radius);
         }
     }
 
@@ -71,7 +70,7 @@
         );
         border: 1px solid
             color-mix(in srgb, var(--mindfula11y-landmark-structure-accent) 30%, var(--mindfula11y-border));
-        border-inline-start: 0.25rem solid var(--mindfula11y-landmark-structure-accent);
+        border-inline-start: var(--mindfula11y-accent-bar-width) solid var(--mindfula11y-landmark-structure-accent);
         border-radius: var(--mindfula11y-radius);
 
         &[data-role="banner"] {
@@ -110,23 +109,19 @@
         align-items: center;
     }
 
-    /* Role pill: same recipe as the heading level chip, pill-shaped and accent-tinted. */
+    /* Role pill: the shared control chip (styles/chip.css), pill-shaped and accent-tinted. */
     .role {
-        display: inline-flex;
-        gap: var(--mindfula11y-space-3xs);
-        align-items: center;
-        min-block-size: var(--mindfula11y-control-min-size);
-        padding-block: var(--mindfula11y-control-padding-block);
-        padding-inline: var(--mindfula11y-control-padding-inline);
         font-weight: 700;
-        color: var(--mindfula11y-input-color);
         background-color: color-mix(
             in srgb,
             var(--mindfula11y-landmark-structure-accent) 14%,
             var(--mindfula11y-input-bg)
         );
-        border: 1px solid
-            color-mix(in srgb, var(--mindfula11y-landmark-structure-accent) 45%, var(--mindfula11y-input-border));
+        border-color: color-mix(
+            in srgb,
+            var(--mindfula11y-landmark-structure-accent) 45%,
+            var(--mindfula11y-input-border)
+        );
         border-radius: 999em;
 
         /* Hover affordance only on the editable select — the locked span is inert. */

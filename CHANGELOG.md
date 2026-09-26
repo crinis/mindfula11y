@@ -43,6 +43,7 @@ upload comment. Manual `v*` tags are blocked by a repository ruleset.
 - All accessibility AJAX endpoints report failures in the same localized, structured form, and the declared HTTP methods are now actually enforced for the scan and alt-text endpoints.
 - The `tt_content.tx_mindfula11y_headingtype` column is defined as `varchar(10)` instead of the auto-generated `longtext`. Existing installations get this proposed as a regular (safe) database schema update; skipping it changes nothing functionally.
 - The backend module scripts assume an evergreen-browser baseline from mid-2024 (roughly Chrome/Edge 117+, Firefox 124+, Safari 17.4+). The scan and structure views no longer run on older engines.
+- Status callouts, landmark region cards in the landmark structure and AI audit suggestions in scan results now share one 6px accent-bar width (previously 0.375rem, 0.25rem and 3px). The bars no longer grow with the text size.
 
 ### Deprecated
 

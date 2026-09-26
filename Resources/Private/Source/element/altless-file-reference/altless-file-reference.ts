@@ -34,6 +34,7 @@ import { type ErrorView, errorView } from '../../service/request-error.js';
 import { baseStyles } from '../../styles/base-styles.js';
 import buttonStyles from '../../styles/button.css.js';
 import noticeStyles from '../../styles/notice.css.js';
+import surfaceStyles from '../../styles/surface.css.js';
 import componentStyles from './altless-file-reference.css.js';
 
 const DECORATIVE_FIELD = 'tx_mindfula11y_decorative';
@@ -51,7 +52,7 @@ const DECORATIVE_FIELD = 'tx_mindfula11y_decorative';
  */
 @customElement('mindfula11y-altless-file-reference')
 export class AltlessFileReference extends LitElement {
-    static override styles: CSSResult[] = [...baseStyles, noticeStyles, buttonStyles, componentStyles];
+    static override styles: CSSResult[] = [...baseStyles, noticeStyles, buttonStyles, surfaceStyles, componentStyles];
 
     @property({ attribute: 'preview-url' }) previewUrl: string = '';
     @property({ attribute: 'original-url' }) originalUrl: string = '';
@@ -89,7 +90,7 @@ export class AltlessFileReference extends LitElement {
     }
 
     override render(): TemplateResult {
-        return html`<div class="card">
+        return html`<div class="surface card">
             <div class="body">
                 ${this.renderPreview()}
                 <div class="content">

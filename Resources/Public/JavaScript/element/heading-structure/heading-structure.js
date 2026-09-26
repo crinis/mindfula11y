@@ -105,7 +105,7 @@ let HeadingStructure = class extends StructureView {
     return targetId !== "" && this.knownRelationIds.has(targetId);
   }
   renderTree(nodes) {
-    return html`<ol class="tree">
+    return html`<ol class="surface tree">
             ${this.pageErrors.map((error) => this.renderPageIssueItem(error))}
             ${repeat(
       this.flattenTree(nodes, 0),
@@ -317,11 +317,11 @@ let HeadingStructure = class extends StructureView {
       const hasTarget = this.relationTargetExists(node);
       const content = this.renderRelationLevelContent(node, hasTarget);
       if (!hasTarget) {
-        return html`<span class="level" data-relation data-relation-kind=${node.relation.kind}>${content}</span>`;
+        return html`<span class="chip level" data-relation data-relation-kind=${node.relation.kind}>${content}</span>`;
       }
       return html`<button
                 type="button"
-                class="level"
+                class="chip level"
                 data-relation
                 data-relation-kind=${node.relation.kind}
                 data-control="level"
@@ -341,7 +341,7 @@ let HeadingStructure = class extends StructureView {
         options: this.buildLevelOptions(node.availableTypes, currentValue, node.level > 0 ? node.level : null)
       });
     }
-    return html`<span class="level" data-locked>${this.renderLockedChip(this.levelChipLabel(node))}</span>`;
+    return html`<span class="chip level" data-locked>${this.renderLockedChip(this.levelChipLabel(node))}</span>`;
   }
   /**
    * Display text for a read-only level chip: the level label for headings;

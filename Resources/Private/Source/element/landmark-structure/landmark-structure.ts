@@ -52,7 +52,7 @@ export class LandmarkStructure extends StructureView<LandmarkNode> {
     }
 
     private renderMap(nodes: LandmarkNode[], isRoot: boolean): TemplateResult {
-        return html`<ol class="map" ?data-root=${isRoot}>
+        return html`<ol class=${isRoot ? 'surface map' : 'map'} ?data-root=${isRoot}>
             ${repeat(
                 nodes,
                 (node) => node.id,
@@ -91,7 +91,7 @@ export class LandmarkStructure extends StructureView<LandmarkNode> {
             });
         }
 
-        return html`<span class="role" data-locked>
+        return html`<span class="chip role" data-locked>
             ${this.renderLockedChip(this.roleDisplayName(node.role))}
         </span>`;
     }

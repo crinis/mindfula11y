@@ -40,6 +40,7 @@ import { baseStyles } from '../../styles/base-styles.js';
 import disclosureStyles from '../../styles/disclosure.css.js';
 import findingsStyles from '../../styles/findings.css.js';
 import noticeStyles from '../../styles/notice.css.js';
+import surfaceStyles from '../../styles/surface.css.js';
 import componentStyles from './scan-results.css.js';
 
 const skillLabel = (skill: AiAuditSkill): string => {
@@ -71,6 +72,7 @@ export class ScanResults extends LitElement {
         noticeStyles,
         findingsStyles,
         disclosureStyles,
+        surfaceStyles,
         componentStyles,
     ];
 
@@ -144,7 +146,7 @@ export class ScanResults extends LitElement {
         const issueCount = violation.issues.length;
         const helpUrl = violation.rule.helpUrl !== null ? safeHttpUrl(violation.rule.helpUrl) : '#';
         return html`<li>
-            <details class="violation" data-impact=${violation.impact}>
+            <details class="surface violation" data-impact=${violation.impact}>
                 <summary class="disclosure">
                     ${renderDisclosureMarker()}
                     <span class="rule-description">${violation.rule.description}</span>
@@ -282,7 +284,7 @@ export class ScanResults extends LitElement {
     }
 
     private renderFinding(finding: AgentFindingDto): TemplateResult {
-        return html`<li class="card">
+        return html`<li class="surface card">
             <p class="card-head">
                 <span class="notice" data-state=${impactState(finding.severity)} data-variant="pill"
                     >${lll(`mindfula11y.severity.${finding.severity}`)}</span

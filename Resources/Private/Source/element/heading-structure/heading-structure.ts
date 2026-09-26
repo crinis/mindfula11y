@@ -164,7 +164,7 @@ export class HeadingStructure extends StructureView<HeadingNode> {
     }
 
     private renderTree(nodes: HeadingNode[]): TemplateResult {
-        return html`<ol class="tree">
+        return html`<ol class="surface tree">
             ${this.pageErrors.map((error) => this.renderPageIssueItem(error))}
             ${repeat(
                 this.flattenTree(nodes, 0),
@@ -417,11 +417,11 @@ export class HeadingStructure extends StructureView<HeadingNode> {
             if (!hasTarget) {
                 // The referenced publisher is not in this document, so retain
                 // the explicit read-only explanation without a dead-end action.
-                return html`<span class="level" data-relation data-relation-kind=${node.relation.kind}>${content}</span>`;
+                return html`<span class="chip level" data-relation data-relation-kind=${node.relation.kind}>${content}</span>`;
             }
             return html`<button
                 type="button"
-                class="level"
+                class="chip level"
                 data-relation
                 data-relation-kind=${node.relation.kind}
                 data-control="level"
@@ -445,7 +445,7 @@ export class HeadingStructure extends StructureView<HeadingNode> {
             });
         }
 
-        return html`<span class="level" data-locked>${this.renderLockedChip(this.levelChipLabel(node))}</span>`;
+        return html`<span class="chip level" data-locked>${this.renderLockedChip(this.levelChipLabel(node))}</span>`;
     }
 
     /**

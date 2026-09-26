@@ -119,6 +119,12 @@
         --mindfula11y-component-hover-color: var(--typo3-component-hover-color, #1a1a1a);
         --mindfula11y-border: var(--typo3-component-border-color, #d4d4d4);
         --mindfula11y-radius: var(--typo3-component-border-radius, 0.75em);
+        /*
+         * The one width of every thick inline-start accent bar — status
+         * callouts, landmark region cards, advisory insets. A border width,
+         * so px: it must not drift with text zoom.
+         */
+        --mindfula11y-accent-bar-width: 6px;
 
         /*
          * Reading measure (WCAG 1.4.8: ≤ 80 characters per line). Every
