@@ -46,74 +46,21 @@ final readonly class AltTextFinderService
     ) {}
 
     /**
-     * Get altless file references.
-     * 
-     * Query for file references that are missing alternative text and apply filters based on user
-     * permissions and Page TSConfig settings. Does not check for table or language permissions.
-     * 
-     * @param int $pageId The ID of the page to check.
-     * @param int $pageLevels The number of page levels below $pageId to select records from.
-     * @param int $languageId The language ID to select records for.
-     * @param array<string, mixed> $pageTsConfig The Page TSConfig for the current page.
-     * @param int $firstResult The offset for the query.
-     * @param int $maxResults The maximum number of results to return.
-     * @param bool $filterFileMetaData If true, filter results based on presence of alternative text in file metadata.
-     * @param string|null $tableName Restrict to a single table; null queries every table with file columns.
-     * @param bool $includeDecorative If true, include references marked as decorative.
-     * @param bool $includeAllReferences If true, include references that already have reference-level alternative text.
-     * 
-     * @return array<AltlessFileReference> An array of file reference objects that are missing alternative text.
-     * 
-     * @throws \Exception If there is an error executing the query.
-     */
-    public function getAltlessFileReferences(
-        int $pageId,
-        int $pageLevels,
-        int $languageId,
-        array $pageTsConfig,
-        int $firstResult = 0,
-        int $maxResults = 100,
-        bool $filterFileMetaData = true,
-        ?string $tableName = null,
-        bool $includeDecorative = false,
-        bool $includeAllReferences = false,
-    ): array {
-        $tables = $this->buildTables($tableName, $pageId, $pageLevels, $pageTsConfig);
-        // Fail closed: the table configurations carry every parent-table,
-        // field, page-id and authMode predicate. Querying without them would
-        // silently drop the whole scope instead of narrowing it.
-        if ([] === $tables) {
-            return [];
-        }
-
-        return $this->altlessFileReferenceRepository->findForTables(
-            $tables,
-            $languageId,
-            $this->backendUserProvider->get()->workspace,
-            $this->permissionService->checkFileReadAccess(...),
-            $firstResult,
-            $maxResults,
-            $filterFileMetaData,
-            $includeDecorative,
-            $includeAllReferences
-        );
-    }
-
-    /**
      * One page of altless file references plus the total, in a single pass.
      *
      * The listing needs both; counting and fetching separately would walk the
      * permission-filtered stream (one FAL file hydration and permission check
-     * per candidate) twice. Applies the same filters as
-     * getAltlessFileReferences(); the page is clamped to the last one the
-     * total allows.
+     * per candidate) twice. Filters by user permissions and Page TSConfig;
+     * does not check for table or language permissions.
+     * The page is clamped to the last one the total allows; the result's
+     * `page` is the page actually returned.
      *
      * @param array<string, mixed> $pageTsConfig The Page TSConfig for the current page.
      * @param int $currentPage 1-based page number, clamped to [1, last page].
      * @param int<1, max> $itemsPerPage
      * @param string|null $tableName Restrict to a single table; null queries every table with file columns.
      *
-     * @return array{items: list<AltlessFileReference>, total: int}
+     * @return array{items: list<AltlessFileReference>, total: int, page: int<1, max>}
      *
      * @throws \Exception If there is an error executing the query.
      */
@@ -130,9 +77,11 @@ final readonly class AltTextFinderService
         bool $includeAllReferences = false,
     ): array {
         $tables = $this->buildTables($tableName, $pageId, $pageLevels, $pageTsConfig);
-        // Fail closed — see getAltlessFileReferences().
+        // Fail closed: the table configurations carry every parent-table,
+        // field, page-id and authMode predicate. Querying without them would
+        // silently drop the whole scope instead of narrowing it.
         if ([] === $tables) {
-            return ['items' => [], 'total' => 0];
+            return ['items' => [], 'total' => 0, 'page' => 1];
         }
 
         return $this->altlessFileReferenceRepository->findPageForTables(
@@ -178,7 +127,7 @@ final readonly class AltTextFinderService
         bool $includeAllReferences = false,
     ): int {
         $tables = $this->buildTables($tableName, $pageId, $pageLevels, $pageTsConfig);
-        // Fail closed — see getAltlessFileReferences().
+        // Fail closed — see findAltlessFileReferencePage().
         if ([] === $tables) {
             return 0;
         }

@@ -64,6 +64,7 @@ final class AltTextFinderPaginationTest extends AbstractAuthorizationTestCase
         $page = $this->get(AltTextFinderService::class)->findAltlessFileReferencePage(10, 0, 0, [], 6, 100);
 
         self::assertSame(601, $page['total']);
+        self::assertSame(6, $page['page']);
         // Stream order: 1, 1001, 1002, … — page 6 starts at position 500,
         // the first row of the second chunk.
         self::assertSame(range(1500, 1599), $this->uids($page));
@@ -76,6 +77,7 @@ final class AltTextFinderPaginationTest extends AbstractAuthorizationTestCase
         $page = $this->get(AltTextFinderService::class)->findAltlessFileReferencePage(10, 0, 0, [], PHP_INT_MAX, 100);
 
         self::assertSame(601, $page['total']);
+        self::assertSame(7, $page['page'], 'the result names the clamped page it returns');
         self::assertSame([1600], $this->uids($page));
     }
 

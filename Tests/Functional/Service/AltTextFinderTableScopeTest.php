@@ -52,7 +52,7 @@ final class AltTextFinderTableScopeTest extends AbstractAuthorizationTestCase
         $this->logInBackendUser(800);
 
         self::assertSame(0, $this->subject()->countAltlessFileReferences(10, 0, 0, []));
-        self::assertSame([], $this->subject()->getAltlessFileReferences(10, 0, 0, []));
+        self::assertSame([], $this->subject()->findAltlessFileReferencePage(10, 0, 0, [], 1, 100)['items']);
     }
 
     public function testQualifiedUserStaysScopedToTheRequestedPageTree(): void
@@ -61,7 +61,7 @@ final class AltTextFinderTableScopeTest extends AbstractAuthorizationTestCase
 
         $foundUids = array_map(
             static fn(AltlessFileReference $reference): int => (int)$reference->getUid(),
-            $this->subject()->getAltlessFileReferences(10, 0, 0, []),
+            $this->subject()->findAltlessFileReferencePage(10, 0, 0, [], 1, 100)['items'],
         );
 
         self::assertSame([1], $foundUids, 'only page 10 references — the page-20 canary (801) stays out of scope');
@@ -80,7 +80,7 @@ final class AltTextFinderTableScopeTest extends AbstractAuthorizationTestCase
         $this->logInBackendUser(7);
 
         self::assertSame(0, $this->subject()->countAltlessFileReferences(10, 0, 0, []));
-        self::assertSame([], $this->subject()->getAltlessFileReferences(10, 0, 0, []));
+        self::assertSame([], $this->subject()->findAltlessFileReferencePage(10, 0, 0, [], 1, 100)['items']);
     }
 
     /**
@@ -90,7 +90,7 @@ final class AltTextFinderTableScopeTest extends AbstractAuthorizationTestCase
     {
         return array_map(
             static fn(AltlessFileReference $reference): int => (int)$reference->getUid(),
-            $this->subject()->getAltlessFileReferences(10, 0, 0, []),
+            $this->subject()->findAltlessFileReferencePage(10, 0, 0, [], 1, 100)['items'],
         );
     }
 

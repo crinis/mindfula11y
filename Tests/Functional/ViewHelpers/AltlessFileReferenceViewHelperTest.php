@@ -65,7 +65,7 @@ final class AltlessFileReferenceViewHelperTest extends AbstractAuthorizationTest
     private function renderFirstListedReference(): string
     {
         $references = $this->get(AltTextFinderService::class)
-            ->getAltlessFileReferences(10, 0, 0, [], tableName: 'tt_content');
+            ->findAltlessFileReferencePage(10, 0, 0, [], 1, 100, tableName: 'tt_content')['items'];
         self::assertNotSame([], $references, 'the listing must surface a reference to render');
 
         $context = $this->get(RenderingContextFactory::class)->create();
@@ -118,14 +118,16 @@ final class AltlessFileReferenceViewHelperTest extends AbstractAuthorizationTest
         $this->setLiveMetadataAlternative('Inherited alternative');
         $this->logInBackendUser(2);
 
-        $references = $this->get(AltTextFinderService::class)->getAltlessFileReferences(
+        $references = $this->get(AltTextFinderService::class)->findAltlessFileReferencePage(
             10,
             0,
             0,
             [],
+            1,
+            100,
             filterFileMetaData: false,
             tableName: 'tt_content',
-        );
+        )['items'];
         self::assertNotSame([], $references);
 
         $context = $this->get(RenderingContextFactory::class)->create();

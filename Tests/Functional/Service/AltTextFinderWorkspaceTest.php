@@ -63,16 +63,18 @@ final class AltTextFinderWorkspaceTest extends AbstractAuthorizationTestCase
     {
         return array_map(
             static fn(AltlessFileReference $reference): int => (int)$reference->getUid(),
-            $this->subject()->getAltlessFileReferences(
+            $this->subject()->findAltlessFileReferencePage(
                 10,
                 0,
                 0,
                 [],
+                1,
+                100,
                 filterFileMetaData: $filterFileMetaData,
                 tableName: 'tt_content',
                 includeDecorative: $includeDecorative,
                 includeAllReferences: $includeAllReferences,
-            ),
+            )['items'],
         );
     }
 

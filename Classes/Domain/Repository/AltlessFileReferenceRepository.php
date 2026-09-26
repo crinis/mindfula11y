@@ -57,80 +57,26 @@ final readonly class AltlessFileReferenceRepository
     ) {}
 
     /**
-     * Find file references without alternative text.
-     * 
+     * One page of file references without alternative text plus the total.
+     *
      * Query file references and apply all sorts of filters to restrict sys_file_reference records from being shown if the
      * associated records are not accessible to the current user. This is to prevent unintended access to
      * records that the user should not see. On the other side of saving file references they can always
      * be modified via request forgery using e.g. AjaxDataHandler. We cannot prevent this.
-     *
-     * The FAL file permission filter is applied before paging, streaming
-     * matches in chunks so the full result set is never hydrated at once.
-     *
-     * @param array<AltlessFileReferenceTable> $tables Array of table configurations to select file references by.
-     * @param int $languageId The language UID to select file references for.
-     * @param int $workspaceId The workspace ID to select file references for.
-     * @param callable(\TYPO3\CMS\Core\Resource\FileInterface): bool $fileFilter File-access filter applied before paging.
-     * @param int $firstResult The offset for the query.
-     * @param int $maxResults The maximum number of results to return.
-     * @param bool $filterFileMetaData If true, filter rows if they have alternative text in the file metadata.
-     * @param bool $includeDecorative If true, include references marked as decorative.
-     * @param bool $includeAllReferences If true, include references that already have reference-level alternative text.
-     * 
-     * @return array<AltlessFileReference> An array of file reference rows.
-     * 
-     * @throws Exception If there is an error executing the query.
-     */
-    public function findForTables(
-        array $tables,
-        int $languageId,
-        int $workspaceId,
-        callable $fileFilter,
-        int $firstResult = 0,
-        int $maxResults = 100,
-        bool $filterFileMetaData = true,
-        bool $includeDecorative = false,
-        bool $includeAllReferences = false,
-    ): array {
-        $selectedReferenceUids = [];
-        $accessibleOffset = 0;
-
-        foreach ($this->streamAccessibleReferenceUids($tables, $languageId, $workspaceId, $filterFileMetaData, $includeDecorative, $includeAllReferences, $fileFilter) as $referenceUid) {
-            if ($accessibleOffset++ < $firstResult) {
-                continue;
-            }
-
-            $selectedReferenceUids[] = $referenceUid;
-            if (count($selectedReferenceUids) >= $maxResults) {
-                break;
-            }
-        }
-
-        if (empty($selectedReferenceUids)) {
-            return [];
-        }
-
-        return $this->dataMapper->map(
-            AltlessFileReference::class,
-            $this->fetchReferenceRowsForReferenceUids($selectedReferenceUids)
-        );
-    }
-
-    /**
-     * One page of file references without alternative text plus the total.
      *
      * Consumes the permission-filtered stream exactly once: every accessible
      * reference is counted (its file hydrated for the FAL check anyway), but
      * only the requested page is mapped to models. The page is clamped to the
      * last one the total allows before the offset is derived, so an
      * out-of-range or extreme page yields the last page's slice instead of an
-     * empty one or an overflowing offset.
+     * empty one or an overflowing offset; the result's `page` is that
+     * clamped page.
      *
      * @param array<AltlessFileReferenceTable> $tables Array of table configurations to select file references by.
      * @param callable(\TYPO3\CMS\Core\Resource\FileInterface): bool $fileFilter File-access filter applied before paging.
      * @param int $currentPage 1-based page number, clamped to [1, last page].
      * @param int<1, max> $itemsPerPage
-     * @return array{items: list<AltlessFileReference>, total: int}
+     * @return array{items: list<AltlessFileReference>, total: int, page: int<1, max>}
      *
      * @throws Exception If there is an error executing the query.
      */
@@ -163,6 +109,7 @@ final readonly class AltlessFileReferenceRepository
                     $this->fetchReferenceRowsForReferenceUids($selectedReferenceUids)
                 )),
             'total' => $total,
+            'page' => $currentPage,
         ];
     }
 

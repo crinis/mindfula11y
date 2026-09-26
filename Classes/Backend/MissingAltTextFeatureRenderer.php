@@ -134,11 +134,10 @@ final readonly class MissingAltTextFeatureRenderer
         );
         $fileReferences = $result['items'];
         $fileReferenceCount = $result['total'];
-
         // The service clamped the page to the last one the total allows (an
-        // out-of-range page would render an empty slice); mirror that clamp so
-        // the pagination and its links show the page actually rendered.
-        $currentPage = min($currentPage, max(1, (int)ceil($fileReferenceCount / self::ITEMS_PER_PAGE)));
+        // out-of-range page would render an empty slice); the pagination and
+        // its links show the page actually rendered.
+        $currentPage = $result['page'];
 
         // The service already fetched exactly the current page;
         // paginate over that slice plus the count instead of null-padding an
