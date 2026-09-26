@@ -27,11 +27,7 @@ import '@typo3/backend/element/icon-element.js';
 import { impactState, renderViewportBadges, worstSeverity } from '../../lib/status-render.js';
 import type { HeadingNode, StructureError } from '../../lib/structure/types.js';
 import { HEADING_ERROR_KEYS } from '../../lib/structure/types.js';
-import {
-    type StructureIssueOptionsProvider,
-    type StructureIssueRenderOptions,
-    StructureView,
-} from '../structure-view/structure-view.js';
+import { type StructureIssueRenderOptions, StructureView } from '../structure-view/structure-view.js';
 import componentStyles from './heading-structure.css.js';
 
 type HeadingIssueKind = 'page' | 'missing-level';
@@ -42,12 +38,6 @@ interface HeadingItemOptions {
     focusLabelId?: string | undefined;
 }
 
-interface IssueItemOptions extends HeadingItemOptions {
-    issueKind: HeadingIssueKind;
-    issueId?: string | undefined;
-    issueOptions?: StructureIssueRenderOptions | undefined;
-}
-
 interface HeadingRowOptions {
     errors: StructureError[];
     content?: TemplateResult | undefined;
@@ -56,7 +46,7 @@ interface HeadingRowOptions {
     container?: boolean | undefined;
     demoted?: boolean | undefined;
     issueId?: string | undefined;
-    issueOptions?: StructureIssueOptionsProvider | undefined;
+    issueOptions?: ((error: StructureError) => StructureIssueRenderOptions) | undefined;
 }
 
 /**
@@ -186,21 +176,9 @@ export class HeadingStructure extends StructureView<HeadingNode> {
 
     /** A page-level heading finding has no affected node, so it becomes its own unindented issue row. */
     private renderPageIssueItem(error: StructureError): TemplateResult {
-        return this.renderIssueItem(error, {
-            issueKind: 'page',
-            issueOptions: { pageScope: true },
-        });
-    }
-
-    /** One consistent list row for issue-only cases. */
-    private renderIssueItem(error: StructureError, options: IssueItemOptions): TemplateResult {
         return this.renderListItem(
-            this.renderHeadingRow({
-                errors: [error],
-                issueId: options.issueId,
-                issueOptions: options.issueOptions,
-            }),
-            options,
+            this.renderHeadingRow({ errors: [error], issueOptions: () => ({ pageScope: true }) }),
+            { issueKind: 'page' },
         );
     }
 
@@ -287,15 +265,17 @@ export class HeadingStructure extends StructureView<HeadingNode> {
             nodeId: node.id,
             viewports: node.viewports,
         };
-        return this.renderIssueItem(error, {
-            issueKind: 'missing-level',
-            indent: missingLevel,
-            ...(missingLevel === node.level - 1 ? { issueId: `skip-${node.id}` } : {}),
-            issueOptions: {
-                labelKey: 'mindfula11y.structure.headings.error.skippedLevel.inline',
-                labelArguments: [missingLevel],
-            },
-        });
+        return this.renderListItem(
+            this.renderHeadingRow({
+                errors: [error],
+                issueId: missingLevel === node.level - 1 ? `skip-${node.id}` : undefined,
+                issueOptions: () => ({
+                    labelKey: 'mindfula11y.structure.headings.error.skippedLevel.inline',
+                    labelArguments: [missingLevel],
+                }),
+            }),
+            { issueKind: 'missing-level', indent: missingLevel },
+        );
     }
 
     /**

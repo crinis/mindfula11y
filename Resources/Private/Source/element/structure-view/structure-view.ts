@@ -44,16 +44,12 @@ export interface StructureIssueRenderOptions {
     showViewports?: boolean;
 }
 
-/** Static or per-error adjustments consumed by the shared issue-group renderer. */
-export type StructureIssueOptionsProvider =
-    | StructureIssueRenderOptions
-    | ((error: StructureError) => StructureIssueRenderOptions);
-
 /** Layout-specific wrapper configuration for a group of shared inline issues. */
 export interface StructureIssueGroupOptions {
     className: string;
     id?: string | undefined;
-    issueOptions?: StructureIssueOptionsProvider | undefined;
+    /** Per-error presentation adjustments; every issue renders with the defaults when omitted. */
+    issueOptions?: ((error: StructureError) => StructureIssueRenderOptions) | undefined;
 }
 
 interface StructureFocusOptions {
@@ -183,11 +179,8 @@ export abstract class StructureView<T extends StructureNodeBase<T>> extends LitE
 
     /** One group renderer for every layout that presents shared inline issues. */
     protected renderIssueGroup(errors: StructureError[], options: StructureIssueGroupOptions): TemplateResult {
-        const issueOptions = options.issueOptions ?? {};
         return html`<div class=${options.className} id=${options.id ?? nothing}>
-            ${errors.map((error) =>
-                this.renderIssue(error, typeof issueOptions === 'function' ? issueOptions(error) : issueOptions),
-            )}
+            ${errors.map((error) => this.renderIssue(error, options.issueOptions?.(error)))}
         </div>`;
     }
 

@@ -114,11 +114,8 @@ class StructureView extends LitElement {
   }
   /** One group renderer for every layout that presents shared inline issues. */
   renderIssueGroup(errors, options) {
-    const issueOptions = options.issueOptions ?? {};
     return html`<div class=${options.className} id=${options.id ?? nothing}>
-            ${errors.map(
-      (error) => this.renderIssue(error, typeof issueOptions === "function" ? issueOptions(error) : issueOptions)
-    )}
+            ${errors.map((error) => this.renderIssue(error, options.issueOptions?.(error)))}
         </div>`;
   }
   renderIssue(error, options = {}) {

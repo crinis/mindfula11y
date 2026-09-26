@@ -16,9 +16,7 @@ import { repeat } from "lit/directives/repeat.js";
 import "@typo3/backend/element/icon-element.js";
 import { impactState, renderViewportBadges, worstSeverity } from "../../lib/status-render.js";
 import { HEADING_ERROR_KEYS } from "../../lib/structure/types.js";
-import {
-  StructureView
-} from "../structure-view/structure-view.js";
+import { StructureView } from "../structure-view/structure-view.js";
 import componentStyles from "./heading-structure.css.js";
 let HeadingStructure = class extends StructureView {
   constructor() {
@@ -118,20 +116,9 @@ let HeadingStructure = class extends StructureView {
   }
   /** A page-level heading finding has no affected node, so it becomes its own unindented issue row. */
   renderPageIssueItem(error) {
-    return this.renderIssueItem(error, {
-      issueKind: "page",
-      issueOptions: { pageScope: true }
-    });
-  }
-  /** One consistent list row for issue-only cases. */
-  renderIssueItem(error, options) {
     return this.renderListItem(
-      this.renderHeadingRow({
-        errors: [error],
-        issueId: options.issueId,
-        issueOptions: options.issueOptions
-      }),
-      options
+      this.renderHeadingRow({ errors: [error], issueOptions: () => ({ pageScope: true }) }),
+      { issueKind: "page" }
     );
   }
   /**
@@ -212,15 +199,17 @@ let HeadingStructure = class extends StructureView {
       nodeId: node.id,
       viewports: node.viewports
     };
-    return this.renderIssueItem(error, {
-      issueKind: "missing-level",
-      indent: missingLevel,
-      ...missingLevel === node.level - 1 ? { issueId: `skip-${node.id}` } : {},
-      issueOptions: {
-        labelKey: "mindfula11y.structure.headings.error.skippedLevel.inline",
-        labelArguments: [missingLevel]
-      }
-    });
+    return this.renderListItem(
+      this.renderHeadingRow({
+        errors: [error],
+        issueId: missingLevel === node.level - 1 ? `skip-${node.id}` : void 0,
+        issueOptions: () => ({
+          labelKey: "mindfula11y.structure.headings.error.skippedLevel.inline",
+          labelArguments: [missingLevel]
+        })
+      }),
+      { issueKind: "missing-level", indent: missingLevel }
+    );
   }
   /**
    * Errors rendered as cues inside the affected row itself. Every node
