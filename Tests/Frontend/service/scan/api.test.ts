@@ -9,6 +9,7 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { CreateScanDemand } from '../../../../Resources/Private/Source/lib/scan/types.js';
 import { ScanStatus } from '../../../../Resources/Private/Source/lib/scan/types.js';
 import { ScanApi } from '../../../../Resources/Private/Source/service/scan/api.js';
 
@@ -143,5 +144,71 @@ describe('ScanApi.loadScan wire validation', () => {
             agentFindings: [],
             updatedAt: null,
         });
+    });
+});
+
+const demand: CreateScanDemand = {
+    userId: 1,
+    pageId: 2,
+    previewUrl: 'https://example.test/',
+    languageId: 0,
+    workspaceId: 0,
+    pageLevels: 0,
+    crawl: false,
+    expiresAt: 1_900_000_000,
+    signature: 'sig',
+};
+
+describe('ScanApi.createScan wire validation', () => {
+    beforeEach(() => {
+        postJson.mockReset();
+    });
+
+    it('resolves the scan id and status, posting the AI-audit choice beside the signed demand', async () => {
+        postJson.mockResolvedValue({ scanId: 'scan-1', status: ScanStatus.Pending });
+
+        await expect(new ScanApi().createScan(demand, true)).resolves.toEqual({
+            scanId: 'scan-1',
+            status: ScanStatus.Pending,
+        });
+        expect(postJson).toHaveBeenCalledWith('mindfula11y_scan_create', { ...demand, aiAudit: true }, undefined);
+    });
+
+    it.each([
+        ['a missing', undefined],
+        ['an empty', ''],
+        ['a non-string', 42],
+    ])('rejects %s scan id', async (_label, scanId) => {
+        postJson.mockResolvedValue({ scanId, status: ScanStatus.Pending });
+
+        await expect(new ScanApi().createScan(demand)).rejects.toThrow('no scan id');
+    });
+
+    it('rejects an unrecognized scan status', async () => {
+        postJson.mockResolvedValue({ scanId: 'scan-1', status: 'exploded' });
+
+        await expect(new ScanApi().createScan(demand)).rejects.toThrow('unrecognized scan status: exploded');
+    });
+});
+
+describe('ScanApi.cancelScan wire validation', () => {
+    beforeEach(() => {
+        postJson.mockReset();
+    });
+
+    it('resolves the status the backend reports', async () => {
+        postJson.mockResolvedValue({ status: ScanStatus.Canceled });
+
+        await expect(new ScanApi().cancelScan('scan-1')).resolves.toBe(ScanStatus.Canceled);
+        expect(postJson).toHaveBeenCalledWith('mindfula11y_scan_cancel', { scanId: 'scan-1' }, undefined);
+    });
+
+    it.each([
+        ['a missing', undefined],
+        ['an unrecognized', 'exploded'],
+    ])('rejects %s scan status', async (_label, status) => {
+        postJson.mockResolvedValue({ status });
+
+        await expect(new ScanApi().cancelScan('scan-1')).rejects.toThrow('unrecognized scan status');
     });
 });
