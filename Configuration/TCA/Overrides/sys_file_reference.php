@@ -21,15 +21,9 @@ declare(strict_types=1);
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-use TYPO3\CMS\Core\Configuration\Exception\ExtensionConfigurationExtensionNotConfiguredException;
-use TYPO3\CMS\Core\Configuration\Exception\ExtensionConfigurationPathDoesNotExistException;
-use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
 use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 defined('TYPO3') or die();
-
-$extensionConfiguration = GeneralUtility::makeInstance(ExtensionConfiguration::class);
 
 ExtensionManagementUtility::addTCAcolumns(
     'sys_file_reference',
@@ -62,18 +56,10 @@ foreach (['alternative', 'title'] as $fieldName) {
         : ['AND' => [$existingDisplayCondition, $decorativeDisplayCondition]];
 }
 
-// get() throws when the extension configuration is absent or unsynced (e.g.
-// composer install without `extension:setup`); an exception here fatals every
-// request during TCA compilation, so fail closed to "control disabled".
-try {
-    $generateAltTextEnabled = !$extensionConfiguration->get('mindfula11y', 'disableAltTextGeneration')
-        && !empty($extensionConfiguration->get('mindfula11y', 'openAIApiKey'));
-} catch (ExtensionConfigurationExtensionNotConfiguredException | ExtensionConfigurationPathDoesNotExistException) {
-    $generateAltTextEnabled = false;
-}
-
-if ($generateAltTextEnabled) {
-    $GLOBALS['TCA']['sys_file_reference']['columns']['alternative']['config']['fieldControl']['mindfula11yGenerateAltText'] = [
-        'renderType' => 'mindfula11yGenerateAltText',
-    ];
-}
+// Registered unconditionally: GenerateAltTextControl::render() checks the live
+// extension configuration (and module access) on every render and yields
+// nothing while generation is disabled or unconfigured. Gating here would bake
+// the API-key state into the TCA cache.
+$GLOBALS['TCA']['sys_file_reference']['columns']['alternative']['config']['fieldControl']['mindfula11yGenerateAltText'] = [
+    'renderType' => 'mindfula11yGenerateAltText',
+];
