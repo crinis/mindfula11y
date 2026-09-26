@@ -19,6 +19,10 @@ use MindfulMarkup\MindfulA11y\Domain\Model\GenerateAltTextDemand;
 use MindfulMarkup\MindfulA11y\Service\DemandSignatureService;
 use MindfulMarkup\MindfulA11y\Service\RecordSnapshotService;
 use MindfulMarkup\MindfulA11y\Tests\Functional\AbstractAuthorizationTestCase;
+use GuzzleHttp\Exception\ConnectException;
+use GuzzleHttp\Promise\Create;
+use GuzzleHttp\Promise\PromiseInterface;
+use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 
@@ -26,9 +30,9 @@ use TYPO3\CMS\Backend\Utility\BackendUtility;
  * Authorization coverage of the alt-text-generation AJAX endpoint
  * (AltTextAjaxController::generateAction).
  *
- * The OpenAI API key is deliberately unconfigured in the functional test
- * instance (no ExtensionConfiguration for 'openAIApiKey' is written by any
- * fixture), so OpenAIService::respond() yields null and the controller answers
+ * setUp() configures a dummy OpenAI API key (redemption requires one) and an
+ * HTTP handler that rejects every outgoing request, so no request ever leaves
+ * the test, OpenAIService::respond() yields null and the controller answers
  * errorResponse('altText.generate.error.openAIConnection', 500). That 500 is
  * this suite's positive discriminator: a demand that clears every authorization
  * gate does NOT succeed (201), it reaches the generation-failure branch. Every
@@ -51,6 +55,19 @@ use TYPO3\CMS\Backend\Utility\BackendUtility;
  */
 final class AltTextAjaxControllerTest extends AbstractAuthorizationTestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS']['mindfula11y']['openAIApiKey'] = 'sk-functional-test';
+        // Short-circuits Guzzle's handler stack: the request fails like an
+        // unreachable upstream instead of reaching api.openai.com.
+        $GLOBALS['TYPO3_CONF_VARS']['HTTP']['handler']['mindfula11y-offline'] =
+            static fn(callable $handler): callable =>
+                static fn(RequestInterface $request): PromiseInterface =>
+                    Create::rejectionFor(new ConnectException('Offline functional test instance', $request));
+    }
+
     private function controller(): AltTextAjaxController
     {
         return $this->get(AltTextAjaxController::class);
@@ -116,7 +133,7 @@ final class AltTextAjaxControllerTest extends AbstractAuthorizationTestCase
 
     /**
      * The positive discriminator: authorization fully passed, only OpenAI
-     * generation failed (unconfigured key).
+     * generation failed (offline HTTP handler).
      */
     private function assertOpenAiFailure(ResponseInterface $response): void
     {
@@ -152,6 +169,32 @@ final class AltTextAjaxControllerTest extends AbstractAuthorizationTestCase
         $GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS']['mindfula11y']['disableAltTextGeneration'] = '1';
 
         $this->assertErrorResponse($this->generate($payload), 403, 'altText.generate.error.disabled');
+    }
+
+    /**
+     * Removing the API key is the other way to switch generation off. Without
+     * the redemption check a pre-rendered control would still upload the image
+     * to OpenAI, only for the unauthenticated request to be rejected there.
+     */
+    public function testRemovedApiKeyDeniesRedemptionOfAnIssuedDemand(): void
+    {
+        $this->logInBackendUser(2);
+        $payload = $this->demandPayload(2);
+
+        $GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS']['mindfula11y']['openAIApiKey'] = '';
+
+        $this->assertErrorResponse($this->generate($payload), 403, 'altText.generate.error.disabled');
+    }
+
+    /**
+     * Control for the two off-switch tests: the same demand with generation
+     * available reaches the generation step, so their 403 is the switch.
+     */
+    public function testAvailableIntegrationRedeemsAnIssuedDemand(): void
+    {
+        $this->logInBackendUser(2);
+
+        $this->assertOpenAiFailure($this->generate($this->demandPayload(2)));
     }
 
     // ---------------------------------------------------------------

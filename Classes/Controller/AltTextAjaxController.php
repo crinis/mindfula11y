@@ -71,10 +71,12 @@ final readonly class AltTextAjaxController
             return $error;
         }
 
-        // Re-check the integration's off-switch at redemption: a demand issued
-        // while generation was enabled must not outlive the admin disabling it
-        // (every other mutable gate is re-checked at redemption, too).
-        if (!$this->openAIService->isEnabled()) {
+        // Re-check the integration at redemption: a demand issued while
+        // generation was available must not outlive an administrator disabling
+        // it — by the switch or by removing the API key, which would otherwise
+        // still upload the image to OpenAI (every other mutable gate is
+        // re-checked at redemption, too).
+        if (!$this->openAIService->isEnabledAndConfigured()) {
             return $this->errorResponse('altText.generate.error.disabled', 403);
         }
 

@@ -165,30 +165,19 @@ final readonly class OpenAIService
     }
 
     /**
-     * The integration's mutable off-switch, on its own.
-     *
-     * Issuance-side isEnabledAndConfigured() decides whether generation
-     * controls render at all, but an already-issued signed demand stays valid
-     * for its lifetime — redemption re-checks this switch so disabling the
-     * integration takes effect immediately. Key presence is deliberately not
-     * part of this check: a missing key fails generation cleanly and spends
-     * nothing.
-     *
-     * @return bool True unless disableAltTextGeneration is set.
-     */
-    public function isEnabled(): bool
-    {
-        return !(bool)($this->getConfiguration()['disableAltTextGeneration'] ?? false);
-    }
-
-    /**
      * Is OpenAI service enabled and configured.
+     *
+     * Checked both when generation controls are rendered and when a signed
+     * demand is redeemed, so disabling the integration — by the switch or by
+     * removing the key — takes effect for controls already on screen.
      *
      * @return bool True if enabled and configured, false otherwise.
      */
     public function isEnabledAndConfigured(): bool
     {
-        return $this->isEnabled()
-            && !empty($this->getConfiguration()['openAIApiKey'] ?? '');
+        $configuration = $this->getConfiguration();
+
+        return !(bool)($configuration['disableAltTextGeneration'] ?? false)
+            && !empty($configuration['openAIApiKey'] ?? '');
     }
 }
