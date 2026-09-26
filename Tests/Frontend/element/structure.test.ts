@@ -342,4 +342,51 @@ describe('Structure', () => {
         expect(detailsAfter).toBe(details);
         expect(detailsAfter?.open).toBe(true);
     });
+
+    describe('when moved while an analysis runs', () => {
+        /** An analysis that only settles when its signal aborts — the pending run a move interrupts. */
+        const abortableAnalysis = (_demand: unknown, _root: unknown, signal: AbortSignal): Promise<never> =>
+            new Promise((_resolve, reject) => {
+                signal.addEventListener('abort', () => reject(signal.reason), { once: true });
+            });
+
+        const mountPending = async (): Promise<Structure> => {
+            analyzeMock.mockImplementationOnce(abortableAnalysis);
+            analyzeMock.mockResolvedValueOnce(twoHeadingErrors);
+            const view = document.createElement('mindfula11y-structure');
+            view.pageId = 1;
+            view.hasHeadingStructureAccess = true;
+            document.body.append(view);
+            await view.updateComplete;
+            return view;
+        };
+
+        const settle = async (view: Structure): Promise<void> => {
+            await new Promise((resolve) => setTimeout(resolve, 0));
+            await view.updateComplete;
+        };
+
+        it('re-runs the analysis when reinserted after the aborted run settled', async () => {
+            const view = await mountPending();
+            view.remove();
+            await settle(view);
+            document.body.append(view);
+            await settle(view);
+
+            expect(analyzeMock).toHaveBeenCalledTimes(2);
+            expect(view.renderRoot.textContent).not.toContain('mindfula11y.structure.error.rendering');
+            expect(statusRow(view)).not.toBeNull();
+        });
+
+        it('re-runs the analysis when reinserted in the same task', async () => {
+            const view = await mountPending();
+            const target = document.createElement('div');
+            document.body.append(target);
+            target.append(view);
+            await settle(view);
+
+            expect(analyzeMock).toHaveBeenCalledTimes(2);
+            expect(view.renderRoot.textContent).not.toContain('mindfula11y.structure.error.rendering');
+        });
+    });
 });

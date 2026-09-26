@@ -161,6 +161,9 @@ export class Structure extends LitElement {
      */
     private expanded: boolean = false;
 
+    /** Set when disconnecting aborted a pending analysis, so reinsertion re-runs it. */
+    private analysisInterrupted: boolean = false;
+
     private readonly announcer: LiveAnnouncer = new LiveAnnouncer(this);
     private readonly coordinator: StructureAnalysisCoordinator = StructureAnalysisCoordinator.createDefault();
     private readonly tabs: TabsController<StructureDomain> = new TabsController(
@@ -213,10 +216,23 @@ export class Structure extends LitElement {
         if (this.collapsible) {
             this.expanded = Client.get(EXPANDED_STORAGE_KEY) === '1';
         }
+        // A reconnect with unchanged args never re-runs the task on its own, so
+        // a moved widget would keep the aborted run's AbortError and show the
+        // rendering-error notice. run() also supersedes a run whose abort has
+        // not settled yet (same-task move): @lit/task ignores its outcome.
+        if (this.analysisInterrupted) {
+            this.analysisInterrupted = false;
+            void this.analyzeTask.run();
+        }
     }
 
     override disconnectedCallback(): void {
-        this.analyzeTask.abort();
+        // Abort rather than let the run finish: it holds the two viewport
+        // iframes, which must not outlive a widget that may never come back.
+        if (this.analyzeTask.status === TaskStatus.PENDING) {
+            this.analysisInterrupted = true;
+            this.analyzeTask.abort();
+        }
         super.disconnectedCallback();
     }
 

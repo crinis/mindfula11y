@@ -84,6 +84,8 @@ let Structure = class extends LitElement {
      * both structure trees for a state the browser has already applied.
      */
     this.expanded = false;
+    /** Set when disconnecting aborted a pending analysis, so reinsertion re-runs it. */
+    this.analysisInterrupted = false;
     this.announcer = new LiveAnnouncer(this);
     this.coordinator = StructureAnalysisCoordinator.createDefault();
     this.tabs = new TabsController(
@@ -128,9 +130,16 @@ let Structure = class extends LitElement {
     if (this.collapsible) {
       this.expanded = Client.get(EXPANDED_STORAGE_KEY) === "1";
     }
+    if (this.analysisInterrupted) {
+      this.analysisInterrupted = false;
+      void this.analyzeTask.run();
+    }
   }
   disconnectedCallback() {
-    this.analyzeTask.abort();
+    if (this.analyzeTask.status === TaskStatus.PENDING) {
+      this.analysisInterrupted = true;
+      this.analyzeTask.abort();
+    }
     super.disconnectedCallback();
   }
   willUpdate(changed) {
