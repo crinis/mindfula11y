@@ -104,7 +104,7 @@ final class ScanStateDataHandlerGuardTest extends AbstractAuthorizationTestCase
                 'NEW_SEEDED' => [
                     'pid' => 10,
                     'title' => 'Fresh page',
-                    // New pages default to hidden=1; fetchPage() selects through
+                    // New pages default to hidden=1; fetchRow() selects through
                     // the restriction-aware builder and would not see the row.
                     'hidden' => 0,
                 ],

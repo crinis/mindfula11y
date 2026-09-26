@@ -26,6 +26,7 @@ use MindfulMarkup\MindfulA11y\Tests\Functional\AbstractAuthorizationTestCase;
 use Psr\Log\NullLogger;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
+use TYPO3\CMS\Core\Configuration\SiteWriter;
 use TYPO3\CMS\Core\Http\RequestFactory;
 
 /**
@@ -88,6 +89,41 @@ final class ScanCreationServiceTest extends AbstractAuthorizationTestCase
     {
         // No site configuration: the root page's language base is unknown.
         $this->logInBackendUser(1);
+
+        try {
+            $this->createCrawl();
+            self::fail('the crawl must be refused');
+        } catch (ScanCreationException $exception) {
+            self::assertSame('scan.error.createFailed', $exception->labelKey);
+        }
+        self::assertSame([], $this->sentRequestOptions, 'no crawl request reaches the scanner');
+    }
+
+    /**
+     * The motivating case: a relative site base (`base: /`) is completed from
+     * the current backend request's origin; without a request there is no
+     * origin, so the crawl must be refused rather than sent unscoped.
+     */
+    public function testCrawlIsRefusedForARelativeSiteBaseWithoutRequest(): void
+    {
+        $this->get(SiteWriter::class)->write('main', [
+            'rootPageId' => 1,
+            'base' => '/',
+            'languages' => [
+                [
+                    'languageId' => 0,
+                    'title' => 'English',
+                    'enabled' => true,
+                    'locale' => 'en_US.UTF-8',
+                    'base' => '/',
+                    'navigationTitle' => 'English',
+                    'flag' => 'us',
+                ],
+            ],
+        ]);
+        $this->logInBackendUser(1);
+        // logInBackendUser() publishes a request; drop it so no origin exists.
+        unset($GLOBALS['TYPO3_REQUEST']);
 
         try {
             $this->createCrawl();

@@ -231,8 +231,9 @@ abstract class AbstractAuthorizationTestCase extends FunctionalTestCase
     }
 
     /**
-     * Read a row by uid with the connection's default (no) restrictions and
-     * assert that it exists.
+     * Read a row by uid through Connection::select(), which applies the
+     * default restrictions (deleted, hidden, start/end time), and assert that
+     * it exists.
      *
      * @return array<string, mixed>
      */
