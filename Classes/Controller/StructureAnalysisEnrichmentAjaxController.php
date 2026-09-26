@@ -24,7 +24,6 @@ namespace MindfulMarkup\MindfulA11y\Controller;
 
 use MindfulMarkup\MindfulA11y\Service\ModuleSettingsService;
 use MindfulMarkup\MindfulA11y\Service\PermissionService;
-use MindfulMarkup\MindfulA11y\Tca\TranslationFields;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Log\LoggerInterface;
@@ -159,25 +158,18 @@ final readonly class StructureAnalysisEnrichmentAjaxController
 
     /**
      * Whether Page TSconfig enables at least one structure feature for the
-     * page this record lives on (for pages records: the page itself — for a
-     * translated page its default-language page, which Page TSconfig belongs
-     * to). getPagesTSconfig() caches per page id, so batches spanning few
-     * pages stay cheap.
+     * page this record lives on (for pages records: the page itself — the
+     * settings service reads a translated page's gate from its default-language
+     * page, which Page TSconfig belongs to). getPagesTSconfig() caches per page
+     * id, so batches spanning few pages stay cheap.
      *
      * @param array<string, mixed> $record
      */
     private function isStructureAnalysisEnabledForRecord(string $tableName, int $uid, array $record): bool
     {
-        if ($tableName === 'pages') {
-            $pageUid = TranslationFields::languageId('pages', $record) > 0
-                ? TranslationFields::translationParentUid('pages', $record)
-                : $uid;
-        } else {
-            $pageUid = (int)($record['pid'] ?? 0);
-        }
-        $pageTsConfig = $this->moduleSettingsService->getConvertedPageTsConfig($pageUid);
+        $pageUid = $tableName === 'pages' ? $uid : (int)($record['pid'] ?? 0);
 
-        return $this->moduleSettingsService->hasStructureAnalysisAccess($pageTsConfig);
+        return $this->moduleSettingsService->isStructureAnalysisEnabledForPage($pageUid);
     }
 
     /**

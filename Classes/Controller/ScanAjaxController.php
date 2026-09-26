@@ -180,11 +180,10 @@ final readonly class ScanAjaxController
             return $this->errorResponse('scan.error.pageNotFound', 404);
         }
 
-        // Check TSConfig access for scan feature
-        $pageTsConfig = $this->moduleSettingsService->getConvertedPageTsConfig($pageId);
-        if (!$this->moduleSettingsService->hasScanAccess($pageTsConfig)) {
+        if (!$this->moduleSettingsService->isScanEnabledForPage($pageId)) {
             return $this->errorResponse('scan.noAccess', 403);
         }
+        $pageTsConfig = $this->moduleSettingsService->getConvertedPageTsConfig($pageId);
 
         // The AI audit is opt-in via Page TSconfig. MindfulAPI owns skill
         // selection and applies its server-side whitelist.

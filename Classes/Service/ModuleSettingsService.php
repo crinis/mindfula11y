@@ -22,6 +22,7 @@ declare(strict_types=1);
 
 namespace MindfulMarkup\MindfulA11y\Service;
 
+use MindfulMarkup\MindfulA11y\Tca\TranslationFields;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Exception\SiteNotFoundException;
 use TYPO3\CMS\Core\Site\SiteFinder;
@@ -56,10 +57,51 @@ final readonly class ModuleSettingsService
     }
 
     /**
+     * Whether Page TSconfig enables the scanner for the page (hasScanAccess()).
+     *
+     * For a translated page the gate is read from its default-language page,
+     * which Page TSconfig belongs to.
+     */
+    public function isScanEnabledForPage(int $pageId): bool
+    {
+        return $this->hasScanAccess($this->getConvertedPageTsConfig($this->resolveTsConfigPageId($pageId)));
+    }
+
+    /**
+     * Whether Page TSconfig enables structure analysis for the page
+     * (hasStructureAnalysisAccess()).
+     *
+     * For a translated page the gate is read from its default-language page,
+     * which Page TSconfig belongs to.
+     */
+    public function isStructureAnalysisEnabledForPage(int $pageId): bool
+    {
+        return $this->hasStructureAnalysisAccess($this->getConvertedPageTsConfig($this->resolveTsConfigPageId($pageId)));
+    }
+
+    /**
+     * The page whose Page TSconfig applies to $pageId: its default-language
+     * page when $pageId is a page translation, otherwise $pageId itself.
+     */
+    private function resolveTsConfigPageId(int $pageId): int
+    {
+        $languageField = TranslationFields::languageFieldName('pages');
+        $translationParentField = TranslationFields::translationParentFieldName('pages');
+        if ($pageId <= 0 || $languageField === '' || $translationParentField === '') {
+            return $pageId;
+        }
+
+        $page = BackendUtility::getRecord('pages', $pageId, $languageField . ',' . $translationParentField);
+        if (!is_array($page) || TranslationFields::languageId('pages', $page) <= 0) {
+            return $pageId;
+        }
+
+        return TranslationFields::translationParentUid('pages', $page);
+    }
+
+    /**
      * The module's own Page TSconfig subtree, so a typo in one of the accessors
-     * below cannot hide next to seven correct ones. Not quite the only spelling
-     * in the extension: AltTextFinderService reads `missingAltText.ignoreColumns`
-     * straight from the array, keeping its legacy-path fallback beside it.
+     * below cannot hide next to seven correct ones.
      *
      * @param array<string, mixed> $pageTsConfig
      * @return array<string, mixed>
@@ -101,7 +143,7 @@ final readonly class ModuleSettingsService
      *
      * @param array<string, mixed> $pageTsConfig
      */
-    public function isFileMetadataIgnored(array $pageTsConfig): bool
+    private function isFileMetadataIgnored(array $pageTsConfig): bool
     {
         return (bool)($this->moduleTsConfig($pageTsConfig)['missingAltText']['ignoreFileMetadata'] ?? false);
     }
@@ -113,6 +155,36 @@ final readonly class ModuleSettingsService
     {
         return $this->permissionService->checkTableReadAccess('sys_file_metadata')
             && $this->permissionService->checkNonExcludeFields('sys_file_metadata', ['alternative']);
+    }
+
+    /**
+     * Whether file metadata fallback alt text may count as an alternative:
+     * the TSconfig option allows it AND the user may read it.
+     *
+     * @param array<string, mixed> $pageTsConfig
+     */
+    public function canConsiderFileMetadataAlternative(array $pageTsConfig): bool
+    {
+        return !$this->isFileMetadataIgnored($pageTsConfig)
+            && $this->canReadFileMetadataAlternative();
+    }
+
+    /**
+     * File columns of $tableName that Page TSconfig excludes from the missing
+     * alt text feature
+     * (mod.mindfula11y_accessibility.missingAltText.ignoreColumns.<table>).
+     * The legacy read keeps TSconfig from installs that used the undocumented
+     * pre-0.12 path (mod.mindfula11y_missingalttext.<table>) working.
+     *
+     * @param array<string, mixed> $pageTsConfig
+     * @return list<string>
+     */
+    public function getIgnoredFileColumns(string $tableName, array $pageTsConfig): array
+    {
+        return array_merge(
+            GeneralUtility::trimExplode(',', (string)($this->moduleTsConfig($pageTsConfig)['missingAltText']['ignoreColumns'][$tableName] ?? ''), true),
+            GeneralUtility::trimExplode(',', (string)($pageTsConfig['mod']['mindfula11y_missingalttext'][$tableName] ?? ''), true),
+        );
     }
 
     /**
@@ -160,6 +232,17 @@ final readonly class ModuleSettingsService
     {
         return $this->permissionService->checkTableReadAccess('pages')
             && (bool)($this->moduleTsConfig($pageTsConfig)['scan']['enable'] ?? false);
+    }
+
+    /**
+     * Whether Page TSconfig hides the accessibility overview in the page
+     * module (mod.web_layout.mindfula11y.hideInfo).
+     *
+     * @param array<string, mixed> $pageTsConfig
+     */
+    public function isOverviewHiddenInPageModule(array $pageTsConfig): bool
+    {
+        return (bool)($pageTsConfig['mod']['web_layout']['mindfula11y']['hideInfo'] ?? false);
     }
 
     /**

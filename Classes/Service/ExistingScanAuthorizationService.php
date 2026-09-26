@@ -23,7 +23,6 @@ declare(strict_types=1);
 namespace MindfulMarkup\MindfulA11y\Service;
 
 use MindfulMarkup\MindfulA11y\Exception\ScanAuthorizationException;
-use MindfulMarkup\MindfulA11y\Tca\TranslationFields;
 
 /**
  * Authorizes access to a scan through the page record that owns its id.
@@ -56,13 +55,9 @@ final readonly class ExistingScanAuthorizationService
             throw new ScanAuthorizationException('scan.error.accessDenied', 403);
         }
 
-        // Scans on translated pages store their id on the translation record,
-        // but Page TSconfig belongs to the logical default-language page.
-        $tsConfigPageUid = TranslationFields::languageId('pages', $pageRecord) > 0
-            ? TranslationFields::translationParentUid('pages', $pageRecord)
-            : (int)$pageRecord['uid'];
-        $pageTsConfig = $this->moduleSettingsService->getConvertedPageTsConfig($tsConfigPageUid);
-        if (!$this->moduleSettingsService->hasScanAccess($pageTsConfig)) {
+        // Scans on translated pages store their id on the translation record;
+        // the settings service reads the gate from the default-language page.
+        if (!$this->moduleSettingsService->isScanEnabledForPage((int)$pageRecord['uid'])) {
             throw new ScanAuthorizationException('scan.noAccess', 403);
         }
 

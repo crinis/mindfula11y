@@ -83,8 +83,7 @@ final readonly class OverviewViewStateFactory
         $missingAltTextUri = null;
         $fileReferenceCount = null;
         if ($hasMissingAltTextAccess) {
-            $filterFileMetaData = !$this->moduleSettingsService->isFileMetadataIgnored($pageTsConfig)
-                && $this->moduleSettingsService->canReadFileMetadataAlternative();
+            $filterFileMetaData = $this->moduleSettingsService->canConsiderFileMetadataAlternative($pageTsConfig);
             $fileReferenceCount = $this->altTextFinderService->countAltlessFileReferences(
                 $pageId,
                 0,

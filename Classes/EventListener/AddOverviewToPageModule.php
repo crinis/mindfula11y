@@ -77,7 +77,7 @@ final readonly class AddOverviewToPageModule
         }
 
         $pageTsConfig = $this->moduleSettingsService->getConvertedPageTsConfig($pageId);
-        if ($pageTsConfig['mod']['web_layout']['mindfula11y']['hideInfo'] ?? false) {
+        if ($this->moduleSettingsService->isOverviewHiddenInPageModule($pageTsConfig)) {
             return;
         }
 

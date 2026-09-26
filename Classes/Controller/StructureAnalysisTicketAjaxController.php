@@ -105,8 +105,7 @@ final readonly class StructureAnalysisTicketAjaxController
      */
     private function isStructureAnalysisEnabled(int $pageId): bool
     {
-        $pageTsConfig = $this->moduleSettingsService->getConvertedPageTsConfig($pageId);
-        return $this->moduleSettingsService->hasStructureAnalysisAccess($pageTsConfig);
+        return $this->moduleSettingsService->isStructureAnalysisEnabledForPage($pageId);
     }
 
     /**

@@ -86,10 +86,9 @@ final readonly class MissingAltTextFeatureRenderer implements FeatureRendererInt
             return $this->noticeResponse($context->moduleTemplate, 'altText.noTableAccess', ContextualFeedbackSeverity::ERROR, 403);
         }
 
-        // Metadata fallback alt text is only considered when the TSconfig option allows
-        // it AND the user may read it; the editor toggle then decides per module view.
-        $canConsiderFileMetaData = !$this->moduleSettingsService->isFileMetadataIgnored($context->pageTsConfig)
-            && $this->moduleSettingsService->canReadFileMetadataAlternative();
+        // Where metadata fallback alt text may count at all, the editor toggle
+        // decides per module view.
+        $canConsiderFileMetaData = $this->moduleSettingsService->canConsiderFileMetadataAlternative($context->pageTsConfig);
         $filterFileMetaData = $canConsiderFileMetaData && (bool)$context->moduleData->get('filterFileMetaData', true);
         $showDecorative = (bool)$context->moduleData->get('showDecorative', false);
         $showAllReferences = (bool)$context->moduleData->get('showAllReferences', false);

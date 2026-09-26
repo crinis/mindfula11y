@@ -158,8 +158,7 @@ final readonly class StructureAnalysisAuthorizationService
         $previousBackendUser = $GLOBALS['BE_USER'] ?? null;
         $GLOBALS['BE_USER'] = $backendUser;
         try {
-            $pageTsConfig = $this->moduleSettingsService->getConvertedPageTsConfig($ticket->pageId);
-            if (!$this->moduleSettingsService->hasStructureAnalysisAccess($pageTsConfig)) {
+            if (!$this->moduleSettingsService->isStructureAnalysisEnabledForPage($ticket->pageId)) {
                 return false;
             }
 
