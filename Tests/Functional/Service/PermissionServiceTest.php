@@ -497,6 +497,64 @@ final class PermissionServiceTest extends AbstractAuthorizationTestCase
     }
 
     // -------------------------------------------------------------------
+    // checkPageReadAccess() - structural checks precede the admin shortcut
+    // -------------------------------------------------------------------
+
+    public function testCheckPageReadAccessRejectsWorkspaceDeletePlaceholderForEditorAndAdmin(): void
+    {
+        $row = array_replace($this->record('pages', 10), [
+            'uid' => 910,
+            't3ver_oid' => 10,
+            't3ver_wsid' => 1,
+            't3ver_state' => VersionState::DELETE_PLACEHOLDER->value,
+            't3ver_stage' => 0,
+        ]);
+        $permissionService = $this->permissionService();
+
+        $this->logInBackendUser(2, 1);
+        self::assertFalse(
+            $permissionService->checkPageReadAccess($row),
+            'a page marked for deletion in the active workspace is not readable'
+        );
+
+        $this->logInBackendUser(1, 1);
+        self::assertFalse(
+            $permissionService->checkPageReadAccess($row),
+            'admin privileges must not make a delete placeholder readable - the structural checks precede the admin shortcut, as in checkRecordEditAccess()'
+        );
+    }
+
+    public function testCheckPageReadAccessRejectsForeignWorkspaceVersionForEditorAndAdmin(): void
+    {
+        $row = array_replace($this->record('pages', 10), [
+            'uid' => 910,
+            't3ver_oid' => 10,
+            't3ver_wsid' => 1,
+            't3ver_state' => VersionState::DEFAULT_STATE->value,
+            't3ver_stage' => 0,
+        ]);
+        $permissionService = $this->permissionService();
+
+        $this->logInBackendUser(2);
+        self::assertFalse(
+            $permissionService->checkPageReadAccess($row),
+            'a live-workspace editor must not read a version owned by workspace 1'
+        );
+
+        $this->logInBackendUser(1);
+        self::assertFalse(
+            $permissionService->checkPageReadAccess($row),
+            'admin privileges must not bypass the active-workspace boundary for reads'
+        );
+
+        $this->logInBackendUser(1, 1);
+        self::assertTrue(
+            $permissionService->checkPageReadAccess($row),
+            'the same version must be readable in its owning workspace'
+        );
+    }
+
+    // -------------------------------------------------------------------
     // checkRecordEditAccess() - pages branch
     // -------------------------------------------------------------------
 

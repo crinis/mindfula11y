@@ -428,25 +428,24 @@ final readonly class PermissionService
             return false;
         }
 
-        if ($backendUser->isAdmin()) {
-            return true;
-        }
-
-        // Check for delete placeholder
+        // Keep these structural checks ahead of the admin shortcut, mirroring
+        // checkRecordEditAccess(): a delete placeholder or a version owned by
+        // another workspace is not readable for anyone in this session.
         if (VersionState::tryFrom((int)($pageRecord['t3ver_state'] ?? 0)) === VersionState::DELETE_PLACEHOLDER) {
             return false;
+        }
+        $recordWorkspace = (int)($pageRecord['t3ver_wsid'] ?? 0);
+        if ($recordWorkspace > 0 && $backendUser->workspace !== $recordWorkspace) {
+            return false;
+        }
+
+        if ($backendUser->isAdmin()) {
+            return true;
         }
 
         // Check language access if it is a translated record
         $languageId = TranslationFields::languageId('pages', $pageRecord);
         if ($languageId > 0 && !$backendUser->checkLanguageAccess($languageId)) {
-            return false;
-        }
-
-        // Check Workspace Access
-        // We rely on backend user workspace check.
-        $recordWorkspace = (int)($pageRecord['t3ver_wsid'] ?? 0);
-        if ($recordWorkspace > 0 && $backendUser->workspace !== $recordWorkspace) {
             return false;
         }
 

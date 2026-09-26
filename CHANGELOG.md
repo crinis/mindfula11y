@@ -71,6 +71,7 @@ upload comment. Manual `v*` tags are blocked by a repository ruleset.
 - Re-running the "Migrate heading type data" upgrade wizard no longer overwrites heading types migrated or set manually since; it now only fills empty target fields.
 - Editors with a reduced-motion preference keep the jump highlight marking the row a findings-overview jump landed on. The highlight is a pure colour fade with no motion, but the global reduced-motion rule finished it instantly, removing the cue for exactly the users who rely on it.
 - The accessibility module and the page-module info box no longer flash unstyled notice text while their scripts load; should the scripts fail, the server-rendered content appears after a short timeout instead of staying lost.
+- Administrators working in a workspace are no longer served scan results or reports for a page whose workspace version is marked for deletion: the page-read check applies the structural workspace checks (delete placeholder, foreign workspace version) before the administrator shortcut, as the edit check already did.
 - On TYPO3 v13, a `TCAdefaults` entry in page or user TSconfig for the internal scanner-state fields (for example `TCAdefaults.pages.tx_mindfula11y_scanid`) was applied to every newly created page, although direct edits of those fields are stripped. The DataHandler guard now strips the fields again after TSconfig defaults are applied. TYPO3 v14 refuses such defaults by itself.
 
 ### Security
