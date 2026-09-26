@@ -1,38 +1,39 @@
 # Mindful A11y
 
-Mindful A11y brings accessibility checks and remediation workflows directly into the TYPO3 backend.
+Mindful A11y brings accessibility checks and fixes directly into the TYPO3 backend.
 
 ## What you can do with this extension
 
-- Review and improve missing image alternative text
-- Check heading and landmark structure in backend workflows
-- Run optional automated page accessibility scans
-- Use TYPO3 fields and Fluid ViewHelpers for accessible output
-- Prefix the page title after failed server-side EXT:form validation so assistive technology announces the error state on load
+- Check the heading and landmark structure of the rendered page, and fix heading levels and
+  landmark roles in the backend (fixing requires the extension's Fluid ViewHelpers in templates)
+- Find and fix missing image alternative text, optionally with AI suggestions; mark images
+  decorative
+- Run automated page scans through the external MindfulAPI service (optional)
+- Prefix the page title after failed server-side EXT:form validation (optional)
+
+![Accessibility module Overview with a skipped heading level flagged in the heading tree](Images/readme-accessibility-module-overview.png)
 
 ## Read by role
 
-- [Editors](Editors/Index.md): work inside backend modules to find and fix issues
-- [Integrators](Integrators/Index.md): install, configure, and roll out module features
-- [Developers](Developers/Index.md): implement feature usage in templates and custom records
+- [Editors](Editors/Index.md): find and fix issues in the Accessibility module and the page module
+- [Integrators](Integrators/Index.md): install, configure, grant permissions, and roll out features
+- [Developers](Developers/Index.md): render headings and landmarks with the ViewHelpers; extend
+  custom records
 
-## Backend module areas
+## Where editors work
 
-- **General**: overview and direct links to structure and scan checks
-- **Missing alternative text**: list, filter, generate, and save alt text
-- **Scanner** (optional): run scans, review results, export reports
-
-## Scanner requirements (optional feature)
-
-Scanner features work only when both conditions are met:
-
-- Your project runs the external [MindfulAPI](https://github.com/crinis/mindfulapi) scanner service, **v0.7.0 or later** (required for the `/v1` API routes and the AI agent audit)
-- Page TSconfig enables scanner: `mod.mindfula11y_accessibility.scan.enable = 1`
+- **Accessibility module → Overview**: page status, heading and landmark structure with
+  findings, and links to details
+- **Accessibility module → Missing alternative text**: list, filter, generate, and save
+  alternative text
+- **Accessibility module → Scanner** (optional): run scans, review results, export reports
+- **Page module info box**: the same status at a glance above the page content
 
 ## Requirements
 
-- TYPO3 `13.4.x LTS` or `14.3.x LTS`
+- TYPO3 `13.4 LTS` (13.4.18 or later) or `14.3 LTS`
 - PHP `8.2` to `8.4`
-
-`typo3/cms-form` is optional. When installed, Mindful A11y automatically adds the localized
-validation-error title prefix; no form-template integration is required.
+- Optional: [MindfulAPI](https://github.com/crinis/mindfulapi) **v0.7.0 or later** for the scanner
+  (see [Scanner integration](Integrators/Index.md#scanner-integration)), an OpenAI API key for AI
+  alternative text, and `typo3/cms-form` for the validation-error title prefix (enable it with
+  `enableValidationErrorTitlePrefix` in the extension configuration)

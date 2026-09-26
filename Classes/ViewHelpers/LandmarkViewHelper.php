@@ -35,7 +35,7 @@ use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractTagBasedViewHelper;
  * Usage examples:
  *
  * Basic usage with database fields:
- * <mindfula11y:landmark recordUid="{data.uid}" role="{data.tx_mindfula11y_landmark}" aria="{label: data.tx_mindfula11y_landmark_label, labelledby: data.tx_mindfula11y_landmark_labelledby}">{data.bodytext}</mindfula11y:landmark>
+ * <mindfula11y:landmark recordUid="{data.uid}" role="{data.tx_mindfula11y_landmark}" aria="{f:if(condition: '{data.tx_mindfula11y_arialabelledby} && {data.header}', then: '{labelledby: \'c{data.uid}-heading\'}', else: '{label: data.tx_mindfula11y_arialabel}')}">{data.bodytext}</mindfula11y:landmark>
  *
  * Simple usage without database integration:
  * <mindfula11y:landmark role="main" aria="{label: 'Main content area'}">Main content</mindfula11y:landmark>

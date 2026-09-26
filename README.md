@@ -1,68 +1,76 @@
 # Mindful A11y for TYPO3
 
-Mindful A11y helps editors and integrators find and fix common accessibility issues directly in the TYPO3 backend.
+Mindful A11y helps editors and integrators find and fix common accessibility issues directly in
+the TYPO3 backend.
 
 ## What the extension includes
 
-- **Accessibility backend module** with:
-  - **General**: heading and landmark structure overview with issue hints.
-  - **Missing alternative text**: list, filter, and edit image/file references without alt text.
-  - **Scanner (optional)**: run scans, review findings, and export HTML/PDF reports for single or multiple pages or crawls of the entire page tree.
-- **Optional AI alt text generation** via OpenAI for missing image alt text.
-- **Per-reference decorative images** that render with native `f:image`/`f:media` and stay out of missing-alt results.
-- **Accessibility fields for content elements** (heading type, landmark, ARIA labels).
-- **Fluid ViewHelpers** for accessible heading and landmark rendering and integration with the backend module.
-- **Page module info box** with quick accessibility status and links.
-- **CLI cleanup command** to cleanup outdated scan results.
-- **Accessible server-side form errors** with a localized `Error:` page-title prefix for failed TYPO3 EXT:form validation.
+- **Heading and landmark checks** in the Accessibility module and the page module. The rendered
+  page is analyzed at mobile and desktop sizes. Findings such as skipped heading levels or
+  ambiguous landmark names show in a structure tree.
+- **Fixing in place:** editors change heading levels and landmark roles right in that tree.
+  Requires templates that use the extension's Fluid ViewHelpers.
+- **Missing alternative text:** find, filter and fix images without alternative text, mark them
+  decorative, and optionally generate suggestions with OpenAI.
+- **Accessibility fields** for content elements: heading type, landmark role and landmark name.
+- **Scanner (optional):** axe-core scans of pages, page trees or whole sites via the external
+  [MindfulAPI](https://github.com/crinis/mindfulapi) service, with HTML/PDF reports and an
+  optional AI review.
+- **Page module info box** with the page's accessibility status.
+- **Form error titles (optional):** a localized `Error:` page-title prefix after failed EXT:form
+  validation.
 
-Scanner functionality uses the external [MindfulAPI](https://github.com/crinis/mindfulapi) project and is **required** for scanner features. MindfulAPI runs axe-core based technical scans in a headless browser environment. These automated checks are reliable for technical violations but only cover a subset of accessibility issues.
-
-Scanner features are available only when **both** requirements are met:
-
-- MindfulAPI **v0.7.0 or later** is installed and reachable from TYPO3 (v0.7.0 introduces the `/v1` API routes and the AI agent audit this extension consumes)
-- Page TSconfig sets `mod.mindfula11y_accessibility.scan.enable = 1` (default is `0`)
-
-![Accessibility module overview in TYPO3 backend with feature selector menu and status callouts for missing alt text, structure checks, and scanner issues](Documentation/Images/readme-accessibility-module-overview.png)
-![Missing alternative text workflow showing preview, editable field, generate action, and save action](Documentation/Images/readme-missing-alt-text-workflow.png)
-![Scanner results panel showing issue severity badges, selector and context details, and HTML/PDF report buttons](Documentation/Images/readme-scanner-results.png)
+![Accessibility module Overview for a page with a skipped heading level: notices for the last scan and the page structure, and the heading tree with the finding on the affected row and a level select per heading](Documentation/Images/readme-accessibility-module-overview.png)
+![Missing alternative text card with an image preview, the decorative-image option, an AI-generated suggestion in the alternative text field, and Generate and Save buttons](Documentation/Images/readme-missing-alt-text-workflow.png)
+![Scanner view with the AI review option, critical and serious severity counts, and axe rule groups, one expanded to show the page URL, selector and offending markup](Documentation/Images/readme-scanner-results.png)
 
 ## Requirements
 
-- TYPO3 `13.4.x LTS` or `14.3.x LTS`
+- TYPO3 `13.4 LTS` (13.4.18 or later) or `14.3 LTS`
 - PHP `8.2` to `8.4`
-- For scanner features: [MindfulAPI](https://github.com/crinis/mindfulapi) `v0.7.0` or later
+- Optional, for the scanner: [MindfulAPI](https://github.com/crinis/mindfulapi) `v0.7.0` or later,
+  reachable from TYPO3. Its axe-core checks reliably find technical violations but cover only a
+  subset of accessibility issues.
+- Optional, for AI alternative text: an OpenAI API key
+- Optional, for the form-error title prefix: `typo3/cms-form`
 
 ## Installation
 
 ```bash
 composer require mindfulmarkup/mindfula11y
+vendor/bin/typo3 extension:setup
 ```
+
+`extension:setup` creates the database fields. Upgrading from a release that stored heading
+levels in `tx_mindfula11y_headinglevel`? Also run the upgrade wizard "Mindful A11y: Migrate
+heading type data from old to new field".
 
 ## Basic setup
 
-1. Install and enable the extension in TYPO3.
-2. In **Admin Tools → Settings → Extension Configuration**, set:
-   - OpenAI key/model (only if you want AI alt text generation)
-   - Scanner API URL/token (only if you want scanner results), for example `http://localhost:3000` or `https://scanner.example.com`
-   - For scanner support: set up [MindfulAPI](https://github.com/crinis/mindfulapi) with Docker first
-3. Enable or disable module sections via Page TSconfig:
-   - `mod.mindfula11y_accessibility.missingAltText.enable`
-   - `mod.mindfula11y_accessibility.headingStructure.enable`
-   - `mod.mindfula11y_accessibility.landmarkStructure.enable`
-   - `mod.mindfula11y_accessibility.scan.enable = 1` to use scanner features (off by default)
+1. **Templates:** render content headings with `<mindfula11y:heading>` and landmark containers
+   with `<mindfula11y:landmark>` (see the [developer guide](Documentation/Developers/Index.md)).
+   The structure checks work on any page, but only headings and landmarks rendered through the
+   ViewHelpers can be fixed from the backend.
+2. **Permissions:** grant editor groups access to the Accessibility module and the relevant
+   tables and fields (see the
+   [permissions checklist](Documentation/Integrators/Index.md#permissions-checklist)).
+3. **Optional features** in **Admin Tools → Settings → Extension Configuration**:
+   - OpenAI key and model for AI alternative text
+   - `scannerApiUrl` and `scannerApiToken` for the scanner, then enable it per page tree with
+     `mod.mindfula11y_accessibility.scan.enable = 1` (off by default)
+   - `enableValidationErrorTitlePrefix` for the form-error title prefix (off by default)
 
-The validation-error page-title prefix is enabled globally by default. Disable it with
-`enableValidationErrorTitlePrefix` under **Admin Tools → Settings → Extension Configuration**.
-`typo3/cms-form` is optional; without it, this integration remains inactive.
+The structure checks and the Missing alternative text view are on by default. Switch them off
+per page tree via Page TSconfig (`mod.mindfula11y_accessibility.headingStructure.enable`,
+`.landmarkStructure.enable`, `.missingAltText.enable`).
 
 ## Full documentation
 
-See `Documentation/Index.md` for complete docs with separate guides for editors, integrators, and developers.
+See [Documentation/Index.md](Documentation/Index.md), with separate guides per role:
 
-- Editors: `Documentation/Editors/Index.md`
-- Integrators: `Documentation/Integrators/Index.md`
-- Developers: `Documentation/Developers/Index.md`
+- [Editors](Documentation/Editors/Index.md)
+- [Integrators](Documentation/Integrators/Index.md)
+- [Developers](Documentation/Developers/Index.md)
 
 ## License
 

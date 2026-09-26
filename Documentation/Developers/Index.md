@@ -1,21 +1,24 @@
 # Developers
 
-This guide focuses on implementing Mindful A11y features in templates and custom record types.
+This guide shows how to use Mindful A11y in templates and custom record types.
 
-## Server-side validation-error titles
+What to integrate, in order of importance:
 
-Mindful A11y automatically detects failed TYPO3 EXT:form validation and prefixes the final page
-title with a localized `Error:`. EXT:form is optional and no template integration is required.
+1. **Render headings through the [heading ViewHelpers](#heading-viewhelpers).** They output the
+   level editors choose and derive levels for nested and related content. They also link each
+   heading to its record, so editors can fix it from the heading-structure check.
+2. **Render landmark containers through the [landmark ViewHelper](#landmark-viewhelper)**, with
+   the editor-managed role and accessible name.
+3. **Give custom records the same fields** if they render their own headings or landmarks
+   ([Extending TCA for custom records](#extending-tca-for-custom-records)).
 
-Detection uses EXT:form's post-validation rendering lifecycle: the `beforeRendering` hook on
-TYPO3 13 and `BeforeRenderableIsRenderedEvent` on TYPO3 14. A frontend middleware applies the
-prefix to the completed response because TYPO3 13 renders uncached USER_INT form errors after the
-cached page shell and title have already been generated. This also means a title provider called
-from a form template is not a cross-version solution.
+Decorative images and the error prefix in the page title need no template work. See
+[Built-in behavior](#built-in-behavior-no-template-changes-needed).
 
-The behavior is controlled globally by `enableValidationErrorTitlePrefix` in Extension
-Configuration and is disabled by default. Client-side HTML5 validation needs no handling because it
-does not cause a page load.
+What editors get when headings are rendered through the ViewHelpers — a level select and an edit
+link on every heading in the backend's structure tree:
+
+![Heading tree in the Accessibility module: each heading rendered through the ViewHelpers has a level select and an edit link, and a skipped heading level is flagged on the affected row](../Images/editors-heading-landmark-checks.png)
 
 ## Fluid namespace
 
@@ -23,34 +26,22 @@ does not cause a page load.
 <html xmlns:mindfula11y="http://typo3.org/ns/MindfulMarkup/MindfulA11y/ViewHelpers" data-namespace-typo3-fluid="true">
 ```
 
-## Decorative file references and native image ViewHelpers
-
-The **Decorative image** checkbox is stored per `sys_file_reference`. When enabled, Mindful A11y
-stores explicit empty reference alternatives and titles so TYPO3 does not fall back to file
-metadata. Native image rendering therefore needs no custom ViewHelper:
-
-```html
-<f:image image="{fileReference}" />
-<f:media file="{fileReference}" />
-```
-
-`f:image` and the image fallback in `f:media` both render `alt=""` for the decorative reference.
-They do not emit a metadata-derived `title` attribute. The reference description remains available
-to templates as an optional visible caption.
-Do not pass a non-empty explicit `alt` argument when the template should honor the editor's choice;
-explicit `alt` and `title` arguments retain TYPO3's normal precedence and override reference data.
-
 ## Heading ViewHelpers
 
-Every element has a *logical* heading level, whether or not a heading is visible: render
-`<mindfula11y:heading>` unconditionally in templates. When its content is empty or
-`renderTag="false"` (e.g. `header_layout` 100 "hidden"), it outputs nothing — an empty
-heading tag is an accessibility defect — but still registers its relation, so descendant
-and sibling headings keep deriving their levels from it.
+Every element has a *logical* heading level, even when no heading is visible. So render
+`<mindfula11y:heading>` unconditionally:
+
+- With empty content or `renderTag="false"` (e.g. `header_layout` 100 "hidden"), it outputs
+  nothing. An empty heading tag would be an accessibility defect.
+- It still registers its relation, so descendant and sibling headings keep deriving their level
+  from it.
+
+All heading ViewHelpers validate the heading type. An unknown value is never written into the
+markup; the default `h2` is rendered instead.
 
 ### 1) Main heading: `<mindfula11y:heading>`
 
-Use this for the primary heading output of a record.
+Use this for the primary heading of a record.
 
 ```html
 <mindfula11y:heading
@@ -63,34 +54,48 @@ Use this for the primary heading output of a record.
 </mindfula11y:heading>
 ```
 
-Edge cases:
+| Argument              | Type   | Default                           | Purpose                                                                      |
+| --------------------- | ------ | --------------------------------- | ---------------------------------------------------------------------------- |
+| `type`                | string | –                                 | Heading type to render (`h1`–`h6`, `p`, `div`). Used as given.               |
+| `recordUid`           | int    | –                                 | Uid of the rendered record. Enables editing in the backend.                  |
+| `recordTableName`     | string | `tt_content`                      | Table of the record.                                                         |
+| `recordColumnName`    | string | `tx_mindfula11y_headingtype`      | Column that stores the heading type.                                         |
+| `relationId`          | string | –                                 | Registers this heading so descendant and sibling headings can reference it.  |
+| `childType`           | string | –                                 | Type for descendant headings. Empty means automatic (own level + 1).         |
+| `childTypeColumnName` | string | `tx_mindfula11y_childheadingtype` | Column read for the child type when `childType` is omitted.                  |
+| `renderTag`           | bool   | `true`                            | `false` outputs nothing but still registers the relation.                    |
 
-- If `type` is set, that value is rendered directly.
-- If `type` is not set, the ViewHelper resolves the heading type from the configured record field.
-- If neither is available, it falls back to `h2`.
-- Use `relationId` if you want to reference this heading from descendant/sibling headings.
-- `childType` explicitly configures the type of descendant headings (see below). Pass it from
-  template data as shown to save a database query; when the argument is omitted entirely, the
-  record's `tx_mindfula11y_childheadingtype` column (override with `childTypeColumnName`) is
-  consulted — but only when that column is defined in the record table's TCA. Custom tables
-  without the column simply resolve to "automatic"; they need no child-type column of their own.
-  An empty value means "automatic": descendants use this heading's own level plus one. Explicit
-  values support `h1`–`h6`, `p`, and `div`. The default editor selectors intentionally expose
-  only `h1`–`h6` and `p`; `div` remains available to templates and project-specific TCA.
-  In the heading structure module, the headings-inside setting is edited on the **container
-  element's row**. A container that renders no heading of its own (empty header,
-  `renderTag="false"`) still appears as a "Hidden container element" row during analysis —
-  the ViewHelper emits a hidden marker for validated structure-analysis requests only; normal
-  frontend output is unchanged. Derived child headings are read-only in the module and link to
-  their container's row.
-- **Translated content:** `recordUid` must be the *localized* record's uid, otherwise editing
-  targets the default-language record. With the classic `data` array (above) that is
-  `data._LOCALIZED_UID` falling back to `data.uid`; in the TYPO3 14 `record` / `PAGEVIEW`
-  pipeline use `{record.computedProperties.localizedUid}` instead, because `data._LOCALIZED_UID`
-  is not populated there. Resolve it with `f:if` as shown — do **not** use the
-  `{data._LOCALIZED_UID ?: data.uid}` shorthand: Fluid's ternary returns the literal text
-  `data._LOCALIZED_UID` when the variable is undefined (every default-language record), so it
-  silently breaks the fallback.
+Standard tag attributes (`id`, `class`, `aria`, `data`, `additionalAttributes`) work as on any
+tag-based ViewHelper.
+
+**How the type is resolved:**
+
+1. `type`, if set.
+2. Otherwise the record's `recordColumnName` value, read from the database. This needs
+   `recordUid`.
+3. Otherwise `h2`.
+
+Pass `type` and `childType` from template data as shown. Each saves a database query.
+
+**Child heading type (`childType`):**
+
+- It sets the type of all descendant headings that reference this heading.
+- Values: `h1`–`h6`, `p` or `div`. An empty value means automatic: one level below this heading.
+- If you omit the argument, the ViewHelper reads the record's `childTypeColumnName` column. It
+  does so only when that column exists in the table's TCA. Tables without it resolve to
+  automatic, so custom tables need no child-type column.
+- The default editor selectors offer `h1`–`h6` and `p` only. `div` stays available to templates
+  and project TCA (see [Container elements](#container-elements-configuring-headings-inside)).
+
+**Translated content:** `recordUid` must be the uid of the *localized* record. Otherwise editing
+targets the default-language record.
+
+- Classic `data` array: `data._LOCALIZED_UID`, falling back to `data.uid` (as above).
+- TYPO3 14 `record` / `PAGEVIEW` pipeline: `{record.computedProperties.localizedUid}`.
+  `data._LOCALIZED_UID` is not populated there.
+- Use `f:if` as shown. Do **not** use the shorthand `{data._LOCALIZED_UID ?: data.uid}`. Fluid
+  returns the literal text `data._LOCALIZED_UID` when the variable is undefined, which is the
+  case for every default-language record.
 
 Static heading (no record context):
 
@@ -100,7 +105,7 @@ Static heading (no record context):
 
 ### 2) Descendant heading: `<mindfula11y:heading.descendant>`
 
-Use this when a heading level should be derived from a previously rendered ancestor.
+Use this when a heading's level derives from an ancestor heading rendered earlier.
 
 ```html
 <mindfula11y:heading relationId="mainHeading" type="h2">
@@ -112,18 +117,31 @@ Use this when a heading level should be derived from a previously rendered ances
 </mindfula11y:heading.descendant>
 ```
 
-Edge cases:
+Accepts all arguments of `<mindfula11y:heading>`, plus:
 
-- `ancestorId` only resolves when the referenced heading is rendered earlier in output.
-- If the referenced heading is not available yet, set `type` directly or provide record arguments.
-- If level increment would exceed `h6`, output becomes `p`.
-- When the ancestor carries a configured **child heading type** (its `childType` argument or
-  `tx_mindfula11y_childheadingtype` column), the descendant uses that type *verbatim* with the
-  default `levels` of 1 — this is the only way a descendant can render as `h1`, since plain
-  incrementing always starts at `h2`. Deeper `levels` continue from configured heading levels
-  (`childType + levels − 1`); configured `p` and `div` types remain unchanged.
-- Give a descendant its own `relationId` to let *its* descendants derive from it — each nesting
-  level steps down one further level automatically:
+| Argument     | Type   | Default  | Purpose                                                  |
+| ------------ | ------ | -------- | -------------------------------------------------------- |
+| `ancestorId` | string | required | `relationId` of the ancestor heading.                    |
+| `levels`     | int    | `1`      | How many levels below the ancestor this heading renders. |
+
+**How the type is resolved:**
+
+1. `type`, if set. It is used as given, not incremented.
+2. Otherwise the ancestor's level plus `levels`. The ancestor must be rendered **before** this
+   heading.
+3. Otherwise the record's stored type plus `levels` (needs the record arguments).
+4. Otherwise `h2`.
+
+Rules:
+
+- Beyond `h6`, the output becomes `p`.
+- If the ancestor has a configured child type, the descendant uses it *verbatim* at the default
+  `levels="1"`. Higher `levels` continue from it (`childType + levels − 1`). Configured `p` and
+  `div` stay unchanged.
+- A configured child type is the only way a descendant renders as `h1`. Plain incrementing starts
+  at `h2`.
+- `childType` on a descendant configures *its own* descendants.
+- Give a descendant its own `relationId` to nest further. Each nesting level steps down one level:
 
 ```html
 <mindfula11y:heading.descendant ancestorId="container" relationId="child">
@@ -135,12 +153,38 @@ Edge cases:
 </mindfula11y:heading.descendant>
 ```
 
+### 3) Sibling heading: `<mindfula11y:heading.sibling>`
+
+Use this when two headings share the same level.
+
+```html
+<mindfula11y:heading relationId="mainHeading" type="h3">
+    First heading
+</mindfula11y:heading>
+
+<mindfula11y:heading.sibling siblingId="mainHeading">
+    Second heading on same level
+</mindfula11y:heading.sibling>
+```
+
+Accepts `type`, the record arguments and `renderTag` of `<mindfula11y:heading>`. It has no
+`relationId`, `childType` or `childTypeColumnName`. Additionally:
+
+| Argument    | Type   | Default  | Purpose                              |
+| ----------- | ------ | -------- | ------------------------------------ |
+| `siblingId` | string | required | `relationId` of the sibling heading. |
+
+- The referenced heading must be rendered **before** the sibling.
+- If it is not, pass `type` or the record arguments instead.
+- A sibling copies the referenced heading's own level, not its child type.
+
 ### Container elements: configuring headings inside
 
-The optional tt_content column `tx_mindfula11y_childheadingtype` lets editors set the heading
-level for all children of a container element (`h1`–`h6` or `p`), or leave it on
-"Automatic — next level" (one level below the container's own heading). The column ships **unassigned** —
-add it to your container CTypes:
+The tt_content column `tx_mindfula11y_childheadingtype` lets editors set the level of all
+headings inside a container element. Options are `h1`–`h6`, `p`, or "Automatic — next level"
+(the default: one level below the container's heading).
+
+The column ships **unassigned**. Add it to your container CTypes:
 
 ```php
 \TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addToAllTCAtypes(
@@ -151,10 +195,37 @@ add it to your container CTypes:
 );
 ```
 
-The ViewHelpers and `HeadingType` enum continue to support `div` for existing data and specialist
-integrations, but the neutral container is deliberately absent from the default editor selectors.
-If a project has a documented need for it, add the option to one or both fields in a project TCA
-override:
+The field **must be in the CType's showitem**. FormEngine and the heading-structure module both
+use the processed TCA. Without it, editors cannot change the child type anywhere.
+
+**Render the container** heading unconditionally, with `relationId` and `childType` (see the
+[main-heading example](#1-main-heading-mindfula11yheading)).
+
+**Render the children** with `ancestorId` pointing to the container. With `b13/container`,
+children carry the container uid in `tx_container_parent`:
+
+```html
+<mindfula11y:heading.descendant
+    ancestorId="{data.tx_container_parent}"
+    relationId="{data.uid}">
+    {data.header}
+</mindfula11y:heading.descendant>
+```
+
+**Containers without a visible heading** (empty header or `renderTag="false"`) still anchor
+their children:
+
+- With a configured child type, children render exactly that type.
+- On "Automatic — next level", the container registers no level. Children fall back to their
+  own heading-type field.
+
+In the heading-structure module, editors change the child type on the container's own row, and
+all its children shift together. For a container without a heading, the ViewHelper emits a hidden
+marker only on validated structure-analysis requests; normal frontend output is unchanged.
+
+**Offering `div`:** the ViewHelpers and the `HeadingType` enum support `div`, but the default
+editor selectors leave it out on purpose. If your project needs it, add it in a project TCA
+override to one or both fields:
 
 ```php
 use MindfulMarkup\MindfulA11y\Enum\HeadingType;
@@ -167,68 +238,48 @@ $GLOBALS['TCA']['tt_content']['columns']['tx_mindfula11y_headingtype']['config']
 $GLOBALS['TCA']['tt_content']['columns']['tx_mindfula11y_childheadingtype']['config']['items'][] = $divItem;
 ```
 
-The field **must be part of the CType's showitem** (as above): FormEngine only shows fields from
-showitem, and the heading-structure module's enrichment uses the same processed TCA — without it,
-the container's row offers no child-type select in the module either.
-
-A container template renders its heading unconditionally with `relationId` and `childType`
-(see the main-heading example). Child elements reference it via `ancestorId`; with
-`b13/container`, children carry the container uid in `tx_container_parent`:
-
-```html
-<mindfula11y:heading.descendant
-    ancestorId="{data.tx_container_parent}"
-    relationId="{data.uid}">
-    {data.header}
-</mindfula11y:heading.descendant>
-```
-
-Because the container registers even when it renders no heading (empty header or
-`renderTag="false"`), a headingless container still anchors its children: with a configured
-child type they render exactly that level; on "Automatic — next level" a headingless container registers no
-own level either, and children fall back to their own heading-type field.
-
-In the heading-structure backend module, the child-type select lives on the **container's own
-row**, not on the derived children: one change writes the shared column, so **all** children of
-that container shift together, and their own descendants (linked via `relationId`/automatic derivation)
-re-derive with them. A container that renders no heading of its own still gets a row — labeled
-"Hidden container element" — so the field stays reachable and its children keep a jump target;
-this row is a module-only construct built from the hidden marker `renderContainerMarker()` emits
-for validated structure-analysis requests and never appears in normal frontend output. Derived
-child rows are always read-only in the module; each links back to its container's row instead.
-
-### 3) Sibling heading: `<mindfula11y:heading.sibling>`
-
-Use this when two headings should share the same semantic level.
-
-```html
-<mindfula11y:heading relationId="mainHeading" type="h3">
-    First heading
-</mindfula11y:heading>
-
-<mindfula11y:heading.sibling siblingId="mainHeading">
-    Second heading on same level
-</mindfula11y:heading.sibling>
-```
-
-Edge cases:
-
-- `siblingId` works only if the referenced heading is rendered before the sibling.
-- If not, use explicit `type` or pass record arguments as fallback.
-
 ## Landmark ViewHelper
 
-Use `<mindfula11y:landmark>` to render semantic landmark containers from editor-managed fields.
+`<mindfula11y:landmark>` renders a landmark container from editor-managed fields. Pass the role
+from the record: unlike the heading ViewHelpers, it never reads the role from the database.
+Without a landmark role it renders a plain `div`.
+
+The accessible name comes from two editor fields: `tx_mindfula11y_arialabelledby` ("Use heading
+as landmark name") and `tx_mindfula11y_arialabel` ("Custom landmark name"). Wire them into the
+`aria` argument and give the heading a matching `id`:
 
 ```html
 <mindfula11y:landmark
     recordUid="{f:if(condition: data._LOCALIZED_UID, then: data._LOCALIZED_UID, else: data.uid)}"
-    role="{data.tx_mindfula11y_landmark}">
+    role="{data.tx_mindfula11y_landmark}"
+    aria="{f:if(condition: '{data.tx_mindfula11y_arialabelledby} && {data.header}', then: '{labelledby: \'c{data.uid}-heading\'}', else: '{label: data.tx_mindfula11y_arialabel}')}">
+    <mindfula11y:heading
+        recordUid="{f:if(condition: data._LOCALIZED_UID, then: data._LOCALIZED_UID, else: data.uid)}"
+        type="{data.tx_mindfula11y_headingtype}"
+        relationId="{data.uid}"
+        id="c{data.uid}-heading">
+        {data.header}
+    </mindfula11y:heading>
     {data.bodytext}
 </mindfula11y:landmark>
 ```
 
-`recordUid` follows the same localization rule as `<mindfula11y:heading>` above.
+`recordUid` follows the same [localization rule](#1-main-heading-mindfula11yheading) as
+`<mindfula11y:heading>`.
+
+| Argument           | Type   | Default                   | Purpose                                                               |
+| ------------------ | ------ | ------------------------- | --------------------------------------------------------------------- |
+| `role`             | string | `""`                      | Landmark role. Picks the element (e.g. `navigation` → `nav`).         |
+| `tagName`          | string | `""`                      | Overrides the element. A landmark `role` is still applied.            |
+| `recordUid`        | int    | –                         | Uid of the rendered record. Enables editing in the backend.           |
+| `recordTableName`  | string | `tt_content`              | Table of the record.                                                  |
+| `recordColumnName` | string | `tx_mindfula11y_landmark` | Column that stores the role. Annotation only, no database lookup.     |
+| `aria`             | array  | –                         | Standard tag attribute; use `label` or `labelledby` for the name.     |
+
+Role to element: `region` → `section`, `navigation` → `nav`, `complementary` → `aside`,
+`main` → `main`, `banner` → `header`, `contentinfo` → `footer`, `search` → `search`,
+`form` → `form`. `banner` and `contentinfo` also get an explicit `role` attribute, so they stay
+landmarks when nested.
 
 Optional tag override:
 
@@ -238,25 +289,23 @@ Optional tag override:
 </mindfula11y:landmark>
 ```
 
-`tagName` is written into the markup as given. A landmark element (`aside`,
-`footer`, `form`, `header`, `main`, `nav`, `search`, `section`) keeps its
-landmark semantics; a generic container or your own custom element does not.
+Rules:
 
-`role` is validated: only the landmark roles above are emitted, and an
-unrecognized value is dropped rather than written into the markup — so a stale
-record value cannot render `role="presentation"` and remove the element from the
-accessibility tree. The heading ViewHelpers validate their heading type the same
-way.
-
-An accessible name supplied through `aria` is kept only when the rendered
-element actually conveys a landmark. Overriding `tagName` with a generic
-container (`div`, `span`, your own custom element) and no `role`, or passing a
-`role` that is not a landmark role, drops `aria-label`/`aria-labelledby`
-rather than attaching a name to an element assistive technology cannot expose.
+- `tagName` is lower-cased and otherwise written as given.
+- Landmark elements (`aside`, `footer`, `header`, `main`, `nav`, `search`) keep their landmark
+  semantics. `section` and `form` become landmarks only with an accessible name. A generic
+  container or custom element does not.
+- `role` is validated. Unknown values are dropped, so a stale record value cannot render
+  `role="presentation"` and hide the element from the accessibility tree.
+- The accessible name is kept only if the element is a landmark. With a generic `tagName` and no
+  role, or a non-landmark `role`, `aria-label` and `aria-labelledby` are dropped.
+- Empty `aria-label` and `aria-labelledby` values are never rendered.
 
 ## Extending TCA for custom records
 
-If you want custom tables to participate in the same editorial accessibility workflow, add equivalent fields and use the same ViewHelpers.
+To let editors manage headings and landmarks of custom records, add equivalent fields and render
+them with the same ViewHelpers. Pass `recordTableName` and `recordColumnName` so the backend
+edits the right column.
 
 ### Add heading type field
 
@@ -287,7 +336,6 @@ ExtensionManagementUtility::addTCAcolumns(
                     ['label' => HeadingType::H5->getLabelKey(), 'value' => HeadingType::H5->value],
                     ['label' => HeadingType::H6->getLabelKey(), 'value' => HeadingType::H6->value],
                     ['label' => HeadingType::P->getLabelKey(), 'value' => HeadingType::P->value],
-                    ['label' => HeadingType::DIV->getLabelKey(), 'value' => HeadingType::DIV->value],
                 ],
             ],
         ],
@@ -314,6 +362,8 @@ ExtensionManagementUtility::addTCAcolumns(
         'landmark' => [
             'exclude' => true,
             'label' => 'LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.columns.mindfula11y.landmark',
+            // Reload so the name fields below appear/disappear with the role.
+            'onChange' => 'reload',
             'config' => [
                 'type' => 'select',
                 'renderType' => 'selectSingle',
@@ -385,4 +435,41 @@ ExtensionManagementUtility::addToAllTCAtypes(
 </mindfula11y:landmark>
 ```
 
-> TYPO3 13 can derive database schema from TCA definitions, so manual SQL additions are usually unnecessary.
+> TYPO3 13 and 14 derive the database schema from these TCA definitions, so you usually need no
+> manual SQL.
+
+## Built-in behavior (no template changes needed)
+
+These features work with TYPO3's own rendering. They are listed so templates do not work against
+them.
+
+### Decorative file references and native image ViewHelpers
+
+Editors set the **Decorative image** checkbox per `sys_file_reference`. Mindful A11y then stores
+an explicit empty alternative text and title on the reference, so TYPO3 does not fall back to
+file metadata. Native image rendering needs no custom ViewHelper:
+
+```html
+<f:image image="{fileReference}" />
+<f:media file="{fileReference}" />
+```
+
+- `f:image` and the image fallback of `f:media` render `alt=""` for a decorative reference.
+- They emit no `title` attribute from file metadata.
+- The reference description stays available to templates as an optional visible caption.
+- Explicit `alt` and `title` arguments keep TYPO3's normal precedence and override the reference.
+  Do not pass a non-empty `alt` if the template should honor the editor's choice.
+
+### Server-side validation-error titles
+
+After failed TYPO3 EXT:form validation, Mindful A11y prefixes the page title with a localized
+`Error:`. EXT:form is optional, and no template integration is needed.
+
+- Enable it with `enableValidationErrorTitlePrefix` in Extension Configuration. It is off by
+  default.
+- Detection uses EXT:form's rendering lifecycle: the `beforeRendering` hook on TYPO3 13 and
+  `BeforeRenderableIsRenderedEvent` on TYPO3 14.
+- A frontend middleware applies the prefix to the finished response. On TYPO3 13, uncached
+  (USER_INT) form errors render after the cached page title. For the same reason, a title provider
+  called from a form template does not work on both versions.
+- Client-side HTML5 validation needs no handling, because it causes no page load.

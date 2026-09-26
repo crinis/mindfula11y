@@ -1,130 +1,139 @@
 # Editors
 
-This section is for backend editors working with accessibility content checks.
-
-## Prerequisites
-
-- You can access **Web > Accessibility**.
-- You can access the page in the page tree.
-- Relevant features are enabled by your integrator.
+This guide shows backend editors how to check and fix the accessibility of their pages.
 
 ## Where to work
 
-Open **Web > Accessibility** for the current page.
+Open **Web > Accessibility** (TYPO3 14: **Content > Accessibility**) and select a page in the
+page tree. You need access to the module and read access to the page.
 
-![Accessibility module in TYPO3 backend showing feature selector menu and status callouts for general checks, missing alt text, and scanner status](../Images/editors-general-overview.png)
+Your integrator can switch off the structure checks, **Missing alternative text** and the
+**Scanner** for each page tree. A short status also appears in the
+[Page module info box](#page-module-info-box).
 
-## Access and scope
+## Overview: page status and structure
 
-You need access to the module **Web > Accessibility** and read access to the selected page.
+The **Overview** shows how many images miss alternative text, the scanner status (if set up)
+and the heading and landmark structure. Each notice links to its detailed view.
 
-Feature visibility depends on project configuration:
+![Accessibility module Overview for a photo gallery page: a warning for two images without alternative text, and success notices for the last scan and the page structure](../Images/editors-general-overview.png)
 
-- Missing alternative text can be disabled per page tree.
-- Scanner can be disabled per page tree.
-- Heading and landmark structure checks can be disabled per page tree.
+### Heading and landmark structure
 
-## Overview: quick status
+The **Headings** and **Landmarks** tabs show the structure of the rendered page as a tree. This
+is what visitors and screen readers get. The page is checked in a mobile and a desktop layout.
 
-The **Overview** feature provides a quick accessibility overview for the current page:
+Findings, such as a skipped heading level or two landmarks with the same name, appear above the
+tree and on the affected rows. **Mobile** and **Desktop** labels show which layout they apply to.
 
-- heading structure status
-- landmark structure status
-- missing alt text count
-- scanner status (if enabled and configured)
+Fix most findings directly in the tree:
 
-From there, you can open detailed views.
+- **Heading level:** choose another level in the heading's select, or **Paragraph — not a
+  heading** to remove it from the structure. The change is saved immediately.
+- **Landmark role:** choose another role in the landmark's select.
+- **Edit heading** / **Edit landmark** (pencil) opens the content element, for example to change
+  a heading text or landmark name.
 
-![Overview feature showing heading and landmark checks with issue callouts and detail actions for the currently selected page](../Images/editors-general-status-cards.png)
+Rows without a select are not editable. They come from the page template (ask your integrator)
+or inherit their level from another element. An inherited heading links to the heading that
+controls it.
 
-## Missing alternative text: find and fix
+![Heading tree flagging a missing level 2 between the page heading and an H3, with per-row heading-level selects and edit links](../Images/editors-heading-landmark-checks.png)
 
-Open feature **Missing alternative text** to review file references that miss alt text.
+![Overview feature on the Landmarks tab: findings for landmarks with identical labels and for multiple unlabeled landmarks, above the landmark tree](../Images/editors-general-status-cards.png)
 
-You can:
+#### Headings above the page heading
 
-- filter by record type
-- use the Filter menu to include decorative images, hide records covered by inherited alternative text, or list all references
-- keep the default scope on the current page or include direct, multiple, or all subpages
-- switch language
-- edit alt text inline
-- mark an image reference as decorative directly in the module card or in its file-reference editor
-- jump to the original record
+Some headings appear before the page heading (H1), for example the title of a navigation or a
+sidebar. These headings should be H2. If such a heading is H3 or lower and there is no H2 above
+it, the module suggests changing it to H2.
 
-If OpenAI is configured and your file type is supported (`jpg`, `jpeg`, `png`, `webp`, `gif`), a **Generate** button appears for automatic suggestions.
+#### Headings inside container elements
 
-Use **Decorative image** directly on the affected module card only when an image adds no information. Saving this option removes the
-reference's alternative text and title, hides both fields, and removes the reference from the
-missing-alt check. A visible caption can still be entered in the description field. Turn the
-option off before entering alternative text or a title again.
+A container element can set the level of all headings inside it, including nested ones. Use its
+**Headings inside** select in the tree (in the record editor: **Headings inside this element**).
 
-Decorative references stay out of this view by default. Enable **Show decorative images**
-in the Filter menu to review whether images were marked decorative correctly. If **Hide
-records with inherited alternative text** is also enabled, that filter continues to apply.
-Enable **Show all references** to include references that already have their own alternative
-text. The stored text remains visible when you may read but not edit it. The decorative and
-inherited-metadata filters continue to apply independently. All
-references covered by inherited alternative text are hidden by default; the two inclusion
-filters are off.
+- **Automatic — next level** uses one level below the container's own heading.
+- Choose a fixed level only if the tree shows that the automatic level is wrong.
 
-![Missing alternative text feature listing file references with image preview, editable alt text field, generate action, and save action](../Images/editors-missing-alt-text.png)
+Headings inside a container are read-only and link back to the container's row. A container
+without a heading of its own appears as **Container without its own heading**, so you can still
+change the setting.
 
-## Heading and landmark checks
+If a container's headings skip a level or start too deep, the finding is shown once on the
+container's row. Fix it by changing that row's **Headings inside** select.
 
-Heading and landmark checks are shown in the **Overview** feature.
+![Heading tree of a page with a container element: the container's Headings inside select is set to H3, and the headings derived from it are shown read-only with link icons](../Images/editors-container-headings.png)
 
-When your project templates use Mindful A11y heading/landmark output, the module can:
+#### What the check leaves out
 
-- analyze heading hierarchy (for example skipped levels)
-- analyze landmark structure
-- distinguish findings that occur in the mobile or desktop layout
-- show issues directly in the backend context
+Elements hidden from screen readers in a layout do not count for that layout. Headings and
+landmarks added by JavaScript are not checked.
 
-Headings placed before the page's main `<h1>` label surrounding regions such as the navigation
-or a sidebar. Those region labels should be `<h2>` headings; if the structure opens deeper than
-that — for example with an `<h3>` and no `<h2>` before it — the module advises to raise the
-level.
-
-Headings inside a container element can derive their level from the container's
-**Headings inside this element** field. That field is edited on the container's own row in the heading
-tree — the select always shows the container's current setting — and changing it updates all
-headings of that container at once, including any headings nested below them. The field offers
-the regular heading levels (1–6 and paragraph) plus **Automatic — next level**, which follows
-the page structure by using one level below the container's own heading. Choose a fixed level
-only when the preview shows that the automatic result is incorrect. A container without a heading of its own (for example a hidden
-header) still appears as a **Hidden container element** row so the field stays reachable. The headings derived
-from a container are shown read-only in the tree; each links back to its container's row. When a
-hidden container makes its child headings skip a level or open the structure too deep, the issue
-is shown once on the container's row — change its **Headings inside** setting there to correct
-the level — instead of as separate missing-level placeholders under every child.
-
-The checks use the page's rendered CSS at representative mobile and desktop sizes, including when a TYPO3 installation serves different site roots on different domains. Elements hidden from assistive technology in a layout do not affect that layout's results. JavaScript-generated headings and landmarks are not included.
-
-![Structure checks highlighting a skipped heading level and landmark naming issue for the current page](../Images/editors-heading-landmark-checks.png)
-
-> **Note:** If the analysis reports that the page requires a sign-in (for example on a staging site protected with a browser password prompt), choose **Open page in new tab**, sign in there, and then **Retry**. The sign-in is remembered until you close the browser.
-
-## Scanner usage
-
-- you can trigger scans from the module
-- **Targeted Scan** checks the current page, or current page plus child pages based on the selected scope menu
-- **Full Site Crawl** follows links from a site root page and scans reachable pages in that site area
-- Full Site Crawl is available only on site root pages
-- results include severity, selector, context, and issue details
-- reports can be downloaded as HTML or PDF
-
-Scanner actions are available only after your integrator has set up MindfulAPI with Docker and enabled the scanner for your page tree.
-
-For scanner results, pages must be frontend-accessible and previewable.
-
-Scanner results come from technical automated checks (axe-core via MindfulAPI). They are reliable for many technical violations, but they do not replace manual content and UX accessibility review.
-
-![Scanner feature showing accessibility issues with severity, selector, context, and available HTML or PDF report actions](../Images/editors-scanner-results.png)
+> **Note:** If the analysis says the page requires a sign-in (for example on a password-protected
+> staging site), choose **Open page in new tab**, sign in there, then choose **Retry**. The
+> browser remembers the sign-in until you close it.
 
 ## Page module info box
 
-In the regular page module, Mindful A11y can display a compact accessibility info box with quick links and issue counts.
-
-The heading and landmark structure appears there as a single status row stating how many structure issues the page has. Select the row to unfold the full structure; the box remembers that choice in your browser, so it stays unfolded on the pages you visit next until you fold it again.
+The page module can show a compact box with issue counts and quick links. The heading and
+landmark structure is one row with the number of structure issues. Select it to unfold the full
+structure. It stays unfolded on the next pages until you fold it again.
 
 ![Page module header info box showing Mindful A11y issue counts and quick links to open Accessibility module details](../Images/editors-page-module-info-box.png)
+
+## Missing alternative text: find and fix
+
+**Missing alternative text** lists image references without alternative text. You can:
+
+- edit the alternative text in each card
+- mark an image as **Decorative image**
+- open the original record
+- filter by **Record Type**, switch the **Language**, and include subpages with **Page Scope**
+
+![Missing alternative text feature listing file references with image preview, editable alt text field, generate action, and save action](../Images/editors-missing-alt-text.png)
+
+**Generate** suggests a text if OpenAI is set up. It supports `jpg`, `jpeg`, `png`, `webp` and
+`gif` files up to 20 MB. The button also appears next to the alternative text field when you
+edit an image reference or a file's metadata. Always review a generated text before you save it.
+
+### Decorative images
+
+Use **Decorative image** only when an image adds no information. Saving it removes the
+alternative text and title, hides both fields and takes the image out of this list. You can
+still enter a visible caption in the description field. To add alternative text again, turn the
+option off first.
+
+### Filter menu
+
+By default the list hides decorative images, references that already have alternative text, and
+references that inherit alternative text from the file metadata. The **Filter** menu changes
+this; each option works on its own:
+
+- **Show decorative images:** check that images were marked decorative correctly.
+- **Show all references:** also list references with their own alternative text. You see the
+  text even if you may not edit it.
+- **Hide records with inherited alternative text:** on by default. Turn it off to list
+  references covered by metadata text.
+
+## Scanner usage
+
+The **Scanner** needs MindfulAPI, set up and enabled by your integrator. You can scan in the live
+workspace, on pages you may edit. The pages must be reachable and previewable in the frontend.
+
+- **Targeted scan** checks the current page, plus child pages depending on **Page Scope**.
+- **Full-site crawl** (site root pages only) follows links and scans every page it reaches.
+- **Include AI review** (if enabled) adds a language-model review of content quality, such as
+  alternative text and link purpose. Its findings appear under **AI review**. Always check them
+  yourself.
+
+Each result shows severity, the affected element, context and details. Download the results as
+**HTML report** or **PDF report**.
+
+The scanner runs automated technical checks (axe-core). They find many problems, but do not
+replace a manual review of content and usability.
+
+> **Note:** Scan and **Generate** requests are valid for 15 minutes after the page loads. If you
+> see **Invalid request signature**, save your changes, reload the page and try again.
+
+![Scanner feature showing axe rule groups by severity with one expanded, the AI review section with a finding that needs human review, and the HTML and PDF report buttons](../Images/editors-scanner-results.png)
