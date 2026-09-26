@@ -1,0 +1,8 @@
+# One defined setting: core only publishes site settings as TypoScript/page
+# TSconfig constants when a site has at least one defined setting. Suites use
+# it as the control that constant substitution is active at all.
+settings:
+  a11ytest.constantsProbe:
+    label: 'Constants probe'
+    type: string
+    default: 'probe-default'

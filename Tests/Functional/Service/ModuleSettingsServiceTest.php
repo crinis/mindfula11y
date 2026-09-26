@@ -15,27 +15,26 @@ namespace MindfulMarkup\MindfulA11y\Tests\Functional\Service;
 
 use MindfulMarkup\MindfulA11y\Service\ModuleSettingsService;
 use MindfulMarkup\MindfulA11y\Tests\Functional\AbstractAuthorizationTestCase;
+use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Cache\CacheManager;
-use TYPO3\CMS\Core\Configuration\SiteWriter;
 
 /**
- * Scanner basic-auth credentials resolve from site settings
- * (mindfula11y.scan.basicAuth.username/password) with the released Page
- * TSconfig keys as deprecated fallback. Site settings are authoritative as
- * soon as either key is set there: a partial pair fails closed instead of
- * silently reviving the deprecated TSconfig credentials, so a half-finished
- * migration surfaces as a 401 at the scanned host rather than as stale
- * credentials sent to the wrong place.
+ * Scanner basic-auth credentials resolve from the site configuration
+ * (config.yaml root key mindfula11y.scan.basicAuth.username/password) with the
+ * released Page TSconfig keys as deprecated fallback. The site configuration
+ * is authoritative as soon as either key is set there: a partial pair fails
+ * closed instead of silently reviving the deprecated TSconfig credentials, so
+ * a half-finished migration surfaces as a 401 at the scanned host rather than
+ * as stale credentials sent to the wrong place.
  */
 final class ModuleSettingsServiceTest extends AbstractAuthorizationTestCase
 {
     protected function setUp(): void
     {
         parent::setUp();
-        // The functional instance (and its compiled-settings cache) is shared
-        // across the test methods of this class — drop any settings.yaml a
-        // previous test wrote so fallback tests don't inherit credentials.
-        @unlink($this->instancePath . '/typo3conf/sites/main/settings.yaml');
+        // The functional instance (and its compiled site cache) is shared
+        // across the test methods of this class; every test writes its own
+        // config.yaml, so drop cached site objects from a previous test.
         $this->get(CacheManager::class)->getCache('core')->flush();
     }
 
@@ -60,61 +59,52 @@ final class ModuleSettingsServiceTest extends AbstractAuthorizationTestCase
     }
 
     /**
-     * Write the scanner credentials into the site's settings.yaml.
-     *
-     * Tree form on purpose: settings without a settings.definitions.yaml entry
-     * (deliberate here — the secret must not surface in the site settings
-     * editor GUI) are only resolvable as dotted identifiers when written as a
-     * nested tree; dotted map keys get their dots escaped by core's
-     * ArrayUtility::flattenPlain(). The compiled-settings cache keys on the
-     * site's config.yaml only, not on settings.yaml content — flush it so
-     * every test resolves its own values.
+     * Write the scanner credentials into the site's config.yaml.
      *
      * @param array<string, string> $credentials
      */
-    private function writeScanBasicAuthSiteSettings(array $credentials): void
+    private function writeScanBasicAuthSiteConfiguration(array $credentials): void
     {
-        $this->writeDefaultSiteConfiguration();
-        $this->get(SiteWriter::class)->writeSettings('main', [
+        $this->writeDefaultSiteConfiguration([
             'mindfula11y' => ['scan' => ['basicAuth' => $credentials]],
         ]);
         $this->get(CacheManager::class)->getCache('core')->flush();
     }
 
-    public function testSiteSettingsProvideScanBasicAuth(): void
+    public function testSiteConfigurationProvidesScanBasicAuth(): void
     {
-        $this->writeScanBasicAuthSiteSettings(['username' => 'site-user', 'password' => 'site-secret']);
+        $this->writeScanBasicAuthSiteConfiguration(['username' => 'site-user', 'password' => 'site-secret']);
 
         $result = $this->subject()->getScanBasicAuth(18, []);
 
         self::assertSame(['username' => 'site-user', 'password' => 'site-secret'], $result);
     }
 
-    public function testSiteSettingsWinOverTsConfigCredentials(): void
+    public function testSiteConfigurationWinsOverTsConfigCredentials(): void
     {
-        $this->writeScanBasicAuthSiteSettings(['username' => 'site-user', 'password' => 'site-secret']);
+        $this->writeScanBasicAuthSiteConfiguration(['username' => 'site-user', 'password' => 'site-secret']);
 
         $result = $this->subject()->getScanBasicAuth(18, $this->scanTsConfig('ts-user', 'ts-secret'));
 
         self::assertSame(['username' => 'site-user', 'password' => 'site-secret'], $result);
     }
 
-    public function testPartialSiteSettingsFailClosedDespiteTsConfigCredentials(): void
+    public function testPartialSiteConfigurationFailsClosedDespiteTsConfigCredentials(): void
     {
-        $this->writeScanBasicAuthSiteSettings(['username' => 'site-user']);
+        $this->writeScanBasicAuthSiteConfiguration(['username' => 'site-user']);
 
         $result = $this->subject()->getScanBasicAuth(18, $this->scanTsConfig('ts-user', 'ts-secret'));
 
         self::assertNull($result);
     }
 
-    public function testEnvPlaceholderResolvesInSiteSettings(): void
+    public function testEnvPlaceholderResolvesInSiteConfiguration(): void
     {
         // Pins the contract the integrator documentation promises: secrets in
-        // config/sites/<id>/settings.yaml may be %env()% placeholders.
+        // config/sites/<id>/config.yaml may be %env()% placeholders.
         putenv('MINDFULA11Y_TEST_BASIC_AUTH_PASSWORD=env-secret');
         try {
-            $this->writeScanBasicAuthSiteSettings([
+            $this->writeScanBasicAuthSiteConfiguration([
                 'username' => 'site-user',
                 'password' => '%env(MINDFULA11Y_TEST_BASIC_AUTH_PASSWORD)%',
             ]);
@@ -125,6 +115,36 @@ final class ModuleSettingsServiceTest extends AbstractAuthorizationTestCase
         }
 
         self::assertSame(['username' => 'site-user', 'password' => 'env-secret'], $result);
+    }
+
+    /**
+     * The reason the credentials live in config.yaml and not in site settings:
+     * core publishes every site setting as a page TSconfig (and TypoScript)
+     * constant, so anyone allowed to write page TSconfig could print the
+     * password, e.g. into a TCEFORM label. Site configuration keys are never
+     * turned into constants.
+     */
+    public function testCredentialsAreNotExposedAsPageTsConfigConstants(): void
+    {
+        // Core only publishes site settings as constants when the site has at
+        // least one defined setting — the fixture set provides one, and its
+        // constant is the control that substitution is active in this run.
+        $this->writeDefaultSiteConfiguration([
+            'dependencies' => ['mindfula11y-test/constants-probe'],
+            'mindfula11y' => ['scan' => ['basicAuth' => ['username' => 'site-user', 'password' => 'site-secret']]],
+        ]);
+        $this->get(CacheManager::class)->getCache('core')->flush();
+        $this->getConnectionPool()->getConnectionForTable('pages')->update(
+            'pages',
+            ['TSconfig' => "TCEFORM.pages.title.label = {\$a11ytest.constantsProbe}\nTCEFORM.pages.subtitle.label = {\$mindfula11y.scan.basicAuth.password}"],
+            ['uid' => 1],
+        );
+
+        $tceForm = BackendUtility::getPagesTSconfig(18)['TCEFORM.']['pages.'] ?? [];
+
+        self::assertSame('site-secret', $this->subject()->getScanBasicAuth(18, [])['password'] ?? null, 'fixture guard: the credentials are configured');
+        self::assertSame('probe-default', $tceForm['title.']['label'] ?? null, 'control: site constants are substituted in this run');
+        self::assertSame('{$mindfula11y.scan.basicAuth.password}', $tceForm['subtitle.']['label'] ?? null, 'the password must not be substituted as a constant');
     }
 
     public function testTsConfigCredentialsRemainAsDeprecatedFallback(): void

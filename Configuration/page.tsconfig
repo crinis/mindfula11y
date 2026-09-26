@@ -20,11 +20,11 @@ mod {
         scan {
             enable = 0
             autoCreate = 1
-            # Deprecated: basicAuthUsername / basicAuthPassword. Configure the site
-            # settings mindfula11y.scan.basicAuth.username/password instead
-            # (config/sites/<identifier>/settings.yaml, tree form; the password may be
-            # an %env()% placeholder). The TSconfig keys remain as fallback but are
-            # ignored as soon as either site setting is set.
+            # Deprecated: basicAuthUsername / basicAuthPassword. Configure
+            # mindfula11y.scan.basicAuth.username/password in the site configuration
+            # instead (config/sites/<identifier>/config.yaml; the password may be an
+            # %env()% placeholder). The TSconfig keys remain as fallback but are
+            # ignored as soon as either key is set in the site configuration.
             aiAudit {
                 # Offer the "Include AI review" toggle in the scan module. Requires the
                 # scanner API to run with its optional agent feature enabled (AGENT_ENABLED).

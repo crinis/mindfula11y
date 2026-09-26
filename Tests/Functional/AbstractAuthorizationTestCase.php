@@ -162,10 +162,12 @@ abstract class AbstractAuthorizationTestCase extends FunctionalTestCase
      * Write the frontend site configuration for the fixture's root page 1
      * (language 0 "en" at /, language 1 "fr" at /fr/). Needed by suites whose
      * code paths resolve sites or build preview URLs.
+     *
+     * @param array<string, mixed> $additionalRootConfiguration Extra root keys of config.yaml (e.g. `mindfula11y`).
      */
-    protected function writeDefaultSiteConfiguration(): void
+    protected function writeDefaultSiteConfiguration(array $additionalRootConfiguration = []): void
     {
-        $this->get(SiteWriter::class)->write('main', [
+        $this->get(SiteWriter::class)->write('main', $additionalRootConfiguration + [
             'rootPageId' => 1,
             'base' => 'https://example.com/',
             'languages' => [

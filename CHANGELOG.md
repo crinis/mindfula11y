@@ -21,7 +21,7 @@ upload comment. Manual `v*` tags are blocked by a repository ruleset.
 - The Missing Alternative Text view's Filter menu can optionally include references marked decorative and references that already have their own alternative text — useful for finding images misclassified as decorative. Both filters are off by default.
 - The heading check advises when the heading structure opens deeper than `<h2>` — for example an `<h3>` labelling the navigation before the `<h1>`, with no `<h2>` anywhere before it (minor). Region labels preceding the `<h1>` remain accepted at `<h2>`, the W3C-recommended pattern, and produce no finding. When the deep heading derives from a hidden container, the advisory appears once on the container's row.
 - The landmark check detects five more axe-core problems (all moderate): duplicate banner or contentinfo landmarks, and a main, banner or contentinfo landmark nested inside another landmark. Native `<header>`/`<footer>` inside sectioning content carry no landmark role there and are never flagged.
-- Scanner HTTP Basic Auth credentials can be configured per site through the site settings `mindfula11y.scan.basicAuth.username` / `mindfula11y.scan.basicAuth.password` in `config/sites/<identifier>/settings.yaml`. The password may use TYPO3's `%env(...)%` syntax, keeping the secret out of committed configuration. Site settings take precedence over the deprecated Page TSconfig keys.
+- Scanner HTTP Basic Auth credentials can be configured per site under `mindfula11y.scan.basicAuth.username` / `mindfula11y.scan.basicAuth.password` in the site configuration `config/sites/<identifier>/config.yaml`. The password may use TYPO3's `%env(...)%` syntax, keeping the secret out of committed configuration, and saving the site in the backend keeps both the key and its placeholders. The site configuration takes precedence over the deprecated Page TSconfig keys. (Site settings are deliberately not used: TYPO3 publishes them as TypoScript and page TSconfig constants, which would make the password readable for anyone allowed to write page TSconfig.)
 
 ### Changed
 
@@ -46,7 +46,7 @@ upload comment. Manual `v*` tags are blocked by a repository ruleset.
 
 ### Deprecated
 
-- The Page TSconfig keys `mod.mindfula11y_accessibility.scan.basicAuthUsername` / `basicAuthPassword`: use the site settings `mindfula11y.scan.basicAuth.username` / `…password` instead (see Added). The TSconfig keys keep working as a fallback but will be removed in a future release; they cannot reference environment variables and apply per page tree rather than per site.
+- The Page TSconfig keys `mod.mindfula11y_accessibility.scan.basicAuthUsername` / `basicAuthPassword`: use `mindfula11y.scan.basicAuth.username` / `…password` in the site configuration instead (see Added). The TSconfig keys keep working as a fallback but will be removed in a future release; they cannot reference environment variables and apply per page tree rather than per site.
 
 ### Fixed
 
@@ -85,7 +85,7 @@ upload comment. Manual `v*` tags are blocked by a repository ruleset.
 
 ### Documentation
 
-- The integrator documentation shows how to keep `openAIApiKey` and `scannerApiToken` out of the versioned `config/system/settings.php` using environment variables in `config/system/additional.php`, explains how HTTP Basic Authentication interacts with the structure analysis (browser sign-in) as opposed to the scanner (site-settings credentials), and documents the shipped `aiAudit` defaults.
+- The integrator documentation shows how to keep `openAIApiKey` and `scannerApiToken` out of the versioned `config/system/settings.php` using environment variables in `config/system/additional.php`, explains how HTTP Basic Authentication interacts with the structure analysis (browser sign-in) as opposed to the scanner (site-configuration credentials), and documents the shipped `aiAudit` defaults.
 - The integrator documentation states explicitly that the shipped landmark default (`TCEFORM.tt_content.tx_mindfula11y_landmark.removeItems` hiding `main`, `banner`, `contentinfo` and `form`) adjusts the FormEngine select only and is an editorial guardrail, not an enforced restriction.
 
 ## [0.12.0] - 2026-07-12

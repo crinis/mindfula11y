@@ -175,21 +175,29 @@ final readonly class ModuleSettingsService
     /**
      * Get HTTP Basic Authentication credentials for the scanner.
      *
-     * Resolved from the page's site settings (mindfula11y.scan.basicAuth.username /
-     * .password — the only per-site surface supporting %env()% placeholders for the
-     * secret), with the Page TSconfig keys released in v0.12.0 as deprecated
-     * fallback. Site settings are authoritative as soon as either key is set there:
-     * a partial pair fails closed (no credentials sent, visible as a 401 at the
-     * protected host) instead of silently reviving the deprecated TSconfig
-     * credentials mid-migration. Credentials are read exclusively on the server
-     * side and are never forwarded to the frontend.
+     * Resolved from the site configuration of the page's site (config.yaml key
+     * mindfula11y.scan.basicAuth.username / .password), with the Page TSconfig
+     * keys released in v0.12.0 as deprecated fallback. The site configuration is
+     * authoritative as soon as either key is set there: a partial pair fails
+     * closed (no credentials sent, visible as a 401 at the protected host)
+     * instead of silently reviving the deprecated TSconfig credentials
+     * mid-migration. Credentials are read exclusively on the server side and are
+     * never forwarded to the frontend.
+     *
+     * Deliberately not site settings: core publishes every site setting —
+     * defined or not, with %env()% already resolved — as a TypoScript and page
+     * TSconfig constant, so anyone allowed to write page TSconfig could print
+     * the password (e.g. into a TCEFORM label). A custom root key of config.yaml
+     * keeps per-site scope and %env()% support, is never turned into constants,
+     * and survives saves in the Sites module, which keeps unknown root keys and
+     * protects placeholders.
      *
      * @param array<string, mixed> $pageTsConfig
      * @return array{username: string, password: string}|null
      */
     public function getScanBasicAuth(int $pageId, array $pageTsConfig): ?array
     {
-        $siteAuth = $this->getSiteSettingsScanBasicAuth($pageId);
+        $siteAuth = $this->getSiteConfigurationScanBasicAuth($pageId);
         if ($siteAuth !== []) {
             return count($siteAuth) === 2 ? $siteAuth : null;
         }
@@ -205,21 +213,26 @@ final readonly class ModuleSettingsService
     }
 
     /**
-     * Read the scanner basic-auth site settings for the page's site.
+     * Read the scanner basic-auth credentials from the site configuration.
      *
      * @return array{username?: string, password?: string} Empty when neither key is set (or the page has no site).
      */
-    private function getSiteSettingsScanBasicAuth(int $pageId): array
+    private function getSiteConfigurationScanBasicAuth(int $pageId): array
     {
         try {
-            $settings = $this->siteFinder->getSiteByPageId($pageId)->getSettings();
+            $configuration = $this->siteFinder->getSiteByPageId($pageId)->getConfiguration();
         } catch (SiteNotFoundException) {
+            return [];
+        }
+
+        $credentials = $configuration['mindfula11y']['scan']['basicAuth'] ?? [];
+        if (!is_array($credentials)) {
             return [];
         }
 
         $auth = [];
         foreach (['username', 'password'] as $key) {
-            $value = $settings->get('mindfula11y.scan.basicAuth.' . $key, '');
+            $value = $credentials[$key] ?? '';
             if (is_scalar($value) && trim((string)$value) !== '') {
                 $auth[$key] = trim((string)$value);
             }
