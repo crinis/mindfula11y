@@ -91,7 +91,7 @@ final readonly class ScanAjaxController
             return $this->errorResponse('scan.error.reportFormat', 400);
         }
 
-        $pageRecord = $this->requireExistingScanAccess($scanId);
+        $pageRecord = $this->requireScanReadAccess($scanId);
         if ($pageRecord instanceof ResponseInterface) {
             return $pageRecord;
         }
@@ -265,7 +265,7 @@ final readonly class ScanAjaxController
             return $this->errorResponse('scan.error.noScanId', 404);
         }
 
-        $pageRecord = $this->requireExistingScanAccess($scanId);
+        $pageRecord = $this->requireScanReadAccess($scanId);
         if ($pageRecord instanceof ResponseInterface) {
             return $pageRecord;
         }
@@ -313,7 +313,7 @@ final readonly class ScanAjaxController
             return $this->errorResponse('scan.error.noScanId', 404);
         }
 
-        $pageRecord = $this->requireExistingScanAccess($scanId, true);
+        $pageRecord = $this->requireScanMutationAccess($scanId);
         if ($pageRecord instanceof ResponseInterface) {
             return $pageRecord;
         }
@@ -339,65 +339,48 @@ final readonly class ScanAjaxController
     /**
      * Extract page URL filters from the request query.
      *
-     * Supports repeated OpenAPI query keys (`pageUrls=https://a&pageUrls=https://b`).
+     * The backend client sends them as an indexed array (`pageUrls[0]=…`); a
+     * single scalar value is accepted as well.
      *
      * @return string[]
      */
     private function extractPageUrls(ServerRequestInterface $request): array
     {
-        $pageUrls = [];
-        $queryParams = $request->getQueryParams();
-
-        $value = $queryParams['pageUrls'] ?? null;
-        if (is_array($value)) {
-            foreach ($value as $pageUrl) {
-                if (is_string($pageUrl) && $pageUrl !== '') {
-                    $pageUrls[] = $pageUrl;
-                }
-            }
-        } elseif (is_string($value) && $value !== '') {
-            $pageUrls[] = $value;
-        }
-
-        // Parse raw query manually to preserve repeated pageUrls keys.
-        $rawQuery = (string)$request->getUri()->getQuery();
-        if ($rawQuery !== '') {
-            foreach (explode('&', $rawQuery) as $pair) {
-                if ($pair === '') {
-                    continue;
-                }
-
-                [$rawName, $rawValue] = array_pad(explode('=', $pair, 2), 2, '');
-                $name = urldecode($rawName);
-                if ($name !== 'pageUrls') {
-                    continue;
-                }
-
-                $value = urldecode($rawValue);
-                if ($value !== '') {
-                    $pageUrls[] = $value;
-                }
-            }
-        }
+        $value = $request->getQueryParams()['pageUrls'] ?? null;
+        $values = is_array($value) ? $value : [$value];
+        $pageUrls = array_filter($values, static fn(mixed $pageUrl): bool => is_string($pageUrl) && $pageUrl !== '');
 
         return array_values(array_unique($pageUrls));
     }
 
     /**
-     * Map the existing-scan authorization service's domain failure to the AJAX
+     * Map the existing-scan authorization service's read check to the AJAX
      * layer's uniform localized response.
      *
      * @return array<string, mixed>|ResponseInterface Page record array on success, error response on failure.
      */
-    private function requireExistingScanAccess(string $scanId, bool $mutation = false): array|ResponseInterface
+    private function requireScanReadAccess(string $scanId): array|ResponseInterface
     {
         try {
-            return $mutation
-                ? $this->existingScanAuthorizationService->authorizeMutation($scanId)
-                : $this->existingScanAuthorizationService->authorizeRead($scanId);
+            return $this->existingScanAuthorizationService->authorizeRead($scanId);
         } catch (ScanAuthorizationException $exception) {
             return $this->errorResponse($exception->labelKey, $exception->statusCode);
         }
     }
 
+    /**
+     * Map the existing-scan authorization service's mutation check (read
+     * access plus page edit access) to the AJAX layer's uniform localized
+     * response.
+     *
+     * @return array<string, mixed>|ResponseInterface Page record array on success, error response on failure.
+     */
+    private function requireScanMutationAccess(string $scanId): array|ResponseInterface
+    {
+        try {
+            return $this->existingScanAuthorizationService->authorizeMutation($scanId);
+        } catch (ScanAuthorizationException $exception) {
+            return $this->errorResponse($exception->labelKey, $exception->statusCode);
+        }
+    }
 }
