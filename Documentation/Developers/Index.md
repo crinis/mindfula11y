@@ -39,6 +39,14 @@ Every element has a *logical* heading level, even when no heading is visible. So
 All heading ViewHelpers validate the heading type. An unknown value is never written into the
 markup; the default `h2` is rendered instead.
 
+Relations exist only within one render pass: `ancestorId` and `siblingId` resolve against
+headings registered earlier in the same request. An uncached plugin (`USER_INT`) on a cached
+page runs without the cached content being rendered again, so a `heading.descendant` inside it
+cannot see the container's relation — pass an explicit `type` or the record arguments there.
+`relationId` values share one namespace across all tables, so a content element and a custom
+record with the same uid collide; when records of more than one table register relations on a
+page, prefix the ids with the table (`relationId="tx_myext_records-{record.uid}"`).
+
 ### 1) Main heading: `<mindfula11y:heading>`
 
 Use this for the primary heading of a record.
@@ -300,6 +308,13 @@ Rules:
 - The accessible name is kept only if the element is a landmark. With a generic `tagName` and no
   role, or a non-landmark `role`, `aria-label` and `aria-labelledby` are dropped.
 - Empty `aria-label` and `aria-labelledby` values are never rendered.
+
+The **Accessibility** tab with the landmark fields is added to `tt_content` with
+`addToAllTCAtypes()`, which only reaches content types registered before this extension's
+`Configuration/TCA/Overrides/tt_content.php` runs. Content types of extensions that load later
+must add the tab themselves, for example
+`ExtensionManagementUtility::addToAllTCAtypes('tt_content', '--div--;LLL:EXT:mindfula11y/Resources/Private/Language/Database.xlf:ttContent.tabs.accessibility, --palette--;;landmarks', 'my_ctype');`.
+The heading type field sits in the core `headers` palette and reaches every type that uses it.
 
 ## Extending TCA for custom records
 
