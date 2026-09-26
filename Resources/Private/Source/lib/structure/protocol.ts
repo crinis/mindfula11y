@@ -9,7 +9,6 @@
  */
 
 import { isBoundedString, isObject, isStringMap } from '../guards.js';
-import type { ImpactSeverity } from '../types.js';
 import { IMPACT_ORDER } from '../types.js';
 import type { HeadingAnalysis, HeadingNode, LandmarkAnalysis, LandmarkNode, StructureViewport } from './types.js';
 
@@ -57,6 +56,8 @@ interface AnalysisPayload {
 }
 
 const isViewport = (value: unknown): value is StructureViewport => value === 'mobile' || value === 'desktop';
+const IMPACT_SEVERITIES: ReadonlySet<string> = new Set(IMPACT_ORDER);
+
 const isViewportList = (value: unknown): value is StructureViewport[] =>
     Array.isArray(value) && value.length <= 2 && value.every(isViewport);
 
@@ -71,7 +72,8 @@ const isError = (value: unknown): boolean => {
         return false;
     }
     return (
-        IMPACT_ORDER.includes(value.severity as ImpactSeverity) &&
+        typeof value.severity === 'string' &&
+        IMPACT_SEVERITIES.has(value.severity) &&
         (value.nodeId === null || isBoundedString(value.nodeId, 512))
     );
 };

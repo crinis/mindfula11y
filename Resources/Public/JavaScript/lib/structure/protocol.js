@@ -3,13 +3,14 @@ import { IMPACT_ORDER } from "../types.js";
 const STRUCTURE_ANALYSIS_PROTOCOL = "mindfula11y.structure.v1";
 const MAX_ANALYSIS_ITEMS = 2e3;
 const isViewport = (value) => value === "mobile" || value === "desktop";
+const IMPACT_SEVERITIES = new Set(IMPACT_ORDER);
 const isViewportList = (value) => Array.isArray(value) && value.length <= 2 && value.every(isViewport);
 const hasMessageEnvelope = (value, type, requestId) => isObject(value) && value.protocol === STRUCTURE_ANALYSIS_PROTOCOL && value.type === type && value.requestId === requestId;
 const isError = (value) => {
   if (!isObject(value) || !isBoundedString(value.key, 256) || !isViewportList(value.viewports)) {
     return false;
   }
-  return IMPACT_ORDER.includes(value.severity) && (value.nodeId === null || isBoundedString(value.nodeId, 512));
+  return typeof value.severity === "string" && IMPACT_SEVERITIES.has(value.severity) && (value.nodeId === null || isBoundedString(value.nodeId, 512));
 };
 const isRecord = (value) => {
   if (value === null) {
