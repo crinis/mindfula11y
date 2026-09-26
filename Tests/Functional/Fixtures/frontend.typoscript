@@ -1,5 +1,10 @@
 # Minimal frontend rendering for the middleware chain tests: the analysis
-# pipeline only needs a resolvable HTML document with a <body>.
+# pipeline only needs a resolvable HTML document with a <body>. The unquoted
+# http-equiv meta tags mirror what a real page may ship; the analysis
+# document must strip them (quoted and unquoted alike) so a page-supplied
+# CSP or refresh cannot break the runner.
 page = PAGE
+page.headerData.10 = TEXT
+page.headerData.10.value = <meta http-equiv=refresh content="60;url=https://example.com/elsewhere"><meta http-equiv=content-security-policy content="script-src 'none'">
 page.10 = TEXT
 page.10.value = <main>Analysis target</main>

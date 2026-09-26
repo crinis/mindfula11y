@@ -120,8 +120,11 @@ final readonly class StructureAnalysisResponseMiddleware implements MiddlewareIn
         $content = (string)$response->getBody();
         // An analysis response has its own CSP below. Remove meta policies and
         // automatic refreshes that could block the runner or navigate the frame.
+        // The quote group must always participate: `(["\'])?` would make `\1` a
+        // backreference to a non-participating group, which PCRE never matches,
+        // silently exempting the unquoted attribute form.
         $content = preg_replace(
-            '/<meta\b[^>]*http-equiv\s*=\s*(["\'])?(?:content-security-policy|refresh)\1[^>]*>/i',
+            '/<meta\b[^>]*http-equiv\s*=\s*(["\']?)(?:content-security-policy|refresh)\1[^>]*>/i',
             '',
             $content,
         ) ?? $content;

@@ -105,6 +105,26 @@ final class StructureAnalysisMiddlewareChainTest extends AbstractAuthorizationTe
         self::assertStringContainsString('no-store', $response->getHeaderLine('Cache-Control'));
     }
 
+    /**
+     * A page-supplied meta CSP intersects with the analysis document's header
+     * policy and can block the nonce'd runner; a meta refresh navigates the
+     * sandboxed frame off the signed target mid-analysis. Both must be
+     * stripped — including the unquoted attribute form the fixture uses.
+     */
+    public function testPageSuppliedHttpEquivMetaTagsAreStrippedFromTheAnalysisDocument(): void
+    {
+        $plain = (string)$this->executeFrontendSubRequest(new InternalRequest('https://example.com/editable'))->getBody();
+        self::assertStringContainsString('http-equiv=refresh', $plain, 'fixture guard: the plain page must render the meta tags');
+        self::assertStringContainsString('http-equiv=content-security-policy', $plain, 'fixture guard: the plain page must render the meta tags');
+
+        $url = $this->issueAnalysisUrl(10);
+        $body = (string)$this->executeFrontendSubRequest(new InternalRequest($url))->getBody();
+
+        self::assertStringContainsString(self::RUNNER_MARKER, $body, 'the analysis runner must be injected');
+        self::assertStringNotContainsString('http-equiv=refresh', $body, 'an unquoted meta refresh must not survive into the analysis document');
+        self::assertStringNotContainsString('http-equiv=content-security-policy', $body, 'an unquoted meta CSP must not survive into the analysis document');
+    }
+
     public function testTamperedTicketFallsBackToPublicRendering(): void
     {
         $url = $this->issueAnalysisUrl(10);
