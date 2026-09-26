@@ -142,11 +142,14 @@ final readonly class ScanApiService
     {
         $secrets = array_filter(
             [...array_values($requestSecrets), $this->getApiToken()],
-            // Non-strings cannot appear verbatim in the response text, and short
-            // values would redact half the message — a real credential is never
-            // this short.
-            static fn(mixed $secret): bool => is_string($secret) && strlen($secret) >= 8,
+            // Non-strings cannot appear verbatim in the response text. Length is
+            // deliberately no criterion: a short staging password is still a
+            // credential, and over-redaction beats leaking it.
+            static fn(mixed $secret): bool => is_string($secret) && $secret !== '',
         );
+        // Longest first, so a secret that is a substring of another (e.g. the
+        // username inside a derived password) cannot break the longer match.
+        usort($secrets, static fn(string $a, string $b): int => strlen($b) <=> strlen($a));
 
         if ($secrets !== []) {
             $detail = str_replace($secrets, '[redacted]', $detail);

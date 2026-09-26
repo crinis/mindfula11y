@@ -124,6 +124,53 @@ final class ScanApiServiceTest extends TestCase
     }
 
     /**
+     * Short credentials are still credentials: a staging password like
+     * "preview" must not reach the editor just because it is under eight
+     * characters. Redaction may not fail open on length.
+     */
+    #[Test]
+    public function shortReflectedCredentialsAreRedactedFromTheClientFacingDetail(): void
+    {
+        $extensionConfiguration = $this->createMock(ExtensionConfiguration::class);
+        $extensionConfiguration->method('get')->with('mindfula11y')->willReturn([
+            'scannerApiUrl' => 'https://scanner.example',
+        ]);
+
+        $reflected = 'Invalid request: {"basicAuth":{"username":"web","password":"preview"}}';
+        $stream = $this->createMock(\Psr\Http\Message\StreamInterface::class);
+        $stream->method('__toString')->willReturn(json_encode([
+            'title' => 'Bad Request',
+            'detail' => $reflected,
+        ], JSON_THROW_ON_ERROR));
+        $response = $this->createMock(\Psr\Http\Message\ResponseInterface::class);
+        $response->method('getStatusCode')->willReturn(400);
+        $response->method('getBody')->willReturn($stream);
+
+        $requestFactory = $this->createMock(RequestFactory::class);
+        $requestFactory->method('request')->willReturn($response);
+
+        $service = new ScanApiService(
+            $extensionConfiguration,
+            $requestFactory,
+            $this->createMock(LoggerInterface::class),
+        );
+
+        try {
+            $service->createScan(
+                ['https://example.com/'],
+                scanOptions: ['basicAuth' => ['username' => 'web', 'password' => 'preview']],
+            );
+            self::fail('the scanner rejection must surface as an exception');
+        } catch (\MindfulMarkup\MindfulA11y\Exception\ScanApiRequestException $exception) {
+            $detail = $exception->getProblemDetail();
+
+            self::assertStringNotContainsString('preview', $detail, 'a short Basic Auth password must not be echoed back');
+            self::assertStringNotContainsString('"web"', $detail, 'a short Basic Auth username must not be echoed back');
+            self::assertStringContainsString('Invalid request', $detail, 'the actionable part survives');
+        }
+    }
+
+    /**
      * An unbounded upstream string would turn a backend error message into a
      * channel for bulk third-party output.
      */
