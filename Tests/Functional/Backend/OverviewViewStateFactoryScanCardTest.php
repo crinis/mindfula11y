@@ -95,6 +95,31 @@ final class OverviewViewStateFactoryScanCardTest extends AbstractAuthorizationTe
         self::assertFalse($state['autoCreateScan']);
     }
 
+    /**
+     * A single-page scan of a page a public visitor cannot see (910: fe_group
+     * on the page; 911: inherited via extendToSubpages) is refused by
+     * ScanAjaxController::createAction() — the card must not offer or
+     * auto-create it. A multi-level scan skips restricted pages instead and
+     * stays available.
+     */
+    public function testFrontendRestrictedPageGetsNoSinglePageDemand(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/PagePreviewSupplement.csv');
+        $this->logInBackendUser(2);
+
+        foreach ([910, 911] as $pageId) {
+            $page = BackendUtility::getRecord('pages', $pageId);
+            self::assertIsArray($page);
+
+            $singlePage = $this->subject()->buildScanCardState($pageId, $page, null, new Uri(self::PREVIEW_URL), 0, self::SCAN_TSCONFIG);
+            self::assertNull($singlePage['createScanDemand'], 'no single-page demand for page ' . $pageId);
+            self::assertFalse($singlePage['autoCreateScan'], 'no auto-create for page ' . $pageId);
+
+            $multiLevel = $this->subject()->buildScanCardState($pageId, $page, null, new Uri(self::PREVIEW_URL), 2, self::SCAN_TSCONFIG);
+            self::assertSame(2, $multiLevel['createScanDemand']['pageLevels'] ?? null, 'multi-level demand for page ' . $pageId);
+        }
+    }
+
     public function testNoDemandWithoutAPreviewOrWithoutTriggerPermission(): void
     {
         $this->logInBackendUser(2);

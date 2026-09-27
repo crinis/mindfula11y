@@ -125,7 +125,8 @@ final readonly class OverviewViewStateFactory
      * (which layers its own additions on top): the effective scan id, the
      * signed demand for creating a scan, and the auto-create/URL-filter
      * switches. The caller has already checked scan access, scanner
-     * configuration and page visibility.
+     * configuration and page visibility; a single-page scan of a
+     * frontend-restricted page gets no create demand and no auto-create.
      *
      * @param array<string, mixed> $pageInfo Default-language page record (page-permission-checked).
      * @param array<string, mixed>|null $localizedPageInfo Localized overlay, if the translation exists.
@@ -151,10 +152,18 @@ final readonly class OverviewViewStateFactory
             (int)($pageInfo['SYS_LASTCHANGED'] ?? 0)
         );
 
+        // The scanner fetches pages as a public visitor: ScanAjaxController
+        // refuses a single-page scan of a frontend-restricted page (fe_group,
+        // directly or inherited via extendToSubpages), so neither offer nor
+        // auto-create one. A stored scan stays viewable; multi-level scans
+        // skip restricted pages and remain available.
+        $singlePageRestricted = $pageLevels === 0
+            && !$this->pagePreviewService->isPageFrontendAccessible($finalPageInfo);
+
         // The factory signs the language of $finalPageInfo — language 0 when
         // the selected language has no translation of this page — and returns
         // null when the user cannot trigger scans.
-        $createScanDemand = null !== $previewUri
+        $createScanDemand = null !== $previewUri && !$singlePageRestricted
             ? $this->scanDemandFactory->create($finalPageInfo, $pageId, (string)$previewUri, pageLevels: $pageLevels)
             : null;
 
@@ -163,7 +172,9 @@ final readonly class OverviewViewStateFactory
             'createScanDemand' => $createScanDemand !== null ? $this->demandSignatureService->serialize($createScanDemand) : null,
             // Auto-creation and the URL filter apply to single-page scans only;
             // a multi-level scan covers many URLs and shows all their results.
-            'autoCreateScan' => $pageLevels === 0 && $this->moduleSettingsService->isAutoCreateScanEnabled($pageTsConfig),
+            'autoCreateScan' => $pageLevels === 0
+                && !$singlePageRestricted
+                && $this->moduleSettingsService->isAutoCreateScanEnabled($pageTsConfig),
             'pageUrlFilter' => $previewUri !== null && $pageLevels === 0 ? [(string)$previewUri] : [],
         ];
     }

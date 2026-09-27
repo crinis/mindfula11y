@@ -321,4 +321,38 @@ final class AccessibilityModuleControllerTest extends AbstractAuthorizationTestC
 
         self::assertSame(403, $response->getStatusCode());
     }
+
+    /**
+     * The scan feature must not offer a single-page scan the create action
+     * refuses: a page restricted to frontend user groups (910) renders the
+     * pageRestricted notice. Counterparts: a public page (10) and a
+     * multi-level scan of the restricted page render the scan view.
+     */
+    public function testScanFeatureOnFrontendRestrictedPageRendersRestrictedNotice(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/PagePreviewSupplement.csv');
+        $GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS']['mindfula11y']['scannerApiUrl'] = 'https://scanner.invalid';
+        $this->logInBackendUser(2);
+        $restrictedTitle = $this->moduleLabel('scan.error.pageRestricted');
+        self::assertNotSame('', $restrictedTitle);
+
+        $restricted = $this->mainAction($this->buildModuleRequest(910, ['feature' => 'scan', 'scanPageLevels' => 0]));
+        self::assertSame(200, $restricted->getStatusCode());
+        self::assertStringContainsString($restrictedTitle, $this->body($restricted));
+
+        $public = $this->mainAction($this->buildModuleRequest(10, ['feature' => 'scan', 'scanPageLevels' => 0]));
+        self::assertStringNotContainsString($restrictedTitle, $this->body($public));
+        self::assertStringContainsString('mindfula11y-scan', $this->body($public));
+
+        $multiLevel = $this->mainAction($this->buildModuleRequest(910, ['feature' => 'scan', 'scanPageLevels' => 1]));
+        self::assertStringNotContainsString($restrictedTitle, $this->body($multiLevel));
+        self::assertStringContainsString('mindfula11y-scan', $this->body($multiLevel));
+    }
+
+    private function body(\Psr\Http\Message\ResponseInterface $response): string
+    {
+        $response->getBody()->rewind();
+
+        return (string)$response->getBody();
+    }
 }

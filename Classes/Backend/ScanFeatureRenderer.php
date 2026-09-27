@@ -95,6 +95,14 @@ final readonly class ScanFeatureRenderer
             3
         );
 
+        // The scanner fetches pages as a public visitor and the create action
+        // refuses a single-page scan of a frontend-restricted page. Rendered
+        // after the page-levels menu so the editor can still switch to a
+        // multi-level scan, which skips restricted pages.
+        if ($pageLevels === 0 && !$this->pagePreviewService->isPageFrontendAccessible($finalPageInfo)) {
+            return $this->noticeResponse($context->moduleTemplate, 'scan.error.pageRestricted', ContextualFeedbackSeverity::INFO);
+        }
+
         $canTriggerScan = $this->scanDemandFactory->canTriggerScan($finalPageInfo);
 
         $scanCardState = $this->viewStateFactory->buildScanCardState(
