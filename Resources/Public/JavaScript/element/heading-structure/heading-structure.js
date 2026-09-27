@@ -113,26 +113,26 @@ let HeadingStructure = class extends StructureView {
    */
   renderTree(nodes) {
     const entries = this.flattenTree(nodes, 0);
-    const treeLines = computeTreeLines(entries.map((entry) => entry.depth));
+    const lanesByRow = computeTreeLines(entries.map((entry) => entry.depth));
+    const rows = entries.map((entry, index) => ({ entry, lanes: lanesByRow[index] ?? [] }));
     return html`<ol class="surface tree">
             ${this.pageErrors.map((error) => this.renderPageIssueItem(error))}
             ${repeat(
-      entries,
-      (entry) => entry.key,
-      (entry, index) => this.renderListItem(entry, treeLines[index] ?? { lanes: [], parent: false })
+      rows,
+      (row) => row.entry.key,
+      (row) => this.renderListItem(row.entry, row.lanes)
     )}
         </ol>`;
   }
-  /** A page-level heading finding has no affected node, so it becomes its own unindented issue row. */
+  /** A page-level heading finding has no affected node, so it becomes its own unindented issue row outside the tree. */
   renderPageIssueItem(error) {
     return this.renderListItem(
       {
-        key: `page-${error.key}`,
         depth: 0,
         content: this.renderHeadingRow({ errors: [error], issueOptions: () => ({ pageScope: true }) }),
         issueKind: "page"
       },
-      { lanes: [], parent: false }
+      []
     );
   }
   /**
@@ -143,36 +143,36 @@ let HeadingStructure = class extends StructureView {
    * from the heading level itself. Missing-level placeholders precede their
    * skipping heading at the absent levels' indents.
    */
-  flattenTree(nodes, parentIndent) {
+  flattenTree(nodes, parentLevel) {
     const entries = [];
     for (const node of nodes) {
       for (let missingLevel = node.level - node.skippedLevels; missingLevel < node.level; missingLevel++) {
         entries.push(this.placeholderEntry(node, missingLevel));
       }
-      const indent = node.kind === "heading" ? node.level : this.containerIndent(node, parentIndent);
+      const level = node.kind === "heading" ? node.level : this.containerLevel(node, parentLevel);
       entries.push({
         key: node.id,
-        depth: indent - 1,
+        depth: Math.max(0, level - 1),
         content: this.renderRow(node),
         focusLabelId: this.rowLabelId(node.id)
       });
-      entries.push(...this.flattenTree(node.children, indent));
+      entries.push(...this.flattenTree(node.children, level));
     }
     return entries;
   }
   /**
-   * A container or demoted row's indent expresses its parental role, one
-   * step above the level its children derive: the explicitly stored child
-   * type when set, else the automatic derivation base — its own (unrendered)
-   * level, or the tree parent when it has none. Its stored level itself is
-   * communicated by the row's level select, not by indentation.
+   * The level a container or demoted row is placed at expresses its parental
+   * role, one above the level its children derive: the explicitly stored
+   * child type when set, else the automatic derivation base — its own
+   * (unrendered) level, or the tree parent when it has none. Its stored level
+   * itself is communicated by the row's level select, not by indentation.
    */
-  containerIndent(node, parentIndent) {
+  containerLevel(node, parentLevel) {
     const childType = /^h([1-6])$/.exec(node.childTypeRecord?.storedValue ?? "");
     if (childType !== null) {
       return Number.parseInt(childType[1] ?? "0", 10) - 1;
     }
-    return node.level > 0 ? node.level : parentIndent + 1;
+    return node.level > 0 ? node.level : parentLevel + 1;
   }
   /** Visible row content that names the native list-item focus fallback. */
   rowLabelId(nodeId) {
@@ -180,31 +180,27 @@ let HeadingStructure = class extends StructureView {
   }
   /**
    * The single list-item shell used by every ordinary and issue-only row:
-   * the tree lines, then the row. The indent factor the stylesheet insets
-   * and draws the lines by is a runtime value, so it rides on the style
-   * attribute. The list is flat, so neither "this row has children"
-   * (`data-parent`, the row draws the drop into its children's rail) nor
-   * the state of each crossed depth (one lane element per depth) can be
-   * derived from nesting — both come from computeTreeLines().
+   * the tree lines, then the row. The depth the stylesheet insets the row
+   * by is a runtime value, so it rides on the style attribute. The list is
+   * flat, so what each lane of the tree lines shows cannot be derived from
+   * nesting — it comes from computeTreeLines(), one lane element per state;
+   * an empty lane (nothing to draw at that depth) carries no attribute.
    *
    * The lanes are purely decorative and hidden from assistive technology:
    * every row already announces its heading level, which carries the
    * hierarchy. Lanes never hold DOM state, so a positional map suffices.
    */
-  renderListItem(entry, treeLines) {
+  renderListItem(item, lanes) {
     return html`<li
             class="node"
-            data-issue-kind=${entry.issueKind ?? nothing}
-            data-focus-fallback=${entry.focusLabelId ?? nothing}
-            ?data-parent=${treeLines.parent}
-            style="--mindfula11y-heading-structure-indent: ${entry.depth}"
+            data-issue-kind=${item.issueKind ?? nothing}
+            data-focus-fallback=${item.focusLabelId ?? nothing}
+            style="--mindfula11y-heading-structure-indent: ${item.depth}"
         >
             <span class="lanes" aria-hidden="true">
-                ${treeLines.lanes.map(
-      (state) => html`<span class="lane" data-line=${state === "none" ? nothing : state}></span>`
-    )}
+                ${lanes.map((state) => html`<span class="lane" data-line=${state === "none" ? nothing : state}></span>`)}
             </span>
-            ${entry.content}
+            ${item.content}
         </li>`;
   }
   /**
@@ -236,7 +232,7 @@ let HeadingStructure = class extends StructureView {
   /**
    * Errors rendered as cues inside the affected row itself. Every node
    * finding renders in-row except an ordinary heading's skipped level: its
-   * missing-level placeholder row (see renderPlaceholderItem()) already IS the finding,
+   * missing-level placeholder row (see placeholderEntry()) already IS the finding,
    * placed where the missing level belongs, so an in-row chip would only
    * duplicate it. Container rows keep their attributed hierarchy finding
    * in-row — they never render placeholders.

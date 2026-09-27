@@ -87,11 +87,11 @@ describe('HeadingStructure', () => {
 
     /** The decorative lanes of a list item, an empty lane (nothing drawn) reading as 'none'. */
     const laneStates = (node: HTMLElement): string[] =>
-        Array.from(node.querySelectorAll('[aria-hidden="true"] > *')).map(
+        Array.from(node.querySelectorAll(':scope > [aria-hidden="true"] > *')).map(
             (lane) => lane.getAttribute('data-line') ?? 'none',
         );
 
-    it('gives every row its indent, one decorative lane per crossed depth, and marks rows with children', async () => {
+    it('gives every row its indent and one decorative lane per crossed depth, plus a drop lane when it has children', async () => {
         const view = await mount([
             makeNode('h1', {
                 level: 1,
@@ -104,17 +104,34 @@ describe('HeadingStructure', () => {
 
         const rows = Array.from(view.renderRoot.querySelectorAll<HTMLElement>('li.node')).map((node) => ({
             indent: node.style.getPropertyValue('--mindfula11y-heading-structure-indent'),
-            parent: node.hasAttribute('data-parent'),
             lanes: laneStates(node),
         }));
 
         // The list is flat, so the tree lines are computed per row: the h1's
         // rail passes the h3 to reach h2b, and h2b is the h1's last child.
         expect(rows).toEqual([
-            { indent: '0', parent: true, lanes: [] },
-            { indent: '1', parent: true, lanes: ['branch'] },
-            { indent: '2', parent: false, lanes: ['pass', 'last'] },
-            { indent: '1', parent: false, lanes: ['last'] },
+            { indent: '0', lanes: ['drop'] },
+            { indent: '1', lanes: ['branch', 'drop'] },
+            { indent: '2', lanes: ['pass', 'last'] },
+            { indent: '1', lanes: ['last'] },
+        ]);
+    });
+
+    it('draws no lines for a heading placed before the h1, and none for a page-level issue row', async () => {
+        const pageError = makeError('mindfula11y.structure.headings.error.missingH1', 'page');
+        const view = await mount([makeNode('region-label', { level: 2 }), makeNode('h1', { level: 1 })], [pageError]);
+
+        const rows = Array.from(view.renderRoot.querySelectorAll<HTMLElement>('li.node')).map((node) => ({
+            kind: node.getAttribute('data-issue-kind'),
+            lanes: laneStates(node),
+        }));
+
+        // A pre-h1 heading is inset by its level but hangs off nothing; the
+        // page issue row precedes the tree and takes no part in it.
+        expect(rows).toEqual([
+            { kind: 'page', lanes: [] },
+            { kind: null, lanes: ['none'] },
+            { kind: null, lanes: [] },
         ]);
     });
 
@@ -125,14 +142,13 @@ describe('HeadingStructure', () => {
 
         const rows = Array.from(view.renderRoot.querySelectorAll<HTMLElement>('li.node')).map((node) => ({
             kind: node.getAttribute('data-issue-kind'),
-            parent: node.hasAttribute('data-parent'),
             lanes: laneStates(node),
         }));
 
         expect(rows).toEqual([
-            { kind: null, parent: true, lanes: [] },
-            { kind: 'missing-level', parent: true, lanes: ['last'] },
-            { kind: null, parent: false, lanes: ['none', 'last'] },
+            { kind: null, lanes: ['drop'] },
+            { kind: 'missing-level', lanes: ['last', 'drop'] },
+            { kind: null, lanes: ['none', 'last'] },
         ]);
     });
 

@@ -1,15 +1,29 @@
 function computeTreeLines(depths) {
-  return depths.map((depth, index) => ({
-    lanes: Array.from({ length: depth }, (_, laneDepth) => laneState(depths, index, laneDepth, depth)),
-    parent: (depths[index + 1] ?? 0) > depth
-  }));
+  return depths.map((depth, index) => {
+    const lanes = Array.from({ length: depth }, (_, laneDepth) => {
+      if (!hasAncestorAtDepth(depths, index, laneDepth)) {
+        return "none";
+      }
+      const ancestorContinues = hasLaterChildAtDepth(depths, index, laneDepth + 1);
+      if (laneDepth === depth - 1) {
+        return ancestorContinues ? "branch" : "last";
+      }
+      return ancestorContinues ? "pass" : "none";
+    });
+    if (hasLaterChildAtDepth(depths, index, depth + 1)) {
+      lanes.push("drop");
+    }
+    return lanes;
+  });
 }
-function laneState(depths, index, laneDepth, rowDepth) {
-  const ancestorContinues = hasLaterChildAtDepth(depths, index, laneDepth + 1);
-  if (laneDepth === rowDepth - 1) {
-    return ancestorContinues ? "branch" : "last";
+function hasAncestorAtDepth(depths, index, ancestorDepth) {
+  for (let earlier = index - 1; earlier >= 0; earlier--) {
+    const earlierDepth = depths[earlier] ?? 0;
+    if (earlierDepth <= ancestorDepth) {
+      return earlierDepth === ancestorDepth;
+    }
   }
-  return ancestorContinues ? "pass" : "none";
+  return false;
 }
 function hasLaterChildAtDepth(depths, index, childDepth) {
   for (let later = index + 1; later < depths.length; later++) {

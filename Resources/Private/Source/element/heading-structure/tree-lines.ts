@@ -18,46 +18,61 @@
  */
 
 /**
- * What a row's lane at one crossed depth shows, named after the characters a
- * directory listing draws in the same place:
+ * What one lane of a row's tree lines shows. The lanes of the depths a row
+ * crosses are named after the characters a directory listing draws there:
  * - `pass`   │  the ancestor at this depth has further children below this row
  * - `branch` ├  this row hangs off the ancestor at this depth, which continues
  * - `last`   └  this row is that ancestor's last child
- * - `none`      the ancestor at this depth ended above this row
+ * - `none`      no ancestor of this row sits at this depth
+ * A row with children carries one more lane, at its own depth:
+ * - `drop`   ┌  the line from this row's level chip down into its children's rail
  */
-export type LaneState = 'pass' | 'branch' | 'last' | 'none';
-
-export interface TreeLines {
-    /** One entry per crossed depth, index 0 being the outermost; the final entry is the lane the row branches off. */
-    lanes: LaneState[];
-    /** Whether the next row is deeper — this row has children and draws the drop into their rail. */
-    parent: boolean;
-}
+export type LaneState = 'pass' | 'branch' | 'last' | 'none' | 'drop';
 
 /**
  * Derives the tree lines of a pre-order flat list of rows from their depths
- * alone. Depth d of a row is 0-based: a row at depth 3 crosses depths 0–2 and
- * hangs off depth 2.
+ * alone: for each row, the lane states from the outermost crossed depth
+ * inwards. A depth is 0-based; a row at depth 3 crosses depths 0–2 and, if a
+ * row at depth 2 precedes it, hangs off that one.
  *
- * An ancestor's rail continues past a row while another row at the ancestor's
- * child depth still follows before the list returns to the ancestor's own depth
- * or above. The lane of the row's own parent depth is therefore `branch` while
- * a later sibling follows and `last` once none does; the lanes of outer depths
- * are `pass` or `none` on the same rule.
+ * Only real ancestors get lines. The ancestor at depth d is the nearest
+ * earlier row at depth d or above; if that row sits above d, nobody occupies
+ * d and the lane stays empty. Likewise a row is a parent only when a row one
+ * level deeper follows it — a deeper jump (a container whose children derive
+ * a far lower level) hangs off nothing and gets no drop.
+ *
+ * An ancestor's rail continues past a row while another row at the
+ * ancestor's child depth still follows before the list returns to the
+ * ancestor's own depth or above.
  */
-export function computeTreeLines(depths: readonly number[]): TreeLines[] {
-    return depths.map((depth, index) => ({
-        lanes: Array.from({ length: depth }, (_, laneDepth) => laneState(depths, index, laneDepth, depth)),
-        parent: (depths[index + 1] ?? 0) > depth,
-    }));
+export function computeTreeLines(depths: readonly number[]): LaneState[][] {
+    return depths.map((depth, index) => {
+        const lanes = Array.from({ length: depth }, (_, laneDepth): LaneState => {
+            if (!hasAncestorAtDepth(depths, index, laneDepth)) {
+                return 'none';
+            }
+            const ancestorContinues = hasLaterChildAtDepth(depths, index, laneDepth + 1);
+            if (laneDepth === depth - 1) {
+                return ancestorContinues ? 'branch' : 'last';
+            }
+            return ancestorContinues ? 'pass' : 'none';
+        });
+        if (hasLaterChildAtDepth(depths, index, depth + 1)) {
+            lanes.push('drop');
+        }
+        return lanes;
+    });
 }
 
-function laneState(depths: readonly number[], index: number, laneDepth: number, rowDepth: number): LaneState {
-    const ancestorContinues = hasLaterChildAtDepth(depths, index, laneDepth + 1);
-    if (laneDepth === rowDepth - 1) {
-        return ancestorContinues ? 'branch' : 'last';
+/** Whether the nearest row before `index` at `ancestorDepth` or above sits exactly at `ancestorDepth`. */
+function hasAncestorAtDepth(depths: readonly number[], index: number, ancestorDepth: number): boolean {
+    for (let earlier = index - 1; earlier >= 0; earlier--) {
+        const earlierDepth = depths[earlier] ?? 0;
+        if (earlierDepth <= ancestorDepth) {
+            return earlierDepth === ancestorDepth;
+        }
     }
-    return ancestorContinues ? 'pass' : 'none';
+    return false;
 }
 
 /** Whether a row at `childDepth` follows `index` before the list climbs back to `childDepth - 1` or above. */
