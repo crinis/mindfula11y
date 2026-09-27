@@ -101,6 +101,60 @@ describe('Scan', () => {
         document.body.replaceChildren();
     });
 
+    it('offers the AI review toggle only for the scan modes TSconfig lists', async () => {
+        loadScanMock.mockResolvedValue(makeResult(ScanStatus.Completed));
+        const view = await mount('scan');
+        view.aiAuditAvailable = true;
+        view.aiAuditScanModes = ['single_url'];
+        await settle(view);
+        expect(view.renderRoot.querySelector('#ai-toggle-scan')).not.toBeNull();
+
+        // A page tree asks for a url_list scan, which is not listed.
+        view.createScanDemand = { ...demand, pageLevels: 1 };
+        await settle(view);
+        expect(view.renderRoot.querySelector('#ai-toggle-scan')).toBeNull();
+
+        view.aiAuditScanModes = ['single_url', 'url_list'];
+        await settle(view);
+        expect(view.renderRoot.querySelector('#ai-toggle-scan')).not.toBeNull();
+    });
+
+    it('never requests an AI review for a scan mode that is not listed, even when the review is the default', async () => {
+        loadScanMock.mockResolvedValue(makeResult(ScanStatus.Completed));
+        createScanMock.mockResolvedValue({ scanId: 'new-scan', status: ScanStatus.Pending });
+        const view = await mount('scan');
+        view.aiAuditAvailable = true;
+        view.aiAuditDefault = true;
+        view.aiAuditScanModes = ['single_url'];
+        view.createScanDemand = { ...demand, pageLevels: 5 };
+        await settle(view);
+
+        button(view, 'trigger').click();
+        await settle(view);
+
+        expect(createScanMock).toHaveBeenCalledWith(
+            expect.objectContaining({ pageLevels: 5 }),
+            false,
+            expect.anything(),
+        );
+    });
+
+    it('offers the AI review toggle on the crawl tab only when crawls are listed', async () => {
+        loadScanMock.mockResolvedValue(makeResult(ScanStatus.Completed));
+        const view = await mount('scan');
+        view.aiAuditAvailable = true;
+        view.aiAuditScanModes = ['single_url', 'url_list'];
+        view.crawlScanDemand = { ...demand, crawl: true };
+        await settle(view);
+        view.renderRoot.querySelector<HTMLElement>('[role="tab"]:nth-of-type(2)')?.click();
+        await settle(view);
+        expect(view.renderRoot.querySelector('#ai-toggle-crawl')).toBeNull();
+
+        view.aiAuditScanModes = ['crawl'];
+        await settle(view);
+        expect(view.renderRoot.querySelector('#ai-toggle-crawl')).not.toBeNull();
+    });
+
     it('ignores the trigger while a scan is running', async () => {
         loadScanMock.mockResolvedValue(makeResult(ScanStatus.Running));
         const view = await mount('running-scan');

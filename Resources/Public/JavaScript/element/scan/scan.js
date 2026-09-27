@@ -12,7 +12,7 @@ import { lll } from "@typo3/core/lit-helper.js";
 import { html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { LiveAnnouncer } from "../../lib/live-announcer.js";
-import { isScanInProgress, ScanStatus } from "../../lib/scan/types.js";
+import { isScanInProgress, ScanStatus, scanModeOf } from "../../lib/scan/types.js";
 import { renderImpactCountBadge, worstSeverity } from "../../lib/status-render.js";
 import { TabsController } from "../../lib/tabs.js";
 import { dispatch } from "../../lib/types.js";
@@ -35,6 +35,7 @@ let Scan = class extends LitElement {
     this.autoCreateScan = false;
     this.aiAuditAvailable = false;
     this.aiAuditDefault = false;
+    this.aiAuditScanModes = [];
     this.pageUrlFilter = [];
     this.urlList = [];
     this.reportBaseUrl = "";
@@ -96,6 +97,19 @@ let Scan = class extends LitElement {
   tabDemand(tab) {
     return tab === "scan" ? this.createScanDemand : this.crawlScanDemand;
   }
+  /**
+   * Whether the AI review may be offered for this tab's scan: TSconfig has
+   * to enable it and list the scan mode the tab's demand asks for — every
+   * scanned page is reviewed, and paid for, so page trees and crawls are
+   * separate opt-ins. The server enforces the same rule.
+   */
+  aiAuditAvailableFor(tab) {
+    const demand = this.tabDemand(tab);
+    if (!this.aiAuditAvailable || demand === null) {
+      return false;
+    }
+    return (this.aiAuditScanModes ?? []).includes(scanModeOf(demand));
+  }
   isScanRunning() {
     return this.controller.result !== null && isScanInProgress(this.controller.result.status);
   }
@@ -150,7 +164,7 @@ let Scan = class extends LitElement {
       actionBusy: this.actionBusy,
       actionError: this.actionError,
       loadErrorDescription: this.loadErrorDescription(),
-      aiAuditAvailable: this.aiAuditAvailable,
+      aiAuditAvailable: this.aiAuditAvailableFor(tab),
       aiAuditChecked: this.isAiAuditChecked(),
       reportBaseUrl: this.reportBaseUrl
     };
@@ -166,7 +180,7 @@ let Scan = class extends LitElement {
     this.actionBusy = true;
     this.actionError = null;
     try {
-      await this.controller.createScan(demand, this.aiAuditAvailable && this.isAiAuditChecked());
+      await this.controller.createScan(demand, this.aiAuditAvailableFor(tab) && this.isAiAuditChecked());
     } catch (error) {
       this.actionError = errorView(error, "mindfula11y.scan.error.createFailed");
     } finally {
@@ -238,6 +252,9 @@ __decorateClass([
 __decorateClass([
   property({ type: Boolean, attribute: "ai-audit-default" })
 ], Scan.prototype, "aiAuditDefault", 2);
+__decorateClass([
+  property({ type: Array, attribute: "ai-audit-scan-modes" })
+], Scan.prototype, "aiAuditScanModes", 2);
 __decorateClass([
   property({ type: Array, attribute: "page-url-filter" })
 ], Scan.prototype, "pageUrlFilter", 2);

@@ -42,15 +42,15 @@ Configure in **Admin Tools > Settings > Extension Configuration**.
 
 ![TYPO3 extension configuration screen for Mindful A11y showing OpenAI settings and scanner API URL/token settings](../Images/integrators-extension-settings.png)
 
-| Setting | Purpose |
-| --- | --- |
-| `openAIApiKey` | API key for AI alt text generation. |
-| `openAIChatModel` | Generation model: `gpt-5.4-mini`, `gpt-5.4-nano`, `gpt-5-mini`, `gpt-5-nano`, `gpt-5.1`, `gpt-5.2`. |
-| `openAIChatImageDetail` | Image analysis depth (`auto`, `low`, `high`) — quality vs. cost. |
-| `disableAltTextGeneration` | Turns AI generation off globally; manual alt editing stays. |
-| `scannerApiUrl` | Scanner base URL: protocol, host, optional port, no path. E.g. `http://localhost:3000` (MindfulAPI Docker default) or `https://scanner.example.com`. |
-| `scannerApiToken` | Bearer token for the scanner API, if enabled there. |
-| `enableValidationErrorTitlePrefix` | Prefixes the page title with `Error:` after failed EXT:form validation. Off by default. |
+| Setting | Default | Purpose |
+| --- | --- | --- |
+| `openAIApiKey` | _(empty)_ | API key for AI alt text generation. Empty disables generation. |
+| `openAIChatModel` | `gpt-5.4-mini` | Generation model: `gpt-5.4-mini`, `gpt-5.4-nano`, `gpt-5-mini`, `gpt-5-nano`, `gpt-5.1`, `gpt-5.2`. |
+| `openAIChatImageDetail` | `auto` | Image analysis depth (`auto`, `low`, `high`) — quality vs. cost. |
+| `disableAltTextGeneration` | `0` | Turns AI generation off globally; manual alt editing stays. |
+| `scannerApiUrl` | _(empty)_ | Scanner base URL: protocol, host, optional port, no path. E.g. `http://localhost:3000` (MindfulAPI Docker default) or `https://scanner.example.com`. Empty disables the scanner. |
+| `scannerApiToken` | _(empty)_ | Bearer token for the scanner API, if enabled there. |
+| `enableValidationErrorTitlePrefix` | `0` | Prefixes the page title with `Error:` after failed EXT:form validation. |
 
 ### Keeping secrets out of settings.php
 
@@ -92,6 +92,7 @@ mod {
             aiAudit {
                 enable = 0
                 default = 0
+                scanModes = single_url
                 # skills = image_alt_text,page_title
             }
         }
@@ -117,21 +118,22 @@ all `TCEFORM` options, it only adjusts the form; it is not an enforced restricti
 
 All `mod.*` paths below are relative to `mod.mindfula11y_accessibility` unless shown in full.
 
-| Option | Used for |
-| --- | --- |
-| `missingAltText.enable` | Shows the Missing alternative text feature. |
-| `missingAltText.ignoreColumns` | Excludes file fields from the check, per table: `ignoreColumns { <table> = <column>,<column> }`. |
-| `missingAltText.ignoreFileMetadata` | `0` (default): editors can filter out references covered by file metadata alt text, as TYPO3's `FileReference` renders it. `1`: require alt text on every file reference. |
-| `headingStructure.enable` | Enables the heading structure check. |
-| `landmarkStructure.enable` | Enables the landmark structure check. |
-| `scan.enable` | Enables the scanner. |
-| `scan.autoCreate` | Starts a new scan on module load when content changed. |
-| `scan.basicAuthUsername` | Deprecated — use `mindfula11y.scan.basicAuth.username` in the site configuration ([details](#scanning-pages-behind-http-basic-authentication)). |
-| `scan.basicAuthPassword` | Deprecated — use `mindfula11y.scan.basicAuth.password` in the site configuration. |
-| `scan.aiAudit.enable` | Offers the "Include AI review" toggle; needs MindfulAPI's agent feature ([AI review](#ai-review-agent-audit)). |
-| `scan.aiAudit.default` | Pre-selects the AI review toggle; editors can switch it off per scan. |
-| `scan.aiAudit.skills` | Optional comma-separated skill subset. Unset: every MindfulAPI-enabled skill. Empty: none. |
-| `mod.web_layout.mindfula11y.hideInfo` | Hides the Mindful A11y info box in the page module. |
+| Option | Default | Used for |
+| --- | --- | --- |
+| `missingAltText.enable` | `1` | Shows the Missing alternative text feature. |
+| `missingAltText.ignoreColumns` | _(unset)_ | Excludes file fields from the check, per table: `ignoreColumns { <table> = <column>,<column> }`. |
+| `missingAltText.ignoreFileMetadata` | `0` | `0`: editors can filter out references covered by file metadata alt text, as TYPO3's `FileReference` renders it. `1`: require alt text on every file reference. |
+| `headingStructure.enable` | `1` | Enables the heading structure check. |
+| `landmarkStructure.enable` | `1` | Enables the landmark structure check. |
+| `scan.enable` | `0` | Enables the scanner. |
+| `scan.autoCreate` | `1` | Starts a new scan on module load when content changed. |
+| `scan.basicAuthUsername` | _(unset)_ | Deprecated — use `mindfula11y.scan.basicAuth.username` in the site configuration ([details](#scanning-pages-behind-http-basic-authentication)). |
+| `scan.basicAuthPassword` | _(unset)_ | Deprecated — use `mindfula11y.scan.basicAuth.password` in the site configuration. |
+| `scan.aiAudit.enable` | `0` | Offers the "Include AI review" toggle; needs MindfulAPI's agent feature ([AI review](#ai-review-agent-audit)). |
+| `scan.aiAudit.default` | `0` | Pre-selects the AI review toggle; editors can switch it off per scan. |
+| `scan.aiAudit.scanModes` | `single_url` | Scan modes the AI review is offered and accepted for, as MindfulAPI names them: `single_url` (the current page), `url_list` (page with child levels), `crawl`. Every scanned page is reviewed and paid for, so widen deliberately; MindfulAPI's `AGENT_ALLOWED_SCAN_MODES` must list the modes too. |
+| `scan.aiAudit.skills` | _(unset)_ | Optional comma-separated skill subset. Unset: every MindfulAPI-enabled skill. Empty: none. |
+| `mod.web_layout.mindfula11y.hideInfo` | `0` | Hides the Mindful A11y info box in the page module. |
 
 ## Permissions checklist
 
@@ -292,6 +294,12 @@ mod.mindfula11y_accessibility.scan.aiAudit {
     enable = 1
     # Pre-select the toggle for new scans (editors can still switch it off per scan).
     default = 0
+    # Scan modes the review may run for, as MindfulAPI names them: single_url (the
+    # current page, the default), url_list (page with child levels), crawl. Every
+    # scanned page is reviewed (up to MindfulAPI's AGENT_MAX_UNITS_PER_SCAN), so
+    # widening this is a deliberate cost decision; MindfulAPI's
+    # AGENT_ALLOWED_SCAN_MODES must list the modes as well.
+    scanModes = single_url
     # Optional comma-separated subset. Leave unset to run every skill enabled
     # by MindfulAPI's AGENT_SKILLS setting. Set an empty value to run no skills.
     # skills = image_alt_text,page_title

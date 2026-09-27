@@ -22,6 +22,7 @@ declare(strict_types=1);
 
 namespace MindfulMarkup\MindfulA11y\Service;
 
+use MindfulMarkup\MindfulA11y\Enum\ScanMode;
 use MindfulMarkup\MindfulA11y\Tca\TranslationFields;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Exception\SiteNotFoundException;
@@ -335,6 +336,29 @@ final readonly class ModuleSettingsService
     public function hasAiAuditAccess(array $pageTsConfig): bool
     {
         return (bool)($this->moduleTsConfig($pageTsConfig)['scan']['aiAudit']['enable'] ?? false);
+    }
+
+    /**
+     * The scan modes the AI audit may run for, mirroring MindfulAPI's
+     * AGENT_ALLOWED_SCAN_MODES. Defaults to the current page alone: the
+     * review runs on every scanned page and is paid for per page, so allowing
+     * page trees (url_list) or full-site crawls (crawl) is an explicit
+     * decision per page tree. Unknown values are ignored; an unset or empty
+     * setting keeps the default.
+     *
+     * @param array<string, mixed> $pageTsConfig
+     * @return list<ScanMode>
+     */
+    public function getAiAuditScanModes(array $pageTsConfig): array
+    {
+        $configured = GeneralUtility::trimExplode(
+            ',',
+            (string)($this->moduleTsConfig($pageTsConfig)['scan']['aiAudit']['scanModes'] ?? ''),
+            true
+        );
+        $modes = array_values(array_filter(array_map(ScanMode::tryFrom(...), $configured)));
+
+        return $modes === [] ? [ScanMode::SingleUrl] : $modes;
     }
 
     /**

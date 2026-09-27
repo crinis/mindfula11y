@@ -23,7 +23,7 @@ import { html, LitElement, nothing } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { LiveAnnouncer } from '../../lib/live-announcer.js';
 import type { CreateScanDemand, ScanResult } from '../../lib/scan/types.js';
-import { isScanInProgress, ScanStatus } from '../../lib/scan/types.js';
+import { isScanInProgress, ScanStatus, scanModeOf } from '../../lib/scan/types.js';
 import { renderImpactCountBadge, worstSeverity } from '../../lib/status-render.js';
 import { type TabDescriptor, TabsController } from '../../lib/tabs.js';
 import { dispatch } from '../../lib/types.js';
@@ -66,6 +66,7 @@ export class Scan extends LitElement {
     @property({ type: Boolean, attribute: 'auto-create-scan' }) autoCreateScan: boolean = false;
     @property({ type: Boolean, attribute: 'ai-audit-available' }) aiAuditAvailable: boolean = false;
     @property({ type: Boolean, attribute: 'ai-audit-default' }) aiAuditDefault: boolean = false;
+    @property({ type: Array, attribute: 'ai-audit-scan-modes' }) aiAuditScanModes: string[] = [];
     @property({ type: Array, attribute: 'page-url-filter' }) pageUrlFilter: string[] = [];
     @property({ type: Array, attribute: 'url-list' }) urlList: string[] = [];
     @property({ attribute: 'report-base-url' }) reportBaseUrl: string = '';
@@ -120,6 +121,20 @@ export class Scan extends LitElement {
 
     private tabDemand(tab: ScanTab): CreateScanDemand | null {
         return tab === 'scan' ? this.createScanDemand : this.crawlScanDemand;
+    }
+
+    /**
+     * Whether the AI review may be offered for this tab's scan: TSconfig has
+     * to enable it and list the scan mode the tab's demand asks for — every
+     * scanned page is reviewed, and paid for, so page trees and crawls are
+     * separate opt-ins. The server enforces the same rule.
+     */
+    private aiAuditAvailableFor(tab: ScanTab): boolean {
+        const demand = this.tabDemand(tab);
+        if (!this.aiAuditAvailable || demand === null) {
+            return false;
+        }
+        return (this.aiAuditScanModes ?? []).includes(scanModeOf(demand));
     }
 
     private isScanRunning(): boolean {
@@ -188,7 +203,7 @@ export class Scan extends LitElement {
             actionBusy: this.actionBusy,
             actionError: this.actionError,
             loadErrorDescription: this.loadErrorDescription(),
-            aiAuditAvailable: this.aiAuditAvailable,
+            aiAuditAvailable: this.aiAuditAvailableFor(tab),
             aiAuditChecked: this.isAiAuditChecked(),
             reportBaseUrl: this.reportBaseUrl,
         };
@@ -225,7 +240,7 @@ export class Scan extends LitElement {
         try {
             // The "started" announcement fires from onTransition once the new
             // scan first loads; the controller suppresses the attribute id.
-            await this.controller.createScan(demand, this.aiAuditAvailable && this.isAiAuditChecked());
+            await this.controller.createScan(demand, this.aiAuditAvailableFor(tab) && this.isAiAuditChecked());
         } catch (error) {
             this.actionError = errorView(error, 'mindfula11y.scan.error.createFailed');
         } finally {

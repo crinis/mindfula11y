@@ -973,6 +973,14 @@
                 <source>The AI review is not enabled for this page. Ask your administrator to enable it in the page TSconfig.</source>
                 <target>Die KI-Prüfung ist für diese Seite nicht aktiviert. Bitten Sie Ihren Administrator, sie im Seiten-TSconfig zu aktivieren.</target>
             </trans-unit>
+            <trans-unit id="scan.error.aiAuditScanModeNotAllowed" resname="scan.error.aiAuditScanModeNotAllowed">
+                <source>AI review not allowed for this scan mode</source>
+                <target>KI-Prüfung für diesen Scan-Modus nicht erlaubt</target>
+            </trans-unit>
+            <trans-unit id="scan.error.aiAuditScanModeNotAllowed.description" resname="scan.error.aiAuditScanModeNotAllowed.description">
+                <source>The AI review is not enabled for scans of this scope here. Start the scan without the AI review, or ask your administrator to allow the scan mode in the page TSconfig.</source>
+                <target>Die KI-Prüfung ist hier für Scans dieses Umfangs nicht aktiviert. Starten Sie den Scan ohne KI-Prüfung oder bitten Sie Ihren Administrator, den Scan-Modus im Seiten-TSconfig zu erlauben.</target>
+            </trans-unit>
             <trans-unit id="scan.announce.started" resname="scan.announce.started">
                 <source>Scan started.</source>
                 <target>Scan gestartet.</target>

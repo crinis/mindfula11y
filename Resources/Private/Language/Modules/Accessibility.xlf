@@ -783,6 +783,12 @@
             <trans-unit id="scan.error.aiAuditNotAllowed.description" resname="scan.error.aiAuditNotAllowed.description">
                 <source>The AI review is not enabled for this page. Ask your administrator to enable it in the page TSconfig.</source>
             </trans-unit>
+            <trans-unit id="scan.error.aiAuditScanModeNotAllowed" resname="scan.error.aiAuditScanModeNotAllowed">
+                <source>AI review not allowed for this scan mode</source>
+            </trans-unit>
+            <trans-unit id="scan.error.aiAuditScanModeNotAllowed.description" resname="scan.error.aiAuditScanModeNotAllowed.description">
+                <source>The AI review is not enabled for scans of this scope here. Start the scan without the AI review, or ask your administrator to allow the scan mode in the page TSconfig.</source>
+            </trans-unit>
             <trans-unit id="scan.announce.started" resname="scan.announce.started">
                 <source>Scan started.</source>
             </trans-unit>

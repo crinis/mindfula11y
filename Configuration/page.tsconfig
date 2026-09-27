@@ -31,6 +31,12 @@ mod {
                 enable = 0
                 # Pre-select the toggle for new scans. Editors can still switch it off per scan.
                 default = 0
+                # Scan modes the AI review may run for, as MindfulAPI names them: single_url
+                # (the current page), url_list (the page with child levels), crawl (full-site
+                # crawl). Every scanned page is reviewed, up to MindfulAPI's per-scan unit
+                # cap, so widen this deliberately; MindfulAPI's AGENT_ALLOWED_SCAN_MODES must
+                # list the modes as well.
+                scanModes = single_url
                 # Optional subset. Leave unset to run every skill enabled on MindfulAPI.
                 # Set an empty value to run no AI skills.
                 # skills = image_alt_text,page_title

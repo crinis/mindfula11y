@@ -1,3 +1,4 @@
 "pages"
 ,"uid","pid","title","doktype","slug","is_siteroot","hidden","editlock","sys_language_uid","l10n_parent","perms_userid","perms_groupid","perms_user","perms_group","perms_everybody","TSconfig"
 ,500,1,"Scan Disabled FR",1,"/scan-disabled-fr",0,0,0,1,17,0,0,0,0,19,""
+,501,19,"Ai Audit Multi Page",1,"/ai-audit/multi-page",0,0,0,0,0,0,0,0,0,19,"mod.mindfula11y_accessibility.scan.aiAudit.scanModes = single_url, url_list"

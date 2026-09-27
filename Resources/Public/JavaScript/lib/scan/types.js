@@ -10,6 +10,13 @@ var ScanStatus = /* @__PURE__ */ ((ScanStatus2) => {
 function isScanInProgress(status) {
   return status === "pending" /* Pending */ || status === "running" /* Running */ || status === "analyzing" /* Analyzing */;
 }
+const SCAN_MODES = ["single_url", "url_list", "crawl"];
+function scanModeOf(demand) {
+  if (demand.crawl) {
+    return "crawl";
+  }
+  return demand.pageLevels > 0 ? "url_list" : "single_url";
+}
 var AiAuditStatus = /* @__PURE__ */ ((AiAuditStatus2) => {
   AiAuditStatus2["Skipped"] = "skipped";
   AiAuditStatus2["Pending"] = "pending";
@@ -19,6 +26,8 @@ var AiAuditStatus = /* @__PURE__ */ ((AiAuditStatus2) => {
 })(AiAuditStatus || {});
 export {
   AiAuditStatus,
+  SCAN_MODES,
   ScanStatus,
-  isScanInProgress
+  isScanInProgress,
+  scanModeOf
 };

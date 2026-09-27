@@ -22,6 +22,7 @@
       {f:if(condition: autoCreateScan, then: 'auto-create-scan')}
       {f:if(condition: aiAuditAvailable, then: 'ai-audit-available')}
       {f:if(condition: aiAuditDefault, then: 'ai-audit-default')}
+      ai-audit-scan-modes="{aiAuditScanModes -> f:format.json()}"
     ></mindfula11y-scan>
   </f:section>
 </html>

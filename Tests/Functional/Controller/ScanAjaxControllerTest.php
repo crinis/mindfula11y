@@ -267,6 +267,38 @@ final class ScanAjaxControllerTest extends AbstractAuthorizationTestCase
         $this->assertErrorResponse($response, 500, 'scan.error.notConfigured');
     }
 
+    public function testCreateActionAiAuditRefusesScanModesNotListedInPageTsConfig(): void
+    {
+        // Page 19 enables the AI review without listing scan modes, so only the
+        // current page (single_url) may be reviewed: a page tree would review,
+        // and pay for, every page in it.
+        $this->logInBackendUser(2);
+        $payload = $this->signedCreateDemandPayload(2, 19, previewUrl: 'https://example.com/ai-audit', pageLevels: 1)
+            + ['aiAudit' => true];
+
+        $response = $this->controller()->createAction($this->createJsonRequest($payload));
+
+        $this->assertErrorResponse($response, 403, 'scan.error.aiAuditScanModeNotAllowed');
+    }
+
+    public function testCreateActionAiAuditAllowsAListedScanModeAndStillRefusesAnUnlistedOne(): void
+    {
+        // Page 501 inherits the AI review from page 19 and lists single_url and
+        // url_list: a page tree passes the gate through to the scan-API failure
+        // branch, a crawl is still refused.
+        $this->logInBackendUser(2);
+        $treePayload = $this->signedCreateDemandPayload(2, 501, previewUrl: 'https://example.com/ai-audit/multi-page', pageLevels: 1)
+            + ['aiAudit' => true];
+        $crawlPayload = $this->signedCreateDemandPayload(2, 501, previewUrl: 'https://example.com/ai-audit/multi-page', crawl: true)
+            + ['aiAudit' => true];
+
+        $treeResponse = $this->controller()->createAction($this->createJsonRequest($treePayload));
+        $crawlResponse = $this->controller()->createAction($this->createJsonRequest($crawlPayload));
+
+        $this->assertErrorResponse($treeResponse, 500, 'scan.error.notConfigured');
+        $this->assertErrorResponse($crawlResponse, 403, 'scan.error.aiAuditScanModeNotAllowed');
+    }
+
     public function testCreateActionNonexistentPageReturnsPageNotFound(): void
     {
         // The page lookup runs before the TSconfig gate: a uid with no

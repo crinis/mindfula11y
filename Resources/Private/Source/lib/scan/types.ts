@@ -49,6 +49,22 @@ export interface CreateScanDemand {
     readonly signature: string;
 }
 
+/** MindfulAPI's scan modes, as it names them (and as its AGENT_ALLOWED_SCAN_MODES setting lists them). */
+export const SCAN_MODES = ['single_url', 'url_list', 'crawl'] as const;
+export type ScanMode = (typeof SCAN_MODES)[number];
+
+/**
+ * The scan mode a demand asks for: a crawl, the page with child levels (a URL
+ * list), or the current page alone. The requested scope decides, not the
+ * number of URLs it later resolves to.
+ */
+export function scanModeOf(demand: Pick<CreateScanDemand, 'pageLevels' | 'crawl'>): ScanMode {
+    if (demand.crawl) {
+        return 'crawl';
+    }
+    return demand.pageLevels > 0 ? 'url_list' : 'single_url';
+}
+
 /** Lifecycle of the optional AI audit inside a scan (distinct from ScanStatus). */
 export enum AiAuditStatus {
     Skipped = 'skipped',

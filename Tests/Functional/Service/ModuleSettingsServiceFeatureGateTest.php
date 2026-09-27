@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace MindfulMarkup\MindfulA11y\Tests\Functional\Service;
 
+use MindfulMarkup\MindfulA11y\Enum\ScanMode;
 use MindfulMarkup\MindfulA11y\Service\ModuleSettingsService;
 use MindfulMarkup\MindfulA11y\Tests\Functional\AbstractAuthorizationTestCase;
 
@@ -41,6 +42,28 @@ final class ModuleSettingsServiceFeatureGateTest extends AbstractAuthorizationTe
     private function subject(): ModuleSettingsService
     {
         return $this->get(ModuleSettingsService::class);
+    }
+
+    public function testAiReviewScanModesDefaultToTheCurrentPageAndFollowPageTsConfig(): void
+    {
+        $subject = $this->subject();
+
+        // Page 19 enables the AI review without naming modes; page 501 lists two of them.
+        self::assertSame([ScanMode::SingleUrl], $subject->getAiAuditScanModes($subject->getConvertedPageTsConfig(19)));
+        self::assertSame(
+            [ScanMode::SingleUrl, ScanMode::UrlList],
+            $subject->getAiAuditScanModes($subject->getConvertedPageTsConfig(501))
+        );
+    }
+
+    public function testAiReviewScanModesIgnoreUnknownValuesAndKeepTheDefaultWhenNothingIsLeft(): void
+    {
+        $subject = $this->subject();
+        $tsConfig = ['mod' => ['mindfula11y_accessibility' => ['scan' => ['aiAudit' => ['scanModes' => 'crawl, everything']]]]];
+        $emptyTsConfig = ['mod' => ['mindfula11y_accessibility' => ['scan' => ['aiAudit' => ['scanModes' => '']]]]];
+
+        self::assertSame([ScanMode::Crawl], $subject->getAiAuditScanModes($tsConfig));
+        self::assertSame([ScanMode::SingleUrl], $subject->getAiAuditScanModes($emptyTsConfig));
     }
 
     public function testScanGateFollowsPageTsConfig(): void

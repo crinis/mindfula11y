@@ -22,6 +22,7 @@ declare(strict_types=1);
 
 namespace MindfulMarkup\MindfulA11y\Backend;
 
+use MindfulMarkup\MindfulA11y\Enum\ScanMode;
 use MindfulMarkup\MindfulA11y\Service\DemandSignatureService;
 use MindfulMarkup\MindfulA11y\Tca\TranslationFields;
 use MindfulMarkup\MindfulA11y\Service\ModuleSettingsService;
@@ -145,7 +146,8 @@ final readonly class ScanFeatureRenderer
         $reportBaseUrl = (string)$this->backendUriBuilder->buildUriFromRoute('mindfula11y_scanreport');
 
         // The AI audit toggle is only offered when TSConfig enables it and the
-        // user can trigger scans at all; the skill list is shown for transparency.
+        // user can trigger scans at all, and only for the allowed scan modes,
+        // which the element applies per tab and scan scope.
         $aiAuditAvailable = $canTriggerScan && $this->moduleSettingsService->hasAiAuditAccess($context->pageTsConfig);
         $context->moduleTemplate->assignMultiple([
             ...$scanCardState,
@@ -154,6 +156,7 @@ final readonly class ScanFeatureRenderer
             'reportBaseUrl' => $reportBaseUrl,
             'aiAuditAvailable' => $aiAuditAvailable,
             'aiAuditDefault' => $aiAuditAvailable && $this->moduleSettingsService->isAiAuditDefaultEnabled($context->pageTsConfig),
+            'aiAuditScanModes' => array_map(static fn(ScanMode $mode): string => $mode->value, $this->moduleSettingsService->getAiAuditScanModes($context->pageTsConfig)),
         ]);
 
         $this->pageRenderer->loadJavaScriptModule('@mindfulmarkup/mindfula11y/element/scan/scan.js');

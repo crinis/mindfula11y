@@ -23,6 +23,7 @@ declare(strict_types=1);
 
 namespace MindfulMarkup\MindfulA11y\Service;
 
+use MindfulMarkup\MindfulA11y\Enum\ScanMode;
 use MindfulMarkup\MindfulA11y\Exception\ScanApiRequestException;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Log\LoggerInterface;
@@ -327,7 +328,7 @@ final readonly class ScanApiService
 
         if ($crawl) {
             $requestBody = [
-                'mode' => 'crawl',
+                'mode' => ScanMode::Crawl->value,
                 'startUrls' => array_values($urls),
             ];
             if (!empty($crawlOptions)) {
@@ -335,12 +336,12 @@ final readonly class ScanApiService
             }
         } elseif (count($urls) === 1) {
             $requestBody = [
-                'mode' => 'single_url',
+                'mode' => ScanMode::SingleUrl->value,
                 'url' => $urls[0],
             ];
         } else {
             $requestBody = [
-                'mode' => 'url_list',
+                'mode' => ScanMode::UrlList->value,
                 'urls' => array_values($urls),
             ];
         }
