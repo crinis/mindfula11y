@@ -26,10 +26,11 @@
  * The container query needs an ancestor with `container-type: inline-size`
  * — every adopting component sets it on its wrapper element.
  *
- * `--mindfula11y-tabs-gap` (parent-overridable, §4.C): the column gap of the
- * flex container holding the panels. Each container declares it on that
- * wrapper and lays its column out with it, so the inactive-panel gap
- * cancellation below always cancels exactly one gap.
+ * `--mindfula11y-tabs-gap` (component-owned, §4.C): the column gap of the
+ * flex container holding the panels — a value shared between the adopting
+ * component and this pattern, not an ancestor theming point. Each container
+ * declares it on its own wrapper and lays its column out with it, so the
+ * inactive-panel gap cancellation below always cancels exactly one gap.
  */
 @layer component {
     /* Segmented control track; the selected tab reads as the raised segment. */
