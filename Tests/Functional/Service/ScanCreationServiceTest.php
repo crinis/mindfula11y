@@ -153,4 +153,68 @@ final class ScanCreationServiceTest extends AbstractAuthorizationTestCase
         $body = json_decode((string)$this->sentRequestOptions[0]['body'], true, flags: JSON_THROW_ON_ERROR);
         self::assertSame(['https://example.com/**'], $body['crawlOptions']['globs'] ?? null);
     }
+
+    private function createMultiPage(int $pageId, string $previewUrl): void
+    {
+        $page = BackendUtility::getRecord('pages', $pageId);
+        self::assertIsArray($page);
+
+        $this->subject()->create(
+            new CreateScanDemand(
+                userId: 1,
+                pageId: $pageId,
+                previewUrl: $previewUrl,
+                languageId: 0,
+                workspaceId: 0,
+                pageRecordSnapshot: str_repeat('a', 64),
+                pageLevels: 1,
+            ),
+            $page,
+            [],
+            false,
+            null,
+        );
+    }
+
+    /**
+     * A multi-level scan skips frontend-restricted pages. When the whole
+     * subtree is restricted (910 with fe_group + extendToSubpages, its child
+     * 911 inherits it), falling back to the start page would scan its login
+     * wall — the scan is refused like a single-page scan of that page.
+     */
+    public function testMultiPageScanOfAFullyRestrictedSubtreeIsRefused(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/PagePreviewSupplement.csv');
+        $this->writeDefaultSiteConfiguration();
+        $this->logInBackendUser(1);
+
+        try {
+            $this->createMultiPage(910, 'https://example.com/members');
+            self::fail('the scan must be refused');
+        } catch (ScanCreationException $exception) {
+            self::assertSame('scan.error.pageRestricted', $exception->labelKey);
+            self::assertSame(403, $exception->statusCode);
+        }
+        self::assertSame([], $this->sentRequestOptions, 'no scan request reaches the scanner');
+    }
+
+    /**
+     * Anti-vacuous counterpart: an accessible start page whose subtree yields
+     * no URL (no site configuration, so no preview URL can be built) keeps
+     * falling back to the start page's own preview URL.
+     */
+    public function testMultiPageScanOfAnAccessibleStartPageFallsBackToItsPreviewUrl(): void
+    {
+        $this->logInBackendUser(1);
+
+        try {
+            $this->createMultiPage(10, 'https://example.com/editable');
+        } catch (ScanCreationException) {
+            // The stubbed scanner is unreachable; only the sent request matters.
+        }
+
+        self::assertCount(1, $this->sentRequestOptions);
+        $body = json_decode((string)$this->sentRequestOptions[0]['body'], true, flags: JSON_THROW_ON_ERROR);
+        self::assertSame('https://example.com/editable', $body['url'] ?? null);
+    }
 }

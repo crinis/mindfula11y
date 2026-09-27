@@ -142,6 +142,13 @@ final readonly class ScanCreationService
                 $demand->getLanguageId(),
                 $demand->getPageLevels(),
             );
+            // generatePageUrls() skips frontend-restricted pages. When nothing
+            // is left and the start page itself is restricted, falling back to
+            // its preview URL would scan the login wall — refuse it like the
+            // single-page gate in ScanAjaxController::createAction().
+            if (empty($scanUrls) && !$this->pagePreviewService->isPageFrontendAccessible($page)) {
+                throw new ScanCreationException('scan.error.pageRestricted', 403);
+            }
         }
 
         // Always include the current page's preview URL
