@@ -85,25 +85,54 @@ describe('HeadingStructure', () => {
         expect(view.renderRoot.querySelector('.view > [data-scope="page"]')).toBeNull();
     });
 
-    it('marks indented rows as nested and top-level rows as not, so only the former draw a tree elbow', async () => {
+    /** The decorative lanes of a list item, an empty lane (nothing drawn) reading as 'none'. */
+    const laneStates = (node: HTMLElement): string[] =>
+        Array.from(node.querySelectorAll('[aria-hidden="true"] > *')).map(
+            (lane) => lane.getAttribute('data-line') ?? 'none',
+        );
+
+    it('gives every row its indent, one decorative lane per crossed depth, and marks rows with children', async () => {
         const view = await mount([
             makeNode('h1', {
                 level: 1,
-                children: [makeNode('h2', { level: 2, children: [makeNode('h3', { level: 3 })] })],
+                children: [
+                    makeNode('h2a', { level: 2, children: [makeNode('h3', { level: 3 })] }),
+                    makeNode('h2b', { level: 2 }),
+                ],
             }),
         ]);
 
-        const nested = Array.from(view.renderRoot.querySelectorAll<HTMLElement>('li.node')).map((node) => ({
+        const rows = Array.from(view.renderRoot.querySelectorAll<HTMLElement>('li.node')).map((node) => ({
             indent: node.style.getPropertyValue('--mindfula11y-heading-structure-indent'),
-            nested: node.hasAttribute('data-nested'),
+            parent: node.hasAttribute('data-parent'),
+            lanes: laneStates(node),
         }));
 
-        // The elbow reaches from the rail of the row's parent depth, so the
-        // rows at depth 0 must not draw one — there is no gutter to draw it in.
-        expect(nested).toEqual([
-            { indent: '0', nested: false },
-            { indent: '1', nested: true },
-            { indent: '2', nested: true },
+        // The list is flat, so the tree lines are computed per row: the h1's
+        // rail passes the h3 to reach h2b, and h2b is the h1's last child.
+        expect(rows).toEqual([
+            { indent: '0', parent: true, lanes: [] },
+            { indent: '1', parent: true, lanes: ['branch'] },
+            { indent: '2', parent: false, lanes: ['pass', 'last'] },
+            { indent: '1', parent: false, lanes: ['last'] },
+        ]);
+    });
+
+    it('draws a missing-level placeholder as the parent its skipping heading hangs off', async () => {
+        const view = await mount([
+            makeNode('h1', { level: 1, children: [makeNode('h3', { level: 3, skippedLevels: 1 })] }),
+        ]);
+
+        const rows = Array.from(view.renderRoot.querySelectorAll<HTMLElement>('li.node')).map((node) => ({
+            kind: node.getAttribute('data-issue-kind'),
+            parent: node.hasAttribute('data-parent'),
+            lanes: laneStates(node),
+        }));
+
+        expect(rows).toEqual([
+            { kind: null, parent: true, lanes: [] },
+            { kind: 'missing-level', parent: true, lanes: ['last'] },
+            { kind: null, parent: false, lanes: ['none', 'last'] },
         ]);
     });
 

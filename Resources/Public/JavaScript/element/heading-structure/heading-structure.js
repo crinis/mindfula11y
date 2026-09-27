@@ -18,6 +18,7 @@ import { impactState, renderViewportBadges, worstSeverity } from "../../lib/stat
 import { HEADING_ERROR_KEYS } from "../../lib/structure/types.js";
 import { StructureView } from "../structure-view/structure-view.js";
 import componentStyles from "./heading-structure.css.js";
+import { computeTreeLines } from "./tree-lines.js";
 let HeadingStructure = class extends StructureView {
   constructor() {
     super(...arguments);
@@ -104,21 +105,34 @@ let HeadingStructure = class extends StructureView {
     const targetId = node.relation?.targetRelationId ?? "";
     return targetId !== "" && this.knownRelationIds.has(targetId);
   }
+  /**
+   * The tree lines are computed over the finished flat list (see
+   * computeTreeLines()), so the rows are collected first and rendered into
+   * their list items second. Page-level findings precede the tree as
+   * unindented rows that take no part in it.
+   */
   renderTree(nodes) {
+    const entries = this.flattenTree(nodes, 0);
+    const treeLines = computeTreeLines(entries.map((entry) => entry.depth));
     return html`<ol class="surface tree">
             ${this.pageErrors.map((error) => this.renderPageIssueItem(error))}
             ${repeat(
-      this.flattenTree(nodes, 0),
-      (item) => item.key,
-      (item) => item.template
+      entries,
+      (entry) => entry.key,
+      (entry, index) => this.renderListItem(entry, treeLines[index] ?? { lanes: [], parent: false })
     )}
         </ol>`;
   }
   /** A page-level heading finding has no affected node, so it becomes its own unindented issue row. */
   renderPageIssueItem(error) {
     return this.renderListItem(
-      this.renderHeadingRow({ errors: [error], issueOptions: () => ({ pageScope: true }) }),
-      { issueKind: "page" }
+      {
+        key: `page-${error.key}`,
+        depth: 0,
+        content: this.renderHeadingRow({ errors: [error], issueOptions: () => ({ pageScope: true }) }),
+        issueKind: "page"
+      },
+      { lanes: [], parent: false }
     );
   }
   /**
@@ -130,19 +144,21 @@ let HeadingStructure = class extends StructureView {
    * skipping heading at the absent levels' indents.
    */
   flattenTree(nodes, parentIndent) {
-    const items = [];
+    const entries = [];
     for (const node of nodes) {
       for (let missingLevel = node.level - node.skippedLevels; missingLevel < node.level; missingLevel++) {
-        items.push({
-          key: `${node.id}#missing-${missingLevel}`,
-          template: this.renderPlaceholderItem(node, missingLevel)
-        });
+        entries.push(this.placeholderEntry(node, missingLevel));
       }
       const indent = node.kind === "heading" ? node.level : this.containerIndent(node, parentIndent);
-      items.push({ key: node.id, template: this.renderItem(node, indent) });
-      items.push(...this.flattenTree(node.children, indent));
+      entries.push({
+        key: node.id,
+        depth: indent - 1,
+        content: this.renderRow(node),
+        focusLabelId: this.rowLabelId(node.id)
+      });
+      entries.push(...this.flattenTree(node.children, indent));
     }
-    return items;
+    return entries;
   }
   /**
    * A container or demoted row's indent expresses its parental role, one
@@ -158,33 +174,37 @@ let HeadingStructure = class extends StructureView {
     }
     return node.level > 0 ? node.level : parentIndent + 1;
   }
-  renderItem(node, indent) {
-    return this.renderListItem(this.renderRow(node), {
-      indent,
-      focusLabelId: this.rowLabelId(node.id)
-    });
-  }
   /** Visible row content that names the native list-item focus fallback. */
   rowLabelId(nodeId) {
     return `heading-row-label-${nodeId}`;
   }
   /**
-   * The single list-item shell used by every ordinary and issue-only row.
-   * The indent factor the tree lines are drawn from is a runtime value, so
-   * it rides on the style attribute; `data-nested` marks the rows that have
-   * a parent depth to draw an elbow from, which CSS cannot derive from that
-   * value on its own.
+   * The single list-item shell used by every ordinary and issue-only row:
+   * the tree lines, then the row. The indent factor the stylesheet insets
+   * and draws the lines by is a runtime value, so it rides on the style
+   * attribute. The list is flat, so neither "this row has children"
+   * (`data-parent`, the row draws the drop into its children's rail) nor
+   * the state of each crossed depth (one lane element per depth) can be
+   * derived from nesting — both come from computeTreeLines().
+   *
+   * The lanes are purely decorative and hidden from assistive technology:
+   * every row already announces its heading level, which carries the
+   * hierarchy. Lanes never hold DOM state, so a positional map suffices.
    */
-  renderListItem(content, options) {
-    const indent = options.indent === void 0 ? 0 : options.indent - 1;
+  renderListItem(entry, treeLines) {
     return html`<li
             class="node"
-            data-issue-kind=${options.issueKind ?? nothing}
-            data-focus-fallback=${options.focusLabelId ?? nothing}
-            ?data-nested=${indent > 0}
-            style=${options.indent === void 0 ? nothing : `--mindfula11y-heading-structure-indent: ${indent}`}
+            data-issue-kind=${entry.issueKind ?? nothing}
+            data-focus-fallback=${entry.focusLabelId ?? nothing}
+            ?data-parent=${treeLines.parent}
+            style="--mindfula11y-heading-structure-indent: ${entry.depth}"
         >
-            ${content}
+            <span class="lanes" aria-hidden="true">
+                ${treeLines.lanes.map(
+      (state) => html`<span class="lane" data-line=${state === "none" ? nothing : state}></span>`
+    )}
+            </span>
+            ${entry.content}
         </li>`;
   }
   /**
@@ -192,15 +212,17 @@ let HeadingStructure = class extends StructureView {
    * missing level's own step. The level directly above the skipping heading
    * carries the `skip-…` id its describedby references.
    */
-  renderPlaceholderItem(node, missingLevel) {
+  placeholderEntry(node, missingLevel) {
     const error = node.errors.find((candidate) => candidate.key === HEADING_ERROR_KEYS.skippedLevel) ?? {
       key: HEADING_ERROR_KEYS.skippedLevel,
       severity: "moderate",
       nodeId: node.id,
       viewports: node.viewports
     };
-    return this.renderListItem(
-      this.renderHeadingRow({
+    return {
+      key: `${node.id}#missing-${missingLevel}`,
+      depth: missingLevel - 1,
+      content: this.renderHeadingRow({
         errors: [error],
         issueId: missingLevel === node.level - 1 ? `skip-${node.id}` : void 0,
         issueOptions: () => ({
@@ -208,8 +230,8 @@ let HeadingStructure = class extends StructureView {
           labelArguments: [missingLevel]
         })
       }),
-      { issueKind: "missing-level", indent: missingLevel }
-    );
+      issueKind: "missing-level"
+    };
   }
   /**
    * Errors rendered as cues inside the affected row itself. Every node

@@ -54,12 +54,27 @@
             var(--mindfula11y-heading-structure-lane) /
             2
         );
+        /* The rows' own block padding, and the height of the level chip's
+           centre above the row's top edge — the line every elbow and corner
+           sits on. */
+        --mindfula11y-heading-structure-row-padding: var(--mindfula11y-space-2xs);
+        --mindfula11y-heading-structure-chip-center: calc(
+            var(--mindfula11y-heading-structure-row-padding) +
+            var(--mindfula11y-control-height) /
+            2
+        );
         /*
-         * The tree line: dots on a pitch of five times their radius, drawn
-         * identically along the vertical rails and the horizontal elbows so
-         * both read as one dotted system. `em` keeps the texture proportional
-         * to the text at any root font size — the tree inherits the host's own
-         * size, so this is the root scale.
+         * The tree line is dotted: one dot per pitch along the vertical rails
+         * and the horizontal elbows alike. Neither pitch is picked freely —
+         * both are derived from the geometry the lines connect, so that every
+         * junction lands ON a dot instead of between two:
+         * - vertically, the chip centre is exactly five pitches below the
+         *   row's top edge, and a single-line row (two chip centres tall) is
+         *   exactly ten, so the dot grid runs on across row seams;
+         * - horizontally, neighbouring rails are one indent step apart, and
+         *   an elbow crosses that step in exactly three pitches.
+         * Both come out near 5–6px at the default size and, like every other
+         * length here, scale with the text.
          *
          * A dotted line puts roughly half the ink of a solid one on the page,
          * so it is mixed down from the subtle text color rather than drawn in
@@ -67,21 +82,9 @@
          * (the level text and the indent carry the depth), just legible.
          */
         --mindfula11y-heading-structure-tree-line-dot: 0.0625em;
-        --mindfula11y-heading-structure-tree-line-pitch: 0.3125em;
+        --mindfula11y-heading-structure-tree-line-pitch: calc(var(--mindfula11y-heading-structure-chip-center) / 5);
+        --mindfula11y-heading-structure-tree-line-pitch-x: calc(var(--mindfula11y-heading-structure-step) / 3);
         --mindfula11y-heading-structure-tree-line: color-mix(in srgb, var(--mindfula11y-text-subtle) 45%, transparent);
-        /*
-         * One dot, one recipe: both the rails and the elbows tile this image,
-         * so they read as a single dotted system. The rails sit the dot on the
-         * lane center of the depth they cross, everything else centers it —
-         * `--…-dot-x` is the only thing that varies.
-         */
-        --mindfula11y-heading-structure-tree-line-image: radial-gradient(
-            circle at var(--mindfula11y-heading-structure-dot-x, 50%) 50%,
-            var(--mindfula11y-heading-structure-tree-line) 0 var(--mindfula11y-heading-structure-tree-line-dot),
-            transparent var(--mindfula11y-heading-structure-tree-line-dot)
-        );
-        /* The rows' own block padding — the elbow centers on it (see .node). */
-        --mindfula11y-heading-structure-row-padding: var(--mindfula11y-space-2xs);
 
         padding-block: var(--mindfula11y-space-3xs);
 
@@ -99,27 +102,6 @@
      * is a purely visual aid derived from the level — the announced levels
      * carry the semantics regardless. The indent factor is a runtime value the
      * component sets per item (--mindfula11y-heading-structure-indent).
-     *
-     * The gutter carries the tree lines. A dotted rail runs down every crossed
-     * depth, on the lane center of the row that owns that depth, and a dotted
-     * elbow reaches from the rail of the row's own parent depth across to its
-     * level chip — so a heading, the rail past its children and the elbow into
-     * each of them are one connected figure. Rows sit flush against each other
-     * (no list gap) so a rail never breaks at a row seam.
-     *
-     * A rail stops where the structure does: it is drawn per row, over that
-     * row's own gutter, so the last row deep enough to cross a depth is the
-     * last one to draw its rail — the line ends there without anyone having to
-     * compute last-child.
-     *
-     * Both lines are one tile pattern: a dot at the rail offset, repeated
-     * every step across and every pitch down (background tiles clip to the
-     * gutter, so a row only ever paints the depths it actually crosses).
-     *
-     * Below the first breakpoint the indent step is at its smallest to keep
-     * deep structures inside a 320px viewport, which puts the rails closer
-     * together than the elbow is long — the lines are dropped there rather
-     * than drawn as a hatch, and the indent carries the depth alone.
      */
     .node {
         position: relative;
@@ -127,58 +109,119 @@
             var(--mindfula11y-heading-structure-indent, 0) *
             var(--mindfula11y-heading-structure-step)
         );
+    }
+
+    /*
+     * The tree lines live in the indent gutter: one lane per depth the row is
+     * inset by, each one indent step wide. The list is flat, so the component
+     * computes what every lane shows (the "│ ├ └" of a directory listing,
+     * carried as `data-line`) and which rows have children (`data-parent`);
+     * nothing here can be derived from nesting.
+     *
+     * Every line piece is painted from a box whose edges coincide with a
+     * lane's — starting on a whole number of steps, spanning the full row
+     * height — and places its dots by the same fractional offsets. Boxes with
+     * identical edges snap to device pixels identically, which is what lets a
+     * parent's drop continue into its children's rail without a one-pixel
+     * step, on any zoom level.
+     *
+     * Rows sit flush (no list gap), so a rail never breaks at a row seam. The
+     * lanes float above the row so the elbow's end is not covered by the
+     * row's hover background; they take no pointer events of their own.
+     *
+     * Below the first breakpoint the indent step is at its smallest to keep
+     * deep structures inside a 320px viewport, which puts the rails closer
+     * together than an elbow is long — the lines are dropped there, and the
+     * indent carries the depth alone.
+     */
+    .lanes {
+        position: absolute;
+        inset-block: 0;
+        inset-inline-start: 0;
+        z-index: 1;
+        display: none;
+        pointer-events: none;
 
         @container (inline-size >= 36rem) {
-            &::before {
-                --mindfula11y-heading-structure-dot-x: var(--mindfula11y-heading-structure-rail-offset);
-
-                position: absolute;
-                inset-block: 0;
-                inset-inline-start: 0;
-                inline-size: calc(
-                    var(--mindfula11y-heading-structure-indent, 0) *
-                    var(--mindfula11y-heading-structure-step)
-                );
-                content: "";
-                background-image: var(--mindfula11y-heading-structure-tree-line-image);
-                background-size: var(--mindfula11y-heading-structure-step)
-                    var(--mindfula11y-heading-structure-tree-line-pitch);
-            }
-
-            /*
-             * The elbow into a row, on the axis of its level chip: it starts on
-             * the parent depth's rail and crosses the lane to the chip, so the
-             * row is visibly hung off the level above it. Only indented rows
-             * have a parent depth to come from — the attribute is what keeps
-             * the stub off the top-level rows, where it would otherwise be
-             * drawn outside the gutter.
-             */
-            &[data-nested]::after {
-                position: absolute;
-                /* The row's block padding plus half the chip, less half the line's
-                   own thickness — centered on the chip, not hung from its center. */
-                inset-block-start: calc(
-                    var(--mindfula11y-heading-structure-row-padding) +
-                    var(--mindfula11y-control-height) /
-                    2 -
-                    var(--mindfula11y-heading-structure-tree-line-dot)
-                );
-                inset-inline-start: calc(
-                    var(--mindfula11y-heading-structure-rail-offset) +
-                    (var(--mindfula11y-heading-structure-indent, 0) - 1) *
-                    var(--mindfula11y-heading-structure-step)
-                );
-                inline-size: calc(
-                    var(--mindfula11y-heading-structure-step) +
-                    var(--mindfula11y-heading-structure-lane) /
-                    2
-                );
-                block-size: calc(2 * var(--mindfula11y-heading-structure-tree-line-dot));
-                content: "";
-                background-image: var(--mindfula11y-heading-structure-tree-line-image);
-                background-size: var(--mindfula11y-heading-structure-tree-line-pitch) 100%;
-            }
+            display: flex;
         }
+    }
+
+    /*
+     * A lane's rail: the full row height while the ancestor continues below
+     * this row, cut at the chip centre when this row is its last child. A
+     * lane's elbow: from its rail across the next lane and the row's own lane
+     * to the level chip.
+     */
+    .lane {
+        position: relative;
+        inline-size: var(--mindfula11y-heading-structure-step);
+
+        &[data-line]::before {
+            position: absolute;
+            inset: 0;
+            content: "";
+        }
+
+        &[data-line="last"]::before {
+            clip-path: inset(0 0 calc(100% - var(--mindfula11y-heading-structure-chip-center)) 0);
+        }
+
+        &[data-line="branch"]::after,
+        &[data-line="last"]::after {
+            position: absolute;
+            inset-block: 0;
+            inset-inline-start: 0;
+            inline-size: calc(
+                var(--mindfula11y-heading-structure-step) +
+                var(--mindfula11y-heading-structure-bar) +
+                var(--mindfula11y-heading-structure-lane)
+            );
+            content: "";
+        }
+    }
+
+    /*
+     * The four line pieces, two recipes. A RAIL tiles one dot column on the
+     * rail offset down the row, shifted up by half a pitch so the dots sit ON
+     * the grid lines (the fifth on the chip centre). An ELBOW tiles one dot
+     * row along the chip centre, with its first dot placed on the rail and the
+     * tiles before it clipped away. Where each piece is placed, and where it
+     * is cut, is the piece's own rule below.
+     */
+    .lane[data-line]::before,
+    :where(.node[data-parent]) .row::before {
+        background-image: radial-gradient(
+            circle at var(--mindfula11y-heading-structure-rail-offset) 50%,
+            var(--mindfula11y-heading-structure-tree-line) 0 var(--mindfula11y-heading-structure-tree-line-dot),
+            transparent var(--mindfula11y-heading-structure-tree-line-dot)
+        );
+        background-position: 0 calc(-1 * var(--mindfula11y-heading-structure-tree-line-pitch) / 2);
+        background-size: var(--mindfula11y-heading-structure-step) var(--mindfula11y-heading-structure-tree-line-pitch);
+    }
+
+    .lane[data-line="branch"]::after,
+    .lane[data-line="last"]::after,
+    :where(.node[data-parent]) .row::after {
+        background-image: radial-gradient(
+            circle at 50% var(--mindfula11y-heading-structure-chip-center),
+            var(--mindfula11y-heading-structure-tree-line) 0 var(--mindfula11y-heading-structure-tree-line-dot),
+            transparent var(--mindfula11y-heading-structure-tree-line-dot)
+        );
+        background-position: calc(
+                var(--mindfula11y-heading-structure-rail-offset) -
+                var(--mindfula11y-heading-structure-tree-line-pitch-x) /
+                2
+            )
+            0;
+        background-size: var(--mindfula11y-heading-structure-tree-line-pitch-x) 100%;
+        clip-path: inset(
+            0 0 0
+                calc(
+                    var(--mindfula11y-heading-structure-rail-offset) -
+                    var(--mindfula11y-heading-structure-tree-line-dot)
+                )
+        );
     }
 
     /*
@@ -187,6 +230,7 @@
      * card border used to carry.
      */
     .row {
+        position: relative;
         display: grid;
         grid-template-columns: minmax(0, 1fr);
         gap: var(--mindfula11y-space-2xs);
@@ -225,6 +269,37 @@
                row carries a child-type control — no mirrored attribute. */
             &:has(> .child-control) {
                 grid-template-columns: minmax(0, 1fr) minmax(14ch, auto) auto;
+            }
+        }
+    }
+
+    /*
+     * A row with children draws its own lines: the drop from the chip centre
+     * down through its bottom edge into the children's rail, and the corner
+     * joining the level chip to it. Both are painted from the row's border
+     * edge — that edge is the row's own lane's edge, one step in from the
+     * lanes above — so they snap like the lanes do (see .lanes).
+     */
+    :where(.node[data-parent]) .row {
+        @container (inline-size >= 36rem) {
+            /* The drop: the row's own rail, from the chip centre down through
+               the bottom edge into the children's rail. */
+            &::before {
+                position: absolute;
+                inset-block: 0;
+                inset-inline-start: calc(-1 * var(--mindfula11y-heading-structure-bar));
+                inline-size: var(--mindfula11y-heading-structure-step);
+                content: "";
+                clip-path: inset(var(--mindfula11y-heading-structure-chip-center) 0 0 0);
+            }
+
+            /* The corner: from the drop to the level chip's edge. */
+            &::after {
+                position: absolute;
+                inset-block: 0;
+                inset-inline-start: calc(-1 * var(--mindfula11y-heading-structure-bar));
+                inline-size: calc(var(--mindfula11y-heading-structure-bar) + var(--mindfula11y-heading-structure-lane));
+                content: "";
             }
         }
     }
