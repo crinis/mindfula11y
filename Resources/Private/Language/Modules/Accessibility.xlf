@@ -856,7 +856,7 @@
                 <source>The AI review did not run for this scan</source>
             </trans-unit>
             <trans-unit id="scan.aiAudit.skipped.description" resname="scan.aiAudit.skipped.description">
-                <source>The scanned pages contained nothing the requested AI checks apply to, or the AI review was switched off on the scanner after the scan started.</source>
+                <source>The scanned pages contained nothing the requested AI checks apply to, no page could be loaded, or the AI review was switched off on the scanner after the scan started.</source>
             </trans-unit>
             <trans-unit id="scan.aiAudit.noFindings" resname="scan.aiAudit.noFindings">
                 <source>The AI review found nothing to flag.</source>

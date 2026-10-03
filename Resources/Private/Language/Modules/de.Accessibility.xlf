@@ -1078,8 +1078,8 @@
                 <target>Die KI-Prüfung wurde für diesen Scan nicht ausgeführt</target>
             </trans-unit>
             <trans-unit id="scan.aiAudit.skipped.description" resname="scan.aiAudit.skipped.description">
-                <source>The scanned pages contained nothing the requested AI checks apply to, or the AI review was switched off on the scanner after the scan started.</source>
-                <target>Die gescannten Seiten enthielten nichts, worauf die angeforderten KI-Prüfungen anwendbar sind, oder die KI-Prüfung wurde nach dem Start des Scans auf dem Scanner abgeschaltet.</target>
+                <source>The scanned pages contained nothing the requested AI checks apply to, no page could be loaded, or the AI review was switched off on the scanner after the scan started.</source>
+                <target>Die gescannten Seiten enthielten nichts, worauf die angeforderten KI-Prüfungen anwendbar sind, keine Seite konnte geladen werden oder die KI-Prüfung wurde nach dem Start des Scans auf dem Scanner abgeschaltet.</target>
             </trans-unit>
             <trans-unit id="scan.aiAudit.noFindings" resname="scan.aiAudit.noFindings">
                 <source>The AI review found nothing to flag.</source>
