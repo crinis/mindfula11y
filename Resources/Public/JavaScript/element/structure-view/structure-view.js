@@ -32,13 +32,25 @@ class StructureView extends LitElement {
     this.pageErrors = [];
     this.busyNodeIds = /* @__PURE__ */ new Set();
     this.recordApi = new RecordApi();
-    this.pendingFocusId = "";
-    /** `data-control` value of the just-saved select, so focus returns to that
-     * exact control rather than the row's first `controlSelector` match — a
-     * row can carry both an own-level and a child-level control. */
-    this.pendingFocusControl = "";
-    /** Whether focus sat inside this view right before the current `nodes` re-render; see {@link updated}. */
-    this.hadFocusBeforeNodesUpdate = false;
+    this.pendingFocus = null;
+    /** The editor acted outside this view since the last save started; see {@link updated}. */
+    this.editorMovedOn = false;
+    this.watchingEditor = false;
+    /**
+     * Document-level (capture) signal that the editor moved on: a pointer
+     * press or a focus move outside this view. Focus entering a frame is
+     * the frame's doing, not the editor's — the hidden analysis renders call
+     * focus() on load — and a click inside a frame never reaches this
+     * document; a frame the editor really moved into keeps focus, which the
+     * "focus is lost" condition respects anyway.
+     */
+    this.noteEditorMove = (event) => {
+      const path = event.composedPath();
+      if (path.includes(this) || event.type === "focusin" && path[0] instanceof HTMLIFrameElement) {
+        return;
+      }
+      this.editorMovedOn = true;
+    };
   }
   static {
     /**
@@ -65,46 +77,76 @@ class StructureView extends LitElement {
   renderPageErrors() {
     return this.pageErrors.length > 0 ? html`${this.pageErrors.map((error) => this.renderIssue(error, { pageScope: true }))}` : nothing;
   }
-  willUpdate(changed) {
-    super.willUpdate(changed);
-    if (changed.has("nodes")) {
-      this.hadFocusBeforeNodesUpdate = this.hasFocusWithin();
-    }
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this.pendingFocus = null;
+    this.stopWatchingEditor();
   }
   /**
-   * After a save, the nodes of the re-analysis arrive seconds later, and
-   * the editor may have moved on meanwhile — to another control, out of the
-   * view, or onto the page by clicking it. Focus therefore returns to the
-   * saved control only when this re-render itself dropped it: focus was
-   * inside the view right before and nowhere after, because the focused
-   * control was replaced. Where the focused control survives, it simply
-   * keeps focus.
+   * After a save, the nodes of the re-analysis arrive seconds later. Focus
+   * returns to the control that held it when the save started only when
+   * it got lost meanwhile without the editor moving on: it sits on the
+   * body (the re-render replaced the focused control, or something else
+   * took focus and went away), this document still has focus, and no
+   * pointer press or focus move outside this view happened since the save
+   * started. Where focus survives, or the editor went elsewhere — another
+   * control, the page, another frame — it stays where it is.
    */
   updated(changed) {
-    if (changed.has("nodes") && this.pendingFocusId !== "") {
-      const nodeId = this.pendingFocusId;
-      const controlName = this.pendingFocusControl;
-      this.pendingFocusId = "";
-      this.pendingFocusControl = "";
-      if (this.hadFocusBeforeNodesUpdate && !this.hasFocusWithin()) {
-        this.focusControl(nodeId, controlName);
+    if (changed.has("nodes") && this.pendingFocus !== null) {
+      const { target, saved } = this.pendingFocus;
+      const movedOn = this.editorMovedOn;
+      this.pendingFocus = null;
+      if (this.busyNodeIds.size === 0) {
+        this.stopWatchingEditor();
+      }
+      if (!movedOn && this.isFocusLost()) {
+        const restore = this.findRow(target.nodeId) !== null ? target : saved;
+        this.focusControl(restore.nodeId, restore.control);
       }
     }
   }
+  watchEditor() {
+    this.editorMovedOn = false;
+    if (!this.watchingEditor) {
+      this.ownerDocument.addEventListener("pointerdown", this.noteEditorMove, true);
+      this.ownerDocument.addEventListener("focusin", this.noteEditorMove, true);
+      this.watchingEditor = true;
+    }
+  }
+  stopWatchingEditor() {
+    if (this.watchingEditor) {
+      this.ownerDocument.removeEventListener("pointerdown", this.noteEditorMove, true);
+      this.ownerDocument.removeEventListener("focusin", this.noteEditorMove, true);
+      this.watchingEditor = false;
+    }
+  }
+  /** Focus fell back to the body (or nowhere) of a document that still has focus. */
+  isFocusLost() {
+    const doc = this.ownerDocument;
+    const active = doc.activeElement;
+    return doc.hasFocus() && (active === null || active === doc.body || active === doc.documentElement);
+  }
   /**
-   * Whether the focused element lies inside this view. Walks down from the
-   * document's focused element through the shadow roots (this view may
-   * itself sit in another component's root) instead of asking this view's
-   * root directly: the document is the authority on what holds focus and
-   * never reports an element whose tree was removed — happy-dom's
+   * The row control holding focus inside this view, if any. Walks down
+   * from the document's focused element through the shadow roots (this
+   * view may itself sit in another component's root) instead of asking
+   * this view's root directly: the document is the authority on what holds
+   * focus and never reports an element whose tree was removed — happy-dom's
    * `ShadowRoot.activeElement` does, and throws on it.
    */
-  hasFocusWithin() {
+  focusedControl() {
     let active = this.ownerDocument.activeElement;
     while (active !== null && active !== this) {
       active = active.shadowRoot?.activeElement ?? null;
     }
-    return active === this;
+    const focused = active === this ? this.shadowRoot?.activeElement ?? null : null;
+    const nodeId = focused?.closest("[data-node-id]")?.dataset.nodeId ?? "";
+    const control = focused?.getAttribute("data-control") ?? "";
+    return nodeId !== "" && control !== "" ? { nodeId, control } : null;
+  }
+  findRow(nodeId) {
+    return this.renderRoot.querySelector(`[data-node-id="${CSS.escape(nodeId)}"]`);
   }
   /**
    * Moves focus to the control of the given node (used after saves and by the
@@ -115,7 +157,7 @@ class StructureView extends LitElement {
    * (container jump / finding focus paths).
    */
   focusControl(nodeId, controlName = "") {
-    const row = this.renderRoot.querySelector(`[data-node-id="${CSS.escape(nodeId)}"]`);
+    const row = this.findRow(nodeId);
     if (row !== null) {
       this.focusRow(row, { preferredControl: controlName });
     }
@@ -259,11 +301,13 @@ class StructureView extends LitElement {
     if (this.busyNodeIds.has(node.id) || record === null || value === currentValue) {
       return;
     }
+    const saved = { nodeId: node.id, control: select.dataset.control ?? "" };
+    const target = this.focusedControl() ?? saved;
     this.busyNodeIds = new Set(this.busyNodeIds).add(node.id);
+    this.watchEditor();
     try {
       await this.recordApi.updateField(record, value);
-      this.pendingFocusId = node.id;
-      this.pendingFocusControl = select.dataset.control ?? "";
+      this.pendingFocus = { target, saved };
       dispatch(this, "mindfula11y:structure:changed", {
         nodeId: node.id,
         tableName: record.tableName,
@@ -278,6 +322,9 @@ class StructureView extends LitElement {
       const busyNodeIds = new Set(this.busyNodeIds);
       busyNodeIds.delete(node.id);
       this.busyNodeIds = busyNodeIds;
+      if (this.pendingFocus === null && busyNodeIds.size === 0) {
+        this.stopWatchingEditor();
+      }
     }
   }
   /**

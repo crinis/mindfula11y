@@ -104,6 +104,7 @@ class RebuildingStructureView extends TestStructureView {
                             currentValue: node.value,
                             options: { h1: 'Heading 1', h2: 'Heading 2', h3: 'Heading 3' },
                         })}
+                        ${this.hasRecord(node) ? this.renderEditLink(node, node.id) : ''}
                     </li>`,
                 ),
             )}
@@ -218,6 +219,7 @@ describe('StructureView', () => {
     });
 
     afterEach(() => {
+        vi.restoreAllMocks();
         document.body.replaceChildren();
     });
 
@@ -450,12 +452,122 @@ describe('StructureView', () => {
 
         changeValue(select, 'h3');
         await tick();
+        document.body.dispatchEvent(new Event('pointerdown', { bubbles: true, composed: true }));
         select.blur();
         view.nodes = [makeNode('n1', { value: 'h3' }), makeNode('n2')];
         await view.updateComplete;
 
         expect(document.activeElement).toBe(document.body);
         expect(view.renderRoot.querySelector('[data-highlight]')).toBeNull();
+    });
+
+    it('restores focus that was lost without the editor moving on', async () => {
+        // Something other than the editor took focus before the re-analysed
+        // nodes arrived and left it on the body (e.g. a page's focus() call
+        // in the analysis frame, which is then removed).
+        updateField.mockResolvedValue(undefined);
+        const view = await mount([makeNode('n1'), makeNode('n2')], [], 'mindfula11y-test-structure-view-rebuilding');
+        const select = querySelect(view, 'n1');
+        select.focus();
+
+        changeValue(select, 'h3');
+        await tick();
+        select.blur();
+        view.nodes = [makeNode('n1', { value: 'h3' }), makeNode('n2')];
+        await view.updateComplete;
+
+        expect(view.shadowRoot?.activeElement).toBe(querySelect(view, 'n1'));
+    });
+
+    it('restores focus a removed analysis frame took', async () => {
+        updateField.mockResolvedValue(undefined);
+        const view = await mount([makeNode('n1'), makeNode('n2')], [], 'mindfula11y-test-structure-view-rebuilding');
+        querySelect(view, 'n1').focus();
+
+        changeValue(querySelect(view, 'n1'), 'h3');
+        await tick();
+        const frame = document.createElement('iframe');
+        frame.tabIndex = -1;
+        document.body.append(frame);
+        frame.focus();
+        frame.remove();
+        view.nodes = [makeNode('n1', { value: 'h3' }), makeNode('n2')];
+        await view.updateComplete;
+
+        expect(view.shadowRoot?.activeElement).toBe(querySelect(view, 'n1'));
+    });
+
+    it('does not restore focus after the editor focused an element outside the view', async () => {
+        // The outside element is gone by the time the nodes arrive, so focus
+        // sits on the body — but the editor moved on, which decides.
+        updateField.mockResolvedValue(undefined);
+        const view = await mount([makeNode('n1'), makeNode('n2')], [], 'mindfula11y-test-structure-view-rebuilding');
+        const outside = document.createElement('button');
+        document.body.append(outside);
+        querySelect(view, 'n1').focus();
+
+        changeValue(querySelect(view, 'n1'), 'h3');
+        await tick();
+        outside.focus();
+        outside.remove();
+        view.nodes = [makeNode('n1', { value: 'h3' }), makeNode('n2')];
+        await view.updateComplete;
+
+        expect(document.activeElement).toBe(document.body);
+    });
+
+    it('does not restore focus while the editor works in another frame', async () => {
+        updateField.mockResolvedValue(undefined);
+        const view = await mount([makeNode('n1'), makeNode('n2')], [], 'mindfula11y-test-structure-view-rebuilding');
+        querySelect(view, 'n1').focus();
+
+        changeValue(querySelect(view, 'n1'), 'h3');
+        await tick();
+        // Focus left this document (e.g. the page tree in the top frame):
+        // no event reaches this document, but it no longer has focus.
+        vi.spyOn(document, 'hasFocus').mockReturnValue(false);
+        view.nodes = [makeNode('n1', { value: 'h3' }), makeNode('n2')];
+        await view.updateComplete;
+
+        expect(document.activeElement).toBe(document.body);
+    });
+
+    it('restores focus to the control that held it when the save started', async () => {
+        updateField.mockResolvedValue(undefined);
+        const view = await mount([makeNode('n1'), makeNode('n2')], [], 'mindfula11y-test-structure-view-rebuilding');
+        const editLink = view.renderRoot.querySelector<HTMLElement>('[data-node-id="n1"] [data-control="edit"]');
+        editLink?.focus();
+
+        // The change lands on the select while the edit link holds focus.
+        changeValue(querySelect(view, 'n1'), 'h3');
+        await tick();
+        view.nodes = [makeNode('n1', { value: 'h3' }), makeNode('n2')];
+        await view.updateComplete;
+
+        expect(view.shadowRoot?.activeElement).toBe(
+            view.renderRoot.querySelector('[data-node-id="n1"] [data-control="edit"]'),
+        );
+    });
+
+    it('stops watching for the editor once the restore resolved and when disconnected', async () => {
+        updateField.mockResolvedValue(undefined);
+        const removeListener = vi.spyOn(document, 'removeEventListener');
+        const view = await mount([makeNode('n1'), makeNode('n2')]);
+
+        changeValue(querySelect(view, 'n1'), 'h3');
+        await tick();
+        view.nodes = [makeNode('n1', { value: 'h3' }), makeNode('n2')];
+        await view.updateComplete;
+
+        const removedTypes = (): string[] => removeListener.mock.calls.map(([type]) => type);
+        expect(removedTypes()).toEqual(expect.arrayContaining(['pointerdown', 'focusin']));
+
+        removeListener.mockClear();
+        changeValue(querySelect(view, 'n2'), 'h3');
+        await tick();
+        view.remove();
+
+        expect(removedTypes()).toEqual(expect.arrayContaining(['pointerdown', 'focusin']));
     });
 
     it('focusControl focuses the row control and flashes the highlight', async () => {
