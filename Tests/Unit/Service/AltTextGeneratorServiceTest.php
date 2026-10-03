@@ -91,6 +91,9 @@ final class AltTextGeneratorServiceTest extends TestCase
         return [
             'exact marker' => ['DECORATIVE'],
             'other case and whitespace' => ["  decorative\n"],
+            'trailing period' => ['DECORATIVE.'],
+            'quoted' => ['"decorative"'],
+            'typographic quotes and period' => ['„DECORATIVE“.'],
         ];
     }
 
@@ -105,18 +108,52 @@ final class AltTextGeneratorServiceTest extends TestCase
         self::assertSame('', $result->altText);
     }
 
-    /** Only the exact verdict counts: a description mentioning the word is a text. */
-    #[Test]
-    public function textContainingTheMarkerWordIsAnAlternativeText(): void
+    /**
+     * Only the verdict on its own counts: a description mentioning the word
+     * is a text, and is returned verbatim.
+     *
+     * @return array<string, array{string}>
+     */
+    public static function textMentioningTheMarkerProvider(): array
     {
-        $result = $this->serviceAnswering('Decorative stucco ceiling of the town hall')->generate($this->imageFile());
+        return [
+            'leading word' => ['Decorative stucco ceiling of the town hall'],
+            'trailing word' => ['Garland, purely decorative.'],
+            'quoted inside a sentence' => ['Sign reading "DECORATIVE" above a shop door'],
+        ];
+    }
+
+    #[Test]
+    #[DataProvider('textMentioningTheMarkerProvider')]
+    public function textContainingTheMarkerWordIsAnAlternativeText(string $modelAnswer): void
+    {
+        $result = $this->serviceAnswering($modelAnswer)->generate($this->imageFile());
 
         self::assertNotNull($result);
         self::assertFalse($result->decorative);
-        self::assertSame('Decorative stucco ceiling of the town hall', $result->altText);
+        self::assertSame($modelAnswer, $result->altText);
     }
 
-    private function serviceAnswering(string $outputText): AltTextGeneratorService
+    /**
+     * The model answers in the site language, so the instructions must ask
+     * for the untranslated marker on its own, and must not place a period
+     * right after it (which models copy into their answer).
+     */
+    #[Test]
+    public function instructionsAskForTheUntranslatedMarkerWithoutPunctuation(): void
+    {
+        $capturedBody = null;
+        $service = $this->serviceAnswering('DECORATIVE', $capturedBody);
+
+        $service->generate($this->imageFile(), 'de');
+
+        $instructions = (string)(json_decode((string)$capturedBody, true)['instructions'] ?? '');
+        self::assertStringContainsString('DECORATIVE', $instructions);
+        self::assertStringNotContainsString('DECORATIVE.', $instructions);
+        self::assertStringContainsString('untranslated', $instructions);
+    }
+
+    private function serviceAnswering(string $outputText, ?string &$capturedBody = null): AltTextGeneratorService
     {
         $extensionConfiguration = $this->createMock(ExtensionConfiguration::class);
         $extensionConfiguration->method('get')->willReturn([]);
@@ -131,7 +168,12 @@ final class AltTextGeneratorServiceTest extends TestCase
         $response = $this->createMock(ResponseInterface::class);
         $response->method('getBody')->willReturn($stream);
         $requestFactory = $this->createMock(RequestFactory::class);
-        $requestFactory->method('request')->willReturn($response);
+        $requestFactory->method('request')->willReturnCallback(
+            function (string $url, string $method, array $options) use (&$capturedBody, $response): ResponseInterface {
+                $capturedBody = (string)($options['body'] ?? '');
+                return $response;
+            },
+        );
 
         return new AltTextGeneratorService(
             new OpenAIService(new ExtensionSettings($extensionConfiguration), $requestFactory, $this->createMock(LoggerInterface::class)),

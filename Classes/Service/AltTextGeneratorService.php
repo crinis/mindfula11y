@@ -47,9 +47,9 @@ final readonly class AltTextGeneratorService
 
     /**
      * The answer the instructions demand for a purely decorative image (see
-     * buildInstructions()). Matched exactly — ignoring case and surrounding
-     * whitespace — so a description that merely mentions the word stays a
-     * text.
+     * buildInstructions()). Matched as the whole answer — ignoring case and
+     * any whitespace, quotes or punctuation around it (see isDecorativeVerdict())
+     * — so a description that merely mentions the word stays a text.
      */
     private const DECORATIVE_VERDICT = 'DECORATIVE';
 
@@ -116,9 +116,21 @@ final readonly class AltTextGeneratorService
             return null;
         }
 
-        return strcasecmp(trim($answer), self::DECORATIVE_VERDICT) === 0
+        return $this->isDecorativeVerdict($answer)
             ? GeneratedAltText::decorative()
             : GeneratedAltText::text($answer);
+    }
+
+    /**
+     * Models wrap a one-word answer in quotes or end it with a period despite
+     * the instructions, so whitespace, Unicode punctuation (straight and
+     * typographic quotes included) and backticks around it are ignored.
+     */
+    private function isDecorativeVerdict(string $answer): bool
+    {
+        $bare = preg_replace('/^[\s\p{P}`]+|[\s\p{P}`]+$/u', '', $answer) ?? trim($answer);
+
+        return strcasecmp($bare, self::DECORATIVE_VERDICT) === 0;
     }
 
     /**
@@ -130,7 +142,7 @@ final readonly class AltTextGeneratorService
      */
     private function buildInstructions(string $languageCode): string
     {
-        return 'You are an accessibility specialist generating WCAG 2.1 compliant alt text for web images. Respond in the language identified by this ISO language code: ' . $languageCode . '. Follow these rules strictly: (1) Describe the essential meaning and purpose of the image — not a literal catalogue of visual details. (2) Be concise, ideally under 125 characters. (3) Never begin with "image of", "photo of", "picture of", or equivalent phrases — screen readers already announce the element as an image. (4) If the image contains readable text, transcribe it verbatim. (5) If the image is purely decorative and conveys no meaningful information, respond with exactly: ' . self::DECORATIVE_VERDICT . '. (6) Respond with only the alt text string — no surrounding quotes, no trailing punctuation, no explanations.';
+        return 'You are an accessibility specialist generating WCAG 2.1 compliant alt text for web images. Respond in the language identified by this ISO language code: ' . $languageCode . '. Follow these rules strictly: (1) Describe the essential meaning and purpose of the image — not a literal catalogue of visual details. (2) Be concise, ideally under 125 characters. (3) Never begin with "image of", "photo of", "picture of", or equivalent phrases — screen readers already announce the element as an image. (4) If the image contains readable text, transcribe it verbatim. (5) If the image is purely decorative and conveys no meaningful information, answer with the single untranslated English word ' . self::DECORATIVE_VERDICT . ' and nothing else — never translate it, and add no quotes or punctuation, whatever the requested language. (6) Respond with only the alt text string — no surrounding quotes, no trailing punctuation, no explanations.';
     }
 
     /**
