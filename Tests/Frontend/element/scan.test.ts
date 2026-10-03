@@ -40,7 +40,7 @@ vi.mock('../../../Resources/Private/Source/service/scan/api.js', () => {
 import type { Scan } from '../../../Resources/Private/Source/element/scan/scan.js';
 import '../../../Resources/Private/Source/element/scan/scan.js';
 import type { CreateScanDemand, ScanResult } from '../../../Resources/Private/Source/lib/scan/types.js';
-import { ScanStatus } from '../../../Resources/Private/Source/lib/scan/types.js';
+import { AiAuditStatus, ScanStatus } from '../../../Resources/Private/Source/lib/scan/types.js';
 import { RequestError } from '../../../Resources/Private/Source/service/request-error.js';
 
 const demand: CreateScanDemand = {
@@ -311,6 +311,22 @@ describe('Scan', () => {
         view.urlList = [...view.urlList, 'https://example.test/de/new/'];
         await settle(view);
         expect(view.renderRoot.textContent).toContain('mindfula11y.scan.scopeExpanded');
+    });
+
+    it('renders the results of a clean scan whose requested AI review did not run, to explain why', async () => {
+        loadScanMock.mockResolvedValue({
+            ...makeResult(ScanStatus.Completed),
+            aiAudit: {
+                status: AiAuditStatus.Skipped,
+                requestedSkills: ['image_alt_text'],
+                tasksTotal: 0,
+                tasksCompleted: 0,
+                tasksFailed: 0,
+            },
+        });
+        const view = await mount('scan');
+
+        expect(view.renderRoot.querySelector('mindfula11y-scan-results')).not.toBeNull();
     });
 
     it('warns about failed pages of a completed scan in both tabs', async () => {

@@ -199,9 +199,4 @@
         font-size: var(--mindfula11y-font-size-xs);
         color: var(--mindfula11y-text-subtle);
     }
-
-    .ai-appropriate {
-        font-size: var(--mindfula11y-font-size-xs);
-        color: var(--mindfula11y-text-subtle);
-    }
 }

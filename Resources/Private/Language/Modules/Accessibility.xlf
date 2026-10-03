@@ -828,8 +828,17 @@
             <trans-unit id="scan.aiAudit.tasksFailed" resname="scan.aiAudit.tasksFailed">
                 <source>AI checks not completed: %d</source>
             </trans-unit>
-            <trans-unit id="scan.aiAudit.appropriateCount" resname="scan.aiAudit.appropriateCount">
-                <source>Elements reviewed and assessed as appropriate: %d.</source>
+            <trans-unit id="scan.aiAudit.failed" resname="scan.aiAudit.failed">
+                <source>The AI review failed</source>
+            </trans-unit>
+            <trans-unit id="scan.aiAudit.failed.description" resname="scan.aiAudit.failed.description">
+                <source>None of the %d AI checks could be completed, for example because the AI provider was unavailable or rejected the scanner's request. The automated scan results are not affected. Try again later, or ask your administrator to check the scanner's AI configuration.</source>
+            </trans-unit>
+            <trans-unit id="scan.aiAudit.skipped" resname="scan.aiAudit.skipped">
+                <source>The AI review did not run for this scan</source>
+            </trans-unit>
+            <trans-unit id="scan.aiAudit.skipped.description" resname="scan.aiAudit.skipped.description">
+                <source>The scanned pages contained nothing the requested AI checks apply to, or the AI review was switched off on the scanner after the scan started.</source>
             </trans-unit>
             <trans-unit id="scan.aiAudit.noFindings" resname="scan.aiAudit.noFindings">
                 <source>The AI review found nothing to flag.</source>

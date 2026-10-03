@@ -1045,9 +1045,21 @@
                 <source>AI checks not completed: %d</source>
                 <target>Nicht abgeschlossene KI-Prüfungen: %d</target>
             </trans-unit>
-            <trans-unit id="scan.aiAudit.appropriateCount" resname="scan.aiAudit.appropriateCount">
-                <source>Elements reviewed and assessed as appropriate: %d.</source>
-                <target>Geprüfte und als angemessen bewertete Elemente: %d.</target>
+            <trans-unit id="scan.aiAudit.failed" resname="scan.aiAudit.failed">
+                <source>The AI review failed</source>
+                <target>Die KI-Prüfung ist fehlgeschlagen</target>
+            </trans-unit>
+            <trans-unit id="scan.aiAudit.failed.description" resname="scan.aiAudit.failed.description">
+                <source>None of the %d AI checks could be completed, for example because the AI provider was unavailable or rejected the scanner's request. The automated scan results are not affected. Try again later, or ask your administrator to check the scanner's AI configuration.</source>
+                <target>Keine der %d KI-Prüfungen konnte abgeschlossen werden, zum Beispiel weil der KI-Anbieter nicht erreichbar war oder die Anfrage des Scanners abgelehnt hat. Die automatischen Scan-Ergebnisse sind davon nicht betroffen. Versuchen Sie es später erneut oder bitten Sie Ihre Administration, die KI-Konfiguration des Scanners zu prüfen.</target>
+            </trans-unit>
+            <trans-unit id="scan.aiAudit.skipped" resname="scan.aiAudit.skipped">
+                <source>The AI review did not run for this scan</source>
+                <target>Die KI-Prüfung wurde für diesen Scan nicht ausgeführt</target>
+            </trans-unit>
+            <trans-unit id="scan.aiAudit.skipped.description" resname="scan.aiAudit.skipped.description">
+                <source>The scanned pages contained nothing the requested AI checks apply to, or the AI review was switched off on the scanner after the scan started.</source>
+                <target>Die gescannten Seiten enthielten nichts, worauf die angeforderten KI-Prüfungen anwendbar sind, oder die KI-Prüfung wurde nach dem Start des Scans auf dem Scanner abgeschaltet.</target>
             </trans-unit>
             <trans-unit id="scan.aiAudit.noFindings" resname="scan.aiAudit.noFindings">
                 <source>The AI review found nothing to flag.</source>

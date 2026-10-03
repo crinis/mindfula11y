@@ -19,7 +19,12 @@ vi.mock('@typo3/backend/element/icon-element.js', () => ({}));
 
 import type { ScanResults } from '../../../Resources/Private/Source/element/scan-results/scan-results.js';
 import '../../../Resources/Private/Source/element/scan-results/scan-results.js';
-import type { AgentFindingDto, ScanResult, ViolationDto } from '../../../Resources/Private/Source/lib/scan/types.js';
+import type {
+    AgentFindingDto,
+    AiAuditDto,
+    ScanResult,
+    ViolationDto,
+} from '../../../Resources/Private/Source/lib/scan/types.js';
 import { AiAuditStatus, ScanStatus } from '../../../Resources/Private/Source/lib/scan/types.js';
 
 const violation = (ruleId: string, impact: ViolationDto['impact']): ViolationDto => ({
@@ -127,6 +132,55 @@ describe('ScanResults', () => {
         expect(chips).toHaveLength(2);
         expect(chips[0]).toContain('mindfula11y.severity.critical 1');
         expect(chips[1]).toContain('mindfula11y.severity.minor 1');
+    });
+
+    const audit = (partial: Partial<AiAuditDto>): AiAuditDto => ({
+        status: AiAuditStatus.Completed,
+        requestedSkills: ['image_alt_text'],
+        tasksTotal: 3,
+        tasksCompleted: 3,
+        tasksFailed: 0,
+        ...partial,
+    });
+
+    it('says the AI review found nothing only when its checks ran without failures', async () => {
+        const view = await mount(resultWith({ aiAudit: audit({}) }));
+
+        expect(view.renderRoot.textContent).toContain('mindfula11y.scan.aiAudit.noFindings');
+    });
+
+    it('reports an AI review whose every check failed as failed, not as having found nothing', async () => {
+        // A provider outage or a rejected API key fails every task; "nothing
+        // to flag" next to it would read as a clean review.
+        const view = await mount(resultWith({ aiAudit: audit({ tasksCompleted: 0, tasksFailed: 3 }) }));
+
+        const notice = view.renderRoot.querySelector('mindfula11y-notice[state="danger"]');
+        expect(notice?.textContent).toContain('mindfula11y.scan.aiAudit.failed');
+        expect(notice?.textContent).toContain('mindfula11y.scan.aiAudit.failed.description: 3');
+        expect(view.renderRoot.textContent).not.toContain('mindfula11y.scan.aiAudit.noFindings');
+    });
+
+    it('does not claim a clean AI review when some of its checks failed', async () => {
+        const view = await mount(resultWith({ aiAudit: audit({ tasksCompleted: 2, tasksFailed: 1 }) }));
+
+        expect(view.renderRoot.textContent).toContain('mindfula11y.scan.aiAudit.tasksFailed: 1');
+        expect(view.renderRoot.textContent).not.toContain('mindfula11y.scan.aiAudit.noFindings');
+    });
+
+    it('explains a requested AI review that did not run instead of dropping the section', async () => {
+        const view = await mount(
+            resultWith({ aiAudit: audit({ status: AiAuditStatus.Skipped, tasksTotal: 0, tasksCompleted: 0 }) }),
+        );
+
+        const notice = view.renderRoot.querySelector('mindfula11y-notice[state="info"]');
+        expect(notice?.textContent).toContain('mindfula11y.scan.aiAudit.skipped');
+        expect(view.renderRoot.textContent).not.toContain('mindfula11y.scan.aiAudit.noFindings');
+    });
+
+    it('renders no AI section when no review was requested', async () => {
+        const view = await mount(resultWith({ aiAudit: null }));
+
+        expect(view.renderRoot.querySelector('h2')).toBeNull();
     });
 
     it('groups AI findings by skill in first-occurrence order', async () => {

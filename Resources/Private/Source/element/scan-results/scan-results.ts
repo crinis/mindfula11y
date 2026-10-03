@@ -214,45 +214,66 @@ export class ScanResults extends LitElement {
         </p>`;
     }
 
+    /**
+     * The "AI review" section. MindfulAPI reports `aiAudit` only for a scan
+     * that requested the review; it marks a requested review that ran no
+     * check (nothing on the pages its skills apply to, or the feature turned
+     * off after the scan started) as `skipped`, and counts checks the AI
+     * provider failed (an outage, a rejected key) in `tasksFailed`. "Nothing
+     * to flag" is a claim about checks that ran — made only when at least one
+     * completed and none failed.
+     */
     private renderAiReview(result: ScanResult): TemplateResult | typeof nothing {
         const audit = result.aiAudit;
-        if (audit === null || audit.status === AiAuditStatus.Skipped) {
+        if (audit === null) {
             return nothing;
         }
+        if (audit.status === AiAuditStatus.Skipped) {
+            return html`<section class="ai">
+                <h2 class="ai-title">${lll('mindfula11y.scan.aiAudit.section')}</h2>
+                <mindfula11y-notice state="info">
+                    ${renderNoticeBody({
+                        title: lll('mindfula11y.scan.aiAudit.skipped'),
+                        description: lll('mindfula11y.scan.aiAudit.skipped.description'),
+                    })}
+                </mindfula11y-notice>
+            </section>`;
+        }
 
-        // Passes must not render as severity-chipped cards, but silently
-        // dropping them would hide what the audit examined — summarize them.
-        const appropriate = result.agentFindings.filter((finding) => finding.category === 'appropriate');
-        const flagged = result.agentFindings.filter((finding) => finding.category !== 'appropriate');
-
+        const findings = result.agentFindings;
+        const everyCheckFailed = audit.tasksTotal > 0 && audit.tasksFailed >= audit.tasksTotal && findings.length === 0;
         return html`<section class="ai">
             <h2 class="ai-title">${lll('mindfula11y.scan.aiAudit.section')}</h2>
-            <mindfula11y-notice state="warning">
-                ${renderNoticeBody({
-                    title: lll('mindfula11y.scan.aiAudit.disclaimer.title'),
-                    description: lll('mindfula11y.scan.aiAudit.disclaimer.description'),
-                })}
-            </mindfula11y-notice>
             ${
-                audit.tasksFailed > 0
-                    ? html`<p class="notice" data-state="warning" data-variant="inline">
-                          <span>${lll('mindfula11y.scan.aiAudit.tasksFailed', audit.tasksFailed)}</span>
-                      </p>`
-                    : nothing
-            }
-            ${
-                flagged.length === 0
-                    ? html`<p class="notice" data-state="success" data-variant="inline">
-                          <span>${lll('mindfula11y.scan.aiAudit.noFindings')}</span>
-                      </p>`
-                    : this.renderSkillGroups(flagged)
-            }
-            ${
-                appropriate.length > 0
-                    ? html`<p class="ai-appropriate">
-                          ${lll('mindfula11y.scan.aiAudit.appropriateCount', appropriate.length)}
-                      </p>`
-                    : nothing
+                everyCheckFailed
+                    ? html`<mindfula11y-notice state="danger">
+                          ${renderNoticeBody({
+                              title: lll('mindfula11y.scan.aiAudit.failed'),
+                              description: lll('mindfula11y.scan.aiAudit.failed.description', audit.tasksFailed),
+                          })}
+                      </mindfula11y-notice>`
+                    : html`<mindfula11y-notice state="warning">
+                              ${renderNoticeBody({
+                                  title: lll('mindfula11y.scan.aiAudit.disclaimer.title'),
+                                  description: lll('mindfula11y.scan.aiAudit.disclaimer.description'),
+                              })}
+                          </mindfula11y-notice>
+                          ${
+                              audit.tasksFailed > 0
+                                  ? html`<p class="notice" data-state="warning" data-variant="inline">
+                                        <span>${lll('mindfula11y.scan.aiAudit.tasksFailed', audit.tasksFailed)}</span>
+                                    </p>`
+                                  : nothing
+}
+                          ${
+                              findings.length > 0
+                                  ? this.renderSkillGroups(findings)
+                                  : audit.tasksCompleted > 0 && audit.tasksFailed === 0
+                                    ? html`<p class="notice" data-state="success" data-variant="inline">
+                                          <span>${lll('mindfula11y.scan.aiAudit.noFindings')}</span>
+                                      </p>`
+                                    : nothing
+}`
             }
         </section>`;
     }

@@ -24,7 +24,7 @@ import '@typo3/backend/element/icon-element.js';
 import '@typo3/backend/element/spinner-element.js';
 import { scanStatusView } from '../../lib/scan/status-view.js';
 import type { CreateScanDemand, ScanResult } from '../../lib/scan/types.js';
-import { AiAuditStatus, ScanStatus } from '../../lib/scan/types.js';
+import { ScanStatus } from '../../lib/scan/types.js';
 import { urlListCoveredByTargets } from '../../lib/scan/url.js';
 import {
     renderExternalLink,
@@ -326,12 +326,14 @@ function renderBody(data: ScanPanelData): TemplateResult | typeof nothing {
         return nothing;
     }
 
-    // The AI review can carry findings even when axe found nothing, so the
-    // results element renders whenever either source has content.
-    const hasAiReview = result.aiAudit !== null && result.aiAudit.status !== AiAuditStatus.Skipped;
+    // The AI review can carry findings even when axe found nothing — or
+    // explain why a requested review did not run — so the results element
+    // renders whenever a review was requested (MindfulAPI reports `aiAudit`
+    // for exactly those scans) or axe found issues.
+    const aiReviewRequested = result.aiAudit !== null;
     return html`${renderStatus(result, data.tab === 'crawl')} ${renderUpdatedAt(result)}
     ${
-        result.status === ScanStatus.Completed && (result.totalIssueCount > 0 || hasAiReview)
+        result.status === ScanStatus.Completed && (result.totalIssueCount > 0 || aiReviewRequested)
             ? html`<mindfula11y-scan-results .result=${result}></mindfula11y-scan-results>`
             : nothing
     }

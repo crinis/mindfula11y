@@ -127,8 +127,10 @@ export interface AiAuditDto {
 }
 
 /**
- * One AI-audit finding. `category` is an open string per skill; `appropriate`
- * marks a pass and `insufficient_evidence` an unresolved judgement call.
+ * One AI-audit finding. `category` is an open string per skill;
+ * `insufficient_evidence` marks an unresolved judgement call. Passes
+ * (`appropriate`) are never persisted by MindfulAPI, so every finding is
+ * something to look at.
  */
 export interface AgentFindingDto {
     skill: AiAuditSkill;

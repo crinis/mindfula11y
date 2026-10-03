@@ -3,7 +3,7 @@ import { html, nothing } from "lit";
 import "@typo3/backend/element/icon-element.js";
 import "@typo3/backend/element/spinner-element.js";
 import { scanStatusView } from "../../lib/scan/status-view.js";
-import { AiAuditStatus, ScanStatus } from "../../lib/scan/types.js";
+import { ScanStatus } from "../../lib/scan/types.js";
 import { urlListCoveredByTargets } from "../../lib/scan/url.js";
 import {
   renderExternalLink,
@@ -187,9 +187,9 @@ function renderBody(data) {
     }
     return nothing;
   }
-  const hasAiReview = result.aiAudit !== null && result.aiAudit.status !== AiAuditStatus.Skipped;
+  const aiReviewRequested = result.aiAudit !== null;
   return html`${renderStatus(result, data.tab === "crawl")} ${renderUpdatedAt(result)}
-    ${result.status === ScanStatus.Completed && (result.totalIssueCount > 0 || hasAiReview) ? html`<mindfula11y-scan-results .result=${result}></mindfula11y-scan-results>` : nothing}
+    ${result.status === ScanStatus.Completed && (result.totalIssueCount > 0 || aiReviewRequested) ? html`<mindfula11y-scan-results .result=${result}></mindfula11y-scan-results>` : nothing}
     ${renderReportLinks(result, data.scanId, data.reportBaseUrl)}`;
 }
 function renderPanelContent(data, callbacks) {
