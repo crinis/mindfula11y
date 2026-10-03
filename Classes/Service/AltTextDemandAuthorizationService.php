@@ -15,6 +15,7 @@ namespace MindfulMarkup\MindfulA11y\Service;
 
 use MindfulMarkup\MindfulA11y\Domain\Model\GenerateAltTextDemand;
 use MindfulMarkup\MindfulA11y\Enum\AltTextDemandAuthorizationFailure;
+use MindfulMarkup\MindfulA11y\Tca\FileReferenceLanguageScope;
 use MindfulMarkup\MindfulA11y\Tca\TranslationFields;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Resource\Exception\FileDoesNotExistException;
@@ -190,14 +191,14 @@ final readonly class AltTextDemandAuthorizationService
      * Whether the signed language is one the target is offered in.
      *
      * A demand carries the language its target was listed or edited in, and
-     * the generated text is written in that language. Rows stored for it
-     * match. A file reference stored for "All languages" (-1) is listed in
-     * every language its parent renders in — under a parent stored for -1 or
-     * for the listed language (AltlessFileReferenceRepository::
-     * createLanguageClause()) — so it matches a demand for such a language
-     * under such a parent, and nowhere else: -1 is no wildcard for the
-     * parent's language. On the direct sys_file_reference path the record IS
-     * the reference.
+     * the generated text is written in that language. A metadata row, and a
+     * file reference edited directly in FormEngine (where the record IS the
+     * reference), are signed with their own language and must still carry
+     * it. A reference listed through its parent matches exactly when the
+     * list for the signed language shows it — the rule the listing query
+     * applies (FileReferenceLanguageScope), so every listed Generate button
+     * redeems and nothing else does. Access to both rows and to the signed
+     * language is checked separately.
      *
      * @param array<string, mixed> $record
      * @param array<string, mixed>|null $reference Null for a metadata demand.
@@ -205,16 +206,15 @@ final readonly class AltTextDemandAuthorizationService
     private function languagesMatchDemand(GenerateAltTextDemand $demand, array $record, ?array $reference): bool
     {
         $languageUid = $demand->getLanguageUid();
-        $recordLanguageUid = TranslationFields::languageId($demand->getRecordTable(), $record);
-        if ($reference === null) {
-            return $recordLanguageUid === $languageUid;
+        if ($reference === null || $demand->getRecordTable() === 'sys_file_reference') {
+            return TranslationFields::languageId($demand->getRecordTable(), $record) === $languageUid;
         }
 
-        $referenceLanguageUid = TranslationFields::languageId('sys_file_reference', $reference);
-        if ($referenceLanguageUid === -1) {
-            return $recordLanguageUid === $languageUid || $recordLanguageUid === -1;
-        }
-
-        return $referenceLanguageUid === $languageUid && $recordLanguageUid === $languageUid;
+        return FileReferenceLanguageScope::covers(
+            $languageUid,
+            TranslationFields::languageId('sys_file_reference', $reference),
+            $demand->getRecordTable(),
+            $record,
+        );
     }
 }

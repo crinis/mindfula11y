@@ -22,6 +22,7 @@ declare(strict_types=1);
 
 namespace MindfulMarkup\MindfulA11y\Domain\Repository;
 
+use MindfulMarkup\MindfulA11y\Tca\FileReferenceLanguageScope;
 use MindfulMarkup\MindfulA11y\Tca\TranslationFields;
 use MindfulMarkup\MindfulA11y\Tca\VersionedRecord;
 use TYPO3\CMS\Core\Database\Connection;
@@ -200,7 +201,7 @@ final readonly class AltlessFileReferenceRepository
      * workspace-new rows, filtered only by workspace-immutable structure
      * (parent table/field/page coordinates, language, image extension).
      * References stored for "All languages" (-1) belong to every language
-     * their parent renders in (see createLanguageClause()).
+     * their parent renders in (see FileReferenceLanguageScope).
      *
      * @param array<AltlessFileReferenceTable> $tables
      * @return array<int>
@@ -638,7 +639,7 @@ final readonly class AltlessFileReferenceRepository
                 $queryBuilder->expr()->eq('sys_file_reference.tablenames', $queryBuilder->createNamedParameter($table->tableName, Connection::PARAM_STR)),
                 $queryBuilder->expr()->in('sys_file_reference.fieldname', $queryBuilder->createNamedParameter($table->fileColumnNames, Connection::PARAM_STR_ARRAY)),
                 $queryBuilder->expr()->in('sys_file_reference.pid', $queryBuilder->createNamedParameter($table->pageIds, Connection::PARAM_INT_ARRAY)),
-                $this->createLanguageClause($queryBuilder, $table->tableName, $languageId),
+                FileReferenceLanguageScope::createClause($queryBuilder, $table->tableName, $languageId),
                 !empty($authModeClauses) ? $queryBuilder->expr()->and(...$authModeClauses) : null
             );
         }
@@ -655,43 +656,6 @@ final readonly class AltlessFileReferenceRepository
         }
 
         return $queryBuilder;
-    }
-
-    /**
-     * The references of one parent table that render in the listed language.
-     *
-     * A reference of the listed language always does. One stored for "All
-     * languages" (-1) — what FormEngine creates inside "All languages"
-     * content — renders where its parent does, because the frontend reaches
-     * inline references through the parent record: under an all-languages
-     * parent or one of the listed language, but not under a default-language
-     * parent when a translation is listed (the translation renders its own
-     * parent's references). A parent table without a language field has no
-     * such distinction, so its -1 references count for every language. The
-     * parent's language is workspace-immutable, so judging the joined live
-     * row is exact.
-     */
-    private function createLanguageClause(QueryBuilder $queryBuilder, string $tableName, int $languageId): string
-    {
-        $referenceLanguageField = 'sys_file_reference.' . TranslationFields::languageFieldName('sys_file_reference');
-        $parentLanguageField = TranslationFields::languageFieldName($tableName);
-        if ($parentLanguageField === '') {
-            return (string)$queryBuilder->expr()->in(
-                $referenceLanguageField,
-                $queryBuilder->createNamedParameter([$languageId, -1], Connection::PARAM_INT_ARRAY)
-            );
-        }
-
-        return (string)$queryBuilder->expr()->or(
-            $queryBuilder->expr()->eq($referenceLanguageField, $queryBuilder->createNamedParameter($languageId, Connection::PARAM_INT)),
-            $queryBuilder->expr()->and(
-                $queryBuilder->expr()->eq($referenceLanguageField, $queryBuilder->createNamedParameter(-1, Connection::PARAM_INT)),
-                $queryBuilder->expr()->in(
-                    $tableName . '.' . $parentLanguageField,
-                    $queryBuilder->createNamedParameter([$languageId, -1], Connection::PARAM_INT_ARRAY)
-                ),
-            ),
-        );
     }
 
     /**

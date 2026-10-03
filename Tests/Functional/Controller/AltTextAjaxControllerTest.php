@@ -722,62 +722,157 @@ final class AltTextAjaxControllerTest extends AbstractAuthorizationTestCase
     // ---------------------------------------------------------------
 
     /**
-     * A reference stored for "All languages" (-1) is listed in every language
-     * its parent renders in: under an all-languages parent or one of the
-     * listed language (AltlessFileReferenceRepository::createLanguageClause()).
-     * Its demand carries the listed language, and redemption admits exactly
-     * those parents — -1 is no wildcard for the parent's language.
+     * Listing and redemption apply one language rule
+     * (FileReferenceLanguageScope): a reference of the listed language counts
+     * whatever its parent stores; one stored for "All languages" (-1) counts
+     * under a parent stored for -1 or for the listed language, and always
+     * under a parent table without a language field. Every listed reference
+     * must therefore redeem the demand the list signs for it, and a demand
+     * signed for a language that does not list the reference must not.
      *
-     * Fixture: AllLanguagesReferenceSupplement.csv (tt_content 410 and its
-     * reference 410 on page 10, both -1, file 1).
+     * Covers the realistic mismatches: content switched to "All languages"
+     * after images were added keeps its references at language 0, and
+     * inconsistent rows (parent 0 / reference 1).
      *
-     * @return array<string, array{int, int, bool}>
+     * @return array<string, array{string, int|null, int, int}>
      */
-    public static function allLanguagesReferenceDemandProvider(): array
+    public static function listingAgreementProvider(): array
     {
-        return [
-            'all-languages parent, default-language list' => [-1, 0, true],
-            'all-languages parent, translation list' => [-1, 1, true],
-            'default-language parent, default-language list' => [0, 0, true],
-            'translation parent, its own list' => [1, 1, true],
-            'default-language parent, translation list (not listed there)' => [0, 1, false],
-            'translation parent, default-language list (not listed there)' => [1, 0, false],
-            'default-language parent, demand for "All languages"' => [0, -1, false],
-        ];
+        $cases = [];
+        foreach ([-1, 0, 1] as $parentLanguageUid) {
+            foreach ([-1, 0, 1] as $referenceLanguageUid) {
+                foreach ([0, 1] as $listedLanguageUid) {
+                    $cases["parent $parentLanguageUid, reference $referenceLanguageUid, list $listedLanguageUid"]
+                        = ['tt_content', $parentLanguageUid, $referenceLanguageUid, $listedLanguageUid];
+                }
+            }
+        }
+        foreach ([-1, 0, 1] as $referenceLanguageUid) {
+            foreach ([0, 1] as $listedLanguageUid) {
+                $cases["parent table without language field, reference $referenceLanguageUid, list $listedLanguageUid"]
+                    = ['tx_a11ytest_gallery', null, $referenceLanguageUid, $listedLanguageUid];
+            }
+        }
+
+        return $cases;
     }
 
-    #[DataProvider('allLanguagesReferenceDemandProvider')]
-    public function testAllLanguagesReferenceDemandIsRedeemableWhereItsParentRenders(
-        int $parentLanguageUid,
-        int $demandLanguageUid,
-        bool $authorized,
+    #[DataProvider('listingAgreementProvider')]
+    public function testListedReferenceIsRedeemableAndOnlyWhereListed(
+        string $parentTable,
+        ?int $parentLanguageUid,
+        int $referenceLanguageUid,
+        int $listedLanguageUid,
     ): void {
-        $this->importCSVDataSet(__DIR__ . '/../Fixtures/AllLanguagesReferenceSupplement.csv');
-        $this->getConnectionPool()->getConnectionForTable('tt_content')->update(
-            'tt_content',
-            ['sys_language_uid' => $parentLanguageUid],
-            ['uid' => 410],
-        );
+        $column = $parentTable === 'tt_content' ? 'assets' : 'images';
+        $connectionPool = $this->getConnectionPool();
+        if ($parentTable === 'tt_content') {
+            $this->importCSVDataSet(__DIR__ . '/../Fixtures/AllLanguagesReferenceSupplement.csv');
+            $connectionPool->getConnectionForTable('tt_content')
+                ->update('tt_content', ['sys_language_uid' => $parentLanguageUid], ['uid' => 410]);
+            $connectionPool->getConnectionForTable('sys_file_reference')
+                ->update('sys_file_reference', ['sys_language_uid' => $referenceLanguageUid], ['uid' => 410]);
+        } else {
+            // Fixture extension table tx_a11ytest_gallery: a file field, no
+            // language field. The full editor's group gets the table.
+            $connectionPool->getConnectionForTable('tx_a11ytest_gallery')
+                ->insert('tx_a11ytest_gallery', ['uid' => 410, 'pid' => 10, 'title' => 'Gallery', 'images' => 1]);
+            $connectionPool->getConnectionForTable('sys_file_reference')->insert('sys_file_reference', [
+                'uid' => 410,
+                'pid' => 10,
+                'uid_local' => 1,
+                'uid_foreign' => 410,
+                'tablenames' => 'tx_a11ytest_gallery',
+                'fieldname' => 'images',
+                'sys_language_uid' => $referenceLanguageUid,
+                'alternative' => '',
+            ]);
+            $groups = $connectionPool->getConnectionForTable('be_groups');
+            $group = $groups->select(['tables_select', 'tables_modify'], 'be_groups', ['uid' => 1])->fetchAssociative();
+            $groups->update('be_groups', [
+                'tables_select' => $group['tables_select'] . ',tx_a11ytest_gallery',
+                'tables_modify' => $group['tables_modify'] . ',tx_a11ytest_gallery',
+            ], ['uid' => 1]);
+        }
         $this->logInBackendUser(2);
 
-        $response = $this->generate($this->demandPayload(
-            2,
-            recordUid: 410,
-            fileUid: 1,
-            fileReferenceUid: 410,
-            languageUid: $demandLanguageUid,
+        $listed = array_values(array_filter(
+            $this->get(AltTextFinderService::class)->findAltlessFileReferencePage(
+                10,
+                0,
+                $listedLanguageUid,
+                [],
+                1,
+                100,
+                tableName: $parentTable,
+            )['items'],
+            static fn($reference): bool => (int)$reference->getUid() === 410,
         ));
+        // The listing rule itself is pinned too, so the agreement below cannot
+        // hold merely because both sides changed together.
+        $expectedListed = $referenceLanguageUid === $listedLanguageUid
+            || ($referenceLanguageUid === -1
+                && ($parentLanguageUid === null || in_array($parentLanguageUid, [$listedLanguageUid, -1], true)));
+        self::assertSame($expectedListed, $listed !== [], 'the list shows the reference exactly where it renders');
 
-        if ($authorized) {
-            $this->assertOpenAiFailure($response);
-        } else {
-            $this->assertErrorResponse($response, 403, 'error.invalidRecordAccess');
+        if ($listed === []) {
+            $this->assertErrorResponse($this->generate($this->demandPayload(
+                2,
+                recordTable: $parentTable,
+                recordUid: 410,
+                fileUid: 1,
+                fileReferenceUid: 410,
+                recordColumns: [$column],
+                languageUid: $listedLanguageUid,
+            )), 403, 'error.invalidRecordAccess');
+
+            return;
         }
+
+        $context = $this->get(RenderingContextFactory::class)->create();
+        $context->getTemplatePaths()->setTemplateSource(
+            '<html xmlns:mindfula11y="http://typo3.org/ns/MindfulMarkup/MindfulA11y/ViewHelpers" data-namespace-typo3-fluid="true">'
+            . '<mindfula11y:altlessFileReference fileReference="{reference}" languageId="{languageId}" />'
+            . '</html>'
+        );
+        $view = new TemplateView($context);
+        $view->assignMultiple(['reference' => $listed[0], 'languageId' => $listedLanguageUid]);
+        self::assertSame(
+            1,
+            preg_match('/generate-alt-text-demand="([^"]+)"/', $view->render(), $match),
+            'the list offers generation',
+        );
+        $payload = json_decode(html_entity_decode($match[1]), true, 512, JSON_THROW_ON_ERROR);
+        self::assertSame($listedLanguageUid, $payload['languageUid'], 'the demand carries the listed language');
+
+        $this->assertOpenAiFailure($this->generate($payload));
     }
 
     /**
-     * The other half of the contract: a reference of a concrete language
-     * stays bound to it — admitting -1 parents is only for -1 references.
+     * The FormEngine field control edits the reference itself and signs the
+     * reference's own language; redemption holds it to exactly that language.
+     */
+    public function testDirectReferenceDemandIsBoundToTheReferencesOwnLanguage(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/AllLanguagesReferenceSupplement.csv');
+        $this->logInBackendUser(2);
+        $demand = fn(int $languageUid): array => $this->demandPayload(
+            2,
+            recordTable: 'sys_file_reference',
+            recordUid: 410,
+            fileUid: 1,
+            fileReferenceUid: 410,
+            recordColumns: ['alternative'],
+            languageUid: $languageUid,
+        );
+
+        $this->assertOpenAiFailure($this->generate($demand(-1)));
+        $this->assertErrorResponse($this->generate($demand(1)), 403, 'error.invalidRecordAccess');
+    }
+
+    /**
+     * A reference of a concrete language is listed in that language only, and
+     * its demand redeems in that language only.
      */
     public function testConcreteLanguageReferenceDemandStaysBoundToItsLanguage(): void
     {

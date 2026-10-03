@@ -299,10 +299,12 @@ class AltlessFileReferenceViewHelper extends AbstractTagBasedViewHelper
 
     /**
      * The language the listing judged the reference by: its own, or the
-     * listed language for an "All languages" reference (-1). Metadata has no
-     * -1 row, and such a reference renders in whichever language it is shown
-     * in — so that language supplies both the inherited metadata text and
-     * the language its alternative text is generated in.
+     * listed language for an "All languages" reference (-1). The list shows
+     * only references of these two kinds (FileReferenceLanguageScope), so for
+     * every listed reference this IS the listed language. Metadata has no -1
+     * row, and such a reference renders in whichever language it is shown in
+     * — so that language supplies both the inherited metadata text and the
+     * language its alternative text is generated in.
      */
     protected function getListedLanguageId(AltlessFileReference $fileReference): int
     {
