@@ -22,7 +22,6 @@ declare(strict_types=1);
 
 namespace MindfulMarkup\MindfulA11y\Domain\Model;
 
-use MindfulMarkup\MindfulA11y\Enum\ScanMode;
 use MindfulMarkup\MindfulA11y\Service\RecordSnapshotService;
 
 
@@ -193,21 +192,6 @@ final readonly class CreateScanDemand implements SignedDemandInterface
     public function getCrawl(): bool
     {
         return $this->crawl;
-    }
-
-    /**
-     * The MindfulAPI scan mode this demand asks for: a crawl, the page with
-     * child levels (a URL list), or the current page alone. The requested
-     * scope decides, not the number of URLs it later resolves to — a page
-     * tree without children still is a multi-page request.
-     */
-    public function getScanMode(): ScanMode
-    {
-        if ($this->crawl) {
-            return ScanMode::Crawl;
-        }
-
-        return $this->pageLevels > 0 ? ScanMode::UrlList : ScanMode::SingleUrl;
     }
 
     /** @return list<string> */

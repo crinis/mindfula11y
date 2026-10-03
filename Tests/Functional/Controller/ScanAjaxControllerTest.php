@@ -58,7 +58,9 @@ use TYPO3\CMS\Core\Http\RequestFactory;
  *  - cancelAction: ScanApiService::cancelScan() -> sendRequest() returns
  *    null -> controller answers errorResponse('scan.error.cancelFailed', 500).
  * Every "authorized, ends in upstream failure" assertion below targets one
- * of those three exact outcomes, never a bare "not 4xx".
+ * of those three exact outcomes, never a bare "not 4xx". Tests of what the
+ * scanner is sent, or of how its answers are passed on, wire a stubbed
+ * scanner instead (controllerWithScannerAnswering()).
  *
  * Uses only the shared AuthorizationScenario.csv fixture (pages 10 editable,
  * 11 show-only, 12 edit-locked, 14 no-access, 15 hidden, 17 scan-disabled via
@@ -66,10 +68,14 @@ use TYPO3\CMS\Core\Http\RequestFactory;
  * fr translation of 10; users 2 full editor, 3 no module, 6 default-language
  * only, 8 no pages tables_modify, 10 second full editor), plus
  * ScanSupplement.csv (page 500 = fr translation of the scan-disabled page 17)
- * for the translation-stored scan-id scenarios.
+ * for the translation-stored scan-id scenarios, and the AI-review pages below
+ * page 19: 501 (lists single_url and url_list; child 503) and the leaf 502.
  */
 final class ScanAjaxControllerTest extends AbstractAuthorizationTestCase
 {
+    /** @var list<array<string, mixed>> Request bodies a stubbed scanner received (see controllerWithScannerAnswering()). */
+    private array $sentScannerRequestBodies = [];
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -286,32 +292,56 @@ final class ScanAjaxControllerTest extends AbstractAuthorizationTestCase
     {
         // Page 19 enables the AI review without listing scan modes, so only the
         // current page (single_url) may be reviewed: a page tree would review,
-        // and pay for, every page in it.
+        // and pay for, every page in it. Its tree (19, 501, 502) is sent as a
+        // url_list — refused before anything reaches the scanner.
         $this->logInBackendUser(2);
-        $payload = $this->signedCreateDemandPayload(2, 19, previewUrl: 'https://example.com/ai-audit', pageLevels: 1)
+        $payload = $this->signedCreateDemandPayload(2, 19, previewUrl: $this->currentPreviewUrl(19), pageLevels: 1)
             + ['aiAudit' => true];
 
-        $response = $this->controller()->createAction($this->createJsonRequest($payload));
+        $response = $this->controllerWithScannerAnswering($this->scanCreatedResponse())
+            ->createAction($this->createJsonRequest($payload));
 
         $this->assertErrorResponse($response, 403, 'scan.error.aiAuditScanModeNotAllowed');
+        self::assertSame([], $this->sentScannerRequestBodies, 'the refusal happens before the scanner is called');
     }
 
-    public function testCreateActionAiAuditAllowsAListedScanModeAndStillRefusesAnUnlistedOne(): void
+    /**
+     * MindfulAPI gates the AI review on the mode it receives, and a page
+     * tree that resolves to one page is sent as a single URL. Page 502 has no
+     * subpages: with page levels it still scans just itself, which page 19's
+     * single_url default allows.
+     */
+    public function testCreateActionAiAuditGatesALeafPageTreeAsTheSinglePageItSends(): void
+    {
+        $this->logInBackendUser(2);
+        $payload = $this->signedCreateDemandPayload(2, 502, previewUrl: $this->currentPreviewUrl(502), pageLevels: 1)
+            + ['aiAudit' => true];
+
+        $response = $this->controllerWithScannerAnswering($this->scanCreatedResponse())
+            ->createAction($this->createJsonRequest($payload));
+
+        self::assertSame(201, $response->getStatusCode());
+        self::assertCount(1, $this->sentScannerRequestBodies);
+        self::assertSame('single_url', $this->sentScannerRequestBodies[0]['mode'] ?? null);
+        self::assertArrayHasKey('aiAudit', $this->sentScannerRequestBodies[0]);
+    }
+
+    public function testCreateActionAiAuditAllowsAListedScanMode(): void
     {
         // Page 501 inherits the AI review from page 19 and lists single_url and
-        // url_list: a page tree passes the gate through to the scan-API failure
-        // branch, a crawl is still refused.
+        // url_list: its tree (501, 503) goes out as a reviewed url_list.
         $this->logInBackendUser(2);
-        $treePayload = $this->signedCreateDemandPayload(2, 501, previewUrl: 'https://example.com/ai-audit/multi-page', pageLevels: 1)
-            + ['aiAudit' => true];
-        $crawlPayload = $this->signedCreateDemandPayload(2, 501, previewUrl: 'https://example.com/ai-audit/multi-page', crawl: true)
+        $payload = $this->signedCreateDemandPayload(2, 501, previewUrl: $this->currentPreviewUrl(501), pageLevels: 1)
             + ['aiAudit' => true];
 
-        $treeResponse = $this->controller()->createAction($this->createJsonRequest($treePayload));
-        $crawlResponse = $this->controller()->createAction($this->createJsonRequest($crawlPayload));
+        $response = $this->controllerWithScannerAnswering($this->scanCreatedResponse())
+            ->createAction($this->createJsonRequest($payload));
 
-        $this->assertErrorResponse($treeResponse, 500, 'scan.error.notConfigured');
-        $this->assertErrorResponse($crawlResponse, 403, 'scan.error.aiAuditScanModeNotAllowed');
+        self::assertSame(201, $response->getStatusCode(), (string)$response->getBody());
+        self::assertCount(1, $this->sentScannerRequestBodies);
+        self::assertSame('url_list', $this->sentScannerRequestBodies[0]['mode'] ?? null);
+        self::assertCount(2, $this->sentScannerRequestBodies[0]['urls'] ?? []);
+        self::assertArrayHasKey('aiAudit', $this->sentScannerRequestBodies[0]);
     }
 
     public function testCreateActionNonexistentPageReturnsPageNotFound(): void
@@ -749,29 +779,51 @@ final class ScanAjaxControllerTest extends AbstractAuthorizationTestCase
         self::assertSame('17', $response->getHeaderLine('Retry-After'));
     }
 
+    /** A scanner's answer to an accepted create request. */
+    private function scanCreatedResponse(): ResponseInterface
+    {
+        return new JsonResponse(['id' => 4711, 'status' => 'pending'], 201);
+    }
+
     /**
      * The controller wired to a scanner that answers every request with
-     * $scannerResponse; everything else comes from the container.
+     * $scannerResponse — the decoded JSON bodies sent to it are collected in
+     * $sentScannerRequestBodies; everything else comes from the container.
      */
     private function controllerWithScannerAnswering(ResponseInterface $scannerResponse): ScanAjaxController
     {
         $GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS']['mindfula11y']['scannerApiUrl'] = 'https://scanner.invalid';
         $requestFactory = $this->createMock(RequestFactory::class);
-        $requestFactory->method('request')->willReturn($scannerResponse);
+        $requestFactory->method('request')->willReturnCallback(
+            function (string $uri, string $method, array $options) use ($scannerResponse): ResponseInterface {
+                if (isset($options['body'])) {
+                    $this->sentScannerRequestBodies[] = json_decode((string)$options['body'], true, flags: JSON_THROW_ON_ERROR);
+                }
+
+                return $scannerResponse;
+            }
+        );
+
+        $scanApiService = new ScanApiService(
+            new ExtensionSettings($this->get(ExtensionConfiguration::class)),
+            $requestFactory,
+            new NullLogger(),
+        );
 
         return new ScanAjaxController(
-            scanApiService: new ScanApiService(
-                new ExtensionSettings($this->get(ExtensionConfiguration::class)),
-                $requestFactory,
-                new NullLogger(),
-            ),
+            scanApiService: $scanApiService,
             demandSignatureService: $this->get(DemandSignatureService::class),
             moduleSettingsService: $this->get(ModuleSettingsService::class),
             pagePreviewService: $this->get(PagePreviewService::class),
             existingScanAuthorizationService: $this->get(ExistingScanAuthorizationService::class),
             permissionService: $this->get(PermissionService::class),
             siteLanguageService: $this->get(SiteLanguageService::class),
-            scanCreationService: $this->get(ScanCreationService::class),
+            scanCreationService: new ScanCreationService(
+                $scanApiService,
+                $this->get(ModuleSettingsService::class),
+                $this->get(PagePreviewService::class),
+                $this->get(SiteLanguageService::class),
+            ),
             scanDemandFactory: $this->get(ScanDemandFactory::class),
             responseFactory: $this->get(ResponseFactoryInterface::class),
             backendUserProvider: $this->get(BackendUserProvider::class),

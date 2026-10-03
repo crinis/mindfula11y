@@ -54,15 +54,16 @@ export const SCAN_MODES = ['single_url', 'url_list', 'crawl'] as const;
 export type ScanMode = (typeof SCAN_MODES)[number];
 
 /**
- * The scan mode a demand asks for: a crawl, the page with child levels (a URL
- * list), or the current page alone. The requested scope decides, not the
- * number of URLs it later resolves to.
+ * The mode a scan request is sent with: a crawl, or the URLs its scope
+ * resolved to — several as a url_list, one as single_url. MindfulAPI gates
+ * the AI review on this wire mode, so a page tree that resolves to one page
+ * is a single_url scan. Mirrors the backend's `ScanMode::forRequest()`.
  */
-export function scanModeOf(demand: Pick<CreateScanDemand, 'pageLevels' | 'crawl'>): ScanMode {
-    if (demand.crawl) {
+export function scanModeFor(crawl: boolean, urlCount: number): ScanMode {
+    if (crawl) {
         return 'crawl';
     }
-    return demand.pageLevels > 0 ? 'url_list' : 'single_url';
+    return urlCount > 1 ? 'url_list' : 'single_url';
 }
 
 /** Lifecycle of the optional AI audit inside a scan (distinct from ScanStatus). */

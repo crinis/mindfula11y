@@ -11,11 +11,11 @@ function isScanInProgress(status) {
   return status === "pending" /* Pending */ || status === "running" /* Running */ || status === "analyzing" /* Analyzing */;
 }
 const SCAN_MODES = ["single_url", "url_list", "crawl"];
-function scanModeOf(demand) {
-  if (demand.crawl) {
+function scanModeFor(crawl, urlCount) {
+  if (crawl) {
     return "crawl";
   }
-  return demand.pageLevels > 0 ? "url_list" : "single_url";
+  return urlCount > 1 ? "url_list" : "single_url";
 }
 var AiAuditStatus = /* @__PURE__ */ ((AiAuditStatus2) => {
   AiAuditStatus2["Skipped"] = "skipped";
@@ -32,6 +32,6 @@ export {
   SCAN_MODES,
   ScanStatus,
   isScanInProgress,
-  scanModeOf,
+  scanModeFor,
   violationGroupKey
 };

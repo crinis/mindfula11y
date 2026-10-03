@@ -25,13 +25,26 @@ namespace MindfulMarkup\MindfulA11y\Enum;
 
 /**
  * The scan modes of the MindfulAPI scan request, named as the API names them
- * (and as its AGENT_ALLOWED_SCAN_MODES setting lists them). A scan demand maps
- * to one of these: the current page alone, the page with child levels, or a
- * full-site crawl.
+ * (and as its AGENT_ALLOWED_SCAN_MODES setting lists them).
  */
 enum ScanMode: string
 {
     case SingleUrl = 'single_url';
     case UrlList = 'url_list';
     case Crawl = 'crawl';
+
+    /**
+     * The mode a scan request is sent with: a crawl, or the URLs it resolved
+     * to — several as a url_list, one as single_url. MindfulAPI gates the AI
+     * review on this wire mode, so a page tree that resolves to one page
+     * (a page without subpages) is a single_url scan.
+     */
+    public static function forRequest(bool $crawl, int $urlCount): self
+    {
+        if ($crawl) {
+            return self::Crawl;
+        }
+
+        return $urlCount > 1 ? self::UrlList : self::SingleUrl;
+    }
 }

@@ -142,17 +142,46 @@ describe('Scan', () => {
         const view = await mount('scan');
         view.aiAuditAvailable = true;
         view.aiAuditScanModes = ['single_url'];
+        view.urlList = ['https://example.test/'];
         await settle(view);
         expect(view.renderRoot.querySelector('#ai-toggle-scan')).not.toBeNull();
 
-        // A page tree asks for a url_list scan, which is not listed.
+        // A page tree of several pages is sent as a url_list, which is not listed.
         view.createScanDemand = { ...demand, pageLevels: 1 };
+        view.urlList = ['https://example.test/', 'https://example.test/child'];
         await settle(view);
         expect(view.renderRoot.querySelector('#ai-toggle-scan')).toBeNull();
 
         view.aiAuditScanModes = ['single_url', 'url_list'];
         await settle(view);
         expect(view.renderRoot.querySelector('#ai-toggle-scan')).not.toBeNull();
+    });
+
+    it('gates a page tree that resolves to one page as the single_url scan it is sent as', async () => {
+        // MindfulAPI gates the review on the mode it receives; a page without
+        // subpages scanned with page levels is still one URL.
+        loadScanMock.mockResolvedValue(makeResult(ScanStatus.Completed));
+        createScanMock.mockResolvedValue({ scanId: 'new-scan', status: ScanStatus.Pending });
+        const view = await mount('scan');
+        view.aiAuditAvailable = true;
+        view.aiAuditDefault = true;
+        view.createScanDemand = { ...demand, pageLevels: 1 };
+        view.urlList = ['https://example.test/leaf'];
+
+        view.aiAuditScanModes = ['url_list'];
+        await settle(view);
+        expect(view.renderRoot.querySelector('#ai-toggle-scan')).toBeNull();
+
+        view.aiAuditScanModes = ['single_url'];
+        await settle(view);
+        expect(view.renderRoot.querySelector('#ai-toggle-scan')).not.toBeNull();
+        button(view, 'trigger').click();
+        await settle(view);
+        expect(createScanMock).toHaveBeenCalledWith(
+            expect.objectContaining({ pageLevels: 1 }),
+            true,
+            expect.anything(),
+        );
     });
 
     it('never requests an AI review for a scan mode that is not listed, even when the review is the default', async () => {
@@ -163,6 +192,7 @@ describe('Scan', () => {
         view.aiAuditDefault = true;
         view.aiAuditScanModes = ['single_url'];
         view.createScanDemand = { ...demand, pageLevels: 5 };
+        view.urlList = ['https://example.test/', 'https://example.test/child'];
         await settle(view);
 
         button(view, 'trigger').click();

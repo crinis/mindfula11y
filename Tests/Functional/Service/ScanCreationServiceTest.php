@@ -154,8 +154,15 @@ final class ScanCreationServiceTest extends AbstractAuthorizationTestCase
         self::assertSame(['https://example.com/**'], $body['crawlOptions']['globs'] ?? null);
     }
 
-    private function createMultiPage(int $pageId, string $previewUrl): void
-    {
+    /**
+     * @param array<string, mixed> $pageTsConfig
+     */
+    private function createMultiPage(
+        int $pageId,
+        string $previewUrl,
+        array $pageTsConfig = [],
+        bool $aiAuditRequested = false,
+    ): void {
         $page = BackendUtility::getRecord('pages', $pageId);
         self::assertIsArray($page);
 
@@ -170,10 +177,69 @@ final class ScanCreationServiceTest extends AbstractAuthorizationTestCase
                 pageLevels: 1,
             ),
             $page,
-            [],
-            false,
+            $pageTsConfig,
+            $aiAuditRequested,
             null,
         );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function aiReviewTsConfig(string $scanModes): array
+    {
+        return ['mod' => ['mindfula11y_accessibility' => ['scan' => ['aiAudit' => ['enable' => '1', 'scanModes' => $scanModes]]]]];
+    }
+
+    /**
+     * MindfulAPI gates the AI review on the mode it receives. A page tree
+     * that resolves to one page (page 10 has no subpages) goes out as
+     * single_url, so a configuration allowing only url_list must refuse it
+     * here — before the scanner answers with a 400.
+     */
+    public function testAiReviewIsGatedOnTheModeALeafPageTreeIsSentAs(): void
+    {
+        $this->writeDefaultSiteConfiguration();
+        $this->logInBackendUser(1);
+
+        try {
+            $this->createMultiPage(10, 'https://example.com/editable', self::aiReviewTsConfig('url_list'), true);
+            self::fail('the AI review must be refused');
+        } catch (ScanCreationException $exception) {
+            self::assertSame('scan.error.aiAuditScanModeNotAllowed', $exception->labelKey);
+            self::assertSame(403, $exception->statusCode);
+        }
+        self::assertSame([], $this->sentRequestOptions, 'no scan request reaches the scanner');
+    }
+
+    public function testAiReviewOfACrawlIsRefusedWhenCrawlsAreNotListed(): void
+    {
+        $this->writeDefaultSiteConfiguration();
+        $this->logInBackendUser(1);
+        $page = BackendUtility::getRecord('pages', 1);
+        self::assertIsArray($page);
+
+        try {
+            $this->subject()->create(
+                new CreateScanDemand(
+                    userId: 1,
+                    pageId: 1,
+                    previewUrl: 'https://example.com/',
+                    languageId: 0,
+                    workspaceId: 0,
+                    pageRecordSnapshot: str_repeat('a', 64),
+                    crawl: true,
+                ),
+                $page,
+                self::aiReviewTsConfig('single_url, url_list'),
+                true,
+                null,
+            );
+            self::fail('the AI review must be refused');
+        } catch (ScanCreationException $exception) {
+            self::assertSame('scan.error.aiAuditScanModeNotAllowed', $exception->labelKey);
+        }
+        self::assertSame([], $this->sentRequestOptions, 'no crawl request reaches the scanner');
     }
 
     /**

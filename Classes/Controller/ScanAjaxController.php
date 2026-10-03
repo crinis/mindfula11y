@@ -185,18 +185,17 @@ final readonly class ScanAjaxController
         }
         $pageTsConfig = $this->moduleSettingsService->getConvertedPageTsConfig($pageId);
 
-        // The AI audit is opt-in via Page TSconfig, and each scan mode beyond
-        // the current page (a page tree, a crawl) is a separate opt-in there:
-        // the review runs per scanned page, so those modes multiply its cost.
-        // MindfulAPI owns skill selection and applies its server-side
+        // The AI audit is opt-in via Page TSconfig. Each scan mode beyond the
+        // current page (a page tree, a crawl) is a separate opt-in there too —
+        // the review runs per scanned page, so those modes multiply its cost —
+        // but that gate needs the resolved URLs: ScanCreationService applies it
+        // to the mode the request is actually sent with, before calling the
+        // API. MindfulAPI owns skill selection and applies its server-side
         // whitelist, and enforces its own allowed scan modes.
         $aiAuditSkills = null;
         if ($aiAuditRequested) {
             if (!$this->moduleSettingsService->hasAiAuditAccess($pageTsConfig)) {
                 return $this->errorResponse('scan.error.aiAuditNotAllowed', 403);
-            }
-            if (!in_array($demand->getScanMode(), $this->moduleSettingsService->getAiAuditScanModes($pageTsConfig), true)) {
-                return $this->errorResponse('scan.error.aiAuditScanModeNotAllowed', 403);
             }
             $aiAuditSkills = $this->moduleSettingsService->getAiAuditSkills($pageTsConfig);
         }

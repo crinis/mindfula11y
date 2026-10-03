@@ -147,7 +147,9 @@ final readonly class ScanFeatureRenderer
 
         // The AI audit toggle is only offered when TSConfig enables it and the
         // user can trigger scans at all, and only for the allowed scan modes,
-        // which the element applies per tab and scan scope.
+        // which the element applies per tab to the mode the scan is sent with
+        // (the crawl tab crawls; the scan tab sends $urlList, one URL as
+        // single_url, several as url_list — see ScanMode::forRequest()).
         $aiAuditAvailable = $canTriggerScan && $this->moduleSettingsService->hasAiAuditAccess($context->pageTsConfig);
         $context->moduleTemplate->assignMultiple([
             ...$scanCardState,

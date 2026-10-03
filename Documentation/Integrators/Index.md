@@ -131,7 +131,7 @@ All `mod.*` paths below are relative to `mod.mindfula11y_accessibility` unless s
 | `scan.basicAuthPassword` | _(unset)_ | Deprecated — use `mindfula11y.scan.basicAuth.password` in the site configuration. |
 | `scan.aiAudit.enable` | `0` | Offers the "Include AI review" toggle; needs MindfulAPI's agent feature ([AI review](#ai-review-agent-audit)). |
 | `scan.aiAudit.default` | `0` | Pre-selects the AI review toggle; editors can switch it off per scan. |
-| `scan.aiAudit.scanModes` | `single_url` | Scan modes the AI review is offered and accepted for, as MindfulAPI names them: `single_url` (the current page), `url_list` (page with child levels), `crawl`. Every scanned page is reviewed and paid for, so widen deliberately; MindfulAPI's `AGENT_ALLOWED_SCAN_MODES` must list the modes too. |
+| `scan.aiAudit.scanModes` | `single_url` | Scan modes the AI review is offered and accepted for, as MindfulAPI names them: `single_url` (one page), `url_list` (a page with child levels that resolves to several pages), `crawl`. A scan counts as the mode it is sent with: a page without subpages scanned with child levels is `single_url`. Every scanned page is reviewed and paid for, so widen deliberately; MindfulAPI's `AGENT_ALLOWED_SCAN_MODES` must list the modes too. |
 | `scan.aiAudit.skills` | _(unset)_ | Optional comma-separated skill subset. Unset: every MindfulAPI-enabled skill. An empty value switches the AI review off: the toggle is not offered and requests are refused. |
 | `mod.web_layout.mindfula11y.hideInfo` | `0` | Hides the Mindful A11y info box in the page module. |
 
@@ -294,11 +294,12 @@ mod.mindfula11y_accessibility.scan.aiAudit {
     enable = 1
     # Pre-select the toggle for new scans (editors can still switch it off per scan).
     default = 0
-    # Scan modes the review may run for, as MindfulAPI names them: single_url (the
-    # current page, the default), url_list (page with child levels), crawl. Every
-    # scanned page is reviewed (up to MindfulAPI's AGENT_MAX_UNITS_PER_SCAN), so
-    # widening this is a deliberate cost decision; MindfulAPI's
-    # AGENT_ALLOWED_SCAN_MODES must list the modes as well.
+    # Scan modes the review may run for, as MindfulAPI names them: single_url (one
+    # page, the default), url_list (a page with child levels that resolves to
+    # several pages), crawl. A page without subpages scanned with child levels is
+    # sent as single_url. Every scanned page is reviewed (up to MindfulAPI's
+    # AGENT_MAX_UNITS_PER_SCAN), so widening this is a deliberate cost decision;
+    # MindfulAPI's AGENT_ALLOWED_SCAN_MODES must list the modes as well.
     scanModes = single_url
     # Optional comma-separated subset. Leave unset to run every skill enabled
     # by MindfulAPI's AGENT_SKILLS setting. An empty value switches the AI

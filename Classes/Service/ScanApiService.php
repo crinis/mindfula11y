@@ -347,25 +347,13 @@ final readonly class ScanApiService
             return null;
         }
 
-        if ($crawl) {
-            $requestBody = [
-                'mode' => ScanMode::Crawl->value,
-                'startUrls' => array_values($urls),
-            ];
-            if (!empty($crawlOptions)) {
-                $requestBody['crawlOptions'] = $crawlOptions;
-            }
-        } elseif (count($urls) === 1) {
-            $requestBody = [
-                'mode' => ScanMode::SingleUrl->value,
-                'url' => $urls[0],
-            ];
-        } else {
-            $requestBody = [
-                'mode' => ScanMode::UrlList->value,
-                'urls' => array_values($urls),
-            ];
-        }
+        $urls = array_values($urls);
+        $requestBody = match (ScanMode::forRequest($crawl, count($urls))) {
+            ScanMode::Crawl => ['mode' => ScanMode::Crawl->value, 'startUrls' => $urls]
+                + (empty($crawlOptions) ? [] : ['crawlOptions' => $crawlOptions]),
+            ScanMode::SingleUrl => ['mode' => ScanMode::SingleUrl->value, 'url' => $urls[0]],
+            ScanMode::UrlList => ['mode' => ScanMode::UrlList->value, 'urls' => $urls],
+        };
         if (!empty($scanOptions)) {
             $requestBody['scanOptions'] = $scanOptions;
         }

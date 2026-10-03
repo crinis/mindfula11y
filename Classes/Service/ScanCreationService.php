@@ -23,6 +23,7 @@ declare(strict_types=1);
 namespace MindfulMarkup\MindfulA11y\Service;
 
 use MindfulMarkup\MindfulA11y\Domain\Model\CreateScanDemand;
+use MindfulMarkup\MindfulA11y\Enum\ScanMode;
 use MindfulMarkup\MindfulA11y\Exception\ScanApiRequestException;
 use MindfulMarkup\MindfulA11y\Exception\ScanCreationException;
 use MindfulMarkup\MindfulA11y\Hooks\ScanStateDataHandlerGuard;
@@ -36,7 +37,8 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
  * the URL list and scanner options, calling the scan API, and persisting the
  * returned scan id on the page record. Callers authorize first — this
  * service assumes the demand's signature, user, workspace, language, page
- * access, and TSconfig gates have been verified.
+ * access, and TSconfig gates have been verified — except for the AI review's
+ * scan-mode gate, which needs the URL list assembled here.
  */
 final readonly class ScanCreationService
 {
@@ -50,6 +52,7 @@ final readonly class ScanCreationService
     /**
      * @param array<string, mixed> $page Workspace-overlaid (and, for translations, localized) page record.
      * @param array<string, mixed> $pageTsConfig Converted Page TSconfig of the demand's page.
+     * @param bool $aiAuditRequested Whether the editor asked for the AI review (hasAiAuditAccess() already checked).
      * @param list<string>|null $aiAuditSkills Skill selection when an AI audit was requested and allowed.
      * @return array{scanId: string, status: string}
      * @throws ScanCreationException Carries the label key, HTTP status, and optional description for the error response.
@@ -66,6 +69,18 @@ final readonly class ScanCreationService
         }
 
         $scanUrls = $this->buildScanUrls($demand, $page);
+
+        // Page TSconfig lists the scan modes the AI review may run for, and
+        // MindfulAPI gates the review on the mode it receives — which depends
+        // on the URLs the scope resolved to (a page tree of one page goes out
+        // as single_url). Checked on exactly that mode, before the API call.
+        if ($aiAuditRequested && !in_array(
+            ScanMode::forRequest($demand->getCrawl(), count($scanUrls)),
+            $this->moduleSettingsService->getAiAuditScanModes($pageTsConfig),
+            true,
+        )) {
+            throw new ScanCreationException('scan.error.aiAuditScanModeNotAllowed', 403);
+        }
 
         $crawlOptions = [];
         if ($demand->getCrawl()) {

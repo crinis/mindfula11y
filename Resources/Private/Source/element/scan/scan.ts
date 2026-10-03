@@ -23,7 +23,7 @@ import { html, LitElement, nothing } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { LiveAnnouncer } from '../../lib/live-announcer.js';
 import type { CreateScanDemand, ScanResult } from '../../lib/scan/types.js';
-import { isScanInProgress, ScanStatus, scanModeOf } from '../../lib/scan/types.js';
+import { isScanInProgress, ScanStatus, scanModeFor } from '../../lib/scan/types.js';
 import { renderImpactCountBadge, worstSeverity } from '../../lib/status-render.js';
 import { type TabDescriptor, TabsController } from '../../lib/tabs.js';
 import { dispatch } from '../../lib/types.js';
@@ -131,16 +131,18 @@ export class Scan extends LitElement {
 
     /**
      * Whether the AI review may be offered for this tab's scan: TSconfig has
-     * to enable it and list the scan mode the tab's demand asks for — every
+     * to enable it and list the scan mode the tab's scan is sent with — every
      * scanned page is reviewed, and paid for, so page trees and crawls are
-     * separate opt-ins. The server enforces the same rule.
+     * separate opt-ins. The crawl tab always crawls; the scan tab sends the
+     * resolved `urlList` (one URL as single_url, several as url_list), which
+     * is also the mode MindfulAPI and the server's own check gate on.
      */
     private aiAuditAvailableFor(tab: ScanTab): boolean {
-        const demand = this.tabDemand(tab);
-        if (!this.aiAuditAvailable || demand === null) {
+        if (!this.aiAuditAvailable || this.tabDemand(tab) === null) {
             return false;
         }
-        return (this.aiAuditScanModes ?? []).includes(scanModeOf(demand));
+        const mode = scanModeFor(tab === 'crawl', (this.urlList ?? []).length);
+        return (this.aiAuditScanModes ?? []).includes(mode);
     }
 
     private isScanRunning(): boolean {
