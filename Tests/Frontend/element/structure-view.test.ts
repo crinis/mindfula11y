@@ -12,6 +12,7 @@
 
 import type { TemplateResult } from 'lit';
 import { html } from 'lit';
+import { keyed } from 'lit/directives/keyed.js';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // The component's runtime-only imports: @typo3/* modules come from the TYPO3
@@ -84,9 +85,40 @@ if (customElements.get('mindfula11y-test-structure-view') === undefined) {
     customElements.define('mindfula11y-test-structure-view', TestStructureView);
 }
 
+/**
+ * Re-creates a row whenever its stored value changes, as a re-analysis does
+ * when it reshapes a row: the focused select is replaced, so focus drops to
+ * the document body.
+ */
+class RebuildingStructureView extends TestStructureView {
+    protected override renderNodes(nodes: TestNode[]): TemplateResult {
+        return html`<ul>
+            ${nodes.map((node) =>
+                keyed(
+                    `${node.id}:${node.value}`,
+                    html`<li data-node-id=${node.id}>
+                        ${this.renderValueSelect(node, {
+                            id: `value-${node.id}`,
+                            className: 'value',
+                            ariaLabel: `Value of ${node.id}`,
+                            currentValue: node.value,
+                            options: { h1: 'Heading 1', h2: 'Heading 2', h3: 'Heading 3' },
+                        })}
+                    </li>`,
+                ),
+            )}
+        </ul>`;
+    }
+}
+
+if (customElements.get('mindfula11y-test-structure-view-rebuilding') === undefined) {
+    customElements.define('mindfula11y-test-structure-view-rebuilding', RebuildingStructureView);
+}
+
 declare global {
     interface HTMLElementTagNameMap {
         'mindfula11y-test-structure-view': TestStructureView;
+        'mindfula11y-test-structure-view-rebuilding': RebuildingStructureView;
     }
 }
 
@@ -116,8 +148,14 @@ const makeError = (key: string, nodeId: string | null): StructureError => ({
     viewports: ['desktop'],
 });
 
-const mount = async (nodes: TestNode[], pageErrors: StructureError[] = []): Promise<TestStructureView> => {
-    const view = document.createElement('mindfula11y-test-structure-view');
+const mount = async (
+    nodes: TestNode[],
+    pageErrors: StructureError[] = [],
+    tag:
+        | 'mindfula11y-test-structure-view'
+        | 'mindfula11y-test-structure-view-rebuilding' = 'mindfula11y-test-structure-view',
+): Promise<TestStructureView> => {
+    const view = document.createElement(tag);
     view.nodes = nodes;
     view.pageErrors = pageErrors;
     document.body.append(view);
@@ -337,7 +375,7 @@ describe('StructureView', () => {
         expect(querySelect(view, 'n2').value).toBe('h2');
     });
 
-    it('restores focus to the saved control once the container delivers new nodes', async () => {
+    it('keeps focus on the saved control when the container delivers new nodes', async () => {
         updateField.mockResolvedValue(undefined);
         const view = await mount([makeNode('n1'), makeNode('n2')]);
         const select = querySelect(view, 'n1');
@@ -352,6 +390,72 @@ describe('StructureView', () => {
         await view.updateComplete;
 
         expect(view.shadowRoot?.activeElement).toBe(querySelect(view, 'n1'));
+    });
+
+    it('restores focus to the saved control when the re-render replaced the focused one', async () => {
+        updateField.mockResolvedValue(undefined);
+        const view = await mount([makeNode('n1'), makeNode('n2')], [], 'mindfula11y-test-structure-view-rebuilding');
+        const select = querySelect(view, 'n1');
+        select.focus();
+
+        changeValue(select, 'h3');
+        await tick();
+        view.nodes = [makeNode('n1', { value: 'h3' }), makeNode('n2')];
+        await view.updateComplete;
+
+        // The saved row was rebuilt: its old select is gone, and focus moves
+        // to the new one instead of staying lost on the document body.
+        expect(select.isConnected).toBe(false);
+        expect(view.shadowRoot?.activeElement).toBe(querySelect(view, 'n1'));
+    });
+
+    it('leaves focus where the editor moved it while the re-analysis was pending', async () => {
+        updateField.mockResolvedValue(undefined);
+        const view = await mount([makeNode('n1'), makeNode('n2')], [], 'mindfula11y-test-structure-view-rebuilding');
+        const outside = document.createElement('button');
+        document.body.append(outside);
+        querySelect(view, 'n1').focus();
+
+        changeValue(querySelect(view, 'n1'), 'h3');
+        await tick();
+        // Re-analysis takes seconds; the editor moves on meanwhile.
+        outside.focus();
+        view.nodes = [makeNode('n1', { value: 'h3' }), makeNode('n2')];
+        await view.updateComplete;
+
+        expect(document.activeElement).toBe(outside);
+    });
+
+    it('leaves focus on another control of the view the editor moved to', async () => {
+        updateField.mockResolvedValue(undefined);
+        const view = await mount([makeNode('n1'), makeNode('n2')], [], 'mindfula11y-test-structure-view-rebuilding');
+        querySelect(view, 'n1').focus();
+
+        changeValue(querySelect(view, 'n1'), 'h3');
+        await tick();
+        querySelect(view, 'n2').focus();
+        view.nodes = [makeNode('n1', { value: 'h3' }), makeNode('n2')];
+        await view.updateComplete;
+
+        expect(view.shadowRoot?.activeElement).toBe(querySelect(view, 'n2'));
+    });
+
+    it('does not pull focus back when the editor left it on the page itself', async () => {
+        // Clicking a non-focusable spot blurs the select to the body; that is
+        // the editor's doing, not the re-render's, so nothing is restored.
+        updateField.mockResolvedValue(undefined);
+        const view = await mount([makeNode('n1'), makeNode('n2')], [], 'mindfula11y-test-structure-view-rebuilding');
+        const select = querySelect(view, 'n1');
+        select.focus();
+
+        changeValue(select, 'h3');
+        await tick();
+        select.blur();
+        view.nodes = [makeNode('n1', { value: 'h3' }), makeNode('n2')];
+        await view.updateComplete;
+
+        expect(document.activeElement).toBe(document.body);
+        expect(view.renderRoot.querySelector('[data-highlight]')).toBeNull();
     });
 
     it('focusControl focuses the row control and flashes the highlight', async () => {

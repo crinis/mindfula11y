@@ -93,6 +93,8 @@ export abstract class StructureView<T extends StructureNodeBase<T>> extends LitE
      * exact control rather than the row's first `controlSelector` match — a
      * row can carry both an own-level and a child-level control. */
     private pendingFocusControl: string = '';
+    /** Whether focus sat inside this view right before the current `nodes` re-render; see {@link updated}. */
+    private hadFocusBeforeNodesUpdate: boolean = false;
 
     /** Selector of a node row's primary control, preferred over the edit link as focus target. */
     protected abstract readonly controlSelector: string;
@@ -123,14 +125,48 @@ export abstract class StructureView<T extends StructureNodeBase<T>> extends LitE
             : nothing;
     }
 
+    protected override willUpdate(changed: PropertyValues<this>): void {
+        super.willUpdate(changed);
+        if (changed.has('nodes')) {
+            this.hadFocusBeforeNodesUpdate = this.hasFocusWithin();
+        }
+    }
+
+    /**
+     * After a save, the nodes of the re-analysis arrive seconds later, and
+     * the editor may have moved on meanwhile — to another control, out of the
+     * view, or onto the page by clicking it. Focus therefore returns to the
+     * saved control only when this re-render itself dropped it: focus was
+     * inside the view right before and nowhere after, because the focused
+     * control was replaced. Where the focused control survives, it simply
+     * keeps focus.
+     */
     protected override updated(changed: PropertyValues<this>): void {
         if (changed.has('nodes') && this.pendingFocusId !== '') {
             const nodeId = this.pendingFocusId;
             const controlName = this.pendingFocusControl;
             this.pendingFocusId = '';
             this.pendingFocusControl = '';
-            this.focusControl(nodeId, controlName);
+            if (this.hadFocusBeforeNodesUpdate && !this.hasFocusWithin()) {
+                this.focusControl(nodeId, controlName);
+            }
         }
+    }
+
+    /**
+     * Whether the focused element lies inside this view. Walks down from the
+     * document's focused element through the shadow roots (this view may
+     * itself sit in another component's root) instead of asking this view's
+     * root directly: the document is the authority on what holds focus and
+     * never reports an element whose tree was removed — happy-dom's
+     * `ShadowRoot.activeElement` does, and throws on it.
+     */
+    private hasFocusWithin(): boolean {
+        let active: Element | null = this.ownerDocument.activeElement;
+        while (active !== null && active !== this) {
+            active = active.shadowRoot?.activeElement ?? null;
+        }
+        return active === this;
     }
 
     /**
