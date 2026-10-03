@@ -45,6 +45,7 @@ let AltlessFileReference = class extends LitElement {
     this.busy = "idle";
     this.actionError = null;
     this.saved = false;
+    this.decorativeSuggested = false;
     this.altTextApi = new AltTextApi();
     this.recordApi = new RecordApi();
     this.announcer = new LiveAnnouncer(this);
@@ -156,6 +157,16 @@ let AltlessFileReference = class extends LitElement {
                 <span>${lll("mindfula11y.altText.save.success")}</span>
             </mindfula11y-notice>`;
     }
+    if (this.decorativeSuggested) {
+      return html`<mindfula11y-notice class="status" state="info">
+                ${renderNoticeBody({
+        title: lll("mindfula11y.altText.generate.decorative"),
+        description: lll(
+          this.decorativeEditable ? "mindfula11y.altText.generate.decorative.toggleHint" : "mindfula11y.altText.generate.decorative.description"
+        )
+      })}
+            </mindfula11y-notice>`;
+    }
     return nothing;
   }
   renderReadOnlyState() {
@@ -185,10 +196,12 @@ let AltlessFileReference = class extends LitElement {
   handleInput(event) {
     this.value = event.target.value;
     this.saved = false;
+    this.decorativeSuggested = false;
   }
   handleDecorativeChange(event) {
     this.decorative = event.target.checked;
     this.saved = false;
+    this.decorativeSuggested = false;
   }
   async handleGenerate() {
     if (this.generateAltTextDemand === null || this.busy !== "idle") {
@@ -197,9 +210,15 @@ let AltlessFileReference = class extends LitElement {
     this.busy = "generating";
     this.actionError = null;
     this.saved = false;
+    this.decorativeSuggested = false;
     await this.announcer.announce(lll("mindfula11y.altText.generate.loading"));
     try {
-      this.value = await this.altTextApi.generateAltText(this.generateAltTextDemand);
+      const generated = await this.altTextApi.generateAltText(this.generateAltTextDemand);
+      if (generated.decorative) {
+        this.decorativeSuggested = true;
+        return;
+      }
+      this.value = generated.altText;
       await this.announcer.announce(lll("mindfula11y.altText.generate.success"));
     } catch (error) {
       this.actionError = errorView(error, "mindfula11y.altText.generate.error.unknown");
@@ -213,6 +232,7 @@ let AltlessFileReference = class extends LitElement {
     }
     this.busy = "saving";
     this.actionError = null;
+    this.decorativeSuggested = false;
     try {
       const fields = {
         alternative: this.decorative ? "" : this.value
@@ -283,6 +303,9 @@ __decorateClass([
 __decorateClass([
   state()
 ], AltlessFileReference.prototype, "saved", 2);
+__decorateClass([
+  state()
+], AltlessFileReference.prototype, "decorativeSuggested", 2);
 AltlessFileReference = __decorateClass([
   customElement("mindfula11y-altless-file-reference")
 ], AltlessFileReference);

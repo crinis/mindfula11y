@@ -23,6 +23,7 @@ declare(strict_types=1);
 
 namespace MindfulMarkup\MindfulA11y\Service;
 
+use MindfulMarkup\MindfulA11y\Domain\Model\GeneratedAltText;
 use Psr\Log\LoggerInterface;
 use TYPO3\CMS\Core\Resource\FileInterface;
 
@@ -44,6 +45,14 @@ final readonly class AltTextGeneratorService
      */
     private const MAX_IMAGE_BYTES = 20 * 1024 * 1024;
 
+    /**
+     * The answer the instructions demand for a purely decorative image (see
+     * buildInstructions()). Matched exactly — ignoring case and surrounding
+     * whitespace — so a description that merely mentions the word stays a
+     * text.
+     */
+    private const DECORATIVE_VERDICT = 'DECORATIVE';
+
     public function __construct(
         private OpenAIService $openAIService,
         private LoggerInterface $logger,
@@ -57,9 +66,10 @@ final readonly class AltTextGeneratorService
      * @param FileInterface $file The file object representing the image.
      * @param string $languageCode The language code for the generated text (default is 'en').
      * 
-     * @return string|null The generated alternative text or null if the request fails.
+     * @return GeneratedAltText|null The generated alternative text or the model's
+     *                               decorative verdict, or null if the request fails.
      */
-    public function generate(FileInterface $file, string $languageCode = 'en'): ?string
+    public function generate(FileInterface $file, string $languageCode = 'en'): ?GeneratedAltText
     {
         try {
             // getSize() is a file access, not a property read: it throws for a
@@ -87,7 +97,7 @@ final readonly class AltTextGeneratorService
             return null;
         }
 
-        return $this->openAIService->respond(
+        $answer = $this->openAIService->respond(
             $this->buildInstructions($languageCode),
             [
                 [
@@ -102,6 +112,13 @@ final readonly class AltTextGeneratorService
                 ],
             ]
         );
+        if ($answer === null) {
+            return null;
+        }
+
+        return strcasecmp(trim($answer), self::DECORATIVE_VERDICT) === 0
+            ? GeneratedAltText::decorative()
+            : GeneratedAltText::text($answer);
     }
 
     /**
@@ -113,7 +130,7 @@ final readonly class AltTextGeneratorService
      */
     private function buildInstructions(string $languageCode): string
     {
-        return 'You are an accessibility specialist generating WCAG 2.1 compliant alt text for web images. Respond in the language identified by this ISO language code: ' . $languageCode . '. Follow these rules strictly: (1) Describe the essential meaning and purpose of the image — not a literal catalogue of visual details. (2) Be concise, ideally under 125 characters. (3) Never begin with "image of", "photo of", "picture of", or equivalent phrases — screen readers already announce the element as an image. (4) If the image contains readable text, transcribe it verbatim. (5) If the image is purely decorative and conveys no meaningful information, respond with exactly: DECORATIVE. (6) Respond with only the alt text string — no surrounding quotes, no trailing punctuation, no explanations.';
+        return 'You are an accessibility specialist generating WCAG 2.1 compliant alt text for web images. Respond in the language identified by this ISO language code: ' . $languageCode . '. Follow these rules strictly: (1) Describe the essential meaning and purpose of the image — not a literal catalogue of visual details. (2) Be concise, ideally under 125 characters. (3) Never begin with "image of", "photo of", "picture of", or equivalent phrases — screen readers already announce the element as an image. (4) If the image contains readable text, transcribe it verbatim. (5) If the image is purely decorative and conveys no meaningful information, respond with exactly: ' . self::DECORATIVE_VERDICT . '. (6) Respond with only the alt text string — no surrounding quotes, no trailing punctuation, no explanations.';
     }
 
     /**

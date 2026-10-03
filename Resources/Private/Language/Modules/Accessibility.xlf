@@ -249,6 +249,18 @@
                     the picture accurately.
                 </source>
             </trans-unit>
+            <trans-unit id="altText.generate.decorative"
+                resname="altText.generate.decorative">
+                <source>The AI considers this image decorative</source>
+            </trans-unit>
+            <trans-unit id="altText.generate.decorative.description"
+                resname="altText.generate.decorative.description">
+                <source>No text was filled in. If the image only decorates the page, mark its file reference as "Decorative image". Otherwise, write the alternative text yourself.</source>
+            </trans-unit>
+            <trans-unit id="altText.generate.decorative.toggleHint"
+                resname="altText.generate.decorative.toggleHint">
+                <source>No text was filled in. If the image only decorates the page, select "Decorative image". Otherwise, write the alternative text yourself.</source>
+            </trans-unit>
             <trans-unit id="altText.generate.error.unknown"
                 resname="altText.generate.error.unknown">
                 <source>Unknown error</source>

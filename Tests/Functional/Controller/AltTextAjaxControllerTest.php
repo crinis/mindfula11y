@@ -22,6 +22,8 @@ use MindfulMarkup\MindfulA11y\Tests\Functional\AbstractAuthorizationTestCase;
 use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Promise\Create;
 use GuzzleHttp\Promise\PromiseInterface;
+use GuzzleHttp\Psr7\Response;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
@@ -195,6 +197,48 @@ final class AltTextAjaxControllerTest extends AbstractAuthorizationTestCase
         $this->logInBackendUser(2);
 
         $this->assertOpenAiFailure($this->generate($this->demandPayload(2)));
+    }
+
+    /**
+     * The wire contract of a successful generation: a text keeps the
+     * released `{altText}` body, while the model's decorative verdict is
+     * answered as `{decorative: true}` without any text the clients could
+     * store as alternative text.
+     *
+     * @return array<string, array{string, array<string, mixed>}>
+     */
+    public static function modelAnswerProvider(): array
+    {
+        return [
+            'a text' => ['A red bicycle leaning on a wall', ['altText' => 'A red bicycle leaning on a wall']],
+            'the decorative verdict' => ['DECORATIVE', ['decorative' => true]],
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $expectedBody
+     */
+    #[DataProvider('modelAnswerProvider')]
+    public function testGenerationAnswersTheModelsTextOrDecorativeVerdict(string $modelAnswer, array $expectedBody): void
+    {
+        $GLOBALS['TYPO3_CONF_VARS']['HTTP']['handler']['mindfula11y-offline'] =
+            static fn(callable $handler): callable =>
+                static fn(RequestInterface $request): PromiseInterface => Create::promiseFor(new Response(
+                    200,
+                    ['Content-Type' => 'application/json'],
+                    json_encode([
+                        'output' => [[
+                            'type' => 'message',
+                            'content' => [['type' => 'output_text', 'text' => $modelAnswer]],
+                        ]],
+                    ], JSON_THROW_ON_ERROR),
+                ));
+        $this->logInBackendUser(2);
+
+        $response = $this->generate($this->demandPayload(2));
+
+        self::assertSame(201, $response->getStatusCode());
+        self::assertSame($expectedBody, $this->decodeJsonResponse($response));
     }
 
     // ---------------------------------------------------------------

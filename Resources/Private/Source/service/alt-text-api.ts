@@ -23,8 +23,17 @@ import { postJson } from './backend-api.js';
 /** Opaque, HMAC-signed alt-text generation payload serialized into elements by PHP. */
 export type GenerateAltTextDemand = Record<string, unknown>;
 
+/**
+ * One generation outcome: a text to fill in, or the model's verdict that the
+ * image is purely decorative. The verdict carries no text — filling it in
+ * would store a word screen readers announce — and marking the reference
+ * decorative stays the editor's decision.
+ */
+export type GeneratedAltText = { readonly decorative: false; readonly altText: string } | { readonly decorative: true };
+
 interface GenerateAltTextResponse {
     altText?: unknown;
+    decorative?: unknown;
 }
 
 /** AJAX client of the signed alt-text generation endpoint. */
@@ -32,13 +41,17 @@ export class AltTextApi {
     /**
      * Generates alternative text for the image described by the signed demand.
      * Throws a RequestError carrying the backend's localized title/description
-     * when the endpoint answers with its structured error body.
+     * when the endpoint answers with its structured error body, and an Error
+     * for a success body that is neither a text nor the decorative verdict.
      */
-    async generateAltText(demand: GenerateAltTextDemand, options?: RequestOptions): Promise<string> {
+    async generateAltText(demand: GenerateAltTextDemand, options?: RequestOptions): Promise<GeneratedAltText> {
         const data = await postJson<GenerateAltTextResponse>('mindfula11y_alttext_generate', demand, options);
+        if (data.decorative === true) {
+            return { decorative: true };
+        }
         if (typeof data.altText !== 'string' || data.altText === '') {
             throw new Error('The alt-text endpoint returned no text.');
         }
-        return data.altText;
+        return { decorative: false, altText: data.altText };
     }
 }

@@ -35,7 +35,8 @@ import { errorView } from './request-error.js';
 
 /**
  * FormEngine fieldControl behavior: generates alternative text via the
- * mindfula11y AJAX endpoint and writes it into the field's visible input.
+ * mindfula11y AJAX endpoint and writes it into the field's visible input —
+ * or, when the model judges the image decorative, explains that instead.
  * Instantiated by the control's JavaScriptModuleInstruction with the control
  * anchor's id selector and the signed generation demand.
  */
@@ -77,8 +78,19 @@ export class GenerateAltTextControl {
         control.setAttribute('aria-busy', 'true');
         control.replaceChildren(spinner);
         try {
-            const altText = await new AltTextApi().generateAltText(demand);
-            input.value = altText;
+            const generated = await new AltTextApi().generateAltText(demand);
+            if (generated.decorative) {
+                // The verdict is no text: the field is left as it is, and
+                // the editor decides. Sticky (duration 0), as nothing in the
+                // form shows the outcome once the toast is gone.
+                Notification.info(
+                    lll('mindfula11y.altText.generate.decorative'),
+                    lll('mindfula11y.altText.generate.decorative.description'),
+                    0,
+                );
+                return;
+            }
+            input.value = generated.altText;
             input.dispatchEvent(new Event('change', { bubbles: true }));
             Notification.success(
                 lll('mindfula11y.altText.generate.success'),

@@ -26,6 +26,7 @@ vi.mock('@typo3/backend/element/spinner-element.js', () => ({}));
 
 import type { AltlessFileReference } from '../../../Resources/Private/Source/element/altless-file-reference/altless-file-reference.js';
 import '../../../Resources/Private/Source/element/altless-file-reference/altless-file-reference.js';
+import { AltTextApi } from '../../../Resources/Private/Source/service/alt-text-api.js';
 
 const mount = async (editable: boolean): Promise<AltlessFileReference> => {
     const view = document.createElement('mindfula11y-altless-file-reference');
@@ -108,5 +109,93 @@ describe('AltlessFileReference decorative state', () => {
             'A workshop participant using a laptop',
         );
         expect(view.renderRoot.querySelector('textarea')).toBeNull();
+    });
+});
+
+describe('AltlessFileReference generation', () => {
+    const mountGenerating = async (decorativeEditable: boolean): Promise<AltlessFileReference> => {
+        const view = document.createElement('mindfula11y-altless-file-reference');
+        view.recordEditLink = '/edit/1';
+        view.decorativeEditable = decorativeEditable;
+        view.generateAltTextDemand = { signature: 'sig' };
+        document.body.append(view);
+        await view.updateComplete;
+        return view;
+    };
+
+    const generate = async (view: AltlessFileReference): Promise<void> => {
+        view.renderRoot.querySelector<HTMLButtonElement>('.actions button:first-child')?.click();
+        // The handler awaits the announcer before the request, then re-renders.
+        for (let i = 0; i < 5; i++) {
+            await new Promise((resolve) => setTimeout(resolve, 0));
+            await view.updateComplete;
+        }
+    };
+
+    /** Text of the notice in the card's pre-rendered status region (not the announcer's). */
+    const statusText = (view: AltlessFileReference): string =>
+        view.renderRoot
+            .querySelector('[role="status"] > mindfula11y-notice')
+            ?.textContent?.replace(/\s+/g, ' ')
+            .trim() ?? '';
+
+    afterEach(() => {
+        vi.restoreAllMocks();
+        document.body.replaceChildren();
+    });
+
+    it('fills the field with a generated text', async () => {
+        vi.spyOn(AltTextApi.prototype, 'generateAltText').mockResolvedValue({
+            decorative: false,
+            altText: 'A red bicycle',
+        });
+        const view = await mountGenerating(true);
+
+        await generate(view);
+
+        expect(view.renderRoot.querySelector<HTMLTextAreaElement>('textarea')?.value).toBe('A red bicycle');
+    });
+
+    it('explains a decorative verdict and points at the toggle without flipping it', async () => {
+        vi.spyOn(AltTextApi.prototype, 'generateAltText').mockResolvedValue({ decorative: true });
+        const view = await mountGenerating(true);
+
+        await generate(view);
+
+        expect(view.renderRoot.querySelector<HTMLTextAreaElement>('textarea')?.value).toBe('');
+        expect(view.renderRoot.querySelector<HTMLInputElement>('input[type="checkbox"]')?.checked).toBe(false);
+        expect(view.decorative).toBe(false);
+        expect(statusText(view)).toContain('mindfula11y.altText.generate.decorative');
+        expect(statusText(view)).toContain('mindfula11y.altText.generate.decorative.toggleHint');
+        // Nothing changed, so there is nothing to save.
+        expect(view.renderRoot.querySelector('.actions button:last-child')?.getAttribute('aria-disabled')).toBe('true');
+    });
+
+    it('explains a decorative verdict without pointing at a toggle the editor does not have', async () => {
+        vi.spyOn(AltTextApi.prototype, 'generateAltText').mockResolvedValue({ decorative: true });
+        const view = await mountGenerating(false);
+
+        await generate(view);
+
+        expect(statusText(view)).toContain('mindfula11y.altText.generate.decorative.description');
+        expect(statusText(view)).not.toContain('toggleHint');
+    });
+
+    it('drops the decorative notice once the editor writes a text', async () => {
+        vi.spyOn(AltTextApi.prototype, 'generateAltText').mockResolvedValue({ decorative: true });
+        const view = await mountGenerating(true);
+        await generate(view);
+        expect(statusText(view)).toContain('mindfula11y.altText.generate.decorative');
+        const textarea = view.renderRoot.querySelector<HTMLTextAreaElement>('textarea');
+
+        expect(textarea).not.toBeNull();
+        if (textarea === null) {
+            return;
+        }
+        textarea.value = 'A garden ornament';
+        textarea.dispatchEvent(new Event('input'));
+        await view.updateComplete;
+
+        expect(statusText(view)).not.toContain('mindfula11y.altText.generate.decorative');
     });
 });

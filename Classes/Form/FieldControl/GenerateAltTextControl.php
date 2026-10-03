@@ -108,6 +108,8 @@ class GenerateAltTextControl extends AbstractNode
             'altText.generate.success.description',
             'altText.generate.error.unknown',
             'altText.generate.error.unknown.description',
+            'altText.generate.decorative',
+            'altText.generate.decorative.description',
         ]));
 
         $id = StringUtility::getUniqueId('mindfula11y-generate-alt-text-');

@@ -96,6 +96,8 @@ structure. It stays unfolded on the next pages until you fold it again.
 **Generate** suggests a text if OpenAI is set up. It supports `jpg`, `jpeg`, `png`, `webp` and
 `gif` files up to 20 MB. The button also appears next to the alternative text field when you
 edit an image reference or a file's metadata. Always review a generated text before you save it.
+If the AI considers the image purely decorative, no text is filled in and a message says so.
+Decide yourself: mark the image as **Decorative image**, or write the alternative text.
 
 ### Decorative images
 

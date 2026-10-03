@@ -35,8 +35,16 @@ class GenerateAltTextControl {
     control.setAttribute("aria-busy", "true");
     control.replaceChildren(spinner);
     try {
-      const altText = await new AltTextApi().generateAltText(demand);
-      input.value = altText;
+      const generated = await new AltTextApi().generateAltText(demand);
+      if (generated.decorative) {
+        Notification.info(
+          lll("mindfula11y.altText.generate.decorative"),
+          lll("mindfula11y.altText.generate.decorative.description"),
+          0
+        );
+        return;
+      }
+      input.value = generated.altText;
       input.dispatchEvent(new Event("change", { bubbles: true }));
       Notification.success(
         lll("mindfula11y.altText.generate.success"),

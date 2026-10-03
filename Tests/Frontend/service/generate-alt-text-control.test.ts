@@ -12,18 +12,21 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { generateAltTextMock, notificationErrorMock, notificationSuccessMock } = vi.hoisted(() => ({
-    generateAltTextMock: vi.fn(),
-    notificationErrorMock: vi.fn(),
-    notificationSuccessMock: vi.fn(),
-}));
+const { generateAltTextMock, notificationErrorMock, notificationInfoMock, notificationSuccessMock } = vi.hoisted(
+    () => ({
+        generateAltTextMock: vi.fn(),
+        notificationErrorMock: vi.fn(),
+        notificationInfoMock: vi.fn(),
+        notificationSuccessMock: vi.fn(),
+    }),
+);
 
 vi.mock('@typo3/core/lit-helper.js', () => ({
     lll: (key: string): string => key,
 }));
 vi.mock('@typo3/backend/element/spinner-element.js', () => ({}));
 vi.mock('@typo3/backend/notification.js', () => ({
-    default: { error: notificationErrorMock, success: notificationSuccessMock },
+    default: { error: notificationErrorMock, info: notificationInfoMock, success: notificationSuccessMock },
 }));
 vi.mock('@typo3/core/document-service.js', () => ({
     default: { ready: (): Promise<Document> => Promise.resolve(document) },
@@ -73,6 +76,7 @@ describe('GenerateAltTextControl', () => {
     beforeEach(() => {
         generateAltTextMock.mockReset();
         notificationErrorMock.mockReset();
+        notificationInfoMock.mockReset();
         notificationSuccessMock.mockReset();
     });
 
@@ -81,7 +85,7 @@ describe('GenerateAltTextControl', () => {
     });
 
     it('writes the generated text into the input and restores the icon', async () => {
-        generateAltTextMock.mockResolvedValue('A red bicycle');
+        generateAltTextMock.mockResolvedValue({ decorative: false, altText: 'A red bicycle' });
         const { control, input } = mountField('<span class="icon">icon</span>');
         new GenerateAltTextControl('#generate', demand);
         await settle();
@@ -93,6 +97,30 @@ describe('GenerateAltTextControl', () => {
         expect(input.value).toBe('A red bicycle');
         expect(control.innerHTML).toBe('<span class="icon">icon</span>');
         expect(control.hasAttribute('aria-busy')).toBe(false);
+    });
+
+    it('leaves the field alone and explains a decorative verdict', async () => {
+        generateAltTextMock.mockResolvedValue({ decorative: true });
+        const { control, input } = mountField('<span class="icon">icon</span>');
+        input.value = 'Draft text';
+        const change = vi.fn();
+        input.addEventListener('change', change);
+        new GenerateAltTextControl('#generate', demand);
+        await settle();
+
+        control.click();
+        await settle();
+
+        expect(input.value).toBe('Draft text');
+        expect(change).not.toHaveBeenCalled();
+        expect(notificationSuccessMock).not.toHaveBeenCalled();
+        // Sticky (duration 0): the editor has to act on it, so it must not vanish unread.
+        expect(notificationInfoMock).toHaveBeenCalledWith(
+            'mindfula11y.altText.generate.decorative',
+            'mindfula11y.altText.generate.decorative.description',
+            0,
+        );
+        expect(control.innerHTML).toBe('<span class="icon">icon</span>');
     });
 
     it('restores anchor content that has no element child', async () => {
@@ -110,7 +138,7 @@ describe('GenerateAltTextControl', () => {
     });
 
     it('restores every child node, not only the first element', async () => {
-        generateAltTextMock.mockResolvedValue('Alt');
+        generateAltTextMock.mockResolvedValue({ decorative: false, altText: 'Alt' });
         const { control } = mountField('<span class="icon">icon</span> <span class="label">Generate</span>');
         new GenerateAltTextControl('#generate', demand);
         await settle();

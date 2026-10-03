@@ -72,6 +72,8 @@ export class AltlessFileReference extends LitElement {
     @state() private busy: 'idle' | 'generating' | 'saving' = 'idle';
     @state() private actionError: ErrorView | null = null;
     @state() private saved: boolean = false;
+    /** The last generation answered with the decorative verdict instead of a text. */
+    @state() private decorativeSuggested: boolean = false;
 
     private readonly altTextApi = new AltTextApi();
     private readonly recordApi = new RecordApi();
@@ -217,6 +219,20 @@ export class AltlessFileReference extends LitElement {
                 <span>${lll('mindfula11y.altText.save.success')}</span>
             </mindfula11y-notice>`;
         }
+        if (this.decorativeSuggested) {
+            // Points at the toggle only where this editor has it; marking
+            // the image decorative stays the editor's decision either way.
+            return html`<mindfula11y-notice class="status" state="info">
+                ${renderNoticeBody({
+                    title: lll('mindfula11y.altText.generate.decorative'),
+                    description: lll(
+                        this.decorativeEditable
+                            ? 'mindfula11y.altText.generate.decorative.toggleHint'
+                            : 'mindfula11y.altText.generate.decorative.description',
+                    ),
+                })}
+            </mindfula11y-notice>`;
+        }
         return nothing;
     }
 
@@ -250,11 +266,13 @@ export class AltlessFileReference extends LitElement {
     private handleInput(event: Event): void {
         this.value = (event.target as HTMLTextAreaElement).value;
         this.saved = false;
+        this.decorativeSuggested = false;
     }
 
     private handleDecorativeChange(event: Event): void {
         this.decorative = (event.target as HTMLInputElement).checked;
         this.saved = false;
+        this.decorativeSuggested = false;
     }
 
     private async handleGenerate(): Promise<void> {
@@ -264,9 +282,16 @@ export class AltlessFileReference extends LitElement {
         this.busy = 'generating';
         this.actionError = null;
         this.saved = false;
+        this.decorativeSuggested = false;
         await this.announcer.announce(lll('mindfula11y.altText.generate.loading'));
         try {
-            this.value = await this.altTextApi.generateAltText(this.generateAltTextDemand);
+            const generated = await this.altTextApi.generateAltText(this.generateAltTextDemand);
+            if (generated.decorative) {
+                // Announced through the status region the notice renders in.
+                this.decorativeSuggested = true;
+                return;
+            }
+            this.value = generated.altText;
             await this.announcer.announce(lll('mindfula11y.altText.generate.success'));
         } catch (error) {
             this.actionError = errorView(error, 'mindfula11y.altText.generate.error.unknown');
@@ -287,6 +312,7 @@ export class AltlessFileReference extends LitElement {
         }
         this.busy = 'saving';
         this.actionError = null;
+        this.decorativeSuggested = false;
         try {
             const fields: Record<string, string> = {
                 alternative: this.decorative ? '' : this.value,

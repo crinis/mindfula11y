@@ -316,6 +316,18 @@
                 </source>
                 <target>Der Alternativtext wurde erfolgreich generiert. Bitte stellen Sie sicher, dass er das Bild treffend beschreibt.</target>
             </trans-unit>
+            <trans-unit id="altText.generate.decorative" resname="altText.generate.decorative">
+                <source>The AI considers this image decorative</source>
+                <target>Die KI hält dieses Bild für dekorativ</target>
+            </trans-unit>
+            <trans-unit id="altText.generate.decorative.description" resname="altText.generate.decorative.description">
+                <source>No text was filled in. If the image only decorates the page, mark its file reference as "Decorative image". Otherwise, write the alternative text yourself.</source>
+                <target>Es wurde kein Text eingetragen. Wenn das Bild die Seite nur schmückt, markieren Sie seine Dateireferenz als „Dekoratives Bild“. Andernfalls schreiben Sie den Alternativtext selbst.</target>
+            </trans-unit>
+            <trans-unit id="altText.generate.decorative.toggleHint" resname="altText.generate.decorative.toggleHint">
+                <source>No text was filled in. If the image only decorates the page, select "Decorative image". Otherwise, write the alternative text yourself.</source>
+                <target>Es wurde kein Text eingetragen. Wenn das Bild die Seite nur schmückt, wählen Sie „Dekoratives Bild“. Andernfalls schreiben Sie den Alternativtext selbst.</target>
+            </trans-unit>
             <trans-unit id="altText.generate.error.unknown" resname="altText.generate.error.unknown">
                 <source>Unknown error</source>
                 <target>Unbekannter Fehler</target>

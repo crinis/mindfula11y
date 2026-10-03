@@ -16,6 +16,7 @@ namespace MindfulMarkup\MindfulA11y\Tests\Unit\Service;
 use MindfulMarkup\MindfulA11y\Service\AltTextGeneratorService;
 use MindfulMarkup\MindfulA11y\Service\ExtensionSettings;
 use MindfulMarkup\MindfulA11y\Service\OpenAIService;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
@@ -72,9 +73,79 @@ final class AltTextGeneratorServiceTest extends TestCase
             $this->createMock(LoggerInterface::class),
         );
 
-        self::assertSame('Generated alt', $service->generate($file));
+        self::assertSame('Generated alt', $service->generate($file)?->altText);
         $requestBody = json_decode((string)($capturedOptions['body'] ?? ''), true);
         self::assertSame('auto', $requestBody['input'][0]['content'][0]['detail'] ?? null);
+    }
+
+    /**
+     * The instructions ask the model to answer exactly "DECORATIVE" for a
+     * purely decorative image. That verdict is no alternative text — stored
+     * as one, screen readers would announce the word — so it must come back
+     * as the decorative result, tolerating case and surrounding whitespace.
+     *
+     * @return array<string, array{string}>
+     */
+    public static function decorativeVerdictProvider(): array
+    {
+        return [
+            'exact marker' => ['DECORATIVE'],
+            'other case and whitespace' => ["  decorative\n"],
+        ];
+    }
+
+    #[Test]
+    #[DataProvider('decorativeVerdictProvider')]
+    public function decorativeVerdictIsReturnedAsDecorativeResultWithoutText(string $modelAnswer): void
+    {
+        $result = $this->serviceAnswering($modelAnswer)->generate($this->imageFile());
+
+        self::assertNotNull($result);
+        self::assertTrue($result->decorative);
+        self::assertSame('', $result->altText);
+    }
+
+    /** Only the exact verdict counts: a description mentioning the word is a text. */
+    #[Test]
+    public function textContainingTheMarkerWordIsAnAlternativeText(): void
+    {
+        $result = $this->serviceAnswering('Decorative stucco ceiling of the town hall')->generate($this->imageFile());
+
+        self::assertNotNull($result);
+        self::assertFalse($result->decorative);
+        self::assertSame('Decorative stucco ceiling of the town hall', $result->altText);
+    }
+
+    private function serviceAnswering(string $outputText): AltTextGeneratorService
+    {
+        $extensionConfiguration = $this->createMock(ExtensionConfiguration::class);
+        $extensionConfiguration->method('get')->willReturn([]);
+
+        $stream = $this->createMock(StreamInterface::class);
+        $stream->method('getContents')->willReturn(json_encode([
+            'output' => [[
+                'type' => 'message',
+                'content' => [['type' => 'output_text', 'text' => $outputText]],
+            ]],
+        ], JSON_THROW_ON_ERROR));
+        $response = $this->createMock(ResponseInterface::class);
+        $response->method('getBody')->willReturn($stream);
+        $requestFactory = $this->createMock(RequestFactory::class);
+        $requestFactory->method('request')->willReturn($response);
+
+        return new AltTextGeneratorService(
+            new OpenAIService(new ExtensionSettings($extensionConfiguration), $requestFactory, $this->createMock(LoggerInterface::class)),
+            $this->createMock(LoggerInterface::class),
+        );
+    }
+
+    private function imageFile(): FileInterface
+    {
+        $file = $this->createMock(FileInterface::class);
+        $file->method('getContents')->willReturn('image-bytes');
+        $file->method('getMimeType')->willReturn('image/png');
+
+        return $file;
     }
 
     /**

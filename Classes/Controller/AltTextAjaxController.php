@@ -110,13 +110,20 @@ final readonly class AltTextAjaxController
             $languageCode = 'en';
         }
 
-        $altText = $this->altTextGeneratorService->generate($authorization, $languageCode);
+        $generated = $this->altTextGeneratorService->generate($authorization, $languageCode);
 
-        if (null === $altText) {
+        if (null === $generated) {
             return $this->errorResponse('altText.generate.error.openAIConnection', 500);
         }
 
-        return new JsonResponse(['altText' => $altText], 201);
+        // The decorative verdict carries no text on purpose: the clients tell
+        // the editor instead of filling the field, and leave marking the
+        // reference decorative to the editor.
+        if ($generated->decorative) {
+            return new JsonResponse(['decorative' => true], 201);
+        }
+
+        return new JsonResponse(['altText' => $generated->altText], 201);
     }
 
 }
