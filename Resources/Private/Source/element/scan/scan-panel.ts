@@ -106,10 +106,24 @@ function progressDetail(result: ScanResult, isCrawl: boolean): string | null {
     return null;
 }
 
-function renderStatus(result: ScanResult, isCrawl: boolean): TemplateResult {
+/**
+ * `stale`: the last load failed, so an in-progress status is only the last
+ * one known — polling backs off or has stopped. It then renders without the
+ * spinner, which would claim live progress, and says it is not refreshed.
+ */
+function renderStatus(result: ScanResult, isCrawl: boolean, stale: boolean): TemplateResult {
     const view = scanStatusView(result);
     if (view.spinner === true) {
-        return renderProgressNotice(lll(view.labelKey), progressDetail(result, isCrawl));
+        const detail = progressDetail(result, isCrawl);
+        if (stale) {
+            return html`<mindfula11y-notice state="info">
+                ${renderNoticeBody({
+                    title: detail === null ? lll(view.labelKey) : `${lll(view.labelKey)} — ${detail}`,
+                    description: lll('mindfula11y.scan.status.notRefreshed'),
+                })}
+            </mindfula11y-notice>`;
+        }
+        return renderProgressNotice(lll(view.labelKey), detail);
     }
     const description =
         view.descriptionKey !== undefined
@@ -331,7 +345,7 @@ function renderBody(data: ScanPanelData): TemplateResult | typeof nothing {
     // renders whenever a review was requested (MindfulAPI reports `aiAudit`
     // for exactly those scans) or axe found issues.
     const aiReviewRequested = result.aiAudit !== null;
-    return html`${renderStatus(result, data.tab === 'crawl')} ${renderUpdatedAt(result)}
+    return html`${renderStatus(result, data.tab === 'crawl', data.controllerState === 'error')} ${renderUpdatedAt(result)}
     ${
         result.status === ScanStatus.Completed && (result.totalIssueCount > 0 || aiReviewRequested)
             ? html`<mindfula11y-scan-results .result=${result}></mindfula11y-scan-results>`

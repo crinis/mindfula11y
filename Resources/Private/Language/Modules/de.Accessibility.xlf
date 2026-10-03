@@ -949,6 +949,10 @@
                 <source>Scan running</source>
                 <target>Scan läuft</target>
             </trans-unit>
+            <trans-unit id="scan.status.notRefreshed" resname="scan.status.notRefreshed">
+                <source>Last known status — it is not being refreshed.</source>
+                <target>Letzter bekannter Stand – er wird nicht mehr aktualisiert.</target>
+            </trans-unit>
             <trans-unit id="scan.status.failed" resname="scan.status.failed">
                 <source>Scan failed</source>
                 <target>Scan fehlgeschlagen</target>

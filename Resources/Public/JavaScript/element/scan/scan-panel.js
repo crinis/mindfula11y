@@ -35,10 +35,19 @@ function progressDetail(result, isCrawl) {
   }
   return null;
 }
-function renderStatus(result, isCrawl) {
+function renderStatus(result, isCrawl, stale) {
   const view = scanStatusView(result);
   if (view.spinner === true) {
-    return renderProgressNotice(lll(view.labelKey), progressDetail(result, isCrawl));
+    const detail = progressDetail(result, isCrawl);
+    if (stale) {
+      return html`<mindfula11y-notice state="info">
+                ${renderNoticeBody({
+        title: detail === null ? lll(view.labelKey) : `${lll(view.labelKey)} \u2014 ${detail}`,
+        description: lll("mindfula11y.scan.status.notRefreshed")
+      })}
+            </mindfula11y-notice>`;
+    }
+    return renderProgressNotice(lll(view.labelKey), detail);
   }
   const description = view.descriptionKey !== void 0 ? lll(view.descriptionKey) : view.pagesFailed !== void 0 ? lll("mindfula11y.scan.pagesFailed", view.pagesFailed.failed, view.pagesFailed.total) : null;
   return html`<mindfula11y-notice state=${view.state} count=${view.count ?? nothing}>
@@ -188,7 +197,7 @@ function renderBody(data) {
     return nothing;
   }
   const aiReviewRequested = result.aiAudit !== null;
-  return html`${renderStatus(result, data.tab === "crawl")} ${renderUpdatedAt(result)}
+  return html`${renderStatus(result, data.tab === "crawl", data.controllerState === "error")} ${renderUpdatedAt(result)}
     ${result.status === ScanStatus.Completed && (result.totalIssueCount > 0 || aiReviewRequested) ? html`<mindfula11y-scan-results .result=${result}></mindfula11y-scan-results>` : nothing}
     ${renderReportLinks(result, data.scanId, data.reportBaseUrl)}`;
 }

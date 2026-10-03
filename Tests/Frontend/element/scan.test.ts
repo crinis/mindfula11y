@@ -135,6 +135,9 @@ describe('Scan', () => {
         expect(insertedNotices).toBe(1);
         expect(region?.textContent).toContain('The scanner did not answer.');
         expect(view.renderRoot.textContent).toContain('mindfula11y.scan.status.running');
+        // The kept status is the last known one, not live progress: no spinner.
+        expect(view.renderRoot.querySelector('typo3-backend-spinner')).toBeNull();
+        expect(view.renderRoot.textContent).toContain('mindfula11y.scan.status.notRefreshed');
     });
 
     it('offers the AI review toggle only for the scan modes TSconfig lists', async () => {

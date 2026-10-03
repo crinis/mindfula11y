@@ -768,6 +768,9 @@
             <trans-unit id="scan.status.running" resname="scan.status.running">
                 <source>Scan running</source>
             </trans-unit>
+            <trans-unit id="scan.status.notRefreshed" resname="scan.status.notRefreshed">
+                <source>Last known status — it is not being refreshed.</source>
+            </trans-unit>
             <trans-unit id="scan.status.failed" resname="scan.status.failed">
                 <source>Scan failed</source>
             </trans-unit>

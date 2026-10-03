@@ -152,6 +152,7 @@ final readonly class ModuleLabelService
         'scan.error.loading',
         'scan.status.pending',
         'scan.status.running',
+        'scan.status.notRefreshed',
         'scan.status.failed',
         'scan.status.failed.description',
         'scan.issuesFound',
