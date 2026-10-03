@@ -518,6 +518,33 @@ final class ScanAjaxControllerTest extends AbstractAuthorizationTestCase
         $this->assertErrorResponse($response, 403, 'scan.error.pageRestricted');
     }
 
+    /**
+     * The French translation (page 30) is visible itself, but the frontend
+     * resolves it through page 10: hidden there, the scanner would get a 404.
+     */
+    public function testCreateActionTranslationOfAHiddenDefaultLanguagePageDeniesVisibility(): void
+    {
+        $this->logInBackendUser(2);
+        $payload = $this->signedCreateDemandPayload(2, 10, previewUrl: $this->currentPreviewUrl(10, 1), languageId: 1);
+        $this->getConnectionPool()->getConnectionForTable('pages')->update('pages', ['hidden' => 1], ['uid' => 10]);
+
+        $response = $this->controller()->createAction($this->createJsonRequest($payload));
+
+        $this->assertErrorResponse($response, 403, 'scan.error.pageVisible');
+    }
+
+    /** Restricted to logged-in visitors on page 10, the translation serves the scanner a login wall. */
+    public function testCreateActionTranslationOfAFrontendRestrictedDefaultLanguagePageIsRefused(): void
+    {
+        $this->logInBackendUser(2);
+        $payload = $this->signedCreateDemandPayload(2, 10, previewUrl: $this->currentPreviewUrl(10, 1), languageId: 1);
+        $this->getConnectionPool()->getConnectionForTable('pages')->update('pages', ['fe_group' => '-2'], ['uid' => 10]);
+
+        $response = $this->controller()->createAction($this->createJsonRequest($payload));
+
+        $this->assertErrorResponse($response, 403, 'scan.error.pageRestricted');
+    }
+
     public function testCreateActionFullyAuthorizedEndsInScanApiFailure(): void
     {
         // Positive baseline: every gate above is exercised with this exact

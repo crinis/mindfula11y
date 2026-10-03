@@ -32,6 +32,7 @@ use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
 use TYPO3\CMS\Core\Database\Query\Restriction\WorkspaceRestriction;
 use TYPO3\CMS\Core\Domain\Repository\PageRepository;
 use TYPO3\CMS\Core\Site\SiteFinder;
+use TYPO3\CMS\Core\Type\Bitmask\PageTranslationVisibility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\RootlineUtility;
 
@@ -68,12 +69,42 @@ final readonly class PagePreviewService
     }
 
     /**
-     * Check if a page record is visible (not hidden and within start/end time).
-     * Uses TCA configuration to determine the correct fields.
+     * Check if a page record is visible: not hidden and within its start/end
+     * time — judged the way the frontend resolves the page.
+     *
+     * A translation is resolved through its default-language page: core's
+     * PageRepository::getPage() applies hidden, start/end time and fe_group
+     * to the default-language row before overlaying the translation (TYPO3 13
+     * and 14 alike), and none of these fields is excluded from translation,
+     * so both rows must pass. A default-language page whose "Hide default
+     * language of page" setting (l18n_cfg bit 1) is on answers that language
+     * with a 404, while its translations stay reachable.
      *
      * @param array<string, mixed> $pageRecord The page record to check.
      */
     public function isPageVisible(array $pageRecord): bool
+    {
+        if (!$this->isWithinVisibility($pageRecord)) {
+            return false;
+        }
+
+        $translationParentUid = TranslationFields::translationParentUid('pages', $pageRecord);
+        if ($translationParentUid === 0) {
+            return !(new PageTranslationVisibility((int)($pageRecord['l18n_cfg'] ?? 0)))->shouldBeHiddenInDefaultLanguage();
+        }
+
+        $defaultLanguagePage = $this->getDefaultLanguagePage($translationParentUid);
+
+        return $defaultLanguagePage !== null && $this->isWithinVisibility($defaultLanguagePage);
+    }
+
+    /**
+     * The record's own hidden flag and start/end time, read from the TCA
+     * enable columns.
+     *
+     * @param array<string, mixed> $pageRecord
+     */
+    private function isWithinVisibility(array $pageRecord): bool
     {
         $ctrl = $GLOBALS['TCA']['pages']['ctrl'];
         $enableColumns = $ctrl['enablecolumns'] ?? [];
@@ -102,11 +133,25 @@ final readonly class PagePreviewService
     }
 
     /**
+     * The workspace-overlaid default-language page of a translation, or null
+     * when it does not exist (a translation without one is unreachable).
+     *
+     * @return array<string, mixed>|null
+     */
+    private function getDefaultLanguagePage(int $translationParentUid): ?array
+    {
+        $page = BackendUtility::getRecordWSOL('pages', $translationParentUid);
+
+        return is_array($page) ? $page : null;
+    }
+
+    /**
      * Check if a page record is accessible on the frontend (visible and not restricted by fe_group).
      *
      * Also checks ancestor pages for inherited restrictions via extendToSubpages: when a parent page
      * has extendToSubpages=1, its hidden, starttime, endtime, and fe_group restrictions cascade to
-     * all descendant pages.
+     * all descendant pages. A translation must pass on its default-language page as well
+     * (see isPageVisible()).
      *
      * @param array<string, mixed> $pageRecord The page record to check.
      */
@@ -120,10 +165,17 @@ final readonly class PagePreviewService
             return false;
         }
 
+        $translationParentUid = TranslationFields::translationParentUid('pages', $pageRecord);
+        if ($translationParentUid > 0
+            && !$this->isPublicFrontendGroupList((string)($this->getDefaultLanguagePage($translationParentUid)['fe_group'] ?? ''))
+        ) {
+            return false;
+        }
+
         // Check ancestor pages for inherited restrictions via extendToSubpages.
         // Use the original-language uid when the record is a translation overlay,
         // since RootlineUtility is designed for default-language page uids.
-        $pageId = TranslationFields::translationParentUid('pages', $pageRecord) ?: (int)($pageRecord['uid'] ?? 0);
+        $pageId = $translationParentUid ?: (int)($pageRecord['uid'] ?? 0);
         if ($pageId <= 0) {
             return true;
         }
@@ -141,7 +193,7 @@ final readonly class PagePreviewService
                 if (!$this->isPublicFrontendGroupList((string)($ancestor['fe_group'] ?? ''))) {
                     return false;
                 }
-                if (!$this->isPageVisible($ancestor)) {
+                if (!$this->isWithinVisibility($ancestor)) {
                     return false;
                 }
             }

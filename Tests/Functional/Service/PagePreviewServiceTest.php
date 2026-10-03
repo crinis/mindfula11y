@@ -120,4 +120,68 @@ final class PagePreviewServiceTest extends AbstractAuthorizationTestCase
 
         self::assertTrue($this->subject()->isPageFrontendAccessible($this->fetchPage(914)));
     }
+
+    /**
+     * The frontend resolves a translation through its default-language page:
+     * PageRepository::getPage() applies hidden, start/end time and fe_group
+     * to the default-language row before overlaying the translation. Page 30
+     * (French translation of page 10) carries none of these itself, so only
+     * the default-language row can tell the scanner would get a 404.
+     */
+    public function testTranslationOfAHiddenDefaultLanguagePageIsNotVisible(): void
+    {
+        $this->updatePage(10, ['hidden' => 1]);
+        $this->logInBackendUser(2);
+
+        self::assertFalse($this->subject()->isPageVisible($this->fetchPage(30)));
+        self::assertFalse($this->subject()->isPageFrontendAccessible($this->fetchPage(30)));
+    }
+
+    public function testTranslationOfADefaultLanguagePageOutsideItsPublicationPeriodIsNotVisible(): void
+    {
+        $this->updatePage(10, ['endtime' => time() - 3600]);
+        $this->logInBackendUser(2);
+
+        self::assertFalse($this->subject()->isPageVisible($this->fetchPage(30)));
+    }
+
+    public function testTranslationOfAGroupRestrictedDefaultLanguagePageIsNotFrontendAccessible(): void
+    {
+        $this->updatePage(10, ['fe_group' => '-2']);
+        $this->logInBackendUser(2);
+
+        self::assertTrue($this->subject()->isPageVisible($this->fetchPage(30)), 'fe_group is no visibility setting');
+        self::assertFalse($this->subject()->isPageFrontendAccessible($this->fetchPage(30)));
+    }
+
+    public function testTranslationOfAPublicDefaultLanguagePageIsFrontendAccessible(): void
+    {
+        $this->logInBackendUser(2);
+
+        self::assertTrue($this->subject()->isPageVisible($this->fetchPage(30)));
+        self::assertTrue($this->subject()->isPageFrontendAccessible($this->fetchPage(30)));
+    }
+
+    /**
+     * "Hide default language of page" (l18n_cfg bit 1) makes the frontend
+     * answer the default language with a 404 while its translations stay
+     * reachable.
+     */
+    public function testDefaultLanguageHiddenByTheTranslationSettingIsNotVisibleButItsTranslationIs(): void
+    {
+        $this->updatePage(10, ['l18n_cfg' => 1]);
+        $this->logInBackendUser(2);
+
+        self::assertFalse($this->subject()->isPageVisible($this->fetchPage(10)));
+        self::assertFalse($this->subject()->isPageFrontendAccessible($this->fetchPage(10)));
+        self::assertTrue($this->subject()->isPageFrontendAccessible($this->fetchPage(30)));
+    }
+
+    /**
+     * @param array<string, int|string> $fields
+     */
+    private function updatePage(int $uid, array $fields): void
+    {
+        $this->getConnectionPool()->getConnectionForTable('pages')->update('pages', $fields, ['uid' => $uid]);
+    }
 }
