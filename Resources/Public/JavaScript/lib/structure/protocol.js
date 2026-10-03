@@ -30,7 +30,8 @@ const isHeadingNode = (value, depth, counter) => {
     return false;
   }
   const [minLevel, maxLevel] = value.kind === "heading" ? [1, 6] : value.kind === "demoted" ? [0, 0] : [0, 6];
-  if (!hasValidNodeBase(value, value.availableTypes) || value.kind !== "heading" && value.kind !== "container" && value.kind !== "demoted" || typeof value.level !== "number" || !Number.isInteger(value.level) || value.level < minLevel || value.level > maxLevel || value.nonHeadingType !== void 0 && value.nonHeadingType !== "p" && value.nonHeadingType !== "div" || !isRecord(value.childTypeRecord) || !isStringMap(value.availableChildTypes) || !isBoundedString(value.relationId, 512) || typeof value.skippedLevels !== "number" || !Number.isInteger(value.skippedLevels)) {
+  const maxSkippedLevels = value.kind === "heading" && typeof value.level === "number" ? value.level - 1 : 0;
+  if (!hasValidNodeBase(value, value.availableTypes) || value.kind !== "heading" && value.kind !== "container" && value.kind !== "demoted" || typeof value.level !== "number" || !Number.isInteger(value.level) || value.level < minLevel || value.level > maxLevel || value.nonHeadingType !== void 0 && value.nonHeadingType !== "p" && value.nonHeadingType !== "div" || !isRecord(value.childTypeRecord) || !isStringMap(value.availableChildTypes) || !isBoundedString(value.relationId, 512) || typeof value.skippedLevels !== "number" || !Number.isInteger(value.skippedLevels) || value.skippedLevels < 0 || value.skippedLevels > maxSkippedLevels) {
     return false;
   }
   if (value.relation !== null && (!isObject(value.relation) || value.relation.kind !== "ancestor" && value.relation.kind !== "sibling" || !isBoundedString(value.relation.targetRelationId, 512))) {

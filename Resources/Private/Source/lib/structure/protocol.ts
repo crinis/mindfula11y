@@ -126,6 +126,11 @@ const isHeadingNode = (value: unknown, depth: number, counter: { value: number }
     // heading 1-6; container 0-6 (level 0 when its own type is not h1-h6);
     // demoted (p/div) always level 0 — see heading-analysis.ts.
     const [minLevel, maxLevel] = value.kind === 'heading' ? [1, 6] : value.kind === 'demoted' ? [0, 0] : [0, 6];
+    // The view renders one placeholder row per skipped level, so the count
+    // must be bounded by the level itself: a heading at level L leaves at most
+    // levels 1…L-1 out (the analyzer never exceeds L-2 — a root heading never
+    // skips). Containers and demoted rows never skip.
+    const maxSkippedLevels = value.kind === 'heading' && typeof value.level === 'number' ? value.level - 1 : 0;
     if (
         !hasValidNodeBase(value, value.availableTypes) ||
         (value.kind !== 'heading' && value.kind !== 'container' && value.kind !== 'demoted') ||
@@ -138,7 +143,9 @@ const isHeadingNode = (value: unknown, depth: number, counter: { value: number }
         !isStringMap(value.availableChildTypes) ||
         !isBoundedString(value.relationId, 512) ||
         typeof value.skippedLevels !== 'number' ||
-        !Number.isInteger(value.skippedLevels)
+        !Number.isInteger(value.skippedLevels) ||
+        value.skippedLevels < 0 ||
+        value.skippedLevels > maxSkippedLevels
     ) {
         return false;
     }

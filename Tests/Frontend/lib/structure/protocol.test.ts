@@ -357,6 +357,60 @@ describe('structure-analysis-protocol guards', () => {
         ).toBe(false);
     });
 
+    describe('skippedLevels bound', () => {
+        // flattenTree() renders one placeholder row per skipped level, so an
+        // unbounded count from a hostile analysed page exhausts the backend
+        // tab. A heading at level L can skip at most L-1 levels (placeholders
+        // never go below level 1); non-heading rows never skip.
+        const node = (overrides: object): object => ({
+            id: 'node',
+            documentOrder: 0,
+            kind: 'heading',
+            level: 4,
+            label: 'Heading',
+            availableTypes: {},
+            availableChildTypes: {},
+            record: null,
+            childTypeRecord: null,
+            relationId: '',
+            relation: null,
+            skippedLevels: 0,
+            viewports: ['mobile'],
+            errors: [],
+            children: [],
+            ...overrides,
+        });
+        const parse = (overrides: object): ReturnType<typeof parsePortMessage> =>
+            parsePortMessage(
+                {
+                    protocol: STRUCTURE_ANALYSIS_PROTOCOL,
+                    type: 'result',
+                    requestId: REQUEST_ID,
+                    viewport: 'mobile',
+                    headings: { nodes: [node(overrides)], errors: [] },
+                    landmarks: null,
+                },
+                REQUEST_ID,
+                'mobile',
+            );
+
+        it('accepts every skip count up to level - 1', () => {
+            for (const skippedLevels of [0, 1, 2, 3]) {
+                expect(parse({ skippedLevels })?.kind).toBe('result');
+            }
+        });
+
+        it.each([
+            ['an absurd count', { skippedLevels: 1e9 }],
+            ['a count reaching below level 1', { skippedLevels: 4 }],
+            ['a negative count', { skippedLevels: -1 }],
+            ['a skip on a container row', { kind: 'container', level: 4, skippedLevels: 1 }],
+            ['a skip on a demoted row', { kind: 'demoted', level: 0, skippedLevels: 1 }],
+        ])('rejects %s as invalid-result', (_label, overrides) => {
+            expect(parse(overrides)).toEqual({ kind: 'invalid-result' });
+        });
+    });
+
     it('rejects analysis payloads that exceed the global node limit', () => {
         const node = {
             id: 'heading',
