@@ -98,7 +98,10 @@ const analyzeLandmarks = (doc, options = {}) => {
     }
     return label;
   };
-  const candidates = Array.from(doc.querySelectorAll(LANDMARK_SELECTOR));
+  const candidates = Array.from(doc.querySelectorAll(LANDMARK_SELECTOR)).filter((element) => {
+    const role = explicitRole(element);
+    return role === "" || role === "none" || role === "presentation" ? element.matches(NATIVE_LANDMARK_SELECTOR) : LANDMARK_ROLES.has(role);
+  });
   const index = indexStructureNodes(candidates);
   const roles = /* @__PURE__ */ new Map();
   const elements = candidates.filter((element) => {

@@ -146,6 +146,21 @@ describe('analyzeLandmarks', () => {
         expect(flatten(analyzeLandmarks(document).nodes).map((node) => node.role)).toEqual(['main', 'search']);
     });
 
+    it('identifies record-less landmarks independently of non-landmark roles', () => {
+        // The viewports are merged by node id: script-inserted roles that differ
+        // per width (slider bullets, a menu button) must not shift the ids.
+        const idsWith = (buttons: number): string[] => {
+            document.body.innerHTML = `
+                <main>${'<span role="button"></span>'.repeat(buttons)}</main>
+                <aside></aside>
+                <nav><a href="/a">A</a></nav>
+            `;
+            return flatten(analyzeLandmarks(document).nodes).map((node) => node.id);
+        };
+
+        expect(idsWith(4)).toEqual(idsWith(2));
+    });
+
     it('takes the first concrete role of a role token list', () => {
         document.body.innerHTML = `
             <main></main>

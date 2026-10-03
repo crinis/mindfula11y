@@ -196,7 +196,16 @@ export const analyzeLandmarks = (doc: Document, options: StructureAnalysisOption
         return label;
     };
 
-    const candidates = Array.from(doc.querySelectorAll<HTMLElement>(LANDMARK_SELECTOR));
+    // Narrowed by attributes alone before indexing: record-less nodes are
+    // identified by their position among the candidates, and the viewports are
+    // merged by that id — a role="button" that exists at one width only must
+    // not shift the landmarks after it.
+    const candidates = Array.from(doc.querySelectorAll<HTMLElement>(LANDMARK_SELECTOR)).filter((element) => {
+        const role = explicitRole(element);
+        return role === '' || role === 'none' || role === 'presentation'
+            ? element.matches(NATIVE_LANDMARK_SELECTOR)
+            : LANDMARK_ROLES.has(role);
+    });
     const index = indexStructureNodes(candidates);
     const roles = new Map<HTMLElement, string>();
     const elements = candidates.filter((element) => {
