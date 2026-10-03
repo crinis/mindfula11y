@@ -146,13 +146,32 @@
      * deep structures inside a 320px viewport, which puts the rails closer
      * together than an elbow is long — the lines are dropped there, and the
      * indent carries the depth alone.
+     *
+     * The layer spans the whole list item; the lanes line up from its
+     * inline-start edge.
      */
     .lanes {
         position: absolute;
-        inset-block: 0;
-        inset-inline-start: 0;
+        inset: 0;
         display: none;
         pointer-events: none;
+
+        /*
+         * The dot geometry below is authored once, left to right: dot
+         * gradients, their tile offsets and clip insets are physical and have
+         * no logical forms. A right-to-left backend (TYPO3 sets dir="rtl" for
+         * RTL interface languages) would otherwise put the rails on the wrong
+         * edge of each lane and point the elbows away from the chips. Rather
+         * than restate every piece for RTL, the whole decorative layer is laid
+         * out left to right and mirrored about its centre — which, since the
+         * layer spans the list item, is the item's centre, so the mirrored
+         * lanes start at the item's right (inline-start) edge, beside the
+         * chip, exactly as the row's logical indent does.
+         */
+        &:dir(rtl) {
+            direction: ltr;
+            scale: -1 1;
+        }
 
         @container (inline-size >= 36rem) {
             display: flex;
