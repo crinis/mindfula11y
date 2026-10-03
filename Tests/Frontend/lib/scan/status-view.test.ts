@@ -39,6 +39,7 @@ describe('scanStatusView', () => {
         expect(scanStatusView(makeResult(ScanStatus.Failed))).toEqual({
             state: 'danger',
             labelKey: 'mindfula11y.scan.status.failed',
+            descriptionKey: 'mindfula11y.scan.status.failed.description',
         });
     });
 
@@ -46,6 +47,50 @@ describe('scanStatusView', () => {
         expect(scanStatusView(makeResult(ScanStatus.Canceled))).toEqual({
             state: 'info',
             labelKey: 'mindfula11y.scan.status.canceled',
+            descriptionKey: 'mindfula11y.scan.status.canceled.description',
+        });
+    });
+
+    it('presents a completed scan whose every page failed to load as danger, not as "no issues"', () => {
+        // MindfulAPI completes a scan whose pages could not be loaded (site
+        // down, certificate rejected, HTTP error) with zero issues — which is
+        // no evidence of accessibility at all.
+        const result = makeResult(ScanStatus.Completed, {
+            totalIssueCount: 0,
+            progress: { pagesDiscovered: 1, pagesScanned: 0, pagesFailed: 1 },
+        });
+
+        expect(scanStatusView(result)).toEqual({
+            state: 'danger',
+            labelKey: 'mindfula11y.scan.noPagesScanned',
+            descriptionKey: 'mindfula11y.scan.noPagesScanned.description',
+        });
+    });
+
+    it('never presents a partially failed clean scan as plain success', () => {
+        const result = makeResult(ScanStatus.Completed, {
+            progress: { pagesDiscovered: 3, pagesScanned: 2, pagesFailed: 1 },
+        });
+
+        expect(scanStatusView(result)).toEqual({
+            state: 'warning',
+            labelKey: 'mindfula11y.scan.noIssuesOnScannedPages',
+            pagesFailed: { failed: 1, total: 3 },
+        });
+    });
+
+    it('reports the failed pages of a partially failed scan with issues alongside the issue count', () => {
+        const result = makeResult(ScanStatus.Completed, {
+            totalIssueCount: 4,
+            progress: { pagesDiscovered: 5, pagesScanned: 3, pagesFailed: 2 },
+        });
+
+        expect(scanStatusView(result)).toEqual({
+            state: 'warning',
+            labelKey: 'mindfula11y.scan.issuesFound',
+            announceLabelKey: 'mindfula11y.scan.announce.issuesFound',
+            count: 4,
+            pagesFailed: { failed: 2, total: 5 },
         });
     });
 
@@ -65,5 +110,12 @@ describe('scanStatusView', () => {
             state: 'success',
             labelKey: 'mindfula11y.scan.noIssues',
         });
+        expect(
+            scanStatusView(
+                makeResult(ScanStatus.Completed, {
+                    progress: { pagesDiscovered: 2, pagesScanned: 2, pagesFailed: 0 },
+                }),
+            ),
+        ).toEqual({ state: 'success', labelKey: 'mindfula11y.scan.noIssues' });
     });
 });

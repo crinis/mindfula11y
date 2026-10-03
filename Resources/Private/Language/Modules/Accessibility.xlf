@@ -942,7 +942,19 @@
             </trans-unit>
             <trans-unit id="scan.noIssues" resname="scan.noIssues">
                 <source>Last external scan — no accessibility issues found</source>
-            </trans-unit>   
+            </trans-unit>
+            <trans-unit id="scan.noIssuesOnScannedPages" resname="scan.noIssuesOnScannedPages">
+                <source>Last external scan — no accessibility issues found on the pages that could be scanned</source>
+            </trans-unit>
+            <trans-unit id="scan.pagesFailed" resname="scan.pagesFailed">
+                <source>%d of %d pages could not be scanned.</source>
+            </trans-unit>
+            <trans-unit id="scan.noPagesScanned" resname="scan.noPagesScanned">
+                <source>Last external scan — no page could be scanned</source>
+            </trans-unit>
+            <trans-unit id="scan.noPagesScanned.description" resname="scan.noPagesScanned.description">
+                <source>The scanner could not load any page of this scan, so the result says nothing about accessibility. The site may be unreachable or blocked for the scanner, its certificate may have been rejected, or the pages answered with an error such as 401, 403, 404 or 500. Check that the pages are publicly reachable from the scanner, then start a new scan.</source>
+            </trans-unit>
             <trans-unit id="scan.error.loading" resname="scan.error.loading">
                 <source>The last external scan failed.</source>
             </trans-unit>

@@ -25,7 +25,10 @@ import noticeStyles from "../../styles/notice.css.js";
 import placeholderStyles from "../../styles/placeholder.css.js";
 import tabsStyles from "../../styles/tabs.css.js";
 import componentStyles from "./scan.css.js";
-import { renderPanelContent } from "./scan-panel.js";
+import {
+  completedAnnouncement,
+  renderPanelContent
+} from "./scan-panel.js";
 let Scan = class extends LitElement {
   constructor() {
     super(...arguments);
@@ -217,7 +220,7 @@ let Scan = class extends LitElement {
     const scanId = this.effectiveScanId();
     if (result.status === ScanStatus.Completed) {
       dispatch(this, "mindfula11y:scan:completed", { scanId, totalIssueCount: result.totalIssueCount });
-      await this.announcer.announce(lll("mindfula11y.scan.announce.completed", result.totalIssueCount));
+      await this.announcer.announce(completedAnnouncement(result));
     } else if (result.status === ScanStatus.Canceled) {
       dispatch(this, "mindfula11y:scan:canceled", { scanId });
       await this.announcer.announce(lll("mindfula11y.scan.announce.canceled"));

@@ -39,20 +39,26 @@ import componentStyles from './scan-issue-count.css.js';
 /**
  * The shared scan-status view with its label already localized — the compact
  * callout adds two states the mapping does not model (loading, load error),
- * so it carries `text` where `ScanStatusView` carries `labelKey`.
+ * so it carries `text` where `ScanStatusView` carries `labelKey`, and the
+ * failed-pages note as localized `detail`. There is no room for the
+ * mapping's longer description.
  */
-interface StatusView extends Omit<ScanStatusView, 'labelKey'> {
+interface StatusView extends Omit<ScanStatusView, 'labelKey' | 'descriptionKey' | 'pagesFailed'> {
     text: string;
+    detail?: string;
 }
 
 /**
  * What the live region says for a status view: the spoken variant the status
  * mapping provides where the visible label omits the count, otherwise the
- * visible text. Which statuses need one is the mapping's business — see
+ * visible text — followed by the failed-pages note, which qualifies either.
+ * Which statuses need a spoken variant is the mapping's business — see
  * `ScanStatusView.announceLabelKey`.
  */
-const announcementFor = (view: StatusView): string =>
-    view.announceLabelKey === undefined ? view.text : lll(view.announceLabelKey, view.count ?? 0);
+const announcementFor = (view: StatusView): string => {
+    const text = view.announceLabelKey === undefined ? view.text : lll(view.announceLabelKey, view.count ?? 0);
+    return view.detail === undefined ? text : `${text} ${view.detail}`;
+};
 
 /**
  * Compact accessibility-scan status callout: creates or loads a scan, polls
@@ -151,8 +157,14 @@ export class ScanIssueCount extends LitElement {
         if (result.status === ScanStatus.Failed) {
             return { state: 'danger', text: lll('mindfula11y.scan.error.loading') };
         }
-        const { labelKey, ...view } = scanStatusView(result);
-        return { ...view, text: lll(labelKey) };
+        const { labelKey, descriptionKey: _description, pagesFailed, ...view } = scanStatusView(result);
+        return {
+            ...view,
+            text: lll(labelKey),
+            ...(pagesFailed === undefined
+                ? {}
+                : { detail: lll('mindfula11y.scan.pagesFailed', pagesFailed.failed, pagesFailed.total) }),
+        };
     }
 
     private handleTransition(previous: ScanStatus | null, result: ScanResult): void {
@@ -179,7 +191,7 @@ export class ScanIssueCount extends LitElement {
             return renderProgressNotice(view.text);
         }
         return html`<mindfula11y-notice state=${view.state} count=${view.count ?? nothing}>
-            <span>${view.text}</span>
+            <span>${view.text}${view.detail === undefined ? nothing : html` — ${view.detail}`}</span>
             ${
                 this.scanUri === ''
                     ? nothing

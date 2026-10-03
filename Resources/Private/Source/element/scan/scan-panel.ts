@@ -116,15 +116,35 @@ function renderStatus(result: ScanResult, isCrawl: boolean): TemplateResult {
     if (view.spinner === true) {
         return renderProgressNotice(lll(view.labelKey), progressDetail(result, isCrawl));
     }
-    // The terminal failure/cancellation states carry a `.description` sibling key.
-    if (result.status === ScanStatus.Failed || result.status === ScanStatus.Canceled) {
-        return html`<mindfula11y-notice state=${view.state}>
-            ${renderNoticeBody({ title: lll(view.labelKey), description: lll(`${view.labelKey}.description`) })}
-        </mindfula11y-notice>`;
-    }
+    const description =
+        view.descriptionKey !== undefined
+            ? lll(view.descriptionKey)
+            : view.pagesFailed !== undefined
+              ? lll('mindfula11y.scan.pagesFailed', view.pagesFailed.failed, view.pagesFailed.total)
+              : null;
     return html`<mindfula11y-notice state=${view.state} count=${view.count ?? nothing}>
-        <span>${lll(view.labelKey)}</span>
+        ${
+            description === null
+                ? html`<span>${lll(view.labelKey)}</span>`
+                : renderNoticeBody({ title: lll(view.labelKey), description })
+        }
     </mindfula11y-notice>`;
+}
+
+/**
+ * The completion announcement: the issue total, or — when no page could be
+ * loaded — that, since "0 issues found" would claim a clean result. Pages
+ * that failed in a partially loaded scan are announced along with the total.
+ */
+export function completedAnnouncement(result: ScanResult): string {
+    const view = scanStatusView(result);
+    if (view.state === 'danger') {
+        return lll(view.labelKey);
+    }
+    const announcement = lll('mindfula11y.scan.announce.completed', result.totalIssueCount);
+    return view.pagesFailed === undefined
+        ? announcement
+        : `${announcement} ${lll('mindfula11y.scan.pagesFailed', view.pagesFailed.failed, view.pagesFailed.total)}`;
 }
 
 function renderUpdatedAt(result: ScanResult): TemplateResult | typeof nothing {

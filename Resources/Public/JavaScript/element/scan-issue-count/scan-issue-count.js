@@ -23,7 +23,10 @@ import { ScanSessionController } from "../../service/scan/session-controller.js"
 import { baseStyles } from "../../styles/base-styles.js";
 import "../notice/notice.js";
 import componentStyles from "./scan-issue-count.css.js";
-const announcementFor = (view) => view.announceLabelKey === void 0 ? view.text : lll(view.announceLabelKey, view.count ?? 0);
+const announcementFor = (view) => {
+  const text = view.announceLabelKey === void 0 ? view.text : lll(view.announceLabelKey, view.count ?? 0);
+  return view.detail === void 0 ? text : `${text} ${view.detail}`;
+};
 let ScanIssueCount = class extends LitElement {
   constructor() {
     super(...arguments);
@@ -87,8 +90,12 @@ let ScanIssueCount = class extends LitElement {
     if (result.status === ScanStatus.Failed) {
       return { state: "danger", text: lll("mindfula11y.scan.error.loading") };
     }
-    const { labelKey, ...view } = scanStatusView(result);
-    return { ...view, text: lll(labelKey) };
+    const { labelKey, descriptionKey: _description, pagesFailed, ...view } = scanStatusView(result);
+    return {
+      ...view,
+      text: lll(labelKey),
+      ...pagesFailed === void 0 ? {} : { detail: lll("mindfula11y.scan.pagesFailed", pagesFailed.failed, pagesFailed.total) }
+    };
   }
   handleTransition(previous, result) {
     if (previous !== null && previous !== ScanStatus.Completed && result.status === ScanStatus.Completed) {
@@ -110,7 +117,7 @@ let ScanIssueCount = class extends LitElement {
       return renderProgressNotice(view.text);
     }
     return html`<mindfula11y-notice state=${view.state} count=${view.count ?? nothing}>
-            <span>${view.text}</span>
+            <span>${view.text}${view.detail === void 0 ? nothing : html` — ${view.detail}`}</span>
             ${this.scanUri === "" ? nothing : html`<a slot="trailing" href=${this.scanUri}
                           >${lll("mindfula11y.general.viewDetails")}<span class="sr-only">
                               ${lll("mindfula11y.scan")}</span

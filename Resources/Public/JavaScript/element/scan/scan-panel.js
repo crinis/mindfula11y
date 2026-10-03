@@ -43,14 +43,18 @@ function renderStatus(result, isCrawl) {
   if (view.spinner === true) {
     return renderProgressNotice(lll(view.labelKey), progressDetail(result, isCrawl));
   }
-  if (result.status === ScanStatus.Failed || result.status === ScanStatus.Canceled) {
-    return html`<mindfula11y-notice state=${view.state}>
-            ${renderNoticeBody({ title: lll(view.labelKey), description: lll(`${view.labelKey}.description`) })}
-        </mindfula11y-notice>`;
-  }
+  const description = view.descriptionKey !== void 0 ? lll(view.descriptionKey) : view.pagesFailed !== void 0 ? lll("mindfula11y.scan.pagesFailed", view.pagesFailed.failed, view.pagesFailed.total) : null;
   return html`<mindfula11y-notice state=${view.state} count=${view.count ?? nothing}>
-        <span>${lll(view.labelKey)}</span>
+        ${description === null ? html`<span>${lll(view.labelKey)}</span>` : renderNoticeBody({ title: lll(view.labelKey), description })}
     </mindfula11y-notice>`;
+}
+function completedAnnouncement(result) {
+  const view = scanStatusView(result);
+  if (view.state === "danger") {
+    return lll(view.labelKey);
+  }
+  const announcement = lll("mindfula11y.scan.announce.completed", result.totalIssueCount);
+  return view.pagesFailed === void 0 ? announcement : `${announcement} ${lll("mindfula11y.scan.pagesFailed", view.pagesFailed.failed, view.pagesFailed.total)}`;
 }
 function renderUpdatedAt(result) {
   if (result.updatedAt === null) {
@@ -201,5 +205,6 @@ function renderPanelContent(data, callbacks) {
 }
 export {
   buildReportUrl,
+  completedAnnouncement,
   renderPanelContent
 };

@@ -179,6 +179,61 @@ describe('Scan', () => {
         expect(createScanMock).toHaveBeenCalledWith(demand, false, expect.anything());
     });
 
+    it('reports a completed scan whose every page failed as "no page could be scanned"', async () => {
+        loadScanMock.mockResolvedValue({
+            ...makeResult(ScanStatus.Completed),
+            progress: { pagesDiscovered: 1, pagesScanned: 0, pagesFailed: 1 },
+        });
+        const view = await mount('scan');
+
+        const notice = view.renderRoot.querySelector('mindfula11y-notice[state="danger"]');
+        expect(notice?.textContent).toContain('mindfula11y.scan.noPagesScanned');
+        expect(notice?.textContent).toContain('mindfula11y.scan.noPagesScanned.description');
+        expect(view.renderRoot.textContent).not.toContain('mindfula11y.scan.noIssues');
+    });
+
+    it('announces a completed scan without any loaded page as such, not as "0 issues found"', async () => {
+        createScanMock.mockResolvedValue({ scanId: 'new-scan', status: ScanStatus.Pending });
+        loadScanMock.mockResolvedValue({
+            ...makeResult(ScanStatus.Completed),
+            progress: { pagesDiscovered: 1, pagesScanned: 0, pagesFailed: 1 },
+        });
+        const view = await mount('');
+
+        button(view, 'trigger').click();
+        for (let round = 0; round < 4; round += 1) {
+            await settle(view);
+        }
+
+        // The announcer's region is the first status region, ahead of the panels'.
+        expect(view.renderRoot.querySelector('[role="status"]')?.textContent?.trim()).toBe(
+            'mindfula11y.scan.noPagesScanned',
+        );
+    });
+
+    it('warns about failed pages of a completed scan in both tabs', async () => {
+        loadScanMock.mockResolvedValue({
+            ...makeResult(ScanStatus.Completed),
+            mode: 'crawl',
+            progress: { pagesDiscovered: 3, pagesScanned: 2, pagesFailed: 1 },
+        });
+        const view = document.createElement('mindfula11y-scan');
+        view.scanId = 'scan';
+        view.createScanDemand = demand;
+        view.crawlScanDemand = { ...demand, crawl: true };
+        document.body.append(view);
+        await settle(view);
+
+        const panels = [...view.renderRoot.querySelectorAll('[role="tabpanel"]')];
+        expect(panels).toHaveLength(2);
+        for (const panel of panels) {
+            const notice = panel.querySelector('mindfula11y-notice[state="warning"]');
+            expect(notice?.textContent).toContain('mindfula11y.scan.noIssuesOnScannedPages');
+            expect(notice?.textContent).toContain('mindfula11y.scan.pagesFailed: 1, 3');
+            expect(panel.querySelector('mindfula11y-notice[state="success"]')).toBeNull();
+        }
+    });
+
     it('swallows a 409 on cancel — the scan already reached a terminal state', async () => {
         loadScanMock.mockResolvedValueOnce(makeResult(ScanStatus.Running));
         loadScanMock.mockResolvedValue(makeResult(ScanStatus.Completed));

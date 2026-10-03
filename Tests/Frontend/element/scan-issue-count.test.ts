@@ -124,6 +124,35 @@ describe('ScanIssueCount', () => {
         expect(announcement(view)).toBe('mindfula11y.scan.noIssues');
     });
 
+    it('reports an auto-created scan whose page failed to load as danger, never as "no issues"', async () => {
+        loadScanMock.mockResolvedValue({
+            ...completedWith(0),
+            progress: { pagesDiscovered: 1, pagesScanned: 0, pagesFailed: 1 },
+        });
+
+        const view = await mount();
+
+        const row = view.renderRoot.querySelector('mindfula11y-notice');
+        expect(row?.getAttribute('state')).toBe('danger');
+        expect(row?.textContent).toContain('mindfula11y.scan.noPagesScanned');
+        expect(announcement(view)).toBe('mindfula11y.scan.noPagesScanned');
+    });
+
+    it('warns about the pages a completed scan could not load, visibly and in the announcement', async () => {
+        loadScanMock.mockResolvedValue({
+            ...completedWith(5),
+            progress: { pagesDiscovered: 4, pagesScanned: 3, pagesFailed: 1 },
+        });
+
+        const view = await mount();
+
+        const row = view.renderRoot.querySelector('mindfula11y-notice');
+        expect(row?.getAttribute('state')).toBe('warning');
+        expect(row?.getAttribute('count')).toBe('5');
+        expect(row?.textContent).toContain('mindfula11y.scan.pagesFailed: 1, 4');
+        expect(announcement(view)).toBe('mindfula11y.scan.announce.issuesFound: 5 mindfula11y.scan.pagesFailed: 1, 4');
+    });
+
     it('hides an empty host through the --empty custom state, not the hidden attribute', async () => {
         // No scan id and no demand: there is nothing to show.
         const view = document.createElement('mindfula11y-scan-issue-count');

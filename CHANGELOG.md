@@ -89,6 +89,7 @@ upload comment. Manual `v*` tags are blocked by a repository ruleset.
 - The Missing Alternative Texts list checks each file reference once per page view instead of twice, which noticeably speeds it up on large page trees.
 - Closing the record editor opened from a Missing Alternative Texts entry returns to the list instead of leaving the Accessibility module.
 - On TYPO3 v13, an integer passed as `type` to the heading ViewHelpers no longer aborts rendering with a type error; like any other unknown type it renders the default tag.
+- A scan whose pages could not be loaded is no longer reported as "no accessibility issues found". MindfulAPI completes such a scan — site unreachable, certificate rejected, target blocked, or pages answering with an HTTP error — with zero issues. The scan view, its completion announcement and the page-module info box now report "no page could be scanned" as an error, and a scan that lost only some of its pages shows "N of M pages could not be scanned" as a warning instead of the green all-clear.
 
 ### Security
 
