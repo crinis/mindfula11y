@@ -54,8 +54,9 @@ const MAX_HEADING_LEVEL = 6;
  * first concrete role of a token list and skips unknown or abstract tokens,
  * as browsers do) — none/presentation is left to the exposure check, whose
  * conflict resolution may keep the native role — and any element with
- * `role="heading"` is one. A valid `aria-level` (a positive integer)
- * overrides the tag's level; `role="heading"` without one is level 2. Deeper
+ * `role="heading"` is one. A valid `aria-level` overrides the tag's level;
+ * like axe-core it is read as an integer prefix (`"02"` and `"2.5"` are 2)
+ * and must be at least 1. `role="heading"` without one is level 2. Deeper
  * ARIA levels are reported as level 6.
  */
 const resolveHeadingLevel = (element: HTMLElement): number | null => {
@@ -66,12 +67,8 @@ const resolveHeadingLevel = (element: HTMLElement): number | null => {
     if (!isHeading) {
         return null;
     }
-    const ariaLevel = element.getAttribute('aria-level')?.trim() ?? '';
-    const level = /^[1-9]\d*$/.test(ariaLevel)
-        ? Number(ariaLevel)
-        : tagLevel !== undefined
-          ? Number(tagLevel)
-          : DEFAULT_ARIA_HEADING_LEVEL;
+    const ariaLevel = Number.parseInt(element.getAttribute('aria-level') ?? '', 10);
+    const level = ariaLevel >= 1 ? ariaLevel : tagLevel !== undefined ? Number(tagLevel) : DEFAULT_ARIA_HEADING_LEVEL;
     return Math.min(level, MAX_HEADING_LEVEL);
 };
 

@@ -15,8 +15,8 @@ const resolveHeadingLevel = (element) => {
   if (!isHeading) {
     return null;
   }
-  const ariaLevel = element.getAttribute("aria-level")?.trim() ?? "";
-  const level = /^[1-9]\d*$/.test(ariaLevel) ? Number(ariaLevel) : tagLevel !== void 0 ? Number(tagLevel) : DEFAULT_ARIA_HEADING_LEVEL;
+  const ariaLevel = Number.parseInt(element.getAttribute("aria-level") ?? "", 10);
+  const level = ariaLevel >= 1 ? ariaLevel : tagLevel !== void 0 ? Number(tagLevel) : DEFAULT_ARIA_HEADING_LEVEL;
   return Math.min(level, MAX_HEADING_LEVEL);
 };
 const extractHeadingRecord = (element, level) => {

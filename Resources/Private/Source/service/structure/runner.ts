@@ -47,7 +47,16 @@ const waitForLayout = async (): Promise<void> => {
             requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
         });
     })();
-    await Promise.race([settled, new Promise<void>((resolve) => setTimeout(resolve, SETTLE_LIMIT_MS))]);
+    let limitTimer: ReturnType<typeof setTimeout> | undefined;
+    const limit = new Promise<void>((resolve) => {
+        limitTimer = setTimeout(resolve, SETTLE_LIMIT_MS);
+    });
+    try {
+        await Promise.race([settled, limit]);
+    } finally {
+        // Whichever side won, the limit has nothing left to bound.
+        clearTimeout(limitTimer);
+    }
 };
 
 const analyze = async (message: StructureAnalysisInitializeMessage, port: MessagePort): Promise<void> => {

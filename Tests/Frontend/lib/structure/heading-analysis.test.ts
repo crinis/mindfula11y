@@ -312,6 +312,20 @@ describe('analyzeHeadings', () => {
             expect(multiple).toHaveLength(2);
         });
 
+        it('reads aria-level as an integer prefix, like axe-core', () => {
+            document.body.innerHTML = `
+                <h1>title</h1>
+                <h4 aria-level="02">leading zero</h4>
+                <h4 aria-level="2.5">fraction</h4>
+                <h4 aria-level=" 2 ">padded</h4>
+            `;
+
+            const levels = Object.fromEntries(
+                flatten(analyzeHeadings(document).nodes).map((node) => [node.label, node.level]),
+            );
+            expect(levels).toEqual({ title: 1, 'leading zero': 2, fraction: 2, padded: 2 });
+        });
+
         it('falls back to the tag level for an invalid aria-level and caps deep levels at 6', () => {
             document.body.innerHTML = `
                 <h1>title</h1>

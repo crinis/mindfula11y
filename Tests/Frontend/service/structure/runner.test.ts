@@ -99,6 +99,19 @@ describe('structure analysis runner', () => {
         expect(port.close).toHaveBeenCalled();
     });
 
+    it('clears the settle limit once the page settled', async () => {
+        vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) =>
+            setTimeout(() => callback(performance.now()), 16),
+        );
+        const port = initialize(await startRunner());
+
+        await vi.advanceTimersByTimeAsync(40);
+
+        expect(postedTypes(port)).toEqual(['result']);
+        // No pending timer outlives the analysis in the framed page.
+        expect(vi.getTimerCount()).toBe(0);
+    });
+
     it('still analyzes a hidden document, which runs no animation frames', async () => {
         // A background browser tab renders nothing, while the backend's load
         // timeout keeps counting: the frame wait must not hold the result.
