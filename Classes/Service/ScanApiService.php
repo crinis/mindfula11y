@@ -55,6 +55,12 @@ final readonly class ScanApiService
     private const API_VERSION_PREFIX = '/v1';
 
     /**
+     * Most URLs MindfulAPI accepts in one url_list scan (its MAX_URL_LIST_ITEMS);
+     * a longer list is rejected with a validation error.
+     */
+    public const MAX_URL_LIST_URLS = 500;
+
+    /**
      * Constructor.
      *
      * @param ExtensionSettings $extensionSettings The extension settings.

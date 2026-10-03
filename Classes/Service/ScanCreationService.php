@@ -70,6 +70,12 @@ final readonly class ScanCreationService
 
         $scanUrls = $this->buildScanUrls($demand, $page);
 
+        // MindfulAPI rejects a longer url_list with a bare validation error;
+        // refused here with a message that tells the editor what to change.
+        if (count($scanUrls) > ScanApiService::MAX_URL_LIST_URLS) {
+            throw new ScanCreationException('scan.error.tooManyPages', 400);
+        }
+
         // Page TSconfig lists the scan modes the AI review may run for, and
         // MindfulAPI gates the review on the mode it receives — which depends
         // on the URLs the scope resolved to (a page tree of one page goes out

@@ -916,6 +916,12 @@
             <trans-unit id="scan.error.getFailed.description" resname="scan.error.getFailed.description">
                 <source>Could not load the accessibility scan results. Please try again.</source>
             </trans-unit>
+            <trans-unit id="scan.error.tooManyPages" resname="scan.error.tooManyPages">
+                <source>Too many pages for one scan</source>
+            </trans-unit>
+            <trans-unit id="scan.error.tooManyPages.description" resname="scan.error.tooManyPages.description">
+                <source>The selected scope contains more than 500 pages, the most the accessibility scanner accepts in one scan. Select fewer page levels, or scan a subpage.</source>
+            </trans-unit>
             <trans-unit id="scan.error.rateLimited" resname="scan.error.rateLimited">
                 <source>Scanner busy</source>
             </trans-unit>

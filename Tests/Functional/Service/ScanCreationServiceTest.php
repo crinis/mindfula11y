@@ -184,6 +184,53 @@ final class ScanCreationServiceTest extends AbstractAuthorizationTestCase
     }
 
     /**
+     * MindfulAPI accepts at most 500 URLs in a url_list and rejects a longer
+     * list with a bare validation error. A page tree beyond that is refused
+     * here with an actionable message, before the scanner is called — and a
+     * tree of exactly 500 pages still goes out.
+     */
+    public function testPageTreeBeyondTheScannersUrlLimitIsRefused(): void
+    {
+        $this->writeDefaultSiteConfiguration();
+        $this->logInBackendUser(1);
+        $this->insertSubpages(10, 499);
+
+        try {
+            $this->createMultiPage(10, 'https://example.com/editable');
+        } catch (ScanCreationException) {
+            // The stubbed scanner is unreachable; only the sent request matters.
+        }
+        self::assertCount(1, $this->sentRequestOptions, '500 pages are sent');
+        $body = json_decode((string)$this->sentRequestOptions[0]['body'], true, flags: JSON_THROW_ON_ERROR);
+        self::assertCount(500, $body['urls'] ?? []);
+
+        $this->insertSubpages(10, 1, 499);
+        try {
+            $this->createMultiPage(10, 'https://example.com/editable');
+            self::fail('the scan must be refused');
+        } catch (ScanCreationException $exception) {
+            self::assertSame('scan.error.tooManyPages', $exception->labelKey);
+            self::assertSame(400, $exception->statusCode);
+        }
+        self::assertCount(1, $this->sentRequestOptions, 'no second request reaches the scanner');
+    }
+
+    /** Insert $count public subpages below $parentId, numbered from $offset. */
+    private function insertSubpages(int $parentId, int $count, int $offset = 0): void
+    {
+        $connection = $this->getConnectionPool()->getConnectionForTable('pages');
+        for ($index = $offset; $index < $offset + $count; $index++) {
+            $connection->insert('pages', [
+                'pid' => $parentId,
+                'title' => 'Subpage ' . $index,
+                'slug' => '/editable/subpage-' . $index,
+                'doktype' => 1,
+                'perms_everybody' => 19,
+            ]);
+        }
+    }
+
+    /**
      * @return array<string, mixed>
      */
     private static function aiReviewTsConfig(string $scanModes): array

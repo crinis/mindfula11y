@@ -1162,6 +1162,14 @@
                 <source>Could not load the accessibility scan results. Please try again.</source>
                 <target>Die Ergebnisse des Barrierefreiheits-Scans konnten nicht geladen werden. Bitte versuchen Sie es erneut.</target>
             </trans-unit>
+            <trans-unit id="scan.error.tooManyPages" resname="scan.error.tooManyPages">
+                <source>Too many pages for one scan</source>
+                <target>Zu viele Seiten für einen Scan</target>
+            </trans-unit>
+            <trans-unit id="scan.error.tooManyPages.description" resname="scan.error.tooManyPages.description">
+                <source>The selected scope contains more than 500 pages, the most the accessibility scanner accepts in one scan. Select fewer page levels, or scan a subpage.</source>
+                <target>Der gewählte Umfang enthält mehr als 500 Seiten, die Höchstzahl, die der Barrierefreiheits-Scanner in einem Scan annimmt. Wählen Sie weniger Seitenebenen oder scannen Sie eine Unterseite.</target>
+            </trans-unit>
             <trans-unit id="scan.error.rateLimited" resname="scan.error.rateLimited">
                 <source>Scanner busy</source>
                 <target>Scanner ausgelastet</target>
