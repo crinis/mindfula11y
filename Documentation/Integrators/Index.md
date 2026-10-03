@@ -125,7 +125,7 @@ All `mod.*` paths below are relative to `mod.mindfula11y_accessibility` unless s
 | `missingAltText.ignoreFileMetadata` | `0` | `0`: editors can filter out references covered by file metadata alt text, as TYPO3's `FileReference` renders it. `1`: require alt text on every file reference. |
 | `headingStructure.enable` | `1` | Enables the heading structure check. |
 | `landmarkStructure.enable` | `1` | Enables the landmark structure check. |
-| `scan.enable` | `0` | Enables the scanner. |
+| `scan.enable` | `0` | Enables the scanner. `0` on a page also keeps it and its subpages out of targeted scans started higher up the tree. |
 | `scan.autoCreate` | `1` | Starts a new scan on module load when content changed. |
 | `scan.basicAuthUsername` | _(unset)_ | Deprecated — use `mindfula11y.scan.basicAuth.username` in the site configuration ([details](#scanning-pages-behind-http-basic-authentication)). |
 | `scan.basicAuthPassword` | _(unset)_ | Deprecated — use `mindfula11y.scan.basicAuth.password` in the site configuration. |
@@ -230,7 +230,11 @@ credentials. The full message is written to the TYPO3 log.
 ### Scan modes: Targeted scan vs Full-site crawl
 
 - **Targeted scan:** the current page, or its child pages up to `0/1/5/10/99` levels (scan scope
-  menu).
+  menu). Child pages whose Page TSconfig sets `scan.enable = 0` are left out, as are pages the
+  public cannot see (hidden, outside their publication period, or restricted to logged-in
+  visitors). The AI review is decided once per scan, by the start page's `scan.aiAudit.*`
+  settings, and then covers every page of that scan — child pages' own AI-review settings do not
+  narrow it, so keep `scan.aiAudit.scanModes` at `single_url` where that matters.
 - **Full-site crawl:** starts at the page and follows links within the selected language's URL
   space; other languages whose URLs are nested below it (such as `/fr/` below a default language
   at `/`) are excluded. Only offered on site root pages (`is_siteroot = 1`). The extension sends

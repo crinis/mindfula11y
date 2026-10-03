@@ -178,6 +178,22 @@ final class PagePreviewServiceTest extends AbstractAuthorizationTestCase
     }
 
     /**
+     * Page TSconfig switches the scanner off per page tree ("scan.enable = 0"
+     * on page 17). A page-tree scan started further up must respect that
+     * instead of scanning — and AI-reviewing — the opted-out pages.
+     */
+    public function testPageTreeUrlsSkipPagesThatDisableScanning(): void
+    {
+        $this->writeDefaultSiteConfiguration();
+        $this->logInBackendUser(2);
+
+        $urls = $this->subject()->generatePageUrls(1, 0, 1);
+
+        self::assertContains('https://example.com/editable', $urls, 'fixture guard: scanned siblings are listed');
+        self::assertNotContains('https://example.com/scan-disabled', $urls);
+    }
+
+    /**
      * @param array<string, int|string> $fields
      */
     private function updatePage(int $uid, array $fields): void

@@ -307,8 +307,13 @@ final readonly class PagePreviewService
      * Generate frontend URLs for pages in the page tree.
      *
      * Resolves the page tree from the given root page, filters to only pages that are
-     * visible and publicly accessible (no fe_group restrictions), and generates
-     * frontend preview URLs for each.
+     * visible and publicly accessible (no fe_group restrictions) and whose Page
+     * TSconfig keeps the scanner enabled, and generates frontend preview URLs for each.
+     *
+     * The scanner gate is the same scan.enable switch that hides the scan for a page
+     * (ModuleSettingsService::hasScanAccess()); an opted-out subtree is neither
+     * scanned nor AI-reviewed as part of a parent's page-tree scan. Whether a scan
+     * includes the AI review is decided per scan, by the start page's settings.
      *
      * @param int $pageId The root page ID.
      * @param int $languageId The language ID.
@@ -323,6 +328,15 @@ final readonly class PagePreviewService
         $urls = [];
 
         foreach ($pageTreeIds as $treePageId) {
+            // Tree ids are default-language pages, which Page TSconfig belongs
+            // to. Core caches the resolved TSconfig per page id for the
+            // request (BackendUtility::getPagesTSconfig()), so this costs the
+            // one lookup per page the doktype gate below needs anyway.
+            $pageTsConfig = $this->moduleSettingsService->getConvertedPageTsConfig($treePageId);
+            if (!$this->moduleSettingsService->hasScanAccess($pageTsConfig)) {
+                continue;
+            }
+
             $pageRecord = BackendUtility::getRecordWSOL('pages', $treePageId);
             if (!is_array($pageRecord)) {
                 continue;
@@ -340,7 +354,6 @@ final readonly class PagePreviewService
                 continue;
             }
 
-            $pageTsConfig = $this->moduleSettingsService->getConvertedPageTsConfig($treePageId);
             if (!$this->isPreviewEnabledForDoktype((int)($pageRecord['doktype'] ?? 0), $pageTsConfig)) {
                 continue;
             }
