@@ -91,6 +91,7 @@ upload comment. Manual `v*` tags are blocked by a repository ruleset.
 - On TYPO3 v13, an integer passed as `type` to the heading ViewHelpers no longer aborts rendering with a type error; like any other unknown type it renders the default tag.
 - A scan whose pages could not be loaded is no longer reported as "no accessibility issues found". MindfulAPI completes such a scan — site unreachable, certificate rejected, target blocked, or pages answering with an HTTP error — with zero issues. The scan view, its completion announcement and the page-module info box now report "no page could be scanned" as an error, and a scan that lost only some of its pages shows "N of M pages could not be scanned" as a warning instead of the green all-clear.
 - The scan view no longer keeps showing "Scan scope has changed" after a fresh scan of a language root (such as `https://example.com/de/`) or of a site whose page URLs end in a slash. The selected pages are now compared with the scanned ones in the normalized form MindfulAPI stores them in.
+- **Start scan** no longer starts a second scan when it is activated again while the scan view is still loading — right after starting a scan, while a stored scan loads, or while the automatic scan is being created. The first scan kept running unseen and, with the AI review, was paid for.
 
 ### Security
 

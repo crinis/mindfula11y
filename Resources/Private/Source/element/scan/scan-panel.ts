@@ -232,6 +232,11 @@ function renderActions(
     if (demand === null && !running) {
         return nothing;
     }
+    // Mirrors the host's trigger guard (Scan.isTriggerBlocked()): while the
+    // session still loads — the first getScan after a create, the initial
+    // load of a stored scan, an auto-create — `running` cannot know yet that
+    // a scan is under way, and a second create would orphan it.
+    const triggerBlocked = actionBusy || running || data.controllerState === 'loading';
 
     // A flat template string keeps the key legible; all
     // four resulting keys (scan.start/refresh, scan.crawl.start/refresh) exist in the XLF.
@@ -240,7 +245,7 @@ function renderActions(
     return html`<div class="actions">
         ${
             demand !== null
-                ? html`<button type="button" class="button" data-action="trigger" aria-disabled=${actionBusy || running ? 'true' : nothing} @click=${onTrigger}>
+                ? html`<button type="button" class="button" data-action="trigger" aria-disabled=${triggerBlocked ? 'true' : nothing} @click=${onTrigger}>
                       ${
                           actionBusy
                               ? html`<typo3-backend-spinner size="small"></typo3-backend-spinner>`

@@ -121,9 +121,10 @@ function renderActions(data, onTrigger, onCancel) {
   if (demand === null && !running) {
     return nothing;
   }
+  const triggerBlocked = actionBusy || running || data.controllerState === "loading";
   const triggerKey = `mindfula11y.scan.${tab === "crawl" ? "crawl." : ""}${result !== null ? "refresh" : "start"}`;
   return html`<div class="actions">
-        ${demand !== null ? html`<button type="button" class="button" data-action="trigger" aria-disabled=${actionBusy || running ? "true" : nothing} @click=${onTrigger}>
+        ${demand !== null ? html`<button type="button" class="button" data-action="trigger" aria-disabled=${triggerBlocked ? "true" : nothing} @click=${onTrigger}>
                       ${actionBusy ? html`<typo3-backend-spinner size="small"></typo3-backend-spinner>` : html`<typo3-backend-icon
                                     identifier=${result !== null ? "actions-refresh" : "actions-search"}
                                     size="small"

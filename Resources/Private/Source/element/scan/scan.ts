@@ -147,6 +147,19 @@ export class Scan extends LitElement {
         return this.controller.result !== null && isScanInProgress(this.controller.result.status);
     }
 
+    /**
+     * Whether a trigger must not create a scan: an action is under way, the
+     * scan runs, or the session still loads — right after a create (before
+     * its first load answers), during the initial load of a stored scan and
+     * during an auto-create, `isScanRunning()` cannot know yet that a scan
+     * is under way. A second create would orphan the first, which keeps
+     * running (and, with the AI review, is billed). The trigger's
+     * `aria-disabled` in scan-panel mirrors this.
+     */
+    private isTriggerBlocked(): boolean {
+        return this.actionBusy || this.isScanRunning() || this.controller.state === 'loading';
+    }
+
     private isAiAuditChecked(): boolean {
         return this.aiAuditChecked ?? this.aiAuditDefault;
     }
@@ -236,9 +249,9 @@ export class Scan extends LitElement {
 
     private async handleTrigger(tab: ScanTab): Promise<void> {
         const demand = this.tabDemand(tab);
-        // Mirrors the trigger's aria-disabled condition: the button stays
-        // focusable while a scan runs, and a second create would orphan it.
-        if (demand === null || this.actionBusy || this.isScanRunning()) {
+        // The button stays focusable while blocked (aria-disabled), so the
+        // click handler enforces the same rule.
+        if (demand === null || this.isTriggerBlocked()) {
             return;
         }
         this.actionBusy = true;

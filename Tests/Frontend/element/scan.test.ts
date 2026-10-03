@@ -167,6 +167,49 @@ describe('Scan', () => {
         expect(createScanMock).not.toHaveBeenCalled();
     });
 
+    it('creates only one scan when the trigger is clicked again before the new scan first loads', async () => {
+        createScanMock.mockResolvedValue({ scanId: 'new-scan', status: ScanStatus.Pending });
+        loadScanMock.mockReturnValue(new Promise<never>(() => {})); // the first getScan never answers
+        const view = await mount('');
+
+        button(view, 'trigger').click();
+        await settle(view);
+        const trigger = button(view, 'trigger');
+        expect(trigger.getAttribute('aria-disabled')).toBe('true');
+        trigger.click();
+        await settle(view);
+
+        expect(createScanMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('ignores the trigger during the initial load of an existing scan', async () => {
+        loadScanMock.mockReturnValue(new Promise<never>(() => {}));
+        const view = await mount('stored-scan');
+
+        const trigger = button(view, 'trigger');
+        expect(trigger.getAttribute('aria-disabled')).toBe('true');
+        trigger.click();
+        await settle(view);
+
+        expect(createScanMock).not.toHaveBeenCalled();
+    });
+
+    it('ignores the trigger while the automatic scan is being created', async () => {
+        createScanMock.mockReturnValue(new Promise<never>(() => {})); // auto-create in flight
+        const view = document.createElement('mindfula11y-scan');
+        view.createScanDemand = demand;
+        view.autoCreateScan = true;
+        document.body.append(view);
+        await settle(view);
+
+        const trigger = button(view, 'trigger');
+        expect(trigger.getAttribute('aria-disabled')).toBe('true');
+        trigger.click();
+        await settle(view);
+
+        expect(createScanMock).toHaveBeenCalledTimes(1); // the auto-create alone
+    });
+
     it('creates a scan when triggered while idle', async () => {
         createScanMock.mockResolvedValue({ scanId: 'new-scan', status: ScanStatus.Pending });
         loadScanMock.mockResolvedValue(makeResult(ScanStatus.Completed));
