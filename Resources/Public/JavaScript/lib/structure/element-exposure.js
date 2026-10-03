@@ -33,8 +33,9 @@ const isFocusable = (element) => {
   );
 };
 const hasGlobalAriaAttribute = (element) => Array.from(element.attributes).some((attribute) => GLOBAL_ARIA_ATTRIBUTES.has(attribute.name.toLowerCase()));
+const explicitRole = (element) => element.getAttribute("role")?.trim().toLowerCase() ?? "";
 const hasPresentationalRole = (element) => {
-  const role = element.getAttribute("role")?.trim().toLowerCase() ?? "";
+  const role = explicitRole(element);
   return (role === "none" || role === "presentation") && !isFocusable(element) && !hasGlobalAriaAttribute(element);
 };
 const resolveExposure = (isExposed = isElementExposed) => (element) => isExposed(element) && !hasPresentationalRole(element);
@@ -63,6 +64,7 @@ const isElementExposed = (element) => {
   return true;
 };
 export {
+  explicitRole,
   hasPresentationalRole,
   isElementExposed,
   resolveExposure

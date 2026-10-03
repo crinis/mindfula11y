@@ -63,13 +63,16 @@ const isFocusable = (element: HTMLElement): boolean => {
 const hasGlobalAriaAttribute = (element: HTMLElement): boolean =>
     Array.from(element.attributes).some((attribute) => GLOBAL_ARIA_ATTRIBUTES.has(attribute.name.toLowerCase()));
 
+/** The element's explicit ARIA role, normalized ('' without a role attribute). */
+export const explicitRole = (element: HTMLElement): string => element.getAttribute('role')?.trim().toLowerCase() ?? '';
+
 /**
  * Whether none/presentation actually suppresses this element's native role.
  * Browsers retain native semantics when the element is focusable or carries a
  * global ARIA state/property (presentational-role conflict resolution).
  */
 export const hasPresentationalRole = (element: HTMLElement): boolean => {
-    const role = element.getAttribute('role')?.trim().toLowerCase() ?? '';
+    const role = explicitRole(element);
     return (role === 'none' || role === 'presentation') && !isFocusable(element) && !hasGlobalAriaAttribute(element);
 };
 

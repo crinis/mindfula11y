@@ -1,10 +1,32 @@
 import { createErrorCollector } from "./analysis.js";
 import { extractChildTypeRecord, extractRecord, indexStructureNodes } from "./annotations.js";
-import { isElementExposed, resolveExposure } from "./element-exposure.js";
+import { explicitRole, isElementExposed, resolveExposure } from "./element-exposure.js";
 import { HEADING_ERROR_KEYS } from "./types.js";
 const CONTAINER_SELECTOR = "[data-mindfula11y-container]";
 const DEMOTED_SELECTOR = "[data-mindfula11y-demoted]";
 const NON_HEADING_SELECTOR = `${CONTAINER_SELECTOR}, ${DEMOTED_SELECTOR}`;
+const HEADING_CANDIDATE_SELECTOR = "h1, h2, h3, h4, h5, h6, [role]";
+const DEFAULT_ARIA_HEADING_LEVEL = 2;
+const MAX_HEADING_LEVEL = 6;
+const resolveHeadingLevel = (element) => {
+  const role = explicitRole(element);
+  const tagLevel = /^H([1-6])$/.exec(element.tagName)?.[1];
+  const isHeading = role === "heading" || tagLevel !== void 0 && (role === "" || role === "none" || role === "presentation");
+  if (!isHeading) {
+    return null;
+  }
+  const ariaLevel = element.getAttribute("aria-level")?.trim() ?? "";
+  const level = /^[1-9]\d*$/.test(ariaLevel) ? Number(ariaLevel) : tagLevel !== void 0 ? Number(tagLevel) : DEFAULT_ARIA_HEADING_LEVEL;
+  return Math.min(level, MAX_HEADING_LEVEL);
+};
+const extractHeadingRecord = (element, level) => {
+  const record = extractRecord(element);
+  const tagType = element.tagName.toLowerCase();
+  if (record === null || record.storedValue !== void 0 || tagType === `h${level}`) {
+    return record;
+  }
+  return { ...record, storedValue: tagType };
+};
 const extractRelation = (element) => {
   const ancestorId = element.dataset.mindfula11yAncestorId ?? "";
   if (ancestorId !== "") {
@@ -20,9 +42,20 @@ const analyzeHeadings = (doc, options = {}) => {
   const viewport = options.viewport ?? "desktop";
   const isExposed = resolveExposure(options.isExposed);
   const rawExposure = options.isExposed ?? isElementExposed;
+  const headingLevels = /* @__PURE__ */ new Map();
   const candidates = Array.from(
-    doc.querySelectorAll(`h1, h2, h3, h4, h5, h6, ${CONTAINER_SELECTOR}, ${DEMOTED_SELECTOR}`)
-  );
+    doc.querySelectorAll(`${HEADING_CANDIDATE_SELECTOR}, ${NON_HEADING_SELECTOR}`)
+  ).filter((element) => {
+    if (element.matches(NON_HEADING_SELECTOR)) {
+      return true;
+    }
+    const level = resolveHeadingLevel(element);
+    if (level !== null) {
+      headingLevels.set(element, level);
+    }
+    return level !== null;
+  });
+  const levelOf = (element) => headingLevels.get(element) ?? DEFAULT_ARIA_HEADING_LEVEL;
   const index = indexStructureNodes(candidates, (element) => {
     const relationId = element.dataset.mindfula11yRelationId ?? "";
     return relationId === "" ? "" : `rel:${relationId}`;
@@ -35,7 +68,7 @@ const analyzeHeadings = (doc, options = {}) => {
   const rootNodes = [];
   const parentStack = [];
   const nodesByRelationId = /* @__PURE__ */ new Map();
-  const h1Count = headings.filter((heading) => heading.tagName === "H1").length;
+  const h1Count = headings.filter((heading) => levelOf(heading) === 1).length;
   if (headings.length > 0 && h1Count === 0) {
     collector.pageError(HEADING_ERROR_KEYS.missingH1, "moderate");
   }
@@ -79,8 +112,8 @@ const analyzeHeadings = (doc, options = {}) => {
       attachNonHeadingNode(element, "demoted", 0, extractRelation(element));
       return;
     }
-    const level = Number.parseInt(element.tagName.charAt(1), 10);
-    const record = extractRecord(element);
+    const level = levelOf(element);
+    const record = extractHeadingRecord(element, level);
     const relationId = element.dataset.mindfula11yRelationId ?? "";
     const nodeId = index.get(element)?.id ?? "";
     const label = element.textContent?.trim() ?? "";

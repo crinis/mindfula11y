@@ -23,9 +23,10 @@
  * requests and returns plain serializable nodes — no element references leak out.
  */
 
+import type { RecordReference } from '../types.js';
 import { createErrorCollector } from './analysis.js';
 import { extractChildTypeRecord, extractRecord, indexStructureNodes } from './annotations.js';
-import { isElementExposed, resolveExposure } from './element-exposure.js';
+import { explicitRole, isElementExposed, resolveExposure } from './element-exposure.js';
 import type {
     HeadingAnalysis,
     HeadingNode,
@@ -38,6 +39,56 @@ import { HEADING_ERROR_KEYS } from './types.js';
 const CONTAINER_SELECTOR = '[data-mindfula11y-container]';
 const DEMOTED_SELECTOR = '[data-mindfula11y-demoted]';
 const NON_HEADING_SELECTOR = `${CONTAINER_SELECTOR}, ${DEMOTED_SELECTOR}`;
+/** Elements that may be headings; resolveHeadingLevel() decides. Any role is matched, so its case does not matter. */
+const HEADING_CANDIDATE_SELECTOR = 'h1, h2, h3, h4, h5, h6, [role]';
+
+/** ARIA's implicit aria-level of an element with role="heading". */
+const DEFAULT_ARIA_HEADING_LEVEL = 2;
+/** The deepest level of the structure model: h6, the deepest type the level select offers. */
+const MAX_HEADING_LEVEL = 6;
+
+/**
+ * The level assistive technology announces for an element, or `null` when the
+ * element is no heading. An h1–h6 keeps its native heading role unless an
+ * explicit role replaces it (`role="tab"` …) — none/presentation is left to
+ * the exposure check, whose conflict resolution may keep the native role —
+ * and any element with `role="heading"` is one. A valid `aria-level` (a
+ * positive integer) overrides the tag's level; `role="heading"` without one
+ * is level 2. Deeper ARIA levels are reported as level 6.
+ */
+const resolveHeadingLevel = (element: HTMLElement): number | null => {
+    const role = explicitRole(element);
+    const tagLevel = /^H([1-6])$/.exec(element.tagName)?.[1];
+    const isHeading =
+        role === 'heading' || (tagLevel !== undefined && (role === '' || role === 'none' || role === 'presentation'));
+    if (!isHeading) {
+        return null;
+    }
+    const ariaLevel = element.getAttribute('aria-level')?.trim() ?? '';
+    const level = /^[1-9]\d*$/.test(ariaLevel)
+        ? Number(ariaLevel)
+        : tagLevel !== undefined
+          ? Number(tagLevel)
+          : DEFAULT_ARIA_HEADING_LEVEL;
+    return Math.min(level, MAX_HEADING_LEVEL);
+};
+
+/**
+ * A heading's record coordinates. The level select shows the record's stored
+ * type, which a rendered heading implies by its tag name — the annotation
+ * omits the value then, and the select falls back to the node's level. When
+ * the announced level differs from the tag (an `aria-level` override, or a
+ * `role="heading"` element), that fallback would show the announced level
+ * instead, so the tag name is stated explicitly.
+ */
+const extractHeadingRecord = (element: HTMLElement, level: number): RecordReference | null => {
+    const record = extractRecord(element);
+    const tagType = element.tagName.toLowerCase();
+    if (record === null || record.storedValue !== undefined || tagType === `h${level}`) {
+        return record;
+    }
+    return { ...record, storedValue: tagType };
+};
 
 const extractRelation = (element: HTMLElement): HeadingRelation | null => {
     const ancestorId = element.dataset.mindfula11yAncestorId ?? '';
@@ -52,7 +103,10 @@ const extractRelation = (element: HTMLElement): HeadingRelation | null => {
 };
 
 /**
- * Analyzes exposed h1–h6 elements: builds the level-nested tree and detects missing H1
+ * Analyzes exposed headings — h1–h6 and `role="heading"` elements, each at the
+ * level assistive technology announces, which every check below uses (see
+ * resolveHeadingLevel(): `aria-level` overrides the tag, another explicit
+ * role removes the heading). Builds the level-nested tree and detects missing H1
  * (page-level, moderate — axe `page-has-heading-one`), multiple H1 (minor per
  * instance — not an axe rule, pure best-practice advice), empty headings
  * (minor — axe `empty-heading`), skipped levels (moderate per offending
@@ -84,9 +138,23 @@ export const analyzeHeadings = (doc: Document, options: StructureAnalysisOptions
     // role="presentation" does not remove its children from the accessibility
     // tree, so the presentational-role half of resolveExposure must not apply here.
     const rawExposure = options.isExposed ?? isElementExposed;
+    // Container markers and demoted tags take precedence over any heading
+    // semantics of the same element (their annotation is what the row edits).
+    const headingLevels = new Map<HTMLElement, number>();
     const candidates = Array.from(
-        doc.querySelectorAll<HTMLElement>(`h1, h2, h3, h4, h5, h6, ${CONTAINER_SELECTOR}, ${DEMOTED_SELECTOR}`),
-    );
+        doc.querySelectorAll<HTMLElement>(`${HEADING_CANDIDATE_SELECTOR}, ${NON_HEADING_SELECTOR}`),
+    ).filter((element) => {
+        if (element.matches(NON_HEADING_SELECTOR)) {
+            return true;
+        }
+        const level = resolveHeadingLevel(element);
+        if (level !== null) {
+            headingLevels.set(element, level);
+        }
+        return level !== null;
+    });
+    // Every heading candidate has a level; the fallback only satisfies the type check.
+    const levelOf = (element: HTMLElement): number => headingLevels.get(element) ?? DEFAULT_ARIA_HEADING_LEVEL;
     const index = indexStructureNodes(candidates, (element) => {
         const relationId = element.dataset.mindfula11yRelationId ?? '';
         return relationId === '' ? '' : `rel:${relationId}`;
@@ -108,7 +176,7 @@ export const analyzeHeadings = (doc: Document, options: StructureAnalysisOptions
     // rendered twice via shortcut records) re-registers and descendants
     // resolve whatever was registered when they rendered.
     const nodesByRelationId = new Map<string, HeadingNode>();
-    const h1Count = headings.filter((heading) => heading.tagName === 'H1').length;
+    const h1Count = headings.filter((heading) => levelOf(heading) === 1).length;
 
     if (headings.length > 0 && h1Count === 0) {
         collector.pageError(HEADING_ERROR_KEYS.missingH1, 'moderate');
@@ -178,8 +246,8 @@ export const analyzeHeadings = (doc: Document, options: StructureAnalysisOptions
             return;
         }
 
-        const level = Number.parseInt(element.tagName.charAt(1), 10);
-        const record = extractRecord(element);
+        const level = levelOf(element);
+        const record = extractHeadingRecord(element, level);
         const relationId = element.dataset.mindfula11yRelationId ?? '';
         const nodeId = index.get(element)?.id ?? '';
         const label = element.textContent?.trim() ?? '';

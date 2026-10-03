@@ -201,6 +201,136 @@ describe('analyzeHeadings', () => {
         expect(analysis.errors.some((error) => error.key.endsWith('deepRootHeading'))).toBe(true);
     });
 
+    describe('announced level and role', () => {
+        // The analysis follows what assistive technology announces (axe-core's
+        // heading-order semantics), not the tag name alone.
+
+        it('takes the level from a valid aria-level instead of the tag', () => {
+            document.body.innerHTML = `
+                <h1>Title</h1>
+                <h4 aria-level="2">Announced as level 2</h4>
+            `;
+
+            const analysis = analyzeHeadings(document);
+            const section = analysis.nodes[0]?.children[0];
+            expect(section?.label).toBe('Announced as level 2');
+            expect(section?.level).toBe(2);
+            expect(section?.skippedLevels).toBe(0);
+            expect(analysis.errors).toEqual([]);
+        });
+
+        it('includes elements with role="heading", at level 2 unless aria-level says otherwise', () => {
+            document.body.innerHTML = `
+                <h1>Title</h1>
+                <div role="heading">Default level</div>
+                <p role="HEADING" aria-level="3">Explicit level</p>
+            `;
+
+            const analysis = analyzeHeadings(document);
+            const section = analysis.nodes[0]?.children[0];
+            expect(section).toMatchObject({ kind: 'heading', label: 'Default level', level: 2 });
+            expect(section?.children[0]).toMatchObject({ kind: 'heading', label: 'Explicit level', level: 3 });
+            expect(analysis.errors).toEqual([]);
+        });
+
+        it('does not count an h1–h6 whose explicit role replaces the heading role', () => {
+            document.body.innerHTML = `
+                <h1>Title</h1>
+                <h2 role="tab">Tab label</h2>
+                <h3>Subsection</h3>
+            `;
+
+            const analysis = analyzeHeadings(document);
+            const labels = flatten(analysis.nodes).map((node) => node.label);
+            expect(labels).toEqual(['Title', 'Subsection']);
+            // Without the tab, the h3 follows the h1 directly.
+            expect(flatten(analysis.nodes).find((node) => node.label === 'Subsection')?.skippedLevels).toBe(1);
+        });
+
+        it('keeps an h1–h6 whose explicit role is heading, or none/presentation overridden by focusability', () => {
+            document.body.innerHTML = `
+                <h1 role="heading">Title</h1>
+                <h2 role="presentation" tabindex="0">Focusable section</h2>
+                <h2 role="presentation">Presentational</h2>
+            `;
+
+            const analysis = analyzeHeadings(document);
+            expect(flatten(analysis.nodes).map((node) => node.label)).toEqual(['Title', 'Focusable section']);
+        });
+
+        it('counts the H1 by announced level', () => {
+            document.body.innerHTML = `
+                <h2 aria-level="1">Announced H1</h2>
+                <h2>Section</h2>
+            `;
+            expect(analyzeHeadings(document).errors).toEqual([]);
+
+            document.body.innerHTML = `
+                <h1 aria-level="2">Announced as level 2</h1>
+            `;
+            expect(analyzeHeadings(document).errors.map((error) => error.key)).toContain(
+                'mindfula11y.structure.headings.error.missingH1',
+            );
+
+            document.body.innerHTML = `
+                <h1>First</h1>
+                <div role="heading" aria-level="1">Second</div>
+            `;
+            const multiple = analyzeHeadings(document).errors.filter((error) => error.key.endsWith('multipleH1'));
+            expect(multiple).toHaveLength(2);
+        });
+
+        it('falls back to the tag level for an invalid aria-level and caps deep levels at 6', () => {
+            document.body.innerHTML = `
+                <h1>title</h1>
+                <h2 aria-level="0">zero</h2>
+                <h2 aria-level="two">word</h2>
+                <h2 aria-level="">empty</h2>
+                <div role="heading" aria-level="-3">negative</div>
+                <h5 aria-level="9">nine</h5>
+            `;
+
+            const levels = Object.fromEntries(
+                flatten(analyzeHeadings(document).nodes).map((node) => [node.label, node.level]),
+            );
+            expect(levels).toEqual({ title: 1, zero: 2, word: 2, empty: 2, negative: 2, nine: 6 });
+        });
+
+        it('still resolves the record of an annotated heading whose aria-level overrides its tag', () => {
+            // The level select shows the record's stored type, which a plain
+            // h1–h6 implies by its tag. Once the announced level differs, the
+            // tag name is stated explicitly so the select does not show (and
+            // save against) the announced level instead.
+            document.body.innerHTML = `
+                <h1>Title</h1>
+                <h4 aria-level="2"
+                    data-mindfula11y-record-table-name="tt_content"
+                    data-mindfula11y-record-column-name="tx_mindfula11y_headingtype"
+                    data-mindfula11y-record-uid="12"
+                >Overridden</h4>
+                <h2 aria-level="2"
+                    data-mindfula11y-record-table-name="tt_content"
+                    data-mindfula11y-record-column-name="tx_mindfula11y_headingtype"
+                    data-mindfula11y-record-uid="13"
+                >Matching</h2>
+            `;
+
+            const nodes = flatten(analyzeHeadings(document).nodes);
+            const overridden = nodes.find((node) => node.label === 'Overridden');
+            expect(overridden?.id).toBe('tt_content:12:tx_mindfula11y_headingtype');
+            expect(overridden?.level).toBe(2);
+            expect(overridden?.record).toEqual({
+                tableName: 'tt_content',
+                columnName: 'tx_mindfula11y_headingtype',
+                uid: 12,
+                editLink: '',
+                storedValue: 'h4',
+            });
+            // An aria-level agreeing with the tag changes nothing.
+            expect(nodes.find((node) => node.label === 'Matching')?.record?.storedValue).toBeUndefined();
+        });
+    });
+
     it('attributes a deep root heading derived from a hidden container once to the container row', () => {
         // Same attribution rule as skips: the container row already shows the
         // unrendered level and hosts the child-type select that closes the gap.
