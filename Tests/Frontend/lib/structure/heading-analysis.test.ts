@@ -247,6 +247,38 @@ describe('analyzeHeadings', () => {
             expect(flatten(analysis.nodes).find((node) => node.label === 'Subsection')?.skippedLevels).toBe(1);
         });
 
+        it('keeps an h1–h6 whose role names no concrete ARIA role', () => {
+            // Browsers skip an unknown or abstract role token and fall back to
+            // the native role: dropping these would report a false missing H1
+            // and a false skipped level for the heading after them.
+            document.body.innerHTML = `
+                <h1 role="text">Title</h1>
+                <h2 role="foo">Unknown role</h2>
+                <h3 role="section">Abstract role</h3>
+            `;
+
+            const analysis = analyzeHeadings(document);
+            expect(flatten(analysis.nodes).map((node) => [node.label, node.level])).toEqual([
+                ['Title', 1],
+                ['Unknown role', 2],
+                ['Abstract role', 3],
+            ]);
+            expect(analysis.errors).toEqual([]);
+        });
+
+        it('takes the first concrete ARIA role of a role token list', () => {
+            document.body.innerHTML = `
+                <h1>Title</h1>
+                <h2 role="tab heading">Tab first</h2>
+                <div role="heading tab">Heading first</div>
+                <h2 role="foo tab">Unknown token skipped</h2>
+                <h2 role="doc-subtitle">Subtitle</h2>
+            `;
+
+            const labels = flatten(analyzeHeadings(document).nodes).map((node) => node.label);
+            expect(labels).toEqual(['Title', 'Heading first']);
+        });
+
         it('keeps an h1–h6 whose explicit role is heading, or none/presentation overridden by focusability', () => {
             document.body.innerHTML = `
                 <h1 role="heading">Title</h1>

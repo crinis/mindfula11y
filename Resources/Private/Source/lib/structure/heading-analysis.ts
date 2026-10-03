@@ -50,11 +50,13 @@ const MAX_HEADING_LEVEL = 6;
 /**
  * The level assistive technology announces for an element, or `null` when the
  * element is no heading. An h1–h6 keeps its native heading role unless an
- * explicit role replaces it (`role="tab"` …) — none/presentation is left to
- * the exposure check, whose conflict resolution may keep the native role —
- * and any element with `role="heading"` is one. A valid `aria-level` (a
- * positive integer) overrides the tag's level; `role="heading"` without one
- * is level 2. Deeper ARIA levels are reported as level 6.
+ * explicit role replaces it (`role="tab"` …; explicitRole() resolves the
+ * first concrete role of a token list and skips unknown or abstract tokens,
+ * as browsers do) — none/presentation is left to the exposure check, whose
+ * conflict resolution may keep the native role — and any element with
+ * `role="heading"` is one. A valid `aria-level` (a positive integer)
+ * overrides the tag's level; `role="heading"` without one is level 2. Deeper
+ * ARIA levels are reported as level 6.
  */
 const resolveHeadingLevel = (element: HTMLElement): number | null => {
     const role = explicitRole(element);
