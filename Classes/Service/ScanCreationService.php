@@ -99,6 +99,14 @@ final readonly class ScanCreationService
                 throw new ScanCreationException('scan.error.createFailed', 500);
             }
             $crawlOptions['globs'] = [$base . '/**'];
+            // That glob also matches other languages whose bases are nested
+            // below this one (`/fr/` under a default language at `/`), so their
+            // URL spaces are excluded. maxPages/maxDepth stay unset: MindfulAPI's
+            // defaults apply.
+            $nestedBases = $this->siteLanguageService->getNestedLanguageBases($demand->getPageId(), $demand->getLanguageId());
+            if ($nestedBases !== []) {
+                $crawlOptions['excludeGlobs'] = [self::nestedBasesGlob($base, $nestedBases)];
+            }
         }
 
         // Read basic auth credentials from the site configuration / PageTS (server-side only,
@@ -139,6 +147,21 @@ final readonly class ScanCreationService
             'scanId' => $scanId,
             'status' => (string)($scanData['status'] ?? 'pending'),
         ];
+    }
+
+    /**
+     * One crawl glob matching the nested language bases and everything below
+     * them: `https://example.com/fr{,/**}` for one, `https://example.com/{fr,de}{,/**}`
+     * for several — a single pattern, as MindfulAPI accepts at most 20 exclude
+     * globs. `{,/**}` matches the bare base as well as the paths below it.
+     *
+     * @param non-empty-list<string> $nestedBases Absolute bases below $base, without trailing slash.
+     */
+    private static function nestedBasesGlob(string $base, array $nestedBases): string
+    {
+        $paths = array_map(static fn(string $nestedBase): string => substr($nestedBase, strlen($base) + 1), $nestedBases);
+
+        return $base . '/' . (count($paths) === 1 ? $paths[0] : '{' . implode(',', $paths) . '}') . '{,/**}';
     }
 
     /**

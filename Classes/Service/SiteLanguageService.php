@@ -137,6 +137,38 @@ final readonly class SiteLanguageService
     }
 
     /**
+     * Absolute bases of the site's other languages that lie inside the URL
+     * space of the given language's base — `https://example.com/fr` below a
+     * default language at `https://example.com`. A crawl confined to that base
+     * by a glob would cover these languages too, so it must exclude them.
+     *
+     * @param int $pageId Page ID within the target site.
+     * @param int $languageId Language whose base contains the others.
+     * @return list<string> Absolute bases without trailing slash; empty when nothing is nested or the bases cannot be resolved.
+     */
+    public function getNestedLanguageBases(int $pageId, int $languageId): array
+    {
+        try {
+            $site = $this->siteFinder->getSiteByPageId($pageId);
+            $base = $this->toAbsoluteBase($site->getLanguageById($languageId)->getBase());
+            if ($base === null || $base === '') {
+                return [];
+            }
+            $nested = [];
+            foreach ($site->getAllLanguages() as $language) {
+                $languageBase = $language->getLanguageId() === $languageId ? null : $this->toAbsoluteBase($language->getBase());
+                if ($languageBase !== null && str_starts_with($languageBase, $base . '/') && !in_array($languageBase, $nested, true)) {
+                    $nested[] = $languageBase;
+                }
+            }
+
+            return $nested;
+        } catch (\Throwable) {
+            return [];
+        }
+    }
+
+    /**
      * Keep only URLs living under one of the page's site (language) bases.
      *
      * Security allowlist for user-influenced URL filters that are forwarded to

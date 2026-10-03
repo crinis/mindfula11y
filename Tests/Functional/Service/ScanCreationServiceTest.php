@@ -157,6 +157,82 @@ final class ScanCreationServiceTest extends AbstractAuthorizationTestCase
     /**
      * @param array<string, mixed> $pageTsConfig
      */
+    /**
+     * The default language's glob (`https://example.com/**`) also matches the
+     * URL spaces of languages nested below it (`/fr/`), so its crawl would
+     * scan their pages too. Those are excluded; a crawl of the nested
+     * language itself excludes nothing.
+     */
+    public function testCrawlExcludesTheUrlSpacesOfLanguagesNestedBelowItsOwn(): void
+    {
+        $this->writeDefaultSiteConfiguration();
+        $this->logInBackendUser(1);
+
+        $this->createCrawlSwallowingTheScannerFailure();
+        $this->createCrawlSwallowingTheScannerFailure(languageId: 1, previewUrl: 'https://example.com/fr/');
+
+        self::assertCount(2, $this->sentRequestOptions);
+        $default = json_decode((string)$this->sentRequestOptions[0]['body'], true, flags: JSON_THROW_ON_ERROR);
+        $french = json_decode((string)$this->sentRequestOptions[1]['body'], true, flags: JSON_THROW_ON_ERROR);
+        self::assertSame(['https://example.com/**'], $default['crawlOptions']['globs'] ?? null);
+        self::assertSame(['https://example.com/fr{,/**}'], $default['crawlOptions']['excludeGlobs'] ?? null);
+        self::assertSame(['https://example.com/fr/**'], $french['crawlOptions']['globs'] ?? null);
+        self::assertArrayNotHasKey('excludeGlobs', $french['crawlOptions'] ?? []);
+    }
+
+    /**
+     * Several nested languages are excluded in one pattern (MindfulAPI takes
+     * at most 20 exclude globs); a language on its own host is not nested.
+     */
+    public function testCrawlExcludesSeveralNestedLanguagesInOnePattern(): void
+    {
+        $this->get(SiteWriter::class)->write('main', [
+            'rootPageId' => 1,
+            'base' => 'https://example.com/',
+            'languages' => array_map(
+                static fn(array $language): array => $language + ['enabled' => true, 'locale' => 'en_US.UTF-8', 'flag' => 'us'],
+                [
+                    ['languageId' => 0, 'title' => 'English', 'navigationTitle' => 'English', 'base' => '/'],
+                    ['languageId' => 1, 'title' => 'French', 'navigationTitle' => 'French', 'base' => '/fr/'],
+                    ['languageId' => 2, 'title' => 'Swiss German', 'navigationTitle' => 'Swiss German', 'base' => '/de-ch/'],
+                    ['languageId' => 3, 'title' => 'Italian', 'navigationTitle' => 'Italian', 'base' => 'https://example.it/'],
+                ],
+            ),
+        ]);
+        $this->logInBackendUser(1);
+
+        $this->createCrawlSwallowingTheScannerFailure();
+
+        self::assertCount(1, $this->sentRequestOptions);
+        $body = json_decode((string)$this->sentRequestOptions[0]['body'], true, flags: JSON_THROW_ON_ERROR);
+        self::assertSame(['https://example.com/{fr,de-ch}{,/**}'], $body['crawlOptions']['excludeGlobs'] ?? null);
+    }
+
+    private function createCrawlSwallowingTheScannerFailure(int $languageId = 0, string $previewUrl = 'https://example.com/'): void
+    {
+        $page = BackendUtility::getRecord('pages', 1);
+        self::assertIsArray($page);
+        try {
+            $this->subject()->create(
+                new CreateScanDemand(
+                    userId: 1,
+                    pageId: 1,
+                    previewUrl: $previewUrl,
+                    languageId: $languageId,
+                    workspaceId: 0,
+                    pageRecordSnapshot: str_repeat('a', 64),
+                    crawl: true,
+                ),
+                $page,
+                [],
+                false,
+                null,
+            );
+        } catch (ScanCreationException) {
+            // The stubbed scanner is unreachable; only the sent request matters.
+        }
+    }
+
     private function createMultiPage(
         int $pageId,
         string $previewUrl,
