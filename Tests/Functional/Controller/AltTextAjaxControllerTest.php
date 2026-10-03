@@ -866,4 +866,65 @@ final class AltTextAjaxControllerTest extends AbstractAuthorizationTestCase
         self::assertCount(1, $instructions, 'redemption reached the OpenAI request');
         self::assertStringContainsString('ISO language code: ' . $expectedLanguageCode . '.', $instructions[0]);
     }
+
+    // ---------------------------------------------------------------
+    // M. Page records (pages.media)
+    // ---------------------------------------------------------------
+
+    /**
+     * A file reference in the media field of a page. Core stores the file
+     * references of a page on the page itself — a translation's on its
+     * default-language page (TcaInline::addInlineFirstPid(),
+     * DataHandler::resolveSortingAndPidForNewRecord()) — so the list signs
+     * that page, while the page record's own pid is its parent page.
+     * pages:media is an exclude field; the full editor's group gets it.
+     */
+    private function preparePageMediaReference(int $pageUid, int $languageUid): void
+    {
+        $this->getConnectionPool()->getConnectionForTable('sys_file_reference')->insert('sys_file_reference', [
+            'uid' => 420,
+            'pid' => 10,
+            'uid_local' => 1,
+            'uid_foreign' => $pageUid,
+            'tablenames' => 'pages',
+            'fieldname' => 'media',
+            'sys_language_uid' => $languageUid,
+            'alternative' => '',
+        ]);
+        $this->getConnectionPool()->getConnectionForTable('pages')->update('pages', ['media' => 1], ['uid' => $pageUid]);
+        $groups = $this->getConnectionPool()->getConnectionForTable('be_groups');
+        $group = $groups->select(['non_exclude_fields'], 'be_groups', ['uid' => 1])->fetchAssociative();
+        $groups->update('be_groups', ['non_exclude_fields' => $group['non_exclude_fields'] . ',pages:media'], ['uid' => 1]);
+    }
+
+    /**
+     * @return array<string, array{int, int}>
+     */
+    public static function pageMediaProvider(): array
+    {
+        return [
+            'default-language page' => [10, 0],
+            'translated page' => [30, 1],
+        ];
+    }
+
+    #[DataProvider('pageMediaProvider')]
+    public function testPageMediaReferenceDemandIsRedeemable(int $pageUid, int $languageUid): void
+    {
+        $this->preparePageMediaReference($pageUid, $languageUid);
+        $this->logInBackendUser(2);
+
+        $response = $this->generate($this->demandPayload(
+            2,
+            recordTable: 'pages',
+            recordUid: $pageUid,
+            fileUid: 1,
+            fileReferenceUid: 420,
+            recordColumns: ['media'],
+            pageUid: 10,
+            languageUid: $languageUid,
+        ));
+
+        $this->assertOpenAiFailure($response);
+    }
 }

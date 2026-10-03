@@ -112,7 +112,7 @@ final readonly class AltTextDemandAuthorizationService
      */
     private function recordMatchesDemand(GenerateAltTextDemand $demand, array $record): bool
     {
-        if ((int)($record['pid'] ?? -1) !== $demand->getPageUid()) {
+        if ($this->getRecordPageUid($demand->getRecordTable(), $record) !== $demand->getPageUid()) {
             return false;
         }
 
@@ -132,6 +132,26 @@ final readonly class AltTextDemandAuthorizationService
         }
 
         return $demand->getFileReferenceUid() > 0;
+    }
+
+    /**
+     * The page a record's file references are stored on — the page the
+     * demand is issued for. That is the record's pid, except for a page
+     * record: core stores a page's file references on the page itself, and a
+     * translation's on its default-language page (TcaInline::
+     * addInlineFirstPid(), DataHandler::resolveSortingAndPidForNewRecord()),
+     * while the page row's own pid is its parent. The workspace-overlaid row
+     * already carries the live uid.
+     *
+     * @param array<string, mixed> $record
+     */
+    private function getRecordPageUid(string $table, array $record): int
+    {
+        if ($table !== 'pages') {
+            return (int)($record['pid'] ?? -1);
+        }
+
+        return TranslationFields::translationParentUid('pages', $record) ?: (int)($record['uid'] ?? -1);
     }
 
     /**
