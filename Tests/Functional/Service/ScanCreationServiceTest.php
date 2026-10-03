@@ -155,9 +155,6 @@ final class ScanCreationServiceTest extends AbstractAuthorizationTestCase
     }
 
     /**
-     * @param array<string, mixed> $pageTsConfig
-     */
-    /**
      * The default language's glob (`https://example.com/**`) also matches the
      * URL spaces of languages nested below it (`/fr/`), so its crawl would
      * scan their pages too. Those are excluded; a crawl of the nested
@@ -264,6 +261,9 @@ final class ScanCreationServiceTest extends AbstractAuthorizationTestCase
         }
     }
 
+    /**
+     * @param array<string, mixed> $pageTsConfig
+     */
     private function createMultiPage(
         int $pageId,
         string $previewUrl,

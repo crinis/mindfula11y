@@ -87,9 +87,9 @@ export function scanStatusView(result: ScanResult): ScanStatusView {
 /**
  * A completed scan says nothing about pages it could not load: MindfulAPI
  * completes a scan whose pages failed (site down, certificate rejected,
- * blocked target, an HTTP error answer) and counts them only in `progress`.
- * Zero issues is therefore "no issues found" only when every page was
- * scanned — never plain success when pages are missing.
+ * blocked target; past 0.7.1 also an HTTP error answer) and counts them only
+ * in `progress`. Zero issues is therefore "no issues found" only when every
+ * page was scanned — never plain success when pages are missing.
  */
 function completedStatusView(result: ScanResult): ScanStatusView {
     const scanned = result.progress?.pagesScanned ?? 0;
