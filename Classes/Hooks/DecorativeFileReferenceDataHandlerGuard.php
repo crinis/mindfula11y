@@ -144,27 +144,77 @@ final class DecorativeFileReferenceDataHandlerGuard
             : $storedDecorative;
 
         if ($isDecorative) {
-            $discardedFields = [];
-            foreach (self::BLANKED_FIELDS as $fieldName) {
-                if ((string)($incomingFieldArray[$fieldName] ?? '') !== '') {
-                    $discardedFields[] = $fieldName;
-                }
-                $incomingFieldArray[$fieldName] = '';
+            $this->blankTexts($incomingFieldArray, $table, $id, $dataHandler);
+        }
+    }
+
+    /**
+     * Second pass over the final field array: DataHandler merges TCAdefaults
+     * from page/user TSconfig AFTER the pre-process hook, so a NEW reference
+     * can turn decorative there without the pre-process rules having seen it
+     * (same order on TYPO3 13 and 14). Defaults bypass the exclude-field
+     * filter, so the rules are re-applied here: a reference the acting user
+     * may make decorative gets its texts emptied, otherwise the flag is
+     * dropped — rather than storing a decorative reference that keeps its
+     * texts or, with NULL texts, falls back to the file metadata's.
+     *
+     * Updates arrive here with the flag only when the save switches it on,
+     * which the pre-process pass already vetted and blanked for.
+     *
+     * @param array<string, mixed> $fieldArray
+     */
+    public function processDatamap_postProcessFieldArray(string $status, string $table, int|string $id, array &$fieldArray, DataHandler $dataHandler): void
+    {
+        if ($table !== 'sys_file_reference' || empty($fieldArray[self::FIELD_NAME])) {
+            return;
+        }
+
+        if (!$this->userMayWriteFields($dataHandler, [self::FIELD_NAME, ...self::BLANKED_FIELDS])) {
+            unset($fieldArray[self::FIELD_NAME]);
+            // Only a default can get here (a submitted flag was already
+            // filtered or rejected), which the editor did not ask for: a
+            // note, not an error flash.
+            $dataHandler->log(
+                $table,
+                MathUtility::canBeInterpretedAsInteger($id) ? (int)$id : 0,
+                SystemLogDatabaseAction::INSERT,
+                0,
+                SystemLogErrorClassification::MESSAGE,
+                'Decorative default not applied to the file reference: a decorative reference keeps its alternative and title fields empty, which requires access to the decorative flag and both fields.'
+            );
+            return;
+        }
+
+        $this->blankTexts($fieldArray, $table, $id, $dataHandler);
+    }
+
+    /**
+     * Empties alternative and title of a reference that is (or turns)
+     * decorative. The save is valid, but submitted text is discarded — leave
+     * a note rather than an error flash.
+     *
+     * @param array<string, mixed> $fieldArray
+     */
+    private function blankTexts(array &$fieldArray, string $table, int|string $id, DataHandler $dataHandler): void
+    {
+        $discardedFields = [];
+        foreach (self::BLANKED_FIELDS as $fieldName) {
+            if ((string)($fieldArray[$fieldName] ?? '') !== '') {
+                $discardedFields[] = $fieldName;
             }
-            // The save is valid, but submitted text is discarded — leave a
-            // note rather than an error flash.
-            if ($discardedFields !== []) {
-                $dataHandler->log(
-                    $table,
-                    MathUtility::canBeInterpretedAsInteger($id) ? (int)$id : 0,
-                    SystemLogDatabaseAction::UPDATE,
-                    0,
-                    SystemLogErrorClassification::MESSAGE,
-                    'Submitted {fields} emptied: the file reference is decorative, so it keeps these fields empty.',
-                    null,
-                    ['fields' => implode(', ', $discardedFields)]
-                );
-            }
+            $fieldArray[$fieldName] = '';
+        }
+        if ($discardedFields !== []) {
+            $dataHandler->log(
+                $table,
+                MathUtility::canBeInterpretedAsInteger($id) ? (int)$id : 0,
+                SystemLogDatabaseAction::UPDATE,
+                0,
+                SystemLogErrorClassification::MESSAGE,
+                'Submitted {fields} emptied: the file reference is decorative, so it keeps these fields empty.',
+                null,
+                ['fields' => implode(', ', $discardedFields)]
+            );
         }
     }
 

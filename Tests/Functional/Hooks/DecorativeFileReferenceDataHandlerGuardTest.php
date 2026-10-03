@@ -388,6 +388,62 @@ final class DecorativeFileReferenceDataHandlerGuardTest extends AbstractAuthoriz
     }
 
     /**
+     * TCAdefaults are merged by DataHandler AFTER the pre-process hook, so a
+     * page TSconfig default for the toggle reaches a NEW reference the hook
+     * never saw as decorative. The final field array must obey the same
+     * rules: decorative means empty alternative and title.
+     */
+    public function testTcaDefaultMarkingANewReferenceDecorativeBlanksItsTexts(): void
+    {
+        $this->setDecorativeTcaDefaultOnPage10();
+        $backendUser = $this->logInBackendUser(2);
+
+        $reference = $this->fetchRow('sys_file_reference', $this->createReferenceWithTexts($backendUser));
+
+        self::assertSame(1, (int)$reference['tx_mindfula11y_decorative'], 'the TSconfig default applies for a fully granted editor');
+        self::assertSame('', (string)$reference['alternative'], 'alternative blanked on the defaulted decorative reference');
+        self::assertSame('', (string)$reference['title'], 'title blanked on the defaulted decorative reference');
+    }
+
+    /**
+     * Without the alternative/title grants an editor may not turn decorative
+     * on (the blanking would be half-applied), and a default must not do it
+     * for them either: the reference would be stored decorative with NULL
+     * texts, which fall back to the file metadata's alternative text.
+     */
+    public function testTcaDefaultDoesNotMarkDecorativeForAnEditorWithoutTheTextGrants(): void
+    {
+        $this->setDecorativeTcaDefaultOnPage10();
+        $backendUser = $this->logInBackendUser(20);
+
+        $reference = $this->fetchRow('sys_file_reference', $this->createReferenceWithTexts($backendUser));
+
+        self::assertSame(0, (int)$reference['tx_mindfula11y_decorative'], 'the default must not mark the reference decorative');
+    }
+
+    /**
+     * The mirror image: the text grants are held but not the toggle's own. A
+     * default cannot hand an editor a flag they may not set, and the texts
+     * they entered must survive.
+     */
+    public function testTcaDefaultDoesNotMarkDecorativeForAnEditorWithoutTheToggleGrant(): void
+    {
+        $this->setDecorativeTcaDefaultOnPage10();
+        $this->getConnectionPool()->getConnectionForTable('be_groups')->update(
+            'be_groups',
+            ['non_exclude_fields' => 'sys_file_reference:alternative,sys_file_reference:title'],
+            ['uid' => 20],
+        );
+        $backendUser = $this->logInBackendUser(20);
+
+        $reference = $this->fetchRow('sys_file_reference', $this->createReferenceWithTexts($backendUser));
+
+        self::assertSame(0, (int)$reference['tx_mindfula11y_decorative'], 'the default must not mark the reference decorative');
+        self::assertSame('kept text', (string)$reference['alternative'], 'the entered alternative survives');
+        self::assertSame('kept title', (string)$reference['title'], 'the entered title survives');
+    }
+
+    /**
      * Core denies creating records on the no-access page 14 — nothing is
      * persisted, decorative or otherwise. The extension adds no check of its
      * own here.
@@ -621,6 +677,47 @@ final class DecorativeFileReferenceDataHandlerGuardTest extends AbstractAuthoriz
             )
             ->executeQuery()
             ->fetchFirstColumn());
+    }
+
+    private function setDecorativeTcaDefaultOnPage10(): void
+    {
+        $this->getConnectionPool()->getConnectionForTable('pages')->update(
+            'pages',
+            ['TSconfig' => 'TCAdefaults.sys_file_reference.tx_mindfula11y_decorative = 1'],
+            ['uid' => 10],
+        );
+    }
+
+    /**
+     * A new content element on page 10 with a new IRRE reference carrying an
+     * alternative and a title but no decorative value of its own.
+     */
+    private function createReferenceWithTexts(\TYPO3\CMS\Core\Authentication\BackendUserAuthentication $backendUser): int
+    {
+        $dataHandler = $this->runDataHandler([
+            'tt_content' => [
+                'NEW1' => [
+                    'pid' => 10,
+                    'sys_language_uid' => 0,
+                    'CType' => 'textmedia',
+                    'header' => 'Defaulted reference parent',
+                    'assets' => 'NEW2',
+                ],
+            ],
+            'sys_file_reference' => [
+                'NEW2' => [
+                    'pid' => 10,
+                    'sys_language_uid' => 0,
+                    'uid_local' => 1,
+                    'alternative' => 'kept text',
+                    'title' => 'kept title',
+                ],
+            ],
+        ], $backendUser);
+        $referenceUid = (int)($dataHandler->substNEWwithIDs['NEW2'] ?? 0);
+        self::assertGreaterThan(0, $referenceUid, 'the reference was created: ' . implode(' | ', $dataHandler->errorLog));
+
+        return $referenceUid;
     }
 
     private function countDecorativeReferences(): int
