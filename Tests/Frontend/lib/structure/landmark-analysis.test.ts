@@ -122,6 +122,45 @@ describe('analyzeLandmarks', () => {
         expect(flatten(analyzeLandmarks(document).nodes).map((node) => node.role)).toEqual(['main', 'navigation']);
     });
 
+    it('keeps a native landmark whose role names no concrete ARIA role', () => {
+        // Browsers skip an unknown token and fall back to the native role:
+        // reading role="foo" as the role would report a false missing main.
+        document.body.innerHTML = `
+            <main role="foo"></main>
+            <section role="section" aria-label="Labelled region"></section>
+        `;
+
+        const analysis = analyzeLandmarks(document);
+        expect(flatten(analysis.nodes).map((node) => node.role)).toEqual(['main', 'region']);
+        expect(analysis.errors).toEqual([]);
+    });
+
+    it('drops a native landmark whose explicit role is a concrete non-landmark role', () => {
+        document.body.innerHTML = `
+            <main></main>
+            <nav role="tab"><a href="/a">A</a></nav>
+            <form role="search foo" aria-label="Site search"></form>
+            <div role="foo"></div>
+        `;
+
+        expect(flatten(analyzeLandmarks(document).nodes).map((node) => node.role)).toEqual(['main', 'search']);
+    });
+
+    it('takes the first concrete role of a role token list', () => {
+        document.body.innerHTML = `
+            <main></main>
+            <div role="navigation region" aria-label="Primary"><a href="/a">A</a></div>
+            <div role="foo complementary"></div>
+            <section role="tab region" aria-label="Not a region"></section>
+        `;
+
+        expect(flatten(analyzeLandmarks(document).nodes).map((node) => node.role)).toEqual([
+            'main',
+            'navigation',
+            'complementary',
+        ]);
+    });
+
     it('keeps stable ids when responsive duplicates are filtered independently', () => {
         document.body.innerHTML = `
             <main></main>

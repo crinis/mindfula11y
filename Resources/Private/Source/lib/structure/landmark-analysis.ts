@@ -26,7 +26,7 @@
 import { createErrorCollector, groupBy } from './analysis.js';
 import { extractRecord, indexStructureNodes } from './annotations.js';
 import type { ElementExposurePredicate } from './element-exposure.js';
-import { resolveExposure } from './element-exposure.js';
+import { explicitRole, resolveExposure } from './element-exposure.js';
 import type { LandmarkAnalysis, LandmarkNode, StructureAnalysisOptions } from './types.js';
 
 const ERROR_KEYS = {
@@ -50,20 +50,23 @@ const SINGLETON_TOP_LEVEL_ROLES = {
     contentinfo: { duplicate: ERROR_KEYS.duplicateContentinfo, notTopLevel: ERROR_KEYS.contentinfoNotTopLevel },
 } as const;
 
+/** The landmark roles the analysis reports. */
+const LANDMARK_ROLES: ReadonlySet<string> = new Set([
+    'banner',
+    'main',
+    'navigation',
+    'complementary',
+    'contentinfo',
+    'region',
+    'search',
+    'form',
+]);
+
 /**
- * Explicit ARIA roles plus semantic elements; header/footer only outside sectioning
- * content. Exported for the test suite's tripwire on the sectioning-scope exclusions
- * (happy-dom cannot evaluate the self-referential `:not()` compounds behaviorally).
+ * Elements whose native role is a landmark; header/footer only outside sectioning
+ * content (inside it they carry no landmark role).
  */
-export const LANDMARK_SELECTOR = [
-    '[role="banner"]',
-    '[role="main"]',
-    '[role="navigation"]',
-    '[role="complementary"]',
-    '[role="contentinfo"]',
-    '[role="region"]',
-    '[role="search"]',
-    '[role="form"]',
+const NATIVE_LANDMARK_SELECTOR = [
     'main',
     'nav',
     'aside',
@@ -74,6 +77,15 @@ export const LANDMARK_SELECTOR = [
     'section[aria-labelledby]',
     'section[title]',
 ].join(', ');
+
+/**
+ * Landmark candidates: every element with a role attribute — its first concrete
+ * role token decides, which no attribute selector can express (resolveRole()) —
+ * plus the native landmark elements. Exported for the test suite's tripwire on the
+ * sectioning-scope exclusions (happy-dom cannot evaluate the self-referential
+ * `:not()` compounds behaviorally).
+ */
+export const LANDMARK_SELECTOR = `[role], ${NATIVE_LANDMARK_SELECTOR}`;
 
 // Keep in sync with AriaLandmark::element() in Classes/Enum/AriaLandmark.php (that method
 // is the inverse: role -> element).
@@ -110,14 +122,30 @@ const resolveAccessibleName = (element: HTMLElement, doc: Document, contentFallb
     contentFallback() ||
     (element.getAttribute('title')?.trim() ?? '');
 
+/**
+ * The role an element exposes, resolved like the heading analysis and the
+ * browser: the first concrete role token of its role attribute (explicitRole();
+ * unknown and abstract tokens are skipped). Without one — or with none /
+ * presentation, which the exposure check already resolved — the native role
+ * applies, and only to the native landmark elements: a form or section is a
+ * landmark only with an accessible name, while an explicit role="form" /
+ * role="region" stays one even unnamed, as browsers expose it. Callers keep
+ * only LANDMARK_ROLES.
+ */
 const resolveRole = (element: HTMLElement, label: string): string => {
-    const explicitRole = element.getAttribute('role')?.trim().toLowerCase() ?? '';
-    if (explicitRole !== '' && explicitRole !== 'none' && explicitRole !== 'presentation') {
-        return explicitRole;
+    const role = explicitRole(element);
+    if (role !== '' && role !== 'none' && role !== 'presentation') {
+        return role;
+    }
+    if (!element.matches(NATIVE_LANDMARK_SELECTOR)) {
+        return '';
     }
     const tagName = element.tagName.toLowerCase();
     if (tagName === 'section') {
         return label !== '' ? 'region' : '';
+    }
+    if (tagName === 'form' && label === '') {
+        return '';
     }
     return IMPLICIT_ROLES[tagName] ?? '';
 };
@@ -170,23 +198,14 @@ export const analyzeLandmarks = (doc: Document, options: StructureAnalysisOption
 
     const candidates = Array.from(doc.querySelectorAll<HTMLElement>(LANDMARK_SELECTOR));
     const index = indexStructureNodes(candidates);
+    const roles = new Map<HTMLElement, string>();
     const elements = candidates.filter((element) => {
         if (!isExposed(element)) {
             return false;
         }
-        const label = labelOf(element);
-        const tagName = element.tagName.toLowerCase();
-
-        // A native form only gains the implicit form landmark role when it has
-        // an accessible name. Explicit ARIA roles are kept: even an invalidly
-        // unnamed role="form" / role="region" is still exposed as that role
-        // and should remain visible to the analyzer.
-        if (tagName === 'form' && !element.hasAttribute('role')) {
-            return label !== '';
-        }
-
-        // Native sections are regions only when they have an accessible name.
-        return tagName !== 'section' || element.hasAttribute('role') || label !== '';
+        const role = resolveRole(element, labelOf(element));
+        roles.set(element, role);
+        return LANDMARK_ROLES.has(role);
     });
 
     const nodesByElement = new Map<HTMLElement, LandmarkNode>();
@@ -199,7 +218,7 @@ export const analyzeLandmarks = (doc: Document, options: StructureAnalysisOption
         const node: LandmarkNode = {
             id: index.get(element)?.id ?? '',
             documentOrder: index.get(element)?.documentOrder ?? 0,
-            role: resolveRole(element, label),
+            role: roles.get(element) ?? '',
             label,
             availableRoles: {},
             record,

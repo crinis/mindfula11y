@@ -1,6 +1,6 @@
 import { createErrorCollector, groupBy } from "./analysis.js";
 import { extractRecord, indexStructureNodes } from "./annotations.js";
-import { resolveExposure } from "./element-exposure.js";
+import { explicitRole, resolveExposure } from "./element-exposure.js";
 const ERROR_KEYS = {
   missingMain: "mindfula11y.structure.landmarks.error.missingMain",
   duplicateMain: "mindfula11y.structure.landmarks.error.duplicateMain",
@@ -17,15 +17,17 @@ const SINGLETON_TOP_LEVEL_ROLES = {
   banner: { duplicate: ERROR_KEYS.duplicateBanner, notTopLevel: ERROR_KEYS.bannerNotTopLevel },
   contentinfo: { duplicate: ERROR_KEYS.duplicateContentinfo, notTopLevel: ERROR_KEYS.contentinfoNotTopLevel }
 };
-const LANDMARK_SELECTOR = [
-  '[role="banner"]',
-  '[role="main"]',
-  '[role="navigation"]',
-  '[role="complementary"]',
-  '[role="contentinfo"]',
-  '[role="region"]',
-  '[role="search"]',
-  '[role="form"]',
+const LANDMARK_ROLES = /* @__PURE__ */ new Set([
+  "banner",
+  "main",
+  "navigation",
+  "complementary",
+  "contentinfo",
+  "region",
+  "search",
+  "form"
+]);
+const NATIVE_LANDMARK_SELECTOR = [
   "main",
   "nav",
   "aside",
@@ -36,6 +38,7 @@ const LANDMARK_SELECTOR = [
   "section[aria-labelledby]",
   "section[title]"
 ].join(", ");
+const LANDMARK_SELECTOR = `[role], ${NATIVE_LANDMARK_SELECTOR}`;
 const IMPLICIT_ROLES = {
   main: "main",
   nav: "navigation",
@@ -53,13 +56,19 @@ const resolveLabelledby = (element, doc) => {
 };
 const resolveAccessibleName = (element, doc, contentFallback = () => "") => resolveLabelledby(element, doc) || (element.getAttribute("aria-label")?.trim() ?? "") || contentFallback() || (element.getAttribute("title")?.trim() ?? "");
 const resolveRole = (element, label) => {
-  const explicitRole = element.getAttribute("role")?.trim().toLowerCase() ?? "";
-  if (explicitRole !== "" && explicitRole !== "none" && explicitRole !== "presentation") {
-    return explicitRole;
+  const role = explicitRole(element);
+  if (role !== "" && role !== "none" && role !== "presentation") {
+    return role;
+  }
+  if (!element.matches(NATIVE_LANDMARK_SELECTOR)) {
+    return "";
   }
   const tagName = element.tagName.toLowerCase();
   if (tagName === "section") {
     return label !== "" ? "region" : "";
+  }
+  if (tagName === "form" && label === "") {
+    return "";
   }
   return IMPLICIT_ROLES[tagName] ?? "";
 };
@@ -91,16 +100,14 @@ const analyzeLandmarks = (doc, options = {}) => {
   };
   const candidates = Array.from(doc.querySelectorAll(LANDMARK_SELECTOR));
   const index = indexStructureNodes(candidates);
+  const roles = /* @__PURE__ */ new Map();
   const elements = candidates.filter((element) => {
     if (!isExposed(element)) {
       return false;
     }
-    const label = labelOf(element);
-    const tagName = element.tagName.toLowerCase();
-    if (tagName === "form" && !element.hasAttribute("role")) {
-      return label !== "";
-    }
-    return tagName !== "section" || element.hasAttribute("role") || label !== "";
+    const role = resolveRole(element, labelOf(element));
+    roles.set(element, role);
+    return LANDMARK_ROLES.has(role);
   });
   const nodesByElement = /* @__PURE__ */ new Map();
   const elementByNode = /* @__PURE__ */ new Map();
@@ -111,7 +118,7 @@ const analyzeLandmarks = (doc, options = {}) => {
     const node = {
       id: index.get(element)?.id ?? "",
       documentOrder: index.get(element)?.documentOrder ?? 0,
-      role: resolveRole(element, label),
+      role: roles.get(element) ?? "",
       label,
       availableRoles: {},
       record,
