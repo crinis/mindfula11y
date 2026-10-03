@@ -23,11 +23,31 @@ const requestId: string = script?.dataset.requestId ?? '';
 const backendOrigin: string = script?.dataset.backendOrigin ?? '';
 const httpStatus = Number.parseInt(script?.dataset.status ?? '', 10);
 
+/**
+ * Upper bound of the settle wait below. A visible page settles within a few
+ * frames; the bound only ever applies to a hidden one, and stays far below
+ * the backend's 15 s load timeout (background tabs run timers no more often
+ * than once a second anyway).
+ */
+const SETTLE_LIMIT_MS = 1_000;
+
+/**
+ * Lets the page settle before it is analyzed: web fonts loaded, then two
+ * frames for the layout they cause. A hidden document — the editor saved and
+ * switched to another browser tab — renders no frames, and a font finishing
+ * there leaves `fonts.ready` waiting for a layout pass only rendering would
+ * run, while the backend's load timeout keeps counting. The wait is therefore
+ * capped; the analyzers read markup and computed styles, which do not depend
+ * on that pass.
+ */
 const waitForLayout = async (): Promise<void> => {
-    await document.fonts.ready;
-    await new Promise<void>((resolve) => {
-        requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
-    });
+    const settled = (async (): Promise<void> => {
+        await document.fonts.ready;
+        await new Promise<void>((resolve) => {
+            requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+        });
+    })();
+    await Promise.race([settled, new Promise<void>((resolve) => setTimeout(resolve, SETTLE_LIMIT_MS))]);
 };
 
 const analyze = async (message: StructureAnalysisInitializeMessage, port: MessagePort): Promise<void> => {
