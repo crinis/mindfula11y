@@ -290,7 +290,9 @@ final readonly class ScanApiService
         if (ctype_digit($value)) {
             return (int)$value;
         }
-        $date = \DateTimeImmutable::createFromFormat(DATE_RFC7231, $value);
+        // An HTTP date is always GMT; the format's "GMT" is literal text, so
+        // the zone must be given or PHP's default timezone would apply.
+        $date = \DateTimeImmutable::createFromFormat(DATE_RFC7231, $value, new \DateTimeZone('UTC'));
 
         return $date === false ? null : max(0, $date->getTimestamp() - time());
     }

@@ -493,20 +493,33 @@ final class ScanApiServiceTest extends TestCase
         }
     }
 
+    /**
+     * An HTTP date is always GMT. Parsed in PHP's default timezone instead,
+     * Europe/Berlin would turn a two-minute wait into none and
+     * America/New_York into over four hours.
+     */
     #[Test]
-    public function retryAfterGivenAsHttpDateIsConvertedToSeconds(): void
+    public function retryAfterGivenAsHttpDateIsConvertedToSecondsWhateverTheDefaultTimezone(): void
     {
-        $service = $this->serviceAnsweringWithHeaders(
-            429,
-            '{}',
-            ['Retry-After' => gmdate('D, d M Y H:i:s \G\M\T', time() + 120)],
-        );
-
+        $defaultTimezone = date_default_timezone_get();
         try {
-            $service->getScan('42');
-            self::fail('a rate-limited load must surface as an exception');
-        } catch (\MindfulMarkup\MindfulA11y\Exception\ScanApiRequestException $exception) {
-            self::assertEqualsWithDelta(120, $exception->getRetryAfter(), 2);
+            foreach (['Europe/Berlin', 'America/New_York', 'UTC'] as $timezone) {
+                date_default_timezone_set($timezone);
+                $service = $this->serviceAnsweringWithHeaders(
+                    429,
+                    '{}',
+                    ['Retry-After' => gmdate('D, d M Y H:i:s \G\M\T', time() + 120)],
+                );
+
+                try {
+                    $service->getScan('42');
+                    self::fail('a rate-limited load must surface as an exception');
+                } catch (\MindfulMarkup\MindfulA11y\Exception\ScanApiRequestException $exception) {
+                    self::assertEqualsWithDelta(120, $exception->getRetryAfter(), 2, 'default timezone ' . $timezone);
+                }
+            }
+        } finally {
+            date_default_timezone_set($defaultTimezone);
         }
     }
 
