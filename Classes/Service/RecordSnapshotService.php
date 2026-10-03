@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace MindfulMarkup\MindfulA11y\Service;
 
+use Doctrine\DBAL\Schema\Column;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 
 /** Creates stable fingerprints of persisted database records. */
@@ -123,20 +124,26 @@ final class RecordSnapshotService
     }
 
     /**
+     * The table's column names in their schema case — the keys rows carry.
+     *
+     * Not the keys of listTableColumns(): DBAL lowercases those (from the
+     * quoted name), so mixed-case columns such as `CType` or `colPos` would
+     * never match the row and always hash as the missing-column sentinel,
+     * leaving changes to them unpinned. Column::getName() is what core's own
+     * schema information uses for the same reason (TYPO3 13 and 14).
+     *
      * @return list<string>
      */
     private function getSchemaColumnNames(string $table): array
     {
         if (!isset($this->schemaColumnNames[$table])) {
-            $columnNames = array_map(
-                'strval',
-                array_keys(
-                    $this->connectionPool
-                        ->getConnectionForTable($table)
-                        ->createSchemaManager()
-                        ->listTableColumns($table)
-                )
-            );
+            $columnNames = array_values(array_map(
+                static fn(Column $column): string => $column->getName(),
+                $this->connectionPool
+                    ->getConnectionForTable($table)
+                    ->createSchemaManager()
+                    ->listTableColumns($table)
+            ));
             sort($columnNames);
             $this->schemaColumnNames[$table] = $columnNames;
         }

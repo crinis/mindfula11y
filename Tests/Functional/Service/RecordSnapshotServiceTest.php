@@ -15,6 +15,7 @@ namespace MindfulMarkup\MindfulA11y\Tests\Functional\Service;
 
 use MindfulMarkup\MindfulA11y\Service\RecordSnapshotService;
 use MindfulMarkup\MindfulA11y\Tests\Functional\AbstractAuthorizationTestCase;
+use PHPUnit\Framework\Attributes\DataProvider;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 
 /**
@@ -89,6 +90,34 @@ final class RecordSnapshotServiceTest extends AbstractAuthorizationTestCase
         $record['tstamp'] = (int)$record['tstamp'] + 100;
 
         self::assertNotSame($before, $this->subject()->fingerprint('pages', $record));
+    }
+
+    /**
+     * The full-row pin covers mixed-case columns too: DBAL lowercases the
+     * keys of its column listing, so `CType` and `colPos` never matched the
+     * row's keys and fingerprinted as the constant missing-column sentinel.
+     *
+     * @return array<string, array{string, int|string}>
+     */
+    public static function mixedCaseColumnProvider(): array
+    {
+        return [
+            'CType' => ['CType', 'header'],
+            'colPos' => ['colPos', 3],
+        ];
+    }
+
+    #[DataProvider('mixedCaseColumnProvider')]
+    public function testFullRowFingerprintTracksMixedCaseColumns(string $column, int|string $changedValue): void
+    {
+        $record = BackendUtility::getRecord('tt_content', 100);
+        self::assertIsArray($record);
+        self::assertArrayHasKey($column, $record, 'fixture guard: the row carries the column in its schema case');
+        $before = $this->subject()->fingerprint('tt_content', $record);
+
+        $record[$column] = $changedValue;
+
+        self::assertNotSame($before, $this->subject()->fingerprint('tt_content', $record));
     }
 
     public function testScopedMatchesAcceptsOutOfScopeDrift(): void

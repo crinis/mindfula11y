@@ -14,6 +14,9 @@ declare(strict_types=1);
 namespace MindfulMarkup\MindfulA11y\Tests\Unit\Service;
 
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
+use Doctrine\DBAL\Schema\Column;
+use Doctrine\DBAL\Types\Type;
+use Doctrine\DBAL\Types\Types;
 use MindfulMarkup\MindfulA11y\Service\RecordSnapshotService;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -35,7 +38,10 @@ final class RecordSnapshotServiceTest extends TestCase
         $schemaManager->expects(self::once())
             ->method('listTableColumns')
             ->with('tt_content')
-            ->willReturn(['uid' => null, 'header' => null]);
+            ->willReturn([
+                'uid' => new Column('uid', Type::getType(Types::INTEGER)),
+                'header' => new Column('header', Type::getType(Types::STRING)),
+            ]);
         $connection = $this->createMock(Connection::class);
         $connection->method('createSchemaManager')->willReturn($schemaManager);
         $connectionPool = $this->createMock(ConnectionPool::class);
@@ -49,5 +55,34 @@ final class RecordSnapshotServiceTest extends TestCase
         self::assertNotSame($first, $subject->fingerprint('tt_content', ['uid' => 1, 'header' => 'B']));
         // Same column list as the explicit scope: memoization must not change the digest.
         self::assertSame($first, $subject->fingerprint('tt_content', ['uid' => 1, 'header' => 'A'], ['header', 'uid']));
+    }
+
+    /**
+     * DBAL keys its column listing by the lowercased (quoted) name, while
+     * rows carry the schema's own case: the fingerprint must use the column
+     * names, or `CType` would never match the row and always hash as missing.
+     */
+    #[Test]
+    public function fullRowFingerprintsUseTheColumnNamesInTheirSchemaCase(): void
+    {
+        $schemaManager = $this->createMock(AbstractSchemaManager::class);
+        $schemaManager->method('listTableColumns')->willReturn([
+            'uid' => new Column('uid', Type::getType(Types::INTEGER)),
+            'ctype' => new Column('CType', Type::getType(Types::STRING)),
+        ]);
+        $connection = $this->createMock(Connection::class);
+        $connection->method('createSchemaManager')->willReturn($schemaManager);
+        $connectionPool = $this->createMock(ConnectionPool::class);
+        $connectionPool->method('getConnectionForTable')->willReturn($connection);
+        $subject = new RecordSnapshotService($connectionPool);
+
+        self::assertNotSame(
+            $subject->fingerprint('tt_content', ['uid' => 1, 'CType' => 'text']),
+            $subject->fingerprint('tt_content', ['uid' => 1, 'CType' => 'textmedia']),
+        );
+        self::assertSame(
+            $subject->fingerprint('tt_content', ['uid' => 1, 'CType' => 'text']),
+            $subject->fingerprint('tt_content', ['uid' => 1, 'CType' => 'text'], ['CType', 'uid']),
+        );
     }
 }
