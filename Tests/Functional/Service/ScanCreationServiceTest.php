@@ -208,6 +208,37 @@ final class ScanCreationServiceTest extends AbstractAuthorizationTestCase
         self::assertSame(['https://example.com/{fr,de-ch}{,/**}'], $body['crawlOptions']['excludeGlobs'] ?? null);
     }
 
+    /**
+     * Language bases go into a brace pattern: a comma in a base path (a valid
+     * URL path character TYPO3 leaves unencoded) must stay literal instead of
+     * splitting the alternatives and excluding the wrong URL spaces.
+     */
+    public function testCrawlExclusionEscapesGlobCharactersInLanguageBases(): void
+    {
+        $this->get(SiteWriter::class)->write('main', [
+            'rootPageId' => 1,
+            'base' => 'https://example.com/',
+            'languages' => array_map(
+                static fn(array $language): array => $language + ['enabled' => true, 'locale' => 'en_US.UTF-8', 'flag' => 'us'],
+                [
+                    ['languageId' => 0, 'title' => 'English', 'navigationTitle' => 'English', 'base' => '/'],
+                    ['languageId' => 1, 'title' => 'Belgian French', 'navigationTitle' => 'Belgian French', 'base' => '/fr,be/'],
+                    ['languageId' => 2, 'title' => 'Swiss German', 'navigationTitle' => 'Swiss German', 'base' => '/de,ch/'],
+                ],
+            ),
+        ]);
+        $this->logInBackendUser(1);
+
+        $this->createCrawlSwallowingTheScannerFailure();
+        $this->createCrawlSwallowingTheScannerFailure(languageId: 1, previewUrl: 'https://example.com/fr,be/');
+
+        self::assertCount(2, $this->sentRequestOptions);
+        $default = json_decode((string)$this->sentRequestOptions[0]['body'], true, flags: JSON_THROW_ON_ERROR);
+        $belgian = json_decode((string)$this->sentRequestOptions[1]['body'], true, flags: JSON_THROW_ON_ERROR);
+        self::assertSame(['https://example.com/{fr\,be,de\,ch}{,/**}'], $default['crawlOptions']['excludeGlobs'] ?? null);
+        self::assertSame(['https://example.com/fr\,be/**'], $belgian['crawlOptions']['globs'] ?? null);
+    }
+
     private function createCrawlSwallowingTheScannerFailure(int $languageId = 0, string $previewUrl = 'https://example.com/'): void
     {
         $page = BackendUtility::getRecord('pages', 1);

@@ -98,7 +98,7 @@ final readonly class ScanCreationService
             if ($base === null) {
                 throw new ScanCreationException('scan.error.createFailed', 500);
             }
-            $crawlOptions['globs'] = [$base . '/**'];
+            $crawlOptions['globs'] = [self::escapeGlob($base) . '/**'];
             // That glob also matches other languages whose bases are nested
             // below this one (`/fr/` under a default language at `/`), so their
             // URL spaces are excluded. maxPages/maxDepth stay unset: MindfulAPI's
@@ -159,9 +159,24 @@ final readonly class ScanCreationService
      */
     private static function nestedBasesGlob(string $base, array $nestedBases): string
     {
-        $paths = array_map(static fn(string $nestedBase): string => substr($nestedBase, strlen($base) + 1), $nestedBases);
+        $paths = array_map(
+            static fn(string $nestedBase): string => self::escapeGlob(substr($nestedBase, strlen($base) + 1)),
+            $nestedBases,
+        );
 
-        return $base . '/' . (count($paths) === 1 ? $paths[0] : '{' . implode(',', $paths) . '}') . '{,/**}';
+        return self::escapeGlob($base) . '/' . (count($paths) === 1 ? $paths[0] : '{' . implode(',', $paths) . '}') . '{,/**}';
+    }
+
+    /**
+     * $text as a literal in a crawl glob. MindfulAPI matches globs with
+     * minimatch, where these characters are pattern syntax — a comma in a
+     * language base (valid in a URL path, and left unencoded by TYPO3) would
+     * otherwise split a brace alternative and exclude the wrong URL spaces.
+     * minimatch takes a backslash as escape.
+     */
+    private static function escapeGlob(string $text): string
+    {
+        return addcslashes($text, '\\*?[]{}(),!+@');
     }
 
     /**
