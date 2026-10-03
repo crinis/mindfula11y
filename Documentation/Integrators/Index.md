@@ -210,9 +210,15 @@ extension asks for every skill the server enables, which 0.7.0 rejects.
    ```bash
    git clone https://github.com/crinis/mindfulapi.git
    cd mindfulapi
-   cp .env.example .env   # then set AUTH_TOKEN; compose refuses to start without it
+   cp .env.example .env   # then set AUTH_TOKEN and PLAYWRIGHT_WS_PATH (see below)
    docker compose up -d
    ```
+
+   MindfulAPI's current `main` refuses to start until `.env` sets `AUTH_TOKEN` and
+   `PLAYWRIGHT_WS_PATH` to random values of your own (for example `openssl rand -hex 32`); the
+   example token of earlier releases is rejected. Compose publishes the API on `127.0.0.1` only.
+   When TYPO3 runs on another host, put a reverse proxy with TLS in front of the API, or set
+   `BIND_ADDRESS` deliberately (see the MindfulAPI README).
 
 2. Set `scannerApiUrl` and `scannerApiToken` (MindfulAPI's `AUTH_TOKEN`) in
    [Extension configuration](#extension-configuration).
@@ -329,14 +335,16 @@ mod.mindfula11y_accessibility.scan.aiAudit {
   modes there too.
 - MindfulAPI validates `skills`; its `AGENT_SKILLS` whitelist stays authoritative.
 - If MindfulAPI has the feature disabled, scan creation fails and the editor sees the API's
-  explanation.
+  explanation. MindfulAPI versions newer than 0.7.1 also refuse a scan whose requested skills
+  have no usable model configuration (provider, model or API key missing), instead of running
+  the scan without them.
 
 ### Scanner troubleshooting
 
 | Symptom | Likely cause | Fix |
 | --- | --- | --- |
 | Scanner area not visible | `scan.enable` is `0` | Set `mod.mindfula11y_accessibility.scan.enable = 1`. |
-| Connection refused / timeout | Wrong `scannerApiUrl`, or MindfulAPI not running | Check `docker compose ps` and reachability **from the TYPO3 container**; check protocol and port, omit any path. |
+| Connection refused / timeout | Wrong `scannerApiUrl`, MindfulAPI not running, or its port published on `127.0.0.1` only (the Compose default) while TYPO3 runs elsewhere | Check `docker compose ps` and reachability **from the TYPO3 container**; check protocol and port, omit any path. For another host use a reverse proxy or MindfulAPI's `BIND_ADDRESS`. |
 | `401` / `403` from the scanner | `scannerApiToken` missing or wrong | Match it to MindfulAPI's token. |
 | Scans fail or are empty on a protected site | Basic Auth credentials not set | Set **both** `mindfula11y.scan.basicAuth.username` and `.password` ([details](#scanning-pages-behind-http-basic-authentication)). |
 | "Scanner not configured" notice | `scannerApiUrl` empty | Set `scannerApiUrl`. |
