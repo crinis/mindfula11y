@@ -283,6 +283,48 @@ final class AccessibilityModuleControllerTest extends AbstractAuthorizationTestC
         self::assertStringNotContainsString('languageId=-1', $html);
     }
 
+    /**
+     * File metadata has no "All languages" row: the listing judges an
+     * all-languages reference by the metadata of the listed language, so the
+     * text the list advertises as inherited must come from that language too.
+     * Rendered through the real module, because the template has to hand the
+     * listed language to the view helper — in a translation listing the
+     * translation's metadata text, never the default language's.
+     *
+     * Fixture: AllLanguagesReferenceSupplement.csv (tt_content 410 and its
+     * reference 410 on page 10, both -1, file 1).
+     */
+    public function testAllLanguagesReferenceInheritsTheListedLanguagesMetadataText(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/AllLanguagesReferenceSupplement.csv');
+        $metadata = $this->getConnectionPool()->getConnectionForTable('sys_file_metadata');
+        $metadata->update('sys_file_metadata', ['alternative' => 'Default metadata text'], ['uid' => 1]);
+        $metadata->insert('sys_file_metadata', [
+            'uid' => 600,
+            'pid' => 0,
+            'file' => 1,
+            'sys_language_uid' => 1,
+            'l10n_parent' => 1,
+            'alternative' => 'French metadata text',
+        ]);
+        $this->logInBackendUser(2);
+
+        $html = $this->body($this->mainAction($this->buildModuleRequest(10, [
+            'feature' => 'missingAltText',
+            'languageId' => 1,
+            // Metadata text hides a reference by default; list those, too.
+            'filterFileMetaData' => 0,
+            'tableName' => 'tt_content',
+        ])));
+
+        self::assertSame(
+            1,
+            preg_match('/<mindfula11y-altless-file-reference[^>]*\suid="410"[^>]*>/', $html, $match),
+            'the French list shows the all-languages reference',
+        );
+        self::assertStringContainsString('fallback-alternative="French metadata text"', $match[0]);
+    }
+
     public function testAuthorizedRequestRendersTheModule(): void
     {
         $this->logInBackendUser(2);

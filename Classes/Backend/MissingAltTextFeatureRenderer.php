@@ -155,6 +155,9 @@ final readonly class MissingAltTextFeatureRenderer
                 'currentPage' => $currentPage,
                 ...$menuState,
             ]),
+            // The listed language: an "All languages" reference inherits the
+            // metadata text of the language the listing judged it by.
+            'languageId' => $context->languageId,
             'pagination' => $pagination,
             'paginator' => $paginator
         ]);
