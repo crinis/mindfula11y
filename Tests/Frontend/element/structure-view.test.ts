@@ -549,6 +549,43 @@ describe('StructureView', () => {
         );
     });
 
+    it('restores focus to the control the editor moved to inside the view', async () => {
+        updateField.mockResolvedValue(undefined);
+        const view = await mount([makeNode('n1'), makeNode('n2')], [], 'mindfula11y-test-structure-view-rebuilding');
+        querySelect(view, 'n1').focus();
+
+        changeValue(querySelect(view, 'n1'), 'h3');
+        await tick();
+        // The editor tabs on to the next row; the re-analysis then rebuilds
+        // that row too, dropping focus to the body.
+        view.renderRoot.querySelector<HTMLElement>('[data-node-id="n2"] [data-control="edit"]')?.focus();
+        view.nodes = [makeNode('n1', { value: 'h3' }), makeNode('n2', { value: 'h1' })];
+        await view.updateComplete;
+
+        expect(view.shadowRoot?.activeElement).toBe(
+            view.renderRoot.querySelector('[data-node-id="n2"] [data-control="edit"]'),
+        );
+    });
+
+    it('restores focus once the editor came back into the view after leaving it', async () => {
+        updateField.mockResolvedValue(undefined);
+        const view = await mount([makeNode('n1'), makeNode('n2')], [], 'mindfula11y-test-structure-view-rebuilding');
+        const outside = document.createElement('button');
+        document.body.append(outside);
+        querySelect(view, 'n1').focus();
+
+        changeValue(querySelect(view, 'n1'), 'h3');
+        await tick();
+        outside.focus();
+        view.renderRoot.querySelector<HTMLElement>('[data-node-id="n2"] [data-control="edit"]')?.focus();
+        view.nodes = [makeNode('n1', { value: 'h3' }), makeNode('n2', { value: 'h1' })];
+        await view.updateComplete;
+
+        expect(view.shadowRoot?.activeElement).toBe(
+            view.renderRoot.querySelector('[data-node-id="n2"] [data-control="edit"]'),
+        );
+    });
+
     it('stops watching for the editor once the restore resolved and when disconnected', async () => {
         updateField.mockResolvedValue(undefined);
         const removeListener = vi.spyOn(document, 'removeEventListener');

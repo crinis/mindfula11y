@@ -65,14 +65,6 @@ interface StructureControlRef {
     control: string;
 }
 
-/** Where focus returns once the re-analysed nodes of a save arrive; see {@link StructureView.updated}. */
-interface PendingFocusRestore {
-    /** The control that held focus when the save started. */
-    target: StructureControlRef;
-    /** The saved control: the fallback when the target's row is gone. */
-    saved: StructureControlRef;
-}
-
 /**
  * Shared behavior of the two structure views (heading tree, landmark
  * schematic): the analyzer-fed properties, page/node issue rendering, the
@@ -102,21 +94,37 @@ export abstract class StructureView<T extends StructureNodeBase<T>> extends LitE
     @state() protected busyNodeIds: ReadonlySet<string> = new Set();
 
     private readonly recordApi: RecordApi = new RecordApi();
-    private pendingFocus: PendingFocusRestore | null = null;
-    /** The editor acted outside this view since the last save started; see {@link updated}. */
+    /** The saved control of a save whose re-analysed nodes are pending: the restore fallback; see {@link updated}. */
+    private pendingFocus: StructureControlRef | null = null;
+    /**
+     * Where focus returns: the control holding it when the last save started,
+     * moved along as the editor focuses other controls inside this view.
+     */
+    private restoreTarget: StructureControlRef | null = null;
+    /** The editor is acting outside this view since the last save started; see {@link updated}. */
     private editorMovedOn: boolean = false;
     private watchingEditor: boolean = false;
     /**
-     * Document-level (capture) signal that the editor moved on: a pointer
-     * press or a focus move outside this view. Focus entering a frame is
-     * the frame's doing, not the editor's — the hidden analysis renders call
-     * focus() on load — and a click inside a frame never reaches this
-     * document; a frame the editor really moved into keeps focus, which the
-     * "focus is lost" condition respects anyway.
+     * Document-level (capture) tracking while a save is pending. A focus move
+     * to another control inside this view becomes the restore target (the
+     * editor is back in, or still in, the view). A pointer press or focus
+     * move outside it means the editor moved on — except focus entering a
+     * frame: that is the frame's doing, not the editor's (the hidden
+     * analysis renders call focus() on load), a click inside a frame never
+     * reaches this document, and a frame the editor really moved into keeps
+     * focus, which the "focus is lost" condition respects anyway.
      */
     private readonly noteEditorMove = (event: Event): void => {
         const path = event.composedPath();
-        if (path.includes(this) || (event.type === 'focusin' && path[0] instanceof HTMLIFrameElement)) {
+        if (path.includes(this)) {
+            const control = event.type === 'focusin' ? this.controlRefOf(path[0]) : null;
+            if (control !== null) {
+                this.restoreTarget = control;
+                this.editorMovedOn = false;
+            }
+            return;
+        }
+        if (event.type === 'focusin' && path[0] instanceof HTMLIFrameElement) {
             return;
         }
         this.editorMovedOn = true;
@@ -154,22 +162,26 @@ export abstract class StructureView<T extends StructureNodeBase<T>> extends LitE
     override disconnectedCallback(): void {
         super.disconnectedCallback();
         this.pendingFocus = null;
+        this.restoreTarget = null;
         this.stopWatchingEditor();
     }
 
     /**
      * After a save, the nodes of the re-analysis arrive seconds later. Focus
-     * returns to the control that held it when the save started only when
-     * it got lost meanwhile without the editor moving on: it sits on the
-     * body (the re-render replaced the focused control, or something else
-     * took focus and went away), this document still has focus, and no
-     * pointer press or focus move outside this view happened since the save
-     * started. Where focus survives, or the editor went elsewhere — another
-     * control, the page, another frame — it stays where it is.
+     * returns to the control that held it last inside this view (when the
+     * save started, or the one the editor moved to since) only when it got
+     * lost meanwhile without the editor moving on: it sits on the body (the
+     * re-render replaced the focused control, or something else took focus
+     * and went away), this document still has focus, and the editor's last
+     * pointer press or focus move did not leave this view. Where focus
+     * survives, or the editor went elsewhere — the page, another frame — it
+     * stays where it is. The saved control is the fallback when the target's
+     * row is gone.
      */
     protected override updated(changed: PropertyValues<this>): void {
         if (changed.has('nodes') && this.pendingFocus !== null) {
-            const { target, saved } = this.pendingFocus;
+            const saved = this.pendingFocus;
+            const target = this.restoreTarget ?? saved;
             const movedOn = this.editorMovedOn;
             this.pendingFocus = null;
             if (this.busyNodeIds.size === 0) {
@@ -219,9 +231,16 @@ export abstract class StructureView<T extends StructureNodeBase<T>> extends LitE
         while (active !== null && active !== this) {
             active = active.shadowRoot?.activeElement ?? null;
         }
-        const focused = active === this ? (this.shadowRoot?.activeElement ?? null) : null;
-        const nodeId = focused?.closest<HTMLElement>('[data-node-id]')?.dataset.nodeId ?? '';
-        const control = focused?.getAttribute('data-control') ?? '';
+        return this.controlRefOf(active === this ? (this.shadowRoot?.activeElement ?? null) : null);
+    }
+
+    /** The row control an element is, by its row's `data-node-id` and its own `data-control`. */
+    private controlRefOf(element: EventTarget | null | undefined): StructureControlRef | null {
+        if (!(element instanceof Element)) {
+            return null;
+        }
+        const nodeId = element.closest<HTMLElement>('[data-node-id]')?.dataset.nodeId ?? '';
+        const control = element.getAttribute('data-control') ?? '';
         return nodeId !== '' && control !== '' ? { nodeId, control } : null;
     }
 
@@ -423,12 +442,12 @@ export abstract class StructureView<T extends StructureNodeBase<T>> extends LitE
         }
         // Sampled before the request: the editor may move on while it runs.
         const saved: StructureControlRef = { nodeId: node.id, control: select.dataset.control ?? '' };
-        const target = this.focusedControl() ?? saved;
+        this.restoreTarget = this.focusedControl() ?? saved;
         this.busyNodeIds = new Set(this.busyNodeIds).add(node.id);
         this.watchEditor();
         try {
             await this.recordApi.updateField(record, value);
-            this.pendingFocus = { target, saved };
+            this.pendingFocus = saved;
             dispatch(this, 'mindfula11y:structure:changed', {
                 nodeId: node.id,
                 tableName: record.tableName,
