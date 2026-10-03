@@ -22,11 +22,15 @@ use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 use TYPO3\CMS\Core\Context\Context;
 use TYPO3\CMS\Core\Context\DateTimeAspect;
+use TYPO3\CMS\Core\Context\LanguageAspectFactory;
 use TYPO3\CMS\Core\Context\VisibilityAspect;
 use TYPO3\CMS\Core\Context\WorkspaceAspect;
 use TYPO3\CMS\Core\Domain\DateTimeFactory;
+use TYPO3\CMS\Core\Domain\Repository\PageRepository;
+use TYPO3\CMS\Core\Site\Entity\Site;
 use TYPO3\CMS\Core\Site\Entity\SiteLanguage;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Core\Utility\RootlineUtility;
 use TYPO3\CMS\Frontend\Aspect\PreviewAspect;
 use TYPO3\CMS\Frontend\Authentication\FrontendUserAuthentication;
 
@@ -78,6 +82,10 @@ final readonly class StructureAnalysisAuthenticationMiddleware implements Middle
         // the preview aspects needed to resolve that exact signed frontend
         // target; no backend session is recreated.
         $this->context->setAspect('workspace', new WorkspaceAspect($ticket->workspaceId));
+        $site = $request->getAttribute('site');
+        if ($this->previewRequiresHiddenPages($ticket->pageId, $language, $site instanceof Site ? $site : null)) {
+            $this->includeHiddenPages();
+        }
         $this->applyPreviewSimulation($request);
         $this->context->setAspect('frontend.preview', new PreviewAspect(true));
 
@@ -113,11 +121,8 @@ final readonly class StructureAnalysisAuthenticationMiddleware implements Middle
         $simulatedTime = (int)($queryParams['ADMCMD_simTime'] ?? 0);
         $simulatedGroupId = (int)($queryParams['ADMCMD_simUser'] ?? 0);
 
-        // Mirror a logged-in core frontend preview: the exact authorized page may
-        // be hidden, but hidden content remains excluded and start/end-time
-        // restrictions stay active. ADMCMD_simTime changes the time at which
-        // those restrictions are evaluated; it does not disable them.
-        $this->context->setAspect('visibility', new VisibilityAspect(true, false, false, false));
+        // ADMCMD_simTime changes the time at which start/end-time restrictions
+        // are evaluated; it does not disable them.
         if ($simulatedTime > 0) {
             $GLOBALS['SIM_EXEC_TIME'] = $simulatedTime;
             $GLOBALS['SIM_ACCESS_TIME'] = $simulatedTime - $simulatedTime % 60;
@@ -140,6 +145,73 @@ final readonly class StructureAnalysisAuthenticationMiddleware implements Middle
             $frontendUser->user['is_online'] = $this->context->getPropertyFromAspect('date', 'timestamp');
             $this->context->setAspect('frontend.user', $frontendUser->createUserAspect());
         }
+    }
+
+    /**
+     * Whether core's frontend preview would show hidden pages for this page —
+     * the conditions of PreviewSimulator (identical on TYPO3 13 and 14), which
+     * cannot run here: it only evaluates for a logged-in backend user or an
+     * offline workspace, and a ticketed request carries neither.
+     *
+     * Hidden pages are shown only where the previewed page needs it: the page
+     * is hidden in the requested language or in the default language (a
+     * translation is resolved through its default-language page), or the
+     * nearest ancestor extending its settings to subpages is hidden,
+     * time-restricted or group-restricted. Showing them for every analysis
+     * would put pages the public never reaches into the analyzed menus.
+     */
+    private function previewRequiresHiddenPages(int $pageId, SiteLanguage $language, ?Site $site): bool
+    {
+        $pageRepository = GeneralUtility::makeInstance(PageRepository::class, $this->context);
+        if ($pageRepository->checkIfPageIsHidden($pageId, LanguageAspectFactory::createFromSiteLanguage($language))) {
+            return true;
+        }
+        if ($language->getLanguageId() > 0
+            && $site !== null
+            && $pageRepository->checkIfPageIsHidden($pageId, LanguageAspectFactory::createFromSiteLanguage($site->getDefaultLanguage()))
+        ) {
+            return true;
+        }
+
+        return $this->rootlineRequiresPreview($pageId);
+    }
+
+    /**
+     * PreviewSimulator::checkIfRootlineRequiresPreview(): the first ancestor
+     * (excluding the page itself) with extendToSubpages decides.
+     */
+    private function rootlineRequiresPreview(int $pageId): bool
+    {
+        try {
+            $rootline = GeneralUtility::makeInstance(RootlineUtility::class, $pageId, '', $this->context)->get();
+        } catch (\Exception) {
+            // Core continues as well and leaves the 404 to page resolution.
+            return false;
+        }
+        array_shift($rootline);
+        foreach ($rootline as $ancestor) {
+            if ((int)($ancestor['uid'] ?? 0) === 0 || !(bool)($ancestor['extendToSubpages'] ?? false)) {
+                continue;
+            }
+
+            // `(bool)(string)` as in core: an fe_group of "0" restricts nothing.
+            return (bool)(string)($ancestor['fe_group'] ?? '')
+                || (int)($ancestor['starttime'] ?? 0) !== 0
+                || (int)($ancestor['endtime'] ?? 0) !== 0
+                || (bool)($ancestor['hidden'] ?? false);
+        }
+
+        return false;
+    }
+
+    /**
+     * Shows hidden pages the way a logged-in core frontend preview does:
+     * hidden content stays excluded and start/end-time restrictions stay
+     * active.
+     */
+    private function includeHiddenPages(): void
+    {
+        $this->context->setAspect('visibility', new VisibilityAspect(true, false, false, false));
     }
 
     /**

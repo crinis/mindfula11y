@@ -17,6 +17,8 @@ namespace MindfulMarkup\MindfulA11y\Tests\Functional\Middleware;
 use MindfulMarkup\MindfulA11y\Controller\StructureAnalysisTicketAjaxController;
 use MindfulMarkup\MindfulA11y\Tests\Functional\AbstractAuthorizationTestCase;
 use Psr\Http\Message\ResponseInterface;
+use TYPO3\CMS\Core\Cache\Backend\FileBackend;
+use TYPO3\CMS\Core\Cache\CacheManager;
 use TYPO3\TestingFramework\Core\Functional\Framework\Frontend\InternalRequest;
 
 /**
@@ -37,6 +39,28 @@ final class StructureAnalysisMiddlewareChainTest extends AbstractAuthorizationTe
 {
     private const RUNNER_MARKER = 'id="mindfula11y-structure-analysis-runner"';
     private const BACKEND_ORIGIN = 'https://typo3-testing.local';
+    /** Title of the hidden fixture page 15 as the fixture's main menu renders it. */
+    private const HIDDEN_PAGE_TITLE = 'Hidden Page';
+    /** Title of a public sibling: proves the main menu rendered at all. */
+    private const PUBLIC_PAGE_TITLE = 'Show Only';
+
+    /**
+     * The fixture's main menu is cached through stdWrap.cache in the `hash`
+     * cache, which the testing framework replaces with a NullBackend. A real
+     * (file) backend is what lets an entry written by one render reach the
+     * next one, as on a production site.
+     */
+    protected array $configurationToUseInTestInstance = [
+        'SYS' => [
+            'caching' => [
+                'cacheConfigurations' => [
+                    'hash' => [
+                        'backend' => FileBackend::class,
+                    ],
+                ],
+            ],
+        ],
+    ];
 
     protected function setUp(): void
     {
@@ -45,6 +69,9 @@ final class StructureAnalysisMiddlewareChainTest extends AbstractAuthorizationTe
         // EXT: path (not __DIR__): the sys_template row created here imports
         // the file inside the test instance, where the extension is linked.
         $this->setUpFrontendRootPage(1, ['setup' => ['EXT:mindfula11y/Tests/Functional/Fixtures/frontend.typoscript']]);
+        // The file backend outlives a single test (the instance is shared by
+        // the class): every test starts from an empty shared cache.
+        $this->get(CacheManager::class)->getCache('hash')->flush();
     }
 
     /**
@@ -175,5 +202,85 @@ final class StructureAnalysisMiddlewareChainTest extends AbstractAuthorizationTe
             'frame-ancestors ' . self::BACKEND_ORIGIN,
             $ticketedResponse->getHeaderLine('Content-Security-Policy')
         );
+    }
+
+    /**
+     * Core's frontend preview shows hidden pages only where the previewed
+     * page needs it (PreviewSimulator): the page itself is hidden, or a
+     * hidden/restricted ancestor extends to its subpages. The analysis of a
+     * visible page must therefore see the menu the public sees — a menu
+     * listing hidden pages would be analyzed as if visitors could reach them.
+     */
+    public function testTicketForAVisiblePageKeepsHiddenPagesOutOfItsMenus(): void
+    {
+        $url = $this->issueAnalysisUrl(10);
+
+        $body = (string)$this->executeFrontendSubRequest(new InternalRequest($url))->getBody();
+
+        self::assertStringContainsString(self::RUNNER_MARKER, $body, 'the request must be a redeemed analysis');
+        self::assertStringContainsString(self::PUBLIC_PAGE_TITLE, $body, 'fixture guard: the main menu must render');
+        self::assertStringNotContainsString(self::HIDDEN_PAGE_TITLE, $body, 'a visible page is previewed without hidden pages');
+    }
+
+    /**
+     * Core parity for the rootline branch: page 913 is visible, but its
+     * parent 912 carries an access group and extends it to subpages, which
+     * makes core's PreviewSimulator show hidden pages for the whole preview.
+     */
+    public function testTicketBelowAnAncestorExtendingItsAccessToSubpagesPreviewsHiddenPagesLikeCore(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/PagePreviewSupplement.csv');
+        $url = $this->issueAnalysisUrl(913);
+
+        $body = (string)$this->executeFrontendSubRequest(new InternalRequest($url))->getBody();
+
+        self::assertStringContainsString(self::RUNNER_MARKER, $body, 'the request must be a redeemed analysis');
+        self::assertStringContainsString(self::HIDDEN_PAGE_TITLE, $body, 'core previews hidden pages below such an ancestor');
+    }
+
+    public function testTicketForAHiddenPageStillPreviewsHiddenPages(): void
+    {
+        $url = $this->issueAnalysisUrl(15);
+
+        $response = $this->executeFrontendSubRequest(new InternalRequest($url));
+
+        self::assertSame(200, $response->getStatusCode());
+        $body = (string)$response->getBody();
+        self::assertStringContainsString(self::RUNNER_MARKER, $body);
+        self::assertStringContainsString(self::HIDDEN_PAGE_TITLE, $body, 'the hidden page itself renders in its preview menu');
+    }
+
+    /**
+     * Analysis renders disable the page cache, but stdWrap.cache WRITES are
+     * not gated on it (only reads are). A preview-only menu stored under the
+     * shared key would be served to every later visitor until it expires —
+     * so a public render after a hidden page's analysis must not list it.
+     */
+    public function testAnalysisRenderDoesNotLeakIntoTheSharedCacheEntriesOfPublicRenders(): void
+    {
+        $analysisBody = (string)$this->executeFrontendSubRequest(new InternalRequest($this->issueAnalysisUrl(15)))->getBody();
+        self::assertStringContainsString(self::HIDDEN_PAGE_TITLE, $analysisBody, 'fixture guard: the analysis render lists the hidden page');
+
+        $publicBody = (string)$this->executeFrontendSubRequest(new InternalRequest('https://example.com/editable'))->getBody();
+
+        self::assertStringContainsString(self::PUBLIC_PAGE_TITLE, $publicBody, 'fixture guard: the main menu must render');
+        self::assertStringNotContainsString(self::HIDDEN_PAGE_TITLE, $publicBody, 'the analysis render must not reach a public visitor');
+    }
+
+    /**
+     * The isolation must not break public caching: an entry written by a
+     * public render is still read by the next public one. Pinned by changing
+     * the menu's source between two public renders — the second still shows
+     * the cached menu.
+     */
+    public function testPublicRendersStillShareTheirCacheEntries(): void
+    {
+        $this->executeFrontendSubRequest(new InternalRequest('https://example.com/editable'));
+        $this->getConnectionPool()->getConnectionForTable('pages')
+            ->update('pages', ['title' => 'Renamed After Caching'], ['uid' => 11]);
+
+        $body = (string)$this->executeFrontendSubRequest(new InternalRequest('https://example.com/editable'))->getBody();
+
+        self::assertStringContainsString(self::PUBLIC_PAGE_TITLE, $body, 'the second public render reads the cached menu');
     }
 }

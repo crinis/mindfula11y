@@ -56,3 +56,10 @@ services:
         identifier: 'mindfula11y-add-overview-to-page-module'
         event: TYPO3\CMS\Backend\Controller\Event\ModifyPageLayoutContentEvent
         method: __invoke
+
+  MindfulMarkup\MindfulA11y\EventListener\IsolateStructureAnalysisCacheEntries:
+    tags:
+      - name: event.listener
+        identifier: 'mindfula11y-isolate-structure-analysis-cache-entries'
+        event: TYPO3\CMS\Frontend\ContentObject\Event\BeforeStdWrapContentStoredInCacheEvent
+        method: __invoke

@@ -8,3 +8,13 @@ page.headerData.10 = TEXT
 page.headerData.10.value = <meta http-equiv=refresh content="60;url=https://example.com/elsewhere"><meta http-equiv=content-security-policy content="script-src 'none'">
 page.10 = TEXT
 page.10.value = <main>Analysis target</main>
+
+# A main menu cached in the shared `hash` cache through stdWrap.cache — the
+# documented TypoScript pattern. The key deliberately ignores the page, so
+# every render (public or analysis) reads and writes the same entry: a
+# preview-only page leaking into it would reach every later visitor.
+page.20 = HMENU
+page.20.1 = TMENU
+page.20.1.NO.stdWrap.htmlSpecialChars = 1
+page.20.stdWrap.cache.key = mindfula11y_test_main_menu
+page.20.stdWrap.cache.lifetime = 3600

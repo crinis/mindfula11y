@@ -52,10 +52,30 @@ final class StructureAnalysisAuthenticationMiddlewareTest extends TestCase
         unset($GLOBALS['SIM_EXEC_TIME'], $GLOBALS['SIM_ACCESS_TIME'], $GLOBALS['TYPO3_CONF_VARS']);
     }
 
+    /**
+     * Whether hidden pages are shown at all is decided per page (core's
+     * PreviewSimulator conditions, pinned end-to-end in
+     * StructureAnalysisMiddlewareChainTest); the time and group simulation
+     * must not widen visibility by itself.
+     */
     #[Test]
-    public function previewUsesNativeFrontendRecordVisibility(): void
+    public function previewSimulationLeavesRecordVisibilityAlone(): void
     {
-        $this->applyPreviewSimulation(new ServerRequest('https://frontend.example/page'));
+        $this->applyPreviewSimulation(
+            (new ServerRequest('https://frontend.example/page'))->withQueryParams(['ADMCMD_simTime' => '1800000000'])
+        );
+
+        $visibility = $this->context->getAspect('visibility');
+        self::assertInstanceOf(VisibilityAspect::class, $visibility);
+        self::assertFalse($visibility->includeHiddenPages());
+        self::assertFalse($visibility->includeHiddenContent());
+    }
+
+    /** Where a hidden page is previewed, its hidden content stays excluded as in core. */
+    #[Test]
+    public function hiddenPagePreviewUsesNativeFrontendRecordVisibility(): void
+    {
+        (new \ReflectionMethod($this->subject, 'includeHiddenPages'))->invoke($this->subject);
 
         $visibility = $this->context->getAspect('visibility');
         self::assertInstanceOf(VisibilityAspect::class, $visibility);
