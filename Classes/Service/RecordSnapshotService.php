@@ -138,6 +138,8 @@ final class RecordSnapshotService
     {
         if (!isset($this->schemaColumnNames[$table])) {
             $columnNames = array_values(array_map(
+                // getName() is deprecated since DBAL 4.4, but its successor getObjectName() only exists
+                // from DBAL 4.3, while TYPO3 13.4.18 ships 4.2 (core's own ColumnInfo uses getName() too).
                 static fn(Column $column): string => $column->getName(),
                 $this->connectionPool
                     ->getConnectionForTable($table)

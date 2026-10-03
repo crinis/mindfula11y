@@ -84,18 +84,27 @@ final readonly class PagePreviewService
      */
     public function isPageVisible(array $pageRecord): bool
     {
-        if (!$this->isWithinVisibility($pageRecord)) {
+        return $this->isVisibleThrough($pageRecord, $this->getDefaultLanguagePage($pageRecord));
+    }
+
+    /**
+     * isPageVisible() with the default-language page already resolved (see
+     * getDefaultLanguagePage()), so callers needing that row twice fetch it once.
+     *
+     * @param array<string, mixed> $pageRecord
+     * @param array<string, mixed>|null $defaultLanguagePage
+     */
+    private function isVisibleThrough(array $pageRecord, ?array $defaultLanguagePage): bool
+    {
+        if ($defaultLanguagePage === null || !$this->isWithinVisibility($pageRecord)) {
             return false;
         }
 
-        $translationParentUid = TranslationFields::translationParentUid('pages', $pageRecord);
-        if ($translationParentUid === 0) {
+        if (TranslationFields::translationParentUid('pages', $pageRecord) === 0) {
             return !(new PageTranslationVisibility((int)($pageRecord['l18n_cfg'] ?? 0)))->shouldBeHiddenInDefaultLanguage();
         }
 
-        $defaultLanguagePage = $this->getDefaultLanguagePage($translationParentUid);
-
-        return $defaultLanguagePage !== null && $this->isWithinVisibility($defaultLanguagePage);
+        return $this->isWithinVisibility($defaultLanguagePage);
     }
 
     /**
@@ -133,13 +142,19 @@ final readonly class PagePreviewService
     }
 
     /**
-     * The workspace-overlaid default-language page of a translation, or null
-     * when it does not exist (a translation without one is unreachable).
+     * The default-language page the frontend resolves a page record through:
+     * the record itself, or a translation's workspace-overlaid default-language
+     * row — null when that does not exist (such a translation is unreachable).
      *
+     * @param array<string, mixed> $pageRecord
      * @return array<string, mixed>|null
      */
-    private function getDefaultLanguagePage(int $translationParentUid): ?array
+    private function getDefaultLanguagePage(array $pageRecord): ?array
     {
+        $translationParentUid = TranslationFields::translationParentUid('pages', $pageRecord);
+        if ($translationParentUid === 0) {
+            return $pageRecord;
+        }
         $page = BackendUtility::getRecordWSOL('pages', $translationParentUid);
 
         return is_array($page) ? $page : null;
@@ -157,20 +172,19 @@ final readonly class PagePreviewService
      */
     public function isPageFrontendAccessible(array $pageRecord): bool
     {
-        if (!$this->isPageVisible($pageRecord)) {
+        $defaultLanguagePage = $this->getDefaultLanguagePage($pageRecord);
+        if ($defaultLanguagePage === null || !$this->isVisibleThrough($pageRecord, $defaultLanguagePage)) {
             return false;
         }
 
-        if (!$this->isPublicFrontendGroupList((string)($pageRecord['fe_group'] ?? ''))) {
+        // For a default-language record both are the same row.
+        if (!$this->isPublicFrontendGroupList((string)($pageRecord['fe_group'] ?? ''))
+            || !$this->isPublicFrontendGroupList((string)($defaultLanguagePage['fe_group'] ?? ''))
+        ) {
             return false;
         }
 
         $translationParentUid = TranslationFields::translationParentUid('pages', $pageRecord);
-        if ($translationParentUid > 0
-            && !$this->isPublicFrontendGroupList((string)($this->getDefaultLanguagePage($translationParentUid)['fe_group'] ?? ''))
-        ) {
-            return false;
-        }
 
         // Check ancestor pages for inherited restrictions via extendToSubpages.
         // Use the original-language uid when the record is a translation overlay,
@@ -329,9 +343,7 @@ final readonly class PagePreviewService
 
         foreach ($pageTreeIds as $treePageId) {
             // Tree ids are default-language pages, which Page TSconfig belongs
-            // to. Core caches the resolved TSconfig per page id for the
-            // request (BackendUtility::getPagesTSconfig()), so this costs the
-            // one lookup per page the doktype gate below needs anyway.
+            // to; the doktype gate below needs the same TSconfig anyway.
             $pageTsConfig = $this->moduleSettingsService->getConvertedPageTsConfig($treePageId);
             if (!$this->moduleSettingsService->hasScanAccess($pageTsConfig)) {
                 continue;
