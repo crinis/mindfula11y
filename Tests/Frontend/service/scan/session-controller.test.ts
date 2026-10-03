@@ -14,6 +14,7 @@ import type { ReactiveControllerHost } from 'lit';
 import { afterEach, describe, expect, it, type Mock, vi } from 'vitest';
 import type { CreateScanDemand, ScanResult } from '../../../../Resources/Private/Source/lib/scan/types.js';
 import { ScanStatus } from '../../../../Resources/Private/Source/lib/scan/types.js';
+import { RequestError } from '../../../../Resources/Private/Source/service/request-error.js';
 import {
     ScanSessionController,
     type ScanSessionOptions,
@@ -206,9 +207,119 @@ describe('ScanSessionController', () => {
         expect(service.loadScan).toHaveBeenCalledTimes(2);
         expect(controller.state).toBe('error');
 
-        await vi.advanceTimersByTimeAsync(5000);
+        // The retry follows after a backed-off 10 s.
+        await vi.advanceTimersByTimeAsync(10_000);
         expect(service.loadScan).toHaveBeenCalledTimes(3);
         expect(controller.state).toBe('ready');
+    });
+
+    it('keeps the settled state and the last result while a background poll runs', async () => {
+        // Flipping to 'loading' on every tick re-rendered the view's loading
+        // branch and re-inserted any error notice into the live region.
+        vi.useFakeTimers();
+        const running = makeResult(ScanStatus.Running);
+        const service = createFakeService();
+        service.loadScan.mockResolvedValueOnce(running).mockReturnValueOnce(new Promise<never>(() => {}));
+        const { controller } = build(service, { scanId: () => 'attr' });
+
+        controller.hostConnected();
+        await flush();
+        await vi.advanceTimersByTimeAsync(5000);
+
+        expect(service.loadScan).toHaveBeenCalledTimes(2); // the poll is in flight
+        expect(controller.state).toBe('ready');
+        expect(controller.result).toBe(running);
+        controller.hostDisconnected();
+    });
+
+    it('keeps the result after a rate-limited poll and waits as long as Retry-After asks', async () => {
+        vi.useFakeTimers();
+        const running = makeResult(ScanStatus.Running);
+        const service = createFakeService();
+        service.loadScan
+            .mockResolvedValueOnce(running)
+            .mockRejectedValueOnce(new RequestError('Scanner busy', '', 429, 30))
+            .mockResolvedValue(running);
+        const { controller } = build(service, { scanId: () => 'attr' });
+
+        controller.hostConnected();
+        await flush();
+        await vi.advanceTimersByTimeAsync(5000);
+        expect(service.loadScan).toHaveBeenCalledTimes(2);
+        expect(controller.state).toBe('error');
+        expect(controller.result).toBe(running);
+
+        // Without Retry-After the first retry would follow after 10 s.
+        await vi.advanceTimersByTimeAsync(29_000);
+        expect(service.loadScan).toHaveBeenCalledTimes(2);
+        await vi.advanceTimersByTimeAsync(1000);
+        expect(service.loadScan).toHaveBeenCalledTimes(3);
+        expect(controller.state).toBe('ready');
+        controller.hostDisconnected();
+    });
+
+    it('backs off exponentially on consecutive poll failures and stops after five', async () => {
+        vi.useFakeTimers();
+        const service = createFakeService();
+        service.loadScan
+            .mockResolvedValueOnce(makeResult(ScanStatus.Running))
+            .mockRejectedValue(new RequestError('Load failed', '', 500));
+        const { controller } = build(service, { scanId: () => 'attr' });
+
+        controller.hostConnected();
+        await flush();
+        const callTimes: number[] = [];
+        service.loadScan.mockImplementation(() => {
+            callTimes.push(Date.now());
+            return Promise.reject(new RequestError('Load failed', '', 500));
+        });
+        const start = Date.now();
+
+        await vi.advanceTimersByTimeAsync(600_000);
+
+        // First poll after the normal 5 s, then the delay doubles up to 60 s.
+        expect(callTimes.map((time) => time - start)).toEqual([5000, 15_000, 35_000, 75_000, 135_000]);
+        expect(controller.state).toBe('error');
+    });
+
+    it('stops polling on a client error other than 429', async () => {
+        // An expired backend session or a revoked permission does not heal
+        // by asking again.
+        vi.useFakeTimers();
+        const service = createFakeService();
+        service.loadScan
+            .mockResolvedValueOnce(makeResult(ScanStatus.Running))
+            .mockRejectedValue({ response: new Response('{"login":false}', { status: 401 }) });
+        const { controller } = build(service, { scanId: () => 'attr' });
+
+        controller.hostConnected();
+        await flush();
+        await vi.advanceTimersByTimeAsync(600_000);
+
+        expect(service.loadScan).toHaveBeenCalledTimes(2);
+        expect(controller.state).toBe('error');
+    });
+
+    it('restarts polling from an explicit reload after polling stopped', async () => {
+        vi.useFakeTimers();
+        const running = makeResult(ScanStatus.Running);
+        const service = createFakeService();
+        service.loadScan
+            .mockResolvedValueOnce(running)
+            .mockRejectedValueOnce(new RequestError('Forbidden', '', 403))
+            .mockResolvedValue(running);
+        const { controller } = build(service, { scanId: () => 'attr' });
+
+        controller.hostConnected();
+        await flush();
+        await vi.advanceTimersByTimeAsync(600_000);
+        expect(service.loadScan).toHaveBeenCalledTimes(2); // stopped after the 403
+
+        await controller.reload();
+        expect(controller.state).toBe('ready');
+        await vi.advanceTimersByTimeAsync(5000);
+        expect(service.loadScan).toHaveBeenCalledTimes(4); // the reload, then polling at the normal pace again
+        controller.hostDisconnected();
     });
 
     it('stops polling and fires onTransition once on a terminal status', async () => {

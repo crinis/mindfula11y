@@ -907,6 +907,12 @@
             <trans-unit id="scan.error.getFailed.description" resname="scan.error.getFailed.description">
                 <source>Could not load the accessibility scan results. Please try again.</source>
             </trans-unit>
+            <trans-unit id="scan.error.rateLimited" resname="scan.error.rateLimited">
+                <source>Scanner busy</source>
+            </trans-unit>
+            <trans-unit id="scan.error.rateLimited.description" resname="scan.error.rateLimited.description">
+                <source>The accessibility scanner is receiving too many requests from this TYPO3 installation. The scan view tries again after a pause; if it stops trying, reload the results later.</source>
+            </trans-unit>
             <trans-unit id="scan.error.storeFailed" resname="scan.error.storeFailed">
                 <source>Failed to store scan ID.</source>
             </trans-unit>

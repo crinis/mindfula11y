@@ -230,7 +230,27 @@ final readonly class ScanApiService
             $response->getStatusCode(),
             $problem['title'],
             $this->toClientSafeDetail($problem['detail'], $requestSecrets),
+            $this->parseRetryAfter($response),
         );
+    }
+
+    /**
+     * The wait a response's Retry-After header asks for, in seconds: either
+     * form RFC 9110 allows (delay-seconds or an HTTP date), null when absent
+     * or unreadable.
+     */
+    private function parseRetryAfter(ResponseInterface $response): ?int
+    {
+        $value = trim($response->getHeaderLine('Retry-After'));
+        if ($value === '') {
+            return null;
+        }
+        if (ctype_digit($value)) {
+            return (int)$value;
+        }
+        $date = \DateTimeImmutable::createFromFormat(DATE_RFC7231, $value);
+
+        return $date === false ? null : max(0, $date->getTimestamp() - time());
     }
 
     /**
@@ -459,7 +479,8 @@ final readonly class ScanApiService
      * @param string[] $pageUrls Optional page URL filter.
      * @return array|null The scan or null on network/decode failure.
      * @throws ScanApiRequestException With status 404 when the scanner no longer knows the
-     *   scan (retention pruning) — a recoverable state distinct from a failed request.
+     *   scan (retention pruning) — a recoverable state distinct from a failed request —
+     *   and with status 429 (carrying Retry-After) when the scanner rate-limits the request.
      */
     public function getScan(string $scanId, array $pageUrls = []): ?array
     {
@@ -482,6 +503,14 @@ final readonly class ScanApiService
         // generic 500 for failures — the client recovers by re-creating.
         if ($response->getStatusCode() === 404) {
             $this->throwProblem($response, 'Scan not found, will trigger new scan', ['scanId' => $scanId], 'info');
+        }
+
+        // MindfulAPI throttles per client IP, and every editor of this
+        // installation shares it. Thrown (not null) so the controller can pass
+        // the limit and its Retry-After on instead of the generic failure,
+        // which the scan view would keep re-polling into.
+        if ($response->getStatusCode() === 429) {
+            $this->throwProblem($response, 'Scanner API rate limit reached while getting scan results', ['scanId' => $scanId], 'warning');
         }
 
         if ($response->getStatusCode() !== 200) {

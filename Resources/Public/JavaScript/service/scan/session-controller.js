@@ -1,5 +1,9 @@
 import { isScanInProgress } from "../../lib/scan/types.js";
+import { httpStatusOf, RequestError } from "../request-error.js";
 const POLL_DELAY_MS = 5e3;
+const MAX_RETRY_DELAY_MS = 6e4;
+const MAX_RETRY_AFTER_MS = 3e5;
+const MAX_CONSECUTIVE_FAILURES = 5;
 class ScanSessionController {
   constructor(host, options) {
     this.host = host;
@@ -16,6 +20,8 @@ class ScanSessionController {
     this.autoCreateAttempted = false;
     /** Marks the next settled load as the "started" transition of a fresh create. */
     this.justCreated = false;
+    /** Failed loads in a row; drives the retry backoff and the polling stop. */
+    this.consecutiveFailures = 0;
     this.connected = false;
     this.initialized = false;
     this.abortController = null;
@@ -63,8 +69,21 @@ class ScanSessionController {
     this.abortController?.abort();
     this.abortController = null;
   }
-  /** Idempotent load of the current scan — never creates. */
+  /**
+   * Idempotent load of the current scan — never creates. An explicit
+   * reload (the host's Reload action) also restarts polling that stopped
+   * after repeated failures.
+   */
   async reload() {
+    this.consecutiveFailures = 0;
+    await this.load(false);
+  }
+  /**
+   * Loads the current scan. A `background` load (a poll) keeps the current
+   * state — and with it the mounted result or error notice — until it
+   * settles; any other load shows the loading state.
+   */
+  async load(background) {
     const scanId = this.effectiveScanId();
     if (scanId === "") {
       this._result = null;
@@ -74,7 +93,9 @@ class ScanSessionController {
       return;
     }
     const signal = this.beginOperation();
-    this.setState("loading");
+    if (!background) {
+      this.setState("loading");
+    }
     try {
       const filtered = await this.options.service.loadScan(scanId, this.options.pageUrlFilter(), { signal });
       if (signal.aborted) {
@@ -94,6 +115,7 @@ class ScanSessionController {
       }
       this._result = filtered;
       this._crawlResult = crawl !== null && crawl.mode === "crawl" ? crawl : null;
+      this.consecutiveFailures = 0;
       this.setState("ready");
       this.commitStatus(filtered);
     } catch (error) {
@@ -101,11 +123,35 @@ class ScanSessionController {
         return;
       }
       this._error = error;
+      this.consecutiveFailures += 1;
       this.setState("error");
-      if (this.lastStatus !== "" && isScanInProgress(this.lastStatus)) {
-        this.schedulePoll();
+      if (this.lastStatus !== "" && isScanInProgress(this.lastStatus) && this.shouldRetry(error)) {
+        this.schedulePoll(this.retryDelay(error));
       }
     }
+  }
+  /**
+   * Whether a failed load is worth retrying: not after
+   * {@link MAX_CONSECUTIVE_FAILURES} in a row, and not on a client error
+   * other than 429 (an expired session, revoked access) — the error notice
+   * and its Reload action remain.
+   */
+  shouldRetry(error) {
+    const status = httpStatusOf(error);
+    if (status >= 400 && status < 500 && status !== 429) {
+      return false;
+    }
+    return this.consecutiveFailures < MAX_CONSECUTIVE_FAILURES;
+  }
+  /**
+   * The poll interval doubled per consecutive failure (10 s, 20 s, 40 s,
+   * then 60 s), or longer when a Retry-After asks for it — MindfulAPI's
+   * rate limit is shared by every editor of the installation.
+   */
+  retryDelay(error) {
+    const backoff = Math.min(POLL_DELAY_MS * 2 ** this.consecutiveFailures, MAX_RETRY_DELAY_MS);
+    const retryAfter = error instanceof RequestError ? error.retryAfter : null;
+    return retryAfter === null ? backoff : Math.max(backoff, Math.min(retryAfter * 1e3, MAX_RETRY_AFTER_MS));
   }
   /**
    * Explicit create (manual trigger). Suppresses the attribute id, then loads
@@ -241,12 +287,12 @@ class ScanSessionController {
       this.options.onTransition?.(previous, result);
     }
   }
-  schedulePoll() {
+  schedulePoll(delay = POLL_DELAY_MS) {
     this.clearPoll();
     this.pollTimer = window.setTimeout(() => {
       this.pollTimer = void 0;
-      void this.reload();
-    }, POLL_DELAY_MS);
+      void this.load(true);
+    }, delay);
   }
   clearPoll() {
     if (this.pollTimer !== void 0) {

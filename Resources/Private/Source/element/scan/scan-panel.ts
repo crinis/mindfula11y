@@ -313,7 +313,9 @@ function renderErrorActions(data: ScanPanelData, onReload: () => void): Template
 }
 
 function renderBody(data: ScanPanelData): TemplateResult | typeof nothing {
-    if (data.actionError !== null || data.controllerState === 'error') {
+    // A failed load keeps the last result in view below its error notice: a
+    // failing poll of a running scan must not take the results away.
+    if (data.actionError !== null) {
         return nothing;
     }
     const result = data.result;

@@ -329,6 +329,71 @@ final class ScanApiServiceTest extends TestCase
         self::assertStringContainsString('Invalid request', $logged, 'the diagnostic part survives');
     }
 
+    /**
+     * MindfulAPI throttles per client IP, and every editor of an installation
+     * shares the TYPO3 server's. A rate-limited poll must stay recognizable —
+     * with the wait the API asks for — instead of degrading to the generic
+     * failure the scan view re-polls into.
+     */
+    #[Test]
+    public function rateLimitedScanLoadSurfacesTheStatusAndTheRequestedWait(): void
+    {
+        $service = $this->serviceAnsweringWithHeaders(
+            429,
+            json_encode(['title' => 'Too Many Requests', 'status' => 429, 'detail' => 'ThrottlerException: Too Many Requests'], JSON_THROW_ON_ERROR),
+            ['Retry-After' => '17'],
+        );
+
+        try {
+            $service->getScan('42');
+            self::fail('a rate-limited load must surface as an exception');
+        } catch (\MindfulMarkup\MindfulA11y\Exception\ScanApiRequestException $exception) {
+            self::assertSame(429, $exception->getStatusCode());
+            self::assertSame(17, $exception->getRetryAfter());
+        }
+    }
+
+    #[Test]
+    public function retryAfterGivenAsHttpDateIsConvertedToSeconds(): void
+    {
+        $service = $this->serviceAnsweringWithHeaders(
+            429,
+            '{}',
+            ['Retry-After' => gmdate('D, d M Y H:i:s \G\M\T', time() + 120)],
+        );
+
+        try {
+            $service->getScan('42');
+            self::fail('a rate-limited load must surface as an exception');
+        } catch (\MindfulMarkup\MindfulA11y\Exception\ScanApiRequestException $exception) {
+            self::assertEqualsWithDelta(120, $exception->getRetryAfter(), 2);
+        }
+    }
+
+    #[Test]
+    public function otherFailedScanLoadsStillDegradeToNull(): void
+    {
+        self::assertNull($this->serviceAnsweringWithHeaders(503, '{}', ['Retry-After' => '5'])->getScan('42'));
+    }
+
+    /**
+     * @param array<string, string> $headers
+     */
+    private function serviceAnsweringWithHeaders(int $status, string $body, array $headers): ScanApiService
+    {
+        $extensionConfiguration = $this->createMock(ExtensionConfiguration::class);
+        $extensionConfiguration->method('get')->with('mindfula11y')->willReturn([
+            'scannerApiUrl' => 'https://scanner.example',
+        ]);
+        $response = new \TYPO3\CMS\Core\Http\Response('php://temp', $status, $headers);
+        $response->getBody()->write($body);
+        $response->getBody()->rewind();
+        $requestFactory = $this->createMock(RequestFactory::class);
+        $requestFactory->method('request')->willReturn($response);
+
+        return new ScanApiService(new ExtensionSettings($extensionConfiguration), $requestFactory, $this->recordingLogger());
+    }
+
     #[Test]
     public function invalidJsonBodyIsRedactedInTheLogContext(): void
     {

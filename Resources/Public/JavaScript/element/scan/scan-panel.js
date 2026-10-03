@@ -177,7 +177,7 @@ function renderErrorActions(data, onReload) {
   return html`<button type="button" class="button" @click=${onReload}>${lll("mindfula11y.scan.refresh")}</button>`;
 }
 function renderBody(data) {
-  if (data.actionError !== null || data.controllerState === "error") {
+  if (data.actionError !== null) {
     return nothing;
   }
   const result = data.result;

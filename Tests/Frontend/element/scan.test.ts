@@ -99,6 +99,42 @@ describe('Scan', () => {
 
     afterEach(() => {
         document.body.replaceChildren();
+        vi.useRealTimers();
+    });
+
+    it('announces a failing poll once and keeps the running scan in view', async () => {
+        // Each failed poll used to flip the panel to loading and back to
+        // error, re-inserting the danger notice into the status region —
+        // re-announced every five seconds — and hiding the results.
+        vi.useFakeTimers();
+        loadScanMock
+            .mockResolvedValueOnce(makeResult(ScanStatus.Running))
+            .mockRejectedValue(new RequestError('Load failed', 'The scanner did not answer.', 500));
+        const view = document.createElement('mindfula11y-scan');
+        view.scanId = 'running-scan';
+        view.createScanDemand = demand;
+        document.body.append(view);
+        await vi.advanceTimersByTimeAsync(0);
+        await view.updateComplete;
+
+        const region = view.renderRoot.querySelector('[role="region"] [role="status"]');
+        expect(region).not.toBeNull();
+        let insertedNotices = 0;
+        new MutationObserver((records) => {
+            for (const record of records) {
+                insertedNotices += [...record.addedNodes].filter(
+                    (node) => node.nodeName === 'MINDFULA11Y-NOTICE',
+                ).length;
+            }
+        }).observe(region as Node, { childList: true, subtree: true });
+
+        await vi.advanceTimersByTimeAsync(30_000);
+        await view.updateComplete;
+
+        expect(loadScanMock.mock.calls.length).toBeGreaterThan(2); // it did poll — and fail — repeatedly
+        expect(insertedNotices).toBe(1);
+        expect(region?.textContent).toContain('The scanner did not answer.');
+        expect(view.renderRoot.textContent).toContain('mindfula11y.scan.status.running');
     });
 
     it('offers the AI review toggle only for the scan modes TSconfig lists', async () => {

@@ -9,7 +9,12 @@
  */
 
 import { describe, expect, it, vi } from 'vitest';
-import { errorView, RequestError, toRequestError } from '../../../Resources/Private/Source/service/request-error.js';
+import {
+    errorView,
+    httpStatusOf,
+    RequestError,
+    toRequestError,
+} from '../../../Resources/Private/Source/service/request-error.js';
 
 vi.mock('@typo3/core/lit-helper.js', () => ({
     lll: (key: string, ...args: Array<string | number>): string =>
@@ -42,6 +47,23 @@ describe('toRequestError', () => {
         expect(converted).toMatchObject({ message: 'Denied', description: 'No access.', status: 403 });
     });
 
+    it('carries the wait a Retry-After header asks for, in seconds', async () => {
+        const rejection = (retryAfter: string | null): { response: Response } => ({
+            response: new Response(JSON.stringify({ error: { title: 'Busy' } }), {
+                status: 429,
+                headers: retryAfter === null ? {} : { 'Retry-After': retryAfter },
+            }),
+        });
+
+        await expect(toRequestError(rejection('17'))).resolves.toMatchObject({ status: 429, retryAfter: 17 });
+        const inTwoMinutes = new Date(Date.now() + 120_000).toUTCString();
+        const dated = await toRequestError(rejection(inTwoMinutes));
+        expect((dated as RequestError).retryAfter).toBeGreaterThanOrEqual(118);
+        expect((dated as RequestError).retryAfter).toBeLessThanOrEqual(120);
+        await expect(toRequestError(rejection(null))).resolves.toMatchObject({ retryAfter: null });
+        await expect(toRequestError(rejection('soon'))).resolves.toMatchObject({ retryAfter: null });
+    });
+
     it('drops a non-string description instead of rendering it', async () => {
         const converted = await toRequestError(rejectionWith({ error: { title: 'Denied', description: { html: 1 } } }));
 
@@ -57,6 +79,25 @@ describe('toRequestError', () => {
         const rejection = rejectionWith(body);
 
         await expect(toRequestError(rejection)).resolves.toBe(rejection);
+    });
+});
+
+describe('httpStatusOf', () => {
+    it('reads the status of a RequestError', () => {
+        expect(httpStatusOf(new RequestError('Busy', '', 429))).toBe(429);
+    });
+
+    it('reads the status of an AjaxRequest rejection without the structured body', () => {
+        // An expired backend session answers 401 with TYPO3's own body.
+        expect(httpStatusOf({ response: new Response('{"login":false}', { status: 401 }) })).toBe(401);
+    });
+
+    it.each([
+        ['a plain Error', new Error('network down')],
+        ['null', null],
+        ['a primitive', 'boom'],
+    ])('reports 0 for %s', (_case, error) => {
+        expect(httpStatusOf(error)).toBe(0);
     });
 });
 

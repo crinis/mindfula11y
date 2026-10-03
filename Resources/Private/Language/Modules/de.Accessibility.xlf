@@ -1150,6 +1150,14 @@
                 <source>Could not load the accessibility scan results. Please try again.</source>
                 <target>Die Ergebnisse des Barrierefreiheits-Scans konnten nicht geladen werden. Bitte versuchen Sie es erneut.</target>
             </trans-unit>
+            <trans-unit id="scan.error.rateLimited" resname="scan.error.rateLimited">
+                <source>Scanner busy</source>
+                <target>Scanner ausgelastet</target>
+            </trans-unit>
+            <trans-unit id="scan.error.rateLimited.description" resname="scan.error.rateLimited.description">
+                <source>The accessibility scanner is receiving too many requests from this TYPO3 installation. The scan view tries again after a pause; if it stops trying, reload the results later.</source>
+                <target>Der Barrierefreiheits-Scanner erhält zu viele Anfragen von dieser TYPO3-Installation. Die Scan-Ansicht versucht es nach einer Pause erneut; hört sie damit auf, laden Sie die Ergebnisse später neu.</target>
+            </trans-unit>
             <trans-unit id="scan.error.storeFailed" resname="scan.error.storeFailed">
                 <source>Failed to store scan ID.</source>
                 <target>Scan-ID konnte nicht gespeichert werden.</target>

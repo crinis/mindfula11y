@@ -285,7 +285,16 @@ final readonly class ScanAjaxController
 
         try {
             $scan = $this->scanApiService->getScan($scanId, $pageUrls);
-        } catch (ScanApiRequestException) {
+        } catch (ScanApiRequestException $exception) {
+            // Rate limited: passed on with the scanner's Retry-After, so the
+            // polling scan view backs off instead of hammering the limit that
+            // every editor of this installation shares.
+            if ($exception->getStatusCode() === 429) {
+                $response = $this->errorResponse('scan.error.rateLimited', 429);
+                $retryAfter = $exception->getRetryAfter();
+
+                return $retryAfter === null ? $response : $response->withHeader('Retry-After', (string)$retryAfter);
+            }
             // The scanner no longer knows the id (retention pruning). 404 is
             // the client's signal to forget the stored id and re-create the
             // scan — a 500 would strand it on the loading-error view.

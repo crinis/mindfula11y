@@ -25,23 +25,43 @@ export class RequestError extends Error {
     readonly description: string;
     /** HTTP status of the backend response; 0 when unknown. */
     readonly status: number;
+    /** Seconds the response's Retry-After header asks to wait (e.g. on a 429); null when it names none. */
+    readonly retryAfter: number | null;
 
-    constructor(message: string, description: string = '', status: number = 0) {
+    constructor(message: string, description: string = '', status: number = 0, retryAfter: number | null = null) {
         super(message);
         this.name = 'RequestError';
         this.description = description;
         this.status = status;
+        this.retryAfter = retryAfter;
     }
 }
+
+/** The Response an AjaxRequest rejection carries, if any. */
+const responseOf = (error: unknown): Response | undefined =>
+    // The rejection value may be anything (including null) — never let this
+    // property access throw in place of the original error.
+    isObject(error) && error.response instanceof Response ? error.response : undefined;
+
+/**
+ * A Retry-After header in seconds: either form RFC 9110 allows
+ * (delay-seconds or an HTTP date); null when absent or unreadable.
+ */
+const parseRetryAfter = (value: string | null): number | null => {
+    const trimmed = value?.trim() ?? '';
+    if (/^\d+$/.test(trimmed)) {
+        return Number(trimmed);
+    }
+    const date = trimmed === '' ? Number.NaN : Date.parse(trimmed);
+    return Number.isNaN(date) ? null : Math.max(0, Math.round((date - Date.now()) / 1000));
+};
 
 /**
  * Converts a failed AjaxRequest into a RequestError when the backend sent its
  * structured error body; otherwise returns the original error unchanged.
  */
 export const toRequestError = async (error: unknown): Promise<unknown> => {
-    // The rejection value may be anything (including null) — never let this
-    // converter's own property access replace the original error.
-    const response = isObject(error) && error.response instanceof Response ? error.response : undefined;
+    const response = responseOf(error);
     if (response === undefined) {
         return error;
     }
@@ -52,12 +72,30 @@ export const toRequestError = async (error: unknown): Promise<unknown> => {
         const body = isObject(data) && isObject(data.error) ? data.error : undefined;
         if (body !== undefined && typeof body.title === 'string') {
             const description = typeof body.description === 'string' ? body.description : '';
-            return new RequestError(body.title, description, response.status);
+            return new RequestError(
+                body.title,
+                description,
+                response.status,
+                parseRetryAfter(response.headers.get('Retry-After')),
+            );
         }
     } catch {
         // Non-JSON error body — fall through to the original error.
     }
     return error;
+};
+
+/**
+ * The HTTP status any caught request error carries: a RequestError's, or
+ * that of an AjaxRequest rejection the backend answered without its
+ * structured body (TYPO3's own 401 for an expired session, for instance).
+ * 0 when there is none — a network failure or a non-request error.
+ */
+export const httpStatusOf = (error: unknown): number => {
+    if (error instanceof RequestError) {
+        return error.status;
+    }
+    return responseOf(error)?.status ?? 0;
 };
 
 /** Display pair every caught error is rendered as. */

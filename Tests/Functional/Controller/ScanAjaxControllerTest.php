@@ -16,14 +16,29 @@ namespace MindfulMarkup\MindfulA11y\Tests\Functional\Controller;
 
 use MindfulMarkup\MindfulA11y\Controller\ScanAjaxController;
 use MindfulMarkup\MindfulA11y\Domain\Model\CreateScanDemand;
+use MindfulMarkup\MindfulA11y\Service\BackendUserProvider;
 use MindfulMarkup\MindfulA11y\Service\DemandSignatureService;
+use MindfulMarkup\MindfulA11y\Service\ExistingScanAuthorizationService;
+use MindfulMarkup\MindfulA11y\Service\ExtensionSettings;
+use MindfulMarkup\MindfulA11y\Service\ModuleSettingsService;
 use MindfulMarkup\MindfulA11y\Service\PagePreviewService;
+use MindfulMarkup\MindfulA11y\Service\PermissionService;
 use MindfulMarkup\MindfulA11y\Service\RecordSnapshotService;
+use MindfulMarkup\MindfulA11y\Service\ScanApiService;
+use MindfulMarkup\MindfulA11y\Service\ScanCreationService;
+use MindfulMarkup\MindfulA11y\Service\ScanDemandFactory;
 use MindfulMarkup\MindfulA11y\Service\ScanStateService;
+use MindfulMarkup\MindfulA11y\Service\SiteLanguageService;
 use MindfulMarkup\MindfulA11y\Tests\Functional\AbstractAuthorizationTestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Psr\Http\Message\ResponseFactoryInterface;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Log\NullLogger;
 use TYPO3\CMS\Backend\Routing\PreviewUriBuilder;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
+use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
+use TYPO3\CMS\Core\Http\JsonResponse;
+use TYPO3\CMS\Core\Http\RequestFactory;
 
 /**
  * Authorization coverage of the accessibility-scan AJAX endpoints
@@ -711,6 +726,56 @@ final class ScanAjaxControllerTest extends AbstractAuthorizationTestCase
         $response = $this->controller()->getAction($this->createGetRequest(['scanId' => 'scan-page-10-get']));
 
         $this->assertErrorResponse($response, 500, 'scan.error.getFailed');
+    }
+
+    /**
+     * MindfulAPI throttles per client IP, which every editor of the
+     * installation shares. A rate-limited load is passed through as 429 with
+     * the API's Retry-After, so the scan view can back off — not flattened to
+     * the generic 500 it would keep re-polling into.
+     */
+    public function testGetActionPassesAnUpstreamRateLimitThroughWithItsRetryAfter(): void
+    {
+        $this->seedScanId(10, 'scan-page-10-throttled');
+        $this->logInBackendUser(2);
+
+        $response = $this->controllerWithScannerAnswering(new JsonResponse(
+            ['title' => 'Too Many Requests', 'status' => 429, 'detail' => 'ThrottlerException: Too Many Requests'],
+            429,
+            ['Retry-After' => '17'],
+        ))->getAction($this->createGetRequest(['scanId' => 'scan-page-10-throttled']));
+
+        $this->assertErrorResponse($response, 429, 'scan.error.rateLimited');
+        self::assertSame('17', $response->getHeaderLine('Retry-After'));
+    }
+
+    /**
+     * The controller wired to a scanner that answers every request with
+     * $scannerResponse; everything else comes from the container.
+     */
+    private function controllerWithScannerAnswering(ResponseInterface $scannerResponse): ScanAjaxController
+    {
+        $GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS']['mindfula11y']['scannerApiUrl'] = 'https://scanner.invalid';
+        $requestFactory = $this->createMock(RequestFactory::class);
+        $requestFactory->method('request')->willReturn($scannerResponse);
+
+        return new ScanAjaxController(
+            scanApiService: new ScanApiService(
+                new ExtensionSettings($this->get(ExtensionConfiguration::class)),
+                $requestFactory,
+                new NullLogger(),
+            ),
+            demandSignatureService: $this->get(DemandSignatureService::class),
+            moduleSettingsService: $this->get(ModuleSettingsService::class),
+            pagePreviewService: $this->get(PagePreviewService::class),
+            existingScanAuthorizationService: $this->get(ExistingScanAuthorizationService::class),
+            permissionService: $this->get(PermissionService::class),
+            siteLanguageService: $this->get(SiteLanguageService::class),
+            scanCreationService: $this->get(ScanCreationService::class),
+            scanDemandFactory: $this->get(ScanDemandFactory::class),
+            responseFactory: $this->get(ResponseFactoryInterface::class),
+            backendUserProvider: $this->get(BackendUserProvider::class),
+        );
     }
 
     public function testCancelActionFullyAuthorizedEndsInUpstreamFailure(): void

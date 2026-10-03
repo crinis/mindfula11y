@@ -20,9 +20,20 @@
 import type { ReactiveController, ReactiveControllerHost } from 'lit';
 import type { CreateScanDemand, ScanResult, ScanStatus } from '../../lib/scan/types.js';
 import { isScanInProgress } from '../../lib/scan/types.js';
+import { httpStatusOf, RequestError } from '../request-error.js';
 import type { ScanApi } from './api.js';
 
+/** Poll interval while a scan runs and its loads succeed. */
 const POLL_DELAY_MS = 5000;
+/** Ceiling of the doubled-per-failure retry delay. */
+const MAX_RETRY_DELAY_MS = 60_000;
+/**
+ * Ceiling on the wait a Retry-After may impose — honoured above the backoff
+ * ceiling, as the server knows its own limit, but not without bound.
+ */
+const MAX_RETRY_AFTER_MS = 300_000;
+/** Consecutive failed loads after which polling stops until an explicit reload. */
+const MAX_CONSECUTIVE_FAILURES = 5;
 
 /** Coarse lifecycle of the scan session, mirrored into the host's render. */
 export type ScanSessionState = 'initial' | 'loading' | 'ready' | 'error';
@@ -59,6 +70,13 @@ export interface ScanSessionOptions {
  * creates. Every service call runs under an internal AbortController renewed
  * per operation, so {@link hostDisconnected} cancels in-flight work and no
  * disconnected request can mutate state.
+ *
+ * A background poll leaves the state alone until it settles, so the host
+ * keeps showing the last result (or the one error notice) instead of
+ * flickering through its loading branch. Failed loads back off — the delay
+ * doubles per consecutive failure, a Retry-After is honoured — and polling
+ * stops after {@link MAX_CONSECUTIVE_FAILURES} or on a client error other
+ * than 429, which asking again cannot fix; {@link reload} starts it afresh.
  */
 export class ScanSessionController implements ReactiveController {
     private _state: ScanSessionState = 'initial';
@@ -74,6 +92,8 @@ export class ScanSessionController implements ReactiveController {
     private autoCreateAttempted: boolean = false;
     /** Marks the next settled load as the "started" transition of a fresh create. */
     private justCreated: boolean = false;
+    /** Failed loads in a row; drives the retry backoff and the polling stop. */
+    private consecutiveFailures: number = 0;
 
     private connected: boolean = false;
     private initialized: boolean = false;
@@ -144,8 +164,22 @@ export class ScanSessionController implements ReactiveController {
         this.abortController = null;
     }
 
-    /** Idempotent load of the current scan — never creates. */
+    /**
+     * Idempotent load of the current scan — never creates. An explicit
+     * reload (the host's Reload action) also restarts polling that stopped
+     * after repeated failures.
+     */
     async reload(): Promise<void> {
+        this.consecutiveFailures = 0;
+        await this.load(false);
+    }
+
+    /**
+     * Loads the current scan. A `background` load (a poll) keeps the current
+     * state — and with it the mounted result or error notice — until it
+     * settles; any other load shows the loading state.
+     */
+    private async load(background: boolean): Promise<void> {
         const scanId = this.effectiveScanId();
         if (scanId === '') {
             this._result = null;
@@ -156,7 +190,9 @@ export class ScanSessionController implements ReactiveController {
         }
 
         const signal = this.beginOperation();
-        this.setState('loading');
+        if (!background) {
+            this.setState('loading');
+        }
         try {
             const filtered = await this.options.service.loadScan(scanId, this.options.pageUrlFilter(), { signal });
             if (signal.aborted) {
@@ -179,24 +215,51 @@ export class ScanSessionController implements ReactiveController {
             }
             this._result = filtered;
             this._crawlResult = crawl !== null && crawl.mode === 'crawl' ? crawl : null;
+            this.consecutiveFailures = 0;
             this.setState('ready');
             this.commitStatus(filtered);
         } catch (error) {
             if (signal.aborted) {
                 return;
             }
+            // The last result stays: the host shows the error next to it.
             this._error = error;
+            this.consecutiveFailures += 1;
             this.setState('error');
-            // The error surfaces through the host's error branch, but a
-            // transient poll failure must not stop polling permanently:
-            // commitStatus (the only other place that re-arms the timer) runs
-            // on the load's success path only. lastStatus is left untouched on
-            // failure, so re-arm here while the scan is still believed to be in
-            // progress — the next poll recovers.
-            if (this.lastStatus !== '' && isScanInProgress(this.lastStatus)) {
-                this.schedulePoll();
+            // A transient failure must not stop polling for good: commitStatus
+            // (the only other place that re-arms the timer) runs on the success
+            // path only. lastStatus is left untouched on failure, so retry here
+            // while the scan is still believed to be in progress — backed off,
+            // and not at all once retrying cannot help.
+            if (this.lastStatus !== '' && isScanInProgress(this.lastStatus) && this.shouldRetry(error)) {
+                this.schedulePoll(this.retryDelay(error));
             }
         }
+    }
+
+    /**
+     * Whether a failed load is worth retrying: not after
+     * {@link MAX_CONSECUTIVE_FAILURES} in a row, and not on a client error
+     * other than 429 (an expired session, revoked access) — the error notice
+     * and its Reload action remain.
+     */
+    private shouldRetry(error: unknown): boolean {
+        const status = httpStatusOf(error);
+        if (status >= 400 && status < 500 && status !== 429) {
+            return false;
+        }
+        return this.consecutiveFailures < MAX_CONSECUTIVE_FAILURES;
+    }
+
+    /**
+     * The poll interval doubled per consecutive failure (10 s, 20 s, 40 s,
+     * then 60 s), or longer when a Retry-After asks for it — MindfulAPI's
+     * rate limit is shared by every editor of the installation.
+     */
+    private retryDelay(error: unknown): number {
+        const backoff = Math.min(POLL_DELAY_MS * 2 ** this.consecutiveFailures, MAX_RETRY_DELAY_MS);
+        const retryAfter = error instanceof RequestError ? error.retryAfter : null;
+        return retryAfter === null ? backoff : Math.max(backoff, Math.min(retryAfter * 1000, MAX_RETRY_AFTER_MS));
     }
 
     /**
@@ -344,12 +407,12 @@ export class ScanSessionController implements ReactiveController {
         }
     }
 
-    private schedulePoll(): void {
+    private schedulePoll(delay: number = POLL_DELAY_MS): void {
         this.clearPoll();
         this.pollTimer = window.setTimeout(() => {
             this.pollTimer = undefined;
-            void this.reload();
-        }, POLL_DELAY_MS);
+            void this.load(true);
+        }, delay);
     }
 
     private clearPoll(): void {

@@ -37,11 +37,13 @@ class ScanApiRequestException extends \RuntimeException
      * @param int $statusCode HTTP status code of the API response.
      * @param string $problemTitle The problem+json "title" member, if any.
      * @param string $problemDetail The problem+json "detail" member, if any.
+     * @param int|null $retryAfter Seconds the response's Retry-After header asks to wait, if any.
      */
     public function __construct(
         protected readonly int $statusCode,
         string $problemTitle = '',
         protected readonly string $problemDetail = '',
+        protected readonly ?int $retryAfter = null,
     ) {
         parent::__construct(
             'Scanner API request failed with status ' . $statusCode
@@ -64,5 +66,14 @@ class ScanApiRequestException extends \RuntimeException
     public function getProblemDetail(): string
     {
         return $this->problemDetail;
+    }
+
+    /**
+     * Seconds the API asked the client to wait (its Retry-After header, e.g.
+     * on a 429 rate-limit answer), or null when it named none.
+     */
+    public function getRetryAfter(): ?int
+    {
+        return $this->retryAfter;
     }
 }
