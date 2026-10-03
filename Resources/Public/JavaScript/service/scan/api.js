@@ -1,5 +1,5 @@
 import { isObject } from "../../lib/guards.js";
-import { AiAuditStatus, ScanStatus } from "../../lib/scan/types.js";
+import { AiAuditStatus, ScanStatus, violationGroupKey } from "../../lib/scan/types.js";
 import { IMPACT_ORDER } from "../../lib/types.js";
 import { getJson, postJson } from "../backend-api.js";
 import { RequestError } from "../request-error.js";
@@ -28,19 +28,16 @@ function parseScanResult(data) {
   if (!(Array.isArray(rawViolations) && rawViolations.every(isViolation))) {
     throw malformed("violations");
   }
-  const violationsByRule = /* @__PURE__ */ new Map();
+  const violationsByGroup = /* @__PURE__ */ new Map();
   for (const violation of rawViolations) {
-    const existing = violationsByRule.get(violation.rule.id);
-    if (existing === void 0) {
-      violationsByRule.set(violation.rule.id, violation);
-      continue;
-    }
-    existing.issues.push(...violation.issues);
-    if (IMPACT_ORDER.indexOf(violation.impact) < IMPACT_ORDER.indexOf(existing.impact)) {
-      existing.impact = violation.impact;
-    }
+    const key = violationGroupKey(violation);
+    const existing = violationsByGroup.get(key);
+    violationsByGroup.set(
+      key,
+      existing === void 0 ? { ...violation, issues: [...violation.issues] } : { ...existing, issues: [...existing.issues, ...violation.issues] }
+    );
   }
-  const violations = [...violationsByRule.values()];
+  const violations = [...violationsByGroup.values()];
   const progress = data.progress ?? null;
   if (progress !== null && !isProgress(progress)) {
     throw malformed("progress");

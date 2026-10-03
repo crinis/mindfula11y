@@ -102,6 +102,14 @@ export interface ViolationDto {
     issues: IssueDto[];
 }
 
+/**
+ * Identity of a violation group. MindfulAPI groups violations by rule and
+ * impact, so one rule can form several groups — the rule id alone is no key.
+ */
+export function violationGroupKey(violation: Pick<ViolationDto, 'rule' | 'impact'>): string {
+    return `${violation.rule.id}::${violation.impact}`;
+}
+
 /** Crawl progress counters of a scan. */
 export interface ScanProgress {
     pagesDiscovered: number;

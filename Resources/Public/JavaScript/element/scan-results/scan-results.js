@@ -14,7 +14,7 @@ import { customElement, property } from "lit/decorators.js";
 import { repeat } from "lit/directives/repeat.js";
 import "@typo3/backend/element/icon-element.js";
 import { scrollIntoViewCentered } from "../../lib/dom.js";
-import { AiAuditStatus } from "../../lib/scan/types.js";
+import { AiAuditStatus, violationGroupKey } from "../../lib/scan/types.js";
 import {
   IMPACT_ORDER,
   impactState,
@@ -90,11 +90,7 @@ let ScanResults = class extends LitElement {
     }
     const sorted = violations.toSorted((a, b) => IMPACT_ORDER.indexOf(a.impact) - IMPACT_ORDER.indexOf(b.impact));
     return html`<ul class="violations">
-            ${repeat(
-      sorted,
-      (violation) => violation.rule.id,
-      (violation) => this.renderViolation(violation)
-    )}
+            ${repeat(sorted, violationGroupKey, (violation) => this.renderViolation(violation))}
         </ul>`;
   }
   renderViolation(violation) {

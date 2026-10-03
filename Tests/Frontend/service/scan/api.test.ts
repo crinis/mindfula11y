@@ -78,16 +78,34 @@ describe('ScanApi.loadScan wire validation', () => {
         expect(result?.agentFindings).toHaveLength(1);
     });
 
-    it('merges duplicate rule groups, concatenating issues and keeping the worst impact', async () => {
-        // The first group is deliberately NOT the worst: the later duplicate
-        // must upgrade the merged group's impact, not just be absorbed.
-        const base = { ...violation, impact: 'moderate' };
-        const duplicate = {
+    it('keeps the groups of one rule apart per impact, as MindfulAPI groups them', async () => {
+        // MindfulAPI groups violations by rule AND impact; merging them into
+        // the worst impact made the severity chips and badges disagree with
+        // the API's counts and its report.
+        const moderate = { ...violation, impact: 'moderate' };
+        const critical = {
             ...violation,
             impact: 'critical',
             issues: [{ id: 2, pageUrl: 'https://example.test/other', selector: 'a', context: '<a>' }],
         };
-        getJson.mockResolvedValue({ ...validPayload(), violations: [base, duplicate] });
+        getJson.mockResolvedValue({ ...validPayload(), violations: [moderate, critical] });
+
+        const result = await new ScanApi().loadScan('scan-1');
+
+        expect(result?.violations.map((group) => [group.rule.id, group.impact, group.issues.length])).toEqual([
+            ['image-alt', 'moderate', 1],
+            ['image-alt', 'critical', 1],
+        ]);
+    });
+
+    it('merges duplicate groups of the same rule and impact, concatenating their issues', async () => {
+        // The UI keys violation cards by rule + impact; a payload repeating a
+        // group must not produce two cards with the same key.
+        const duplicate = {
+            ...violation,
+            issues: [{ id: 2, pageUrl: 'https://example.test/other', selector: 'a', context: '<a>' }],
+        };
+        getJson.mockResolvedValue({ ...validPayload(), violations: [violation, duplicate] });
 
         const result = await new ScanApi().loadScan('scan-1');
 

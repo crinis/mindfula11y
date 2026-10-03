@@ -25,7 +25,7 @@ import { repeat } from 'lit/directives/repeat.js';
 import '@typo3/backend/element/icon-element.js';
 import { scrollIntoViewCentered } from '../../lib/dom.js';
 import type { AgentFindingDto, AiAuditSkill, ImpactSeverity, ScanResult, ViolationDto } from '../../lib/scan/types.js';
-import { AiAuditStatus } from '../../lib/scan/types.js';
+import { AiAuditStatus, violationGroupKey } from '../../lib/scan/types.js';
 import {
     IMPACT_ORDER,
     impactState,
@@ -130,15 +130,11 @@ export class ScanResults extends LitElement {
         // Keyed rendering: the cards are <details> whose open state (and a
         // focused <summary>) lives in the DOM — a refresh with a different
         // violation set must not reattach that state to whichever card lands
-        // at the same index. The rule id IS the card's identity:
-        // parseScanResult merges duplicate rule groups at the wire boundary,
-        // so its uniqueness is an invariant here, not an assumption.
+        // at the same index. Rule and impact form the card's identity, as they
+        // form MindfulAPI's groups: parseScanResult merges repeated groups at
+        // the wire boundary, so the key's uniqueness is an invariant here.
         return html`<ul class="violations">
-            ${repeat(
-                sorted,
-                (violation) => violation.rule.id,
-                (violation) => this.renderViolation(violation),
-            )}
+            ${repeat(sorted, violationGroupKey, (violation) => this.renderViolation(violation))}
         </ul>`;
     }
 

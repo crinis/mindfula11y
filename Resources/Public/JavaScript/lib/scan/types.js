@@ -24,10 +24,14 @@ var AiAuditStatus = /* @__PURE__ */ ((AiAuditStatus2) => {
   AiAuditStatus2["Completed"] = "completed";
   return AiAuditStatus2;
 })(AiAuditStatus || {});
+function violationGroupKey(violation) {
+  return `${violation.rule.id}::${violation.impact}`;
+}
 export {
   AiAuditStatus,
   SCAN_MODES,
   ScanStatus,
   isScanInProgress,
-  scanModeOf
+  scanModeOf,
+  violationGroupKey
 };

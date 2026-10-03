@@ -92,22 +92,41 @@ describe('ScanResults', () => {
     });
 
     it("retains a card's open state when a refresh reorders the violations", async () => {
-        // First result: alpha is minor and renders second.
+        // First result: alpha is moderate and renders second.
         const view = await mount(
-            resultWith({ violations: [violation('alpha', 'minor'), violation('beta', 'critical')] }),
+            resultWith({ violations: [violation('alpha', 'moderate'), violation('beta', 'critical')] }),
         );
         card(view, 'alpha').open = true;
 
-        // Refresh flips the severities, so alpha now sorts first. Keyed
-        // rendering must move the open card, not leave `open` glued to the
-        // second DOM position (which is now beta).
-        view.result = resultWith({ violations: [violation('alpha', 'critical'), violation('beta', 'minor')] });
+        // The refresh drops beta and adds a minor gamma, so alpha now sorts
+        // first. Keyed rendering must move the open card, not leave `open`
+        // glued to the second DOM position (which is now gamma).
+        view.result = resultWith({ violations: [violation('gamma', 'minor'), violation('alpha', 'moderate')] });
         await view.updateComplete;
 
         const ids = [...view.renderRoot.querySelectorAll('details[data-impact]')].map(ruleIdOf);
-        expect(ids).toEqual(['alpha', 'beta']);
+        expect(ids).toEqual(['alpha', 'gamma']);
         expect(card(view, 'alpha').open).toBe(true);
-        expect(card(view, 'beta').open).toBe(false);
+        expect(card(view, 'gamma').open).toBe(false);
+    });
+
+    it('renders one card per rule and impact, each counting its own issues', async () => {
+        const view = await mount(
+            resultWith({ violations: [violation('image-alt', 'critical'), violation('image-alt', 'minor')] }),
+        );
+
+        const cards = [...view.renderRoot.querySelectorAll('details[data-impact]')];
+        expect(cards.map((details) => [ruleIdOf(details), details.getAttribute('data-impact')])).toEqual([
+            ['image-alt', 'critical'],
+            ['image-alt', 'minor'],
+        ]);
+        // The summary chips (the only buttons) count per impact, matching the cards below them.
+        const chips = [...view.renderRoot.querySelectorAll('button')].map((chip) =>
+            chip.textContent?.replace(/\s+/g, ' ').trim(),
+        );
+        expect(chips).toHaveLength(2);
+        expect(chips[0]).toContain('mindfula11y.severity.critical 1');
+        expect(chips[1]).toContain('mindfula11y.severity.minor 1');
     });
 
     it('groups AI findings by skill in first-occurrence order', async () => {

@@ -26,7 +26,7 @@ import type {
     ScanResult,
     ViolationDto,
 } from '../../lib/scan/types.js';
-import { AiAuditStatus, ScanStatus } from '../../lib/scan/types.js';
+import { AiAuditStatus, ScanStatus, violationGroupKey } from '../../lib/scan/types.js';
 import { IMPACT_ORDER } from '../../lib/types.js';
 import type { RequestOptions } from '../backend-api.js';
 import { getJson, postJson } from '../backend-api.js';
@@ -121,25 +121,25 @@ function parseScanResult(data: unknown): ScanResult {
     if (!(Array.isArray(rawViolations) && rawViolations.every(isViolation))) {
         throw malformed('violations');
     }
-    // The UI keys violation cards by rule id (keyed repeat() in scan-results)
-    // and axe models violations as one group per rule — but the proxied
-    // scanner payload does not guarantee that. Normalize here so rule-id
-    // uniqueness is an invariant rather than an assumption: duplicate rule
-    // groups merge into one, issues concatenate in order, the worst impact
-    // wins. Rejecting instead would fail a perfectly renderable result.
-    const violationsByRule = new Map<string, ViolationDto>();
+    // MindfulAPI groups violations by rule AND impact (one rule can hit
+    // elements at different impacts), and its counts and reports follow that
+    // grouping — so the groups stay apart here. The UI keys violation cards
+    // by the same pair (keyed repeat() in scan-results), but the proxied
+    // payload does not guarantee its uniqueness: a repeated group merges into
+    // the first, issues concatenated in order. Rejecting instead would fail a
+    // perfectly renderable result.
+    const violationsByGroup = new Map<string, ViolationDto>();
     for (const violation of rawViolations) {
-        const existing = violationsByRule.get(violation.rule.id);
-        if (existing === undefined) {
-            violationsByRule.set(violation.rule.id, violation);
-            continue;
-        }
-        existing.issues.push(...violation.issues);
-        if (IMPACT_ORDER.indexOf(violation.impact) < IMPACT_ORDER.indexOf(existing.impact)) {
-            existing.impact = violation.impact;
-        }
+        const key = violationGroupKey(violation);
+        const existing = violationsByGroup.get(key);
+        violationsByGroup.set(
+            key,
+            existing === undefined
+                ? { ...violation, issues: [...violation.issues] }
+                : { ...existing, issues: [...existing.issues, ...violation.issues] },
+        );
     }
-    const violations = [...violationsByRule.values()];
+    const violations = [...violationsByGroup.values()];
     const progress = data.progress ?? null;
     if (progress !== null && !isProgress(progress)) {
         throw malformed('progress');
