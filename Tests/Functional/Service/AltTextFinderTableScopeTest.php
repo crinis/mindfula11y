@@ -86,12 +86,46 @@ final class AltTextFinderTableScopeTest extends AbstractAuthorizationTestCase
     /**
      * @return list<int>
      */
-    private function visibleReferenceUids(): array
+    private function visibleReferenceUids(int $languageId = 0): array
     {
         return array_map(
             static fn(AltlessFileReference $reference): int => (int)$reference->getUid(),
-            $this->subject()->findAltlessFileReferencePage(10, 0, 0, [], 1, 100)['items'],
+            $this->subject()->findAltlessFileReferencePage(10, 0, $languageId, [], 1, 100)['items'],
         );
+    }
+
+    /**
+     * A reference stored for "All languages" (sys_language_uid -1) — what
+     * FormEngine creates inside "All languages" content — renders in every
+     * language, so every language's listing and count must include it.
+     * Fixture: AllLanguagesReferenceSupplement.csv (tt_content 410 and its
+     * reference 410 on page 10, both -1, file 1 without metadata text).
+     */
+    public function testAllLanguagesReferenceIsListedAndCountedForEveryLanguage(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/AllLanguagesReferenceSupplement.csv');
+        $this->logInBackendUser(2);
+
+        self::assertSame([1, 410], $this->visibleReferenceUids(0), 'default language: its own reference plus the all-languages one');
+        self::assertSame(2, $this->subject()->countAltlessFileReferences(10, 0, 0, []));
+        self::assertSame([410], $this->visibleReferenceUids(1), 'translation: the all-languages reference renders there too');
+        self::assertSame(1, $this->subject()->countAltlessFileReferences(10, 0, 1, []));
+    }
+
+    /**
+     * File metadata never has an "All languages" row, so an all-languages
+     * reference falls back to the metadata of the language it renders in —
+     * the language being listed, judged like that language's own references.
+     */
+    public function testAllLanguagesReferenceIsJudgedByTheListedLanguagesMetadata(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/AllLanguagesReferenceSupplement.csv');
+        $this->getConnectionPool()->getConnectionForTable('sys_file_metadata')
+            ->update('sys_file_metadata', ['alternative' => 'Metadata text'], ['uid' => 1]);
+        $this->logInBackendUser(2);
+
+        self::assertSame([], $this->visibleReferenceUids(0), 'the default-language metadata text covers both references');
+        self::assertSame([410], $this->visibleReferenceUids(1), 'no French metadata text: still missing in French');
     }
 
     private function setNullableType(?string $value): void

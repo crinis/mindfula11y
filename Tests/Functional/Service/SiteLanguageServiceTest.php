@@ -85,6 +85,43 @@ final class SiteLanguageServiceTest extends AbstractAuthorizationTestCase
             ->withAttribute('normalizedParams', NormalizedParams::createFromRequest($request));
     }
 
+    /**
+     * "All languages" (-1) is no site language: records stored for it render
+     * in every language, so generation follows the site's default language
+     * instead of failing over to English. The site here is German-first.
+     */
+    public function testAllLanguagesResolvesToTheSitesDefaultLanguage(): void
+    {
+        $this->get(SiteWriter::class)->write('main', [
+            'rootPageId' => 1,
+            'base' => 'https://example.com/',
+            'languages' => [
+                [
+                    'languageId' => 0,
+                    'title' => 'Deutsch',
+                    'enabled' => true,
+                    'locale' => 'de_DE.UTF-8',
+                    'base' => '/',
+                    'navigationTitle' => 'Deutsch',
+                    'flag' => 'de',
+                ],
+                [
+                    'languageId' => 1,
+                    'title' => 'French',
+                    'enabled' => true,
+                    'locale' => 'fr_FR.UTF-8',
+                    'base' => '/fr/',
+                    'navigationTitle' => 'French',
+                    'flag' => 'fr',
+                ],
+            ],
+        ]);
+
+        self::assertSame('de', $this->subject()->getLanguageCode(-1, 10));
+        self::assertSame('de', $this->subject()->getLanguageCode(-1, 0), 'root-level records fall back the same way');
+        self::assertSame('fr', $this->subject()->getLanguageCode(1, 10));
+    }
+
     public function testAbsoluteSiteBaseYieldsAbsoluteLanguageBases(): void
     {
         $this->writeDefaultSiteConfiguration();

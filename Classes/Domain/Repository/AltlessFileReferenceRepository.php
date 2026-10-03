@@ -184,7 +184,7 @@ final readonly class AltlessFileReferenceRepository
                 continue;
             }
 
-            foreach ($this->fetchFileRowsForReferenceUids($resolvedReferenceUids, $workspaceId, $filterFileMetaData, $includeDecorative, $includeAllReferences) as $fileRow) {
+            foreach ($this->fetchFileRowsForReferenceUids($resolvedReferenceUids, $languageId, $workspaceId, $filterFileMetaData, $includeDecorative, $includeAllReferences) as $fileRow) {
                 $referenceUid = (int)$fileRow['reference_uid'];
                 unset($fileRow['reference_uid']);
 
@@ -199,6 +199,8 @@ final readonly class AltlessFileReferenceRepository
      * Fetch one keyset chunk of candidate reference UIDs: live rows plus
      * workspace-new rows, filtered only by workspace-immutable structure
      * (parent table/field/page coordinates, language, image extension).
+     * References stored for "All languages" (-1) render in every language,
+     * so they belong to every language's listing.
      *
      * @param array<AltlessFileReferenceTable> $tables
      * @return array<int>
@@ -253,10 +255,12 @@ final readonly class AltlessFileReferenceRepository
      * only applies in the live workspace.
      *
      * @param array<int> $referenceUids
+     * @param int $languageId The listed language, whose metadata row is judged (see addFileMetaDataJoin()).
      * @return array<array<string, mixed>>
      */
     private function fetchFileRowsForReferenceUids(
         array $referenceUids,
+        int $languageId,
         int $workspaceId,
         bool $filterFileMetaData,
         bool $includeDecorative,
@@ -306,7 +310,7 @@ final readonly class AltlessFileReferenceRepository
                         ['mindfula11y_sys_file_metadata']
                     )
             );
-            $this->addFileMetaDataJoin($queryBuilder);
+            $this->addFileMetaDataJoin($queryBuilder, $languageId);
             // Branch on "is this a real workspace", NOT on "is this live":
             // BackendUserAuthentication::$workspace is -99 for a user who may
             // neither work live nor reach any workspace, and testing === 0 here
@@ -461,7 +465,9 @@ final readonly class AltlessFileReferenceRepository
      * language, same workspace restriction — so a reference can never be
      * reported as missing while the row beside it advertises inherited text.
      *
-     * @param int $languageId The reference's language; metadata is matched on it.
+     * @param int $languageId The language the listing judged the reference
+     *                        by: the reference's own, or the listed language
+     *                        for an "All languages" reference.
      */
     public function findEffectiveMetaDataAlternative(int $fileUid, int $workspaceId, int $languageId = 0): ?string
     {
@@ -483,8 +489,8 @@ final readonly class AltlessFileReferenceRepository
                 $queryBuilder->expr()->eq('file', $queryBuilder->createNamedParameter($fileUid, Connection::PARAM_INT)),
                 // Matches the join's language predicate rather than FAL's
                 // (0, -1): the listing decides "missing" from the metadata row
-                // of the reference's OWN language, so the inherited text shown
-                // beside that verdict has to come from the same row.
+                // of the listed language, so the inherited text shown beside
+                // that verdict has to come from the same row.
                 $queryBuilder->expr()->eq(
                     TranslationFields::languageFieldName('sys_file_metadata'),
                     $queryBuilder->createNamedParameter($languageId, Connection::PARAM_INT)
@@ -578,9 +584,9 @@ final readonly class AltlessFileReferenceRepository
                 $queryBuilder->expr()->eq('sys_file_reference.uid_local', $queryBuilder->quoteIdentifier('mindfula11y_sys_file.uid'))
             )->where(
                 $queryBuilder->expr()->in('mindfula11y_sys_file.extension', $queryBuilder->createNamedParameter($this->getImageFileExtensions(), Connection::PARAM_STR_ARRAY)),
-                $queryBuilder->expr()->eq(
+                $queryBuilder->expr()->in(
                     'sys_file_reference.' . TranslationFields::languageFieldName('sys_file_reference'),
-                    $queryBuilder->createNamedParameter($languageId, Connection::PARAM_INT)
+                    $queryBuilder->createNamedParameter([$languageId, -1], Connection::PARAM_INT_ARRAY)
                 )
             );
 
@@ -655,11 +661,17 @@ final readonly class AltlessFileReferenceRepository
     }
 
     /**
-     * Join the file metadata row matching the reference's file and language.
+     * Join the file metadata row matching the reference's file and the listed
+     * language.
+     *
+     * Every listed reference is either of the listed language or stored for
+     * "All languages" (-1); metadata has no -1 row, and such a reference
+     * renders with the metadata of whatever language it is shown in. Both are
+     * therefore judged by the listed language's metadata row.
      *
      * @param QueryBuilder $queryBuilder The query builder instance.
      */
-    private function addFileMetaDataJoin(QueryBuilder $queryBuilder): void
+    private function addFileMetaDataJoin(QueryBuilder $queryBuilder, int $languageId): void
     {
         $queryBuilder->leftJoin(
             'sys_file_reference',
@@ -667,7 +679,10 @@ final readonly class AltlessFileReferenceRepository
             'mindfula11y_sys_file_metadata',
             $queryBuilder->expr()->and(
                 $queryBuilder->expr()->eq('sys_file_reference.uid_local', $queryBuilder->quoteIdentifier('mindfula11y_sys_file_metadata.file')),
-                $queryBuilder->expr()->eq('sys_file_reference.' . TranslationFields::languageFieldName('sys_file_reference'), $queryBuilder->quoteIdentifier('mindfula11y_sys_file_metadata.' . TranslationFields::languageFieldName('sys_file_metadata')))
+                $queryBuilder->expr()->eq(
+                    'mindfula11y_sys_file_metadata.' . TranslationFields::languageFieldName('sys_file_metadata'),
+                    $queryBuilder->createNamedParameter($languageId, Connection::PARAM_INT)
+                )
             )
         );
     }

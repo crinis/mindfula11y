@@ -145,6 +145,46 @@ final class AltlessFileReferenceViewHelperTest extends AbstractAuthorizationTest
         self::assertStringContainsString('fallback-alternative="Inherited alternative"', $view->render());
     }
 
+    /**
+     * File metadata has no "All languages" row: an all-languages reference
+     * inherits the metadata text of the language being listed — the row the
+     * listing judged it by — instead of advertising no fallback at all.
+     */
+    #[Test]
+    public function allLanguagesReferenceAdvertisesTheListedLanguagesMetadataText(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/AllLanguagesReferenceSupplement.csv');
+        $this->setLiveMetadataAlternative('Inherited alternative');
+        $this->logInBackendUser(2);
+
+        $references = $this->get(AltTextFinderService::class)->findAltlessFileReferencePage(
+            10,
+            0,
+            0,
+            [],
+            1,
+            100,
+            filterFileMetaData: false,
+            tableName: 'tt_content',
+        )['items'];
+        $allLanguagesReference = array_values(array_filter(
+            $references,
+            static fn($reference): bool => (int)$reference->getUid() === 410,
+        ));
+        self::assertCount(1, $allLanguagesReference, 'the listing must surface the all-languages reference');
+
+        $context = $this->get(RenderingContextFactory::class)->create();
+        $context->getTemplatePaths()->setTemplateSource(
+            '<html xmlns:mindfula11y="http://typo3.org/ns/MindfulMarkup/MindfulA11y/ViewHelpers" data-namespace-typo3-fluid="true">'
+            . '<mindfula11y:altlessFileReference fileReference="{reference}" languageId="0" />'
+            . '</html>'
+        );
+        $view = new TemplateView($context);
+        $view->assign('reference', $allLanguagesReference[0]);
+
+        self::assertStringContainsString('fallback-alternative="Inherited alternative"', $view->render());
+    }
+
     #[Test]
     public function recordEditLinkReturnsToTheCurrentModuleRequest(): void
     {

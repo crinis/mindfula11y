@@ -147,6 +147,7 @@ class AltlessFileReferenceViewHelper extends AbstractTagBasedViewHelper
         $this->registerArgument('fileReference', AltlessFileReference::class, 'Altless file reference record to display.', true);
         $this->registerArgument('previewUrl', 'string', 'The URL to the preview of the file reference.', false, '');
         $this->registerArgument('originalUrl', 'string', 'The URL to the original file reference.', false, '');
+        $this->registerArgument('languageId', 'int', 'The language the listing shows. An "All languages" reference inherits the file metadata text of this language.', false, 0);
     }
 
     /**
@@ -257,10 +258,13 @@ class AltlessFileReferenceViewHelper extends AbstractTagBasedViewHelper
             // here would advertise live text as inherited even where the listing
             // already counted the reference as missing because the draft
             // cleared or deleted that metadata.
+            // An "All languages" reference (-1) has no metadata row of its
+            // own language; the listing judged it by the listed language's.
+            $referenceLanguageId = (int)$fileReference->getOriginalResource()->getReferenceProperty('sys_language_uid');
             $fallbackAlternative = $this->altlessFileReferenceRepository->findEffectiveMetaDataAlternative(
                 (int)$fileReference->getOriginalResource()->getOriginalFile()->getUid(),
                 $this->backendUserProvider->getAuthenticated()?->workspace ?? 0,
-                (int)$fileReference->getOriginalResource()->getReferenceProperty('sys_language_uid'),
+                $referenceLanguageId === -1 ? (int)$this->arguments['languageId'] : $referenceLanguageId,
             );
             if (is_string($fallbackAlternative) && '' !== $fallbackAlternative) {
                 $this->tag->addAttribute('fallback-alternative', $fallbackAlternative);

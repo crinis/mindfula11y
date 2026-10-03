@@ -1,0 +1,6 @@
+"tt_content"
+,"uid","pid","CType","header","sys_language_uid","l18n_parent","editlock","assets"
+,410,10,"textmedia","All languages content",-1,0,0,1
+"sys_file_reference"
+,"uid","pid","uid_local","uid_foreign","tablenames","fieldname","sys_language_uid","tx_mindfula11y_decorative","alternative"
+,410,10,1,410,"tt_content","assets",-1,0,""

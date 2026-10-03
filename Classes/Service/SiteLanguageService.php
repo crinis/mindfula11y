@@ -53,6 +53,9 @@ final readonly class SiteLanguageService
      * site of its own; the code is then resolved from any site configuring
      * the language (see getLanguageCodeFromAnySite()).
      *
+     * "All languages" (-1) is no site language: a record stored for it renders
+     * in every language and resolves to the site's default language.
+     *
      * @param int $languageUid The UID of the language.
      * @param int $pageId The ID of the page, or 0 for root-level records.
      * 
@@ -66,7 +69,9 @@ final readonly class SiteLanguageService
         if (0 === $pageId) {
             return $this->getLanguageCodeFromAnySite($languageUid);
         }
-        $siteLanguage = $this->getSiteLanguage($pageId, $languageUid);
+        $siteLanguage = $languageUid === -1
+            ? $this->siteFinder->getSiteByPageId($pageId)->getDefaultLanguage()
+            : $this->getSiteLanguage($pageId, $languageUid);
         return $siteLanguage->getLocale()->getLanguageCode();
     }
 
