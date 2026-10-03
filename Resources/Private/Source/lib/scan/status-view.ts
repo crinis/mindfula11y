@@ -94,7 +94,10 @@ export function scanStatusView(result: ScanResult): ScanStatusView {
 function completedStatusView(result: ScanResult): ScanStatusView {
     const scanned = result.progress?.pagesScanned ?? 0;
     const failed = result.progress?.pagesFailed ?? 0;
-    if (failed > 0 && scanned === 0) {
+    // Without progress counters nothing is known about the pages; with them,
+    // zero scanned pages is no evidence — failed or never reached (a crawl
+    // whose start page was skipped completes 0/0/0).
+    if (result.progress !== null && scanned === 0) {
         return {
             state: 'danger',
             labelKey: 'mindfula11y.scan.noPagesScanned',

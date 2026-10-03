@@ -67,6 +67,20 @@ describe('scanStatusView', () => {
         });
     });
 
+    it('presents a completed scan that scanned no page at all as danger, even without failed pages', () => {
+        // A crawl whose seed was skipped completes with 0 discovered, 0
+        // scanned and 0 failed pages — no evidence either.
+        const result = makeResult(ScanStatus.Completed, {
+            progress: { pagesDiscovered: 0, pagesScanned: 0, pagesFailed: 0 },
+        });
+
+        expect(scanStatusView(result)).toEqual({
+            state: 'danger',
+            labelKey: 'mindfula11y.scan.noPagesScanned',
+            descriptionKey: 'mindfula11y.scan.noPagesScanned.description',
+        });
+    });
+
     it('never presents a partially failed clean scan as plain success', () => {
         const result = makeResult(ScanStatus.Completed, {
             progress: { pagesDiscovered: 3, pagesScanned: 2, pagesFailed: 1 },

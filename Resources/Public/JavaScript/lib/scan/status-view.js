@@ -26,7 +26,7 @@ function scanStatusView(result) {
 function completedStatusView(result) {
   const scanned = result.progress?.pagesScanned ?? 0;
   const failed = result.progress?.pagesFailed ?? 0;
-  if (failed > 0 && scanned === 0) {
+  if (result.progress !== null && scanned === 0) {
     return {
       state: "danger",
       labelKey: "mindfula11y.scan.noPagesScanned",
