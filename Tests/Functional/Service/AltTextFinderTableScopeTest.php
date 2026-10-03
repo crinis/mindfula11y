@@ -113,6 +113,35 @@ final class AltTextFinderTableScopeTest extends AbstractAuthorizationTestCase
     }
 
     /**
+     * The frontend reaches an inline reference through its parent record: an
+     * "All languages" reference attached to a default-language parent (411 on
+     * tt_content 100) renders where that parent does — in the default
+     * language — and not in a translation, which renders the translated
+     * parent's own references. Only an all-languages parent (410) carries it
+     * into every language.
+     */
+    public function testAllLanguagesReferenceFollowsItsParentsLanguage(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/AllLanguagesReferenceSupplement.csv');
+        $this->getConnectionPool()->getConnectionForTable('sys_file_reference')->insert('sys_file_reference', [
+            'uid' => 411,
+            'pid' => 10,
+            'uid_local' => 1,
+            'uid_foreign' => 100,
+            'tablenames' => 'tt_content',
+            'fieldname' => 'assets',
+            'sys_language_uid' => -1,
+            'alternative' => '',
+        ]);
+        $this->logInBackendUser(2);
+
+        self::assertSame([1, 410, 411], $this->visibleReferenceUids(0), 'all of them render in the default language');
+        self::assertSame(3, $this->subject()->countAltlessFileReferences(10, 0, 0, []));
+        self::assertSame([410], $this->visibleReferenceUids(1), 'the default-language parent keeps 411 out of the translation');
+        self::assertSame(1, $this->subject()->countAltlessFileReferences(10, 0, 1, []));
+    }
+
+    /**
      * File metadata never has an "All languages" row, so an all-languages
      * reference falls back to the metadata of the language it renders in —
      * the language being listed, judged like that language's own references.
