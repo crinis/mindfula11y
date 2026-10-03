@@ -973,13 +973,18 @@ final class AltTextAjaxControllerTest extends AbstractAuthorizationTestCase
      * default-language page (TcaInline::addInlineFirstPid(),
      * DataHandler::resolveSortingAndPidForNewRecord()) — so the list signs
      * that page, while the page record's own pid is its parent page.
-     * pages:media is an exclude field; the full editor's group gets it.
+     * pages:media is an exclude field; the groups of the full editor and of
+     * the two language-restricted editors get it.
+     *
+     * @param int|null $referencePid Where the reference is stored; defaults to where core stores it.
      */
-    private function preparePageMediaReference(int $pageUid, int $languageUid): void
+    private function preparePageMediaReference(int $pageUid, int $languageUid, ?int $referencePid = null): void
     {
-        $this->getConnectionPool()->getConnectionForTable('sys_file_reference')->insert('sys_file_reference', [
+        $connectionPool = $this->getConnectionPool();
+        $referencePid ??= ((int)$this->fetchRow('pages', $pageUid)['l10n_parent']) ?: $pageUid;
+        $connectionPool->getConnectionForTable('sys_file_reference')->insert('sys_file_reference', [
             'uid' => 420,
-            'pid' => 10,
+            'pid' => $referencePid,
             'uid_local' => 1,
             'uid_foreign' => $pageUid,
             'tablenames' => 'pages',
@@ -987,10 +992,12 @@ final class AltTextAjaxControllerTest extends AbstractAuthorizationTestCase
             'sys_language_uid' => $languageUid,
             'alternative' => '',
         ]);
-        $this->getConnectionPool()->getConnectionForTable('pages')->update('pages', ['media' => 1], ['uid' => $pageUid]);
-        $groups = $this->getConnectionPool()->getConnectionForTable('be_groups');
-        $group = $groups->select(['non_exclude_fields'], 'be_groups', ['uid' => 1])->fetchAssociative();
-        $groups->update('be_groups', ['non_exclude_fields' => $group['non_exclude_fields'] . ',pages:media'], ['uid' => 1]);
+        $connectionPool->getConnectionForTable('pages')->update('pages', ['media' => 1], ['uid' => $pageUid]);
+        $groups = $connectionPool->getConnectionForTable('be_groups');
+        foreach ([1, 5, 9] as $groupUid) {
+            $group = $groups->select(['non_exclude_fields'], 'be_groups', ['uid' => $groupUid])->fetchAssociative();
+            $groups->update('be_groups', ['non_exclude_fields' => $group['non_exclude_fields'] . ',pages:media'], ['uid' => $groupUid]);
+        }
     }
 
     /**
@@ -1022,6 +1029,63 @@ final class AltTextAjaxControllerTest extends AbstractAuthorizationTestCase
         ));
 
         $this->assertOpenAiFailure($response);
+    }
+
+    /**
+     * Binding a page record to the page its references live on must not
+     * loosen anything: every gate still applies to the page and to the
+     * reference, and the demand must name the default-language page. Users:
+     * 2 full editor, 6 default language only, 11 language 1 only. Pages: 11
+     * show only, 12 edit-locked, 13 content edit only, 14 no access, 18 page
+     * edit only, 20 outside the mount, 30 the French translation of 10.
+     *
+     * @return array<string, array{int, int, int, int, int|null, string|null}>
+     */
+    public static function pageMediaAuthorizationProvider(): array
+    {
+        return [
+            'show-only page' => [11, 0, 2, 11, null, 'error.invalidRecordAccess'],
+            'edit-locked page' => [12, 0, 2, 12, null, 'error.invalidRecordAccess'],
+            'page without "Edit page"' => [13, 0, 2, 13, null, 'error.invalidRecordAccess'],
+            'page without any access' => [14, 0, 2, 14, null, 'error.noPageAccess'],
+            'page without "Edit content" (the reference\'s own gate)' => [18, 0, 2, 18, null, 'error.invalidRecordAccess'],
+            'page outside the mount' => [20, 0, 2, 20, null, 'error.noPageAccess'],
+            'translated page, default-language-only editor' => [30, 1, 6, 10, null, 'error.invalidLanguage'],
+            'default page, translation-only editor' => [10, 0, 11, 10, null, 'error.invalidLanguage'],
+            'translated page, demand naming the translation\'s uid' => [30, 1, 2, 30, null, 'error.invalidRecordAccess'],
+            'translated page, reference stored on the translation' => [30, 1, 2, 30, 30, 'error.invalidRecordAccess'],
+            'translated page, translation-only editor' => [30, 1, 11, 10, null, null],
+        ];
+    }
+
+    #[DataProvider('pageMediaAuthorizationProvider')]
+    public function testPageMediaDemandKeepsEveryGate(
+        int $pageUid,
+        int $languageUid,
+        int $userId,
+        int $demandPageUid,
+        ?int $referencePid,
+        ?string $expectedError,
+    ): void {
+        $this->preparePageMediaReference($pageUid, $languageUid, $referencePid);
+        $this->logInBackendUser($userId);
+
+        $response = $this->generate($this->demandPayload(
+            $userId,
+            recordTable: 'pages',
+            recordUid: $pageUid,
+            fileUid: 1,
+            fileReferenceUid: 420,
+            recordColumns: ['media'],
+            pageUid: $demandPageUid,
+            languageUid: $languageUid,
+        ));
+
+        if ($expectedError === null) {
+            $this->assertOpenAiFailure($response);
+        } else {
+            $this->assertErrorResponse($response, 403, $expectedError);
+        }
     }
 
     /**
