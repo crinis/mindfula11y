@@ -4,6 +4,7 @@ import "@typo3/backend/element/icon-element.js";
 import "@typo3/backend/element/spinner-element.js";
 import { scanStatusView } from "../../lib/scan/status-view.js";
 import { AiAuditStatus, ScanStatus } from "../../lib/scan/types.js";
+import { urlListCoveredByTargets } from "../../lib/scan/url.js";
 import {
   renderExternalLink,
   renderLoadingPlaceholder,
@@ -14,10 +15,6 @@ import {
 import { withQueryParams } from "../../lib/url.js";
 import "../notice/notice.js";
 import "../scan-results/scan-results.js";
-function urlListCovered(urlList, targets) {
-  const targetSet = new Set(targets);
-  return urlList.every((url) => targetSet.has(url));
-}
 function buildReportUrl(reportBaseUrl, scanId, format) {
   return withQueryParams(reportBaseUrl, { scanId, format });
 }
@@ -101,7 +98,7 @@ function renderHints(data) {
   }
   const urlList = data.urlList;
   const result = data.result;
-  if (result !== null && result.mode !== "crawl" && urlList.length > 0 && !urlListCovered(urlList, result.targets)) {
+  if (result !== null && result.mode !== "crawl" && urlList.length > 0 && !urlListCoveredByTargets(urlList, result.targets)) {
     return html`<mindfula11y-notice state="info">
             ${renderNoticeBody({
       title: lll("mindfula11y.scan.scopeExpanded"),

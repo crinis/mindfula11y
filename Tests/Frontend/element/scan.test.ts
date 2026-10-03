@@ -211,6 +211,29 @@ describe('Scan', () => {
         );
     });
 
+    it('does not claim a changed scope when the scanner stored the selected URLs normalized', async () => {
+        // A fresh scan of a language root: TYPO3's preview URLs end in a
+        // slash, MindfulAPI stores the targets without it.
+        loadScanMock.mockResolvedValue({
+            ...makeResult(ScanStatus.Completed),
+            mode: 'url_list',
+            targets: ['https://example.test/de', 'https://example.test/de/about'],
+        });
+        const view = document.createElement('mindfula11y-scan');
+        view.scanId = 'scan';
+        view.createScanDemand = { ...demand, pageLevels: 1 };
+        view.urlList = ['https://example.test/de/', 'https://example.test/de/about/'];
+        document.body.append(view);
+        await settle(view);
+
+        expect(view.renderRoot.textContent).not.toContain('mindfula11y.scan.scopeExpanded');
+
+        // A page added since the scan still counts as a changed scope.
+        view.urlList = [...view.urlList, 'https://example.test/de/new/'];
+        await settle(view);
+        expect(view.renderRoot.textContent).toContain('mindfula11y.scan.scopeExpanded');
+    });
+
     it('warns about failed pages of a completed scan in both tabs', async () => {
         loadScanMock.mockResolvedValue({
             ...makeResult(ScanStatus.Completed),
