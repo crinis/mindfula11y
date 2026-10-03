@@ -849,6 +849,10 @@
                 <source>Refresh scan</source>
                 <target>Scan aktualisieren</target>
             </trans-unit>
+            <trans-unit id="scan.retry" resname="scan.retry">
+                <source>Retry</source>
+                <target>Erneut versuchen</target>
+            </trans-unit>
             <trans-unit id="scan.issueContext" resname="scan.issueContext">
                 <source>Affected markup</source>
                 <target>Betroffenes Markup</target>

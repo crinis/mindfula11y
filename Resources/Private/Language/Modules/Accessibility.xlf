@@ -684,6 +684,9 @@
             <trans-unit id="scan.refresh" resname="scan.refresh">
                 <source>Refresh scan</source>
             </trans-unit>
+            <trans-unit id="scan.retry" resname="scan.retry">
+                <source>Retry</source>
+            </trans-unit>
             <trans-unit id="scan.issueContext" resname="scan.issueContext">
                 <source>Affected markup</source>
             </trans-unit>

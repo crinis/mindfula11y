@@ -14,13 +14,14 @@ import { customElement, property } from "lit/decorators.js";
 import "@typo3/backend/element/spinner-element.js";
 import { LiveAnnouncer } from "../../lib/live-announcer.js";
 import { scanStatusView } from "../../lib/scan/status-view.js";
-import { ScanStatus } from "../../lib/scan/types.js";
+import { isScanInProgress, ScanStatus } from "../../lib/scan/types.js";
 import { renderProgressNotice } from "../../lib/status-render.js";
 import { dispatch } from "../../lib/types.js";
 import { errorView } from "../../service/request-error.js";
 import { ScanApi } from "../../service/scan/api.js";
 import { ScanSessionController } from "../../service/scan/session-controller.js";
 import { baseStyles } from "../../styles/base-styles.js";
+import buttonStyles from "../../styles/button.css.js";
 import "../notice/notice.js";
 import componentStyles from "./scan-issue-count.css.js";
 const announcementFor = (view) => {
@@ -45,6 +46,8 @@ let ScanIssueCount = class extends LitElement {
      */
     this.states = typeof this.attachInternals === "function" ? this.attachInternals().states ?? null : null;
     this.lastAnnounced = "";
+    /** Set while a Retry is loading: its button leaves the DOM meanwhile. */
+    this.refocusRetry = false;
     this.controller = new ScanSessionController(this, {
       service: this.scanApi,
       scanId: () => this.scanId,
@@ -56,6 +59,10 @@ let ScanIssueCount = class extends LitElement {
       pageUrlFilter: () => this.pageUrlFilter ?? [],
       onTransition: (previous, result) => this.handleTransition(previous, result)
     });
+    this.handleRetry = () => {
+      this.refocusRetry = true;
+      void this.controller.reload();
+    };
   }
   updated() {
     const view = this.statusView();
@@ -67,19 +74,39 @@ let ScanIssueCount = class extends LitElement {
     if (!(this.controller.result === null && this.controller.state === "loading")) {
       this.announceIfChanged(announcementFor(view));
     }
+    if (this.refocusRetry && this.controller.state !== "loading") {
+      this.refocusRetry = false;
+      const active = this.ownerDocument.activeElement;
+      if (active === null || active === this.ownerDocument.body) {
+        this.renderRoot.querySelector('button[data-action="retry"]')?.focus();
+      }
+    }
   }
   render() {
     const view = this.statusView();
     return html`${view === null ? nothing : this.renderView(view)}${this.announcer.render()}`;
   }
-  /** Maps the controller's state to the callout, or null when there is nothing to show. */
+  /**
+   * Maps the controller's state to the callout, or null when there is nothing to show.
+   *
+   * A failed load wins over a result that is still in progress: polling
+   * backs off and stops after repeated failures (at once on a 401/403), so
+   * that result's "Scan running" would otherwise stay up with its spinner
+   * for good. A settled result stays — no later load can change it. With a
+   * scan to load, the error offers Retry, which also restarts polling; this
+   * compact callout has no other way back after, say, a re-login.
+   */
   statusView() {
     const result = this.controller.result;
+    if (this.controller.state === "error" && (result === null || isScanInProgress(result.status))) {
+      return {
+        state: "danger",
+        text: errorView(this.controller.error, "mindfula11y.scan.error.loading").title,
+        retry: this.controller.effectiveScanId() !== ""
+      };
+    }
     if (result !== null) {
       return this.viewFromResult(result);
-    }
-    if (this.controller.state === "error") {
-      return { state: "danger", text: errorView(this.controller.error, "mindfula11y.scan.error.loading").title };
     }
     if (this.controller.state === "loading") {
       return { state: "info", text: lll("mindfula11y.scan.loading"), spinner: true };
@@ -118,6 +145,9 @@ let ScanIssueCount = class extends LitElement {
     }
     return html`<mindfula11y-notice state=${view.state} count=${view.count ?? nothing}>
             <span>${view.text}${view.detail === void 0 ? nothing : html` — ${view.detail}`}</span>
+            ${view.retry === true ? html`<button type="button" slot="trailing" class="button" data-action="retry" @click=${this.handleRetry}>
+                          ${lll("mindfula11y.scan.retry")}<span class="sr-only"> ${lll("mindfula11y.scan")}</span>
+                      </button>` : nothing}
             ${this.scanUri === "" ? nothing : html`<a slot="trailing" href=${this.scanUri}
                           >${lll("mindfula11y.general.viewDetails")}<span class="sr-only">
                               ${lll("mindfula11y.scan")}</span
@@ -126,7 +156,7 @@ let ScanIssueCount = class extends LitElement {
         </mindfula11y-notice>`;
   }
 };
-ScanIssueCount.styles = [...baseStyles, componentStyles];
+ScanIssueCount.styles = [...baseStyles, buttonStyles, componentStyles];
 __decorateClass([
   property({ attribute: "scan-id" })
 ], ScanIssueCount.prototype, "scanId", 2);

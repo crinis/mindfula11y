@@ -10,7 +10,7 @@
 
 // @vitest-environment happy-dom
 
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { loadScanMock } = vi.hoisted(() => ({ loadScanMock: vi.fn() }));
 
@@ -48,8 +48,10 @@ HTMLElement.prototype.attachInternals = function (this: HTMLElement): ElementInt
     return { states } as unknown as ElementInternals;
 };
 
+import { LiveAnnouncer } from '../../../Resources/Private/Source/lib/live-announcer.js';
 import type { ScanResult } from '../../../Resources/Private/Source/lib/scan/types.js';
 import { ScanStatus } from '../../../Resources/Private/Source/lib/scan/types.js';
+import { RequestError } from '../../../Resources/Private/Source/service/request-error.js';
 
 const completedWith = (totalIssueCount: number): ScanResult => ({
     status: ScanStatus.Completed,
@@ -83,6 +85,68 @@ describe('ScanIssueCount', () => {
     beforeEach(() => {
         document.body.replaceChildren();
         loadScanMock.mockReset();
+    });
+
+    afterEach(() => {
+        vi.useRealTimers();
+        vi.restoreAllMocks();
+    });
+
+    it('surfaces a running scan whose polling gave up, announced once, and recovers through Retry', async () => {
+        // Polling stops after repeated failures (or at once on a 401/403):
+        // the row must not keep claiming "Scan running" with a spinner, and
+        // the editor needs a way back once the cause is gone (re-login).
+        vi.useFakeTimers();
+        const announce = vi.spyOn(LiveAnnouncer.prototype, 'announce');
+        loadScanMock
+            .mockResolvedValueOnce({ ...completedWith(0), status: ScanStatus.Running })
+            .mockRejectedValue(new RequestError('Scanner busy', '', 429));
+        const view = document.createElement('mindfula11y-scan-issue-count');
+        view.scanId = 'scan-1';
+        document.body.append(view);
+        await vi.advanceTimersByTimeAsync(0);
+        await view.updateComplete;
+        expect(view.renderRoot.textContent).toContain('mindfula11y.scan.status.running');
+
+        await vi.advanceTimersByTimeAsync(600_000);
+        await view.updateComplete;
+
+        expect(loadScanMock).toHaveBeenCalledTimes(6); // the first load, then five failed polls
+        const row = view.renderRoot.querySelector('mindfula11y-notice');
+        expect(row?.getAttribute('state')).toBe('danger');
+        expect(row?.textContent).toContain('Scanner busy');
+        expect(view.renderRoot.querySelector('typo3-backend-spinner')).toBeNull();
+        expect(announce.mock.calls.filter(([text]) => text === 'Scanner busy')).toHaveLength(1);
+
+        loadScanMock.mockReset();
+        loadScanMock.mockResolvedValue(completedWith(3));
+        const retry = view.renderRoot.querySelector<HTMLButtonElement>('button[data-action="retry"]');
+        expect(retry?.textContent).toContain('mindfula11y.scan.retry');
+        retry?.click();
+        await vi.advanceTimersByTimeAsync(0);
+        await view.updateComplete;
+
+        expect(loadScanMock).toHaveBeenCalledTimes(1);
+        expect(view.renderRoot.querySelector('mindfula11y-notice')?.getAttribute('count')).toBe('3');
+        expect(view.renderRoot.querySelector('button[data-action="retry"]')).toBeNull();
+    });
+
+    it('returns focus to Retry when the retried load fails again', async () => {
+        loadScanMock.mockRejectedValue(new RequestError('Load failed', '', 500));
+        const view = await mount();
+        const retry = view.renderRoot.querySelector<HTMLButtonElement>('button[data-action="retry"]');
+        expect(retry).not.toBeNull();
+
+        retry?.focus();
+        retry?.click();
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        await view.updateComplete;
+        await view.updateComplete;
+
+        expect(loadScanMock).toHaveBeenCalledTimes(2);
+        const again = view.renderRoot.querySelector('button[data-action="retry"]');
+        expect(again).not.toBeNull();
+        expect((view.renderRoot as ShadowRoot).activeElement).toBe(again);
     });
 
     it('announces the issue total, which the visible row shows only as a badge', async () => {
