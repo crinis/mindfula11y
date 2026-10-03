@@ -11,7 +11,8 @@ function computeTreeLines(depths) {
       return ancestorContinues ? "pass" : "none";
     });
     if (hasLaterChildAtDepth(depths, index, depth + 1)) {
-      lanes.push("drop");
+      const incoming = lanes.at(-1);
+      lanes.push(incoming === "branch" || incoming === "last" ? "drop" : "root");
     }
     return lanes;
   });

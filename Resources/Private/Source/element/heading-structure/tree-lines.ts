@@ -24,10 +24,15 @@
  * - `branch` ├  this row hangs off the ancestor at this depth, which continues
  * - `last`   └  this row is that ancestor's last child
  * - `none`      no ancestor of this row sits at this depth
- * A row with children carries one more lane, at its own depth:
- * - `drop`   ┌  the line from this row's level chip down into its children's rail
+ * A row with children carries one more lane, at its own depth, holding the
+ * line from its level chip down into its children's rail:
+ * - `drop`   ╷  the elbow from this row's own ancestor already reaches the
+ *               chip, so the lane draws only the line going down
+ * - `root`   ┌  no elbow arrives (a top-level row, or one whose parent depth
+ *               nobody occupies), so the line starts at this row's chip and
+ *               the lane draws the corner from the chip down as well
  */
-export type LaneState = 'pass' | 'branch' | 'last' | 'none' | 'drop';
+export type LaneState = 'pass' | 'branch' | 'last' | 'none' | 'drop' | 'root';
 
 /**
  * Derives the tree lines of a pre-order flat list of rows from their depths
@@ -58,7 +63,8 @@ export function computeTreeLines(depths: readonly number[]): LaneState[][] {
             return ancestorContinues ? 'pass' : 'none';
         });
         if (hasLaterChildAtDepth(depths, index, depth + 1)) {
-            lanes.push('drop');
+            const incoming = lanes.at(-1);
+            lanes.push(incoming === 'branch' || incoming === 'last' ? 'drop' : 'root');
         }
         return lanes;
     });

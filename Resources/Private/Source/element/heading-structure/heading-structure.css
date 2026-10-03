@@ -126,8 +126,9 @@
      * The tree lines: one lane per depth the row crosses, each one indent
      * step wide, laid over the indent gutter; a row with children carries one
      * more lane over its own lead-in. The list is flat, so the component
-     * computes what every lane shows (`data-line`, the "│ ├ └ ┌" of a
-     * directory listing); nothing here can be derived from nesting.
+     * computes what every lane shows (`data-line`, the "│ ├ └ ╷ ┌" of a
+     * directory listing — see tree-lines.ts); nothing here can be derived
+     * from nesting.
      *
      * Every line piece is painted from a lane's own box — starting on a whole
      * number of steps, spanning the full row height — and places its dots by
@@ -163,11 +164,11 @@
         inline-size: var(--mindfula11y-heading-structure-step);
 
         /* Vertical pieces — the rail of a crossed depth, and a parent row's
-           drop — tile one dot column on the rail offset, shifted up by half a
-           pitch so the dots sit ON the grid lines (the fifth on the chip
-           centre). The rail runs the full row height; it is cut at the chip
-           centre where this row is its ancestor's last child, and starts
-           there for the drop. */
+           drop (root or not) — tile one dot column on the rail offset,
+           shifted up by half a pitch so the dots sit ON the grid lines (the
+           fifth on the chip centre). The rail runs the full row height; it is
+           cut at the chip centre where this row is its ancestor's last child,
+           and starts there for the drop. */
         &[data-line]::before {
             position: absolute;
             inset: 0;
@@ -185,20 +186,18 @@
             clip-path: inset(0 0 calc(100% - var(--mindfula11y-heading-structure-chip-center)) 0);
         }
 
-        &[data-line="drop"]::before {
+        &:is([data-line="drop"], [data-line="root"])::before {
             clip-path: inset(var(--mindfula11y-heading-structure-chip-center) 0 0 0);
         }
 
         /* Horizontal pieces — the elbow from an ancestor's rail into this
-           row, and a top-level parent's corner from its rail to its chip —
-           tile one dot row along the chip centre, with the first dot placed
-           on the rail and the tiles before it clipped away. The elbow crosses
-           the next lane and the row's lead-in up to the chip; a nested parent
-           gets no corner of its own because its elbow already reaches its
-           chip, so the corner is drawn only for a drop lane that is the
-           row's first (a top-level row). */
-        &:is([data-line="branch"], [data-line="last"])::after,
-        &[data-line="drop"]:where(:first-child)::after {
+           row, and a root parent's corner from its rail to its chip — tile
+           one dot row along the chip centre, with the first dot placed on the
+           rail and the tiles before it clipped away. The elbow crosses the
+           next lane and the row's lead-in up to the chip; a drop gets no
+           corner of its own because the arriving elbow already reaches its
+           chip, so only a root lane (no elbow arrives) draws one. */
+        &:is([data-line="branch"], [data-line="last"], [data-line="root"])::after {
             position: absolute;
             inset-block: 0;
             inset-inline-start: 0;
@@ -232,7 +231,7 @@
             );
         }
 
-        &[data-line="drop"]:where(:first-child)::after {
+        &[data-line="root"]::after {
             inline-size: calc(
                 var(--mindfula11y-heading-structure-bar) +
                 var(--mindfula11y-heading-structure-chip-inset)

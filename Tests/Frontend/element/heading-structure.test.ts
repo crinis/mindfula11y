@@ -110,7 +110,7 @@ describe('HeadingStructure', () => {
         // The list is flat, so the tree lines are computed per row: the h1's
         // rail passes the h3 to reach h2b, and h2b is the h1's last child.
         expect(rows).toEqual([
-            { indent: '0', lanes: ['drop'] },
+            { indent: '0', lanes: ['root'] },
             { indent: '1', lanes: ['branch', 'drop'] },
             { indent: '2', lanes: ['pass', 'last'] },
             { indent: '1', lanes: ['last'] },
@@ -146,9 +146,24 @@ describe('HeadingStructure', () => {
         }));
 
         expect(rows).toEqual([
-            { kind: null, lanes: ['drop'] },
+            { kind: null, lanes: ['root'] },
             { kind: 'missing-level', lanes: ['last', 'drop'] },
             { kind: null, lanes: ['none', 'last'] },
+        ]);
+    });
+
+    it('starts the line at the chip of a parent heading that hangs off nothing', async () => {
+        // An outline opening at h2: the h2 has children but no h1 row above it
+        // to branch off, so its line starts at its own chip (root lane).
+        const view = await mount([makeNode('h2', { level: 2, children: [makeNode('h3', { level: 3 })] })]);
+
+        const rows = Array.from(view.renderRoot.querySelectorAll<HTMLElement>('li.node')).map((node) =>
+            laneStates(node),
+        );
+
+        expect(rows).toEqual([
+            ['none', 'root'],
+            ['none', 'last'],
         ]);
     });
 
