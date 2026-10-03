@@ -66,6 +66,22 @@ final class ModuleSettingsServiceFeatureGateTest extends AbstractAuthorizationTe
         self::assertSame([ScanMode::SingleUrl], $subject->getAiAuditScanModes($emptyTsConfig));
     }
 
+    /**
+     * An explicitly empty skill list means "no AI review": MindfulAPI rejects
+     * an empty list, so the review must not be offered or accepted at all.
+     */
+    public function testAnExplicitlyEmptySkillListSwitchesTheAiReviewOff(): void
+    {
+        $subject = $this->subject();
+        $tsConfig = static fn(array $aiAudit): array => ['mod' => ['mindfula11y_accessibility' => ['scan' => ['aiAudit' => $aiAudit]]]];
+
+        self::assertTrue($subject->hasAiAuditAccess($tsConfig(['enable' => '1'])), 'unset: every server-enabled skill');
+        self::assertTrue($subject->hasAiAuditAccess($tsConfig(['enable' => '1', 'skills' => 'image_alt_text'])));
+        self::assertFalse($subject->hasAiAuditAccess($tsConfig(['enable' => '1', 'skills' => ''])));
+        self::assertFalse($subject->hasAiAuditAccess($tsConfig(['enable' => '1', 'skills' => ' , '])));
+        self::assertFalse($subject->hasAiAuditAccess($tsConfig(['enable' => '0', 'skills' => 'image_alt_text'])));
+    }
+
     public function testScanGateFollowsPageTsConfig(): void
     {
         self::assertTrue($this->subject()->isScanEnabledForPage(10));

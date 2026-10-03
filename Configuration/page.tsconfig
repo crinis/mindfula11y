@@ -38,7 +38,7 @@ mod {
                 # list the modes as well.
                 scanModes = single_url
                 # Optional subset. Leave unset to run every skill enabled on MindfulAPI.
-                # Set an empty value to run no AI skills.
+                # An empty value switches the AI review off (the toggle is not offered).
                 # skills = image_alt_text,page_title
             }
         }

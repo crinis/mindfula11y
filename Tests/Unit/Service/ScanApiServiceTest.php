@@ -330,6 +330,50 @@ final class ScanApiServiceTest extends TestCase
     }
 
     /**
+     * MindfulAPI rejects `"skills": []` with a validation error, and an empty
+     * selection means "no AI review" — the request must never carry it, nor
+     * fall back to `{}`, which would run every server-enabled skill.
+     */
+    #[Test]
+    public function anEmptySkillSelectionNeverReachesTheScanner(): void
+    {
+        $bodies = [];
+        $service = $this->serviceRecordingRequestBodies($bodies);
+
+        $service->createScan(['https://example.com/'], includeAiAudit: true, aiAuditSkills: []);
+        $service->createScan(['https://example.com/'], includeAiAudit: true, aiAuditSkills: null);
+        $service->createScan(['https://example.com/'], includeAiAudit: true, aiAuditSkills: ['image_alt_text']);
+
+        self::assertArrayNotHasKey('aiAudit', $bodies[0]);
+        self::assertSame([], $bodies[1]['aiAudit'], 'unset skills: every server-enabled skill ({})');
+        self::assertSame(['skills' => ['image_alt_text']], $bodies[2]['aiAudit']);
+    }
+
+    /**
+     * A service whose scanner accepts every create; the decoded request bodies
+     * are collected in $bodies.
+     *
+     * @param list<array<string, mixed>> $bodies
+     */
+    private function serviceRecordingRequestBodies(array &$bodies): ScanApiService
+    {
+        $extensionConfiguration = $this->createMock(ExtensionConfiguration::class);
+        $extensionConfiguration->method('get')->with('mindfula11y')->willReturn([
+            'scannerApiUrl' => 'https://scanner.example',
+        ]);
+        $requestFactory = $this->createMock(RequestFactory::class);
+        $requestFactory->method('request')->willReturnCallback(
+            function (string $uri, string $method, array $options) use (&$bodies): \Psr\Http\Message\ResponseInterface {
+                $bodies[] = json_decode((string)$options['body'], true, flags: JSON_THROW_ON_ERROR);
+
+                return new \TYPO3\CMS\Core\Http\JsonResponse(['id' => 1, 'status' => 'pending'], 201);
+            }
+        );
+
+        return new ScanApiService(new ExtensionSettings($extensionConfiguration), $requestFactory, $this->recordingLogger());
+    }
+
+    /**
      * MindfulAPI throttles per client IP, and every editor of an installation
      * shares the TYPO3 server's. A rate-limited poll must stay recognizable —
      * with the wait the API asks for — instead of degrading to the generic

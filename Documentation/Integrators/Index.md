@@ -132,7 +132,7 @@ All `mod.*` paths below are relative to `mod.mindfula11y_accessibility` unless s
 | `scan.aiAudit.enable` | `0` | Offers the "Include AI review" toggle; needs MindfulAPI's agent feature ([AI review](#ai-review-agent-audit)). |
 | `scan.aiAudit.default` | `0` | Pre-selects the AI review toggle; editors can switch it off per scan. |
 | `scan.aiAudit.scanModes` | `single_url` | Scan modes the AI review is offered and accepted for, as MindfulAPI names them: `single_url` (the current page), `url_list` (page with child levels), `crawl`. Every scanned page is reviewed and paid for, so widen deliberately; MindfulAPI's `AGENT_ALLOWED_SCAN_MODES` must list the modes too. |
-| `scan.aiAudit.skills` | _(unset)_ | Optional comma-separated skill subset. Unset: every MindfulAPI-enabled skill. Empty: none. |
+| `scan.aiAudit.skills` | _(unset)_ | Optional comma-separated skill subset. Unset: every MindfulAPI-enabled skill. An empty value switches the AI review off: the toggle is not offered and requests are refused. |
 | `mod.web_layout.mindfula11y.hideInfo` | `0` | Hides the Mindful A11y info box in the page module. |
 
 ## Permissions checklist
@@ -301,7 +301,8 @@ mod.mindfula11y_accessibility.scan.aiAudit {
     # AGENT_ALLOWED_SCAN_MODES must list the modes as well.
     scanModes = single_url
     # Optional comma-separated subset. Leave unset to run every skill enabled
-    # by MindfulAPI's AGENT_SKILLS setting. Set an empty value to run no skills.
+    # by MindfulAPI's AGENT_SKILLS setting. An empty value switches the AI
+    # review off (the toggle is not offered).
     # skills = image_alt_text,page_title
 }
 ```

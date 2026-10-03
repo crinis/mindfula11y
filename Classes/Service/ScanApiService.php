@@ -329,7 +329,8 @@ final readonly class ScanApiService
      * @param array $crawlOptions Optional crawl options (e.g. globs, maxPages) passed through to the API.
      * @param array $scanOptions Optional scan options (e.g. basicAuth credentials) passed through to the API.
      * @param bool $includeAiAudit Whether MindfulAPI should run an AI audit.
-     * @param string[]|null $aiAuditSkills Null omits the list (all server-enabled skills); an explicit empty list requests no skills.
+     * @param string[]|null $aiAuditSkills Null omits the list (all server-enabled skills); an empty list selects no
+     *   skill and therefore requests no AI audit at all (MindfulAPI rejects an empty list).
      * @return array|null The scan data or null on network/decode failure.
      * @throws ScanApiRequestException When the API rejects the request (e.g. AI audit disabled server-side).
      */
@@ -368,7 +369,9 @@ final readonly class ScanApiService
         if (!empty($scanOptions)) {
             $requestBody['scanOptions'] = $scanOptions;
         }
-        if ($includeAiAudit) {
+        // An empty selection is no review: neither `"skills": []` (a 400) nor
+        // `{}` (every server-enabled skill) may go out for it.
+        if ($includeAiAudit && $aiAuditSkills !== []) {
             $requestBody['aiAudit'] = $aiAuditSkills === null
                 ? new \stdClass()
                 : ['skills' => array_values($aiAuditSkills)];

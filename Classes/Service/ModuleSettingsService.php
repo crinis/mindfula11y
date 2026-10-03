@@ -326,16 +326,21 @@ final readonly class ModuleSettingsService
     }
 
     /**
-     * Check if the user may request an AI audit alongside a scan.
+     * Check if the user may request an AI audit alongside a scan — the single
+     * rule both the scan module (offering the toggle) and the create endpoint
+     * (accepting the request) apply.
      *
      * The scanner API's agent feature is optional and disabled by default,
-     * so the audit toggle is opt-in via Page TSconfig.
+     * so the audit toggle is opt-in via Page TSconfig. An explicitly empty
+     * `skills` list selects no skill, which switches the review off: there is
+     * nothing to request (MindfulAPI rejects an empty list).
      *
      * @param array<string, mixed> $pageTsConfig
      */
     public function hasAiAuditAccess(array $pageTsConfig): bool
     {
-        return (bool)($this->moduleTsConfig($pageTsConfig)['scan']['aiAudit']['enable'] ?? false);
+        return (bool)($this->moduleTsConfig($pageTsConfig)['scan']['aiAudit']['enable'] ?? false)
+            && $this->getAiAuditSkills($pageTsConfig) !== [];
     }
 
     /**
@@ -374,7 +379,8 @@ final readonly class ModuleSettingsService
     /**
      * Get the optional MindfulAPI skill selection. A missing setting returns
      * null so the API runs every server-enabled skill; an explicitly empty
-     * setting returns [] so the API runs no AI skills.
+     * setting returns [], which means "no AI review" — hasAiAuditAccess()
+     * then refuses the review, so an empty list is never sent.
      *
      * @param array<string, mixed> $pageTsConfig
      * @return string[]|null
