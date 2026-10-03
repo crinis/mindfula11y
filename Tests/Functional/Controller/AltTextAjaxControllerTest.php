@@ -19,6 +19,7 @@ use MindfulMarkup\MindfulA11y\Domain\Model\GenerateAltTextDemand;
 use MindfulMarkup\MindfulA11y\Service\AltTextFinderService;
 use MindfulMarkup\MindfulA11y\Service\DemandSignatureService;
 use MindfulMarkup\MindfulA11y\Service\RecordSnapshotService;
+use MindfulMarkup\MindfulA11y\Service\ScanCreationService;
 use MindfulMarkup\MindfulA11y\Tests\Functional\AbstractAuthorizationTestCase;
 use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Promise\Create;
@@ -1054,5 +1055,51 @@ final class AltTextAjaxControllerTest extends AbstractAuthorizationTestCase
         $payload = $demand();
         $pages->update('pages', ['title' => 'Edited meanwhile'], ['uid' => 10]);
         $this->assertErrorResponse($this->generate($payload), 403, 'error.invalidRecordAccess');
+    }
+
+    /**
+     * Creating a scan stores its id on the scanned page through DataHandler
+     * (ScanCreationService::storeScanId()), which also writes tstamp and
+     * l10n_diffsource — a scan auto-created in another tab is enough. Nobody
+     * edited the page, so its Generate buttons must survive; an edit of the
+     * page or of its media still invalidates them.
+     */
+    #[DataProvider('pageMediaProvider')]
+    public function testPageMediaDemandSurvivesTheScanBookkeepingWrite(int $pageUid, int $languageUid): void
+    {
+        // DataHandler synchronizes the page's translations on save and
+        // resolves their languages through the site.
+        $this->writeDefaultSiteConfiguration();
+        $this->preparePageMediaReference($pageUid, $languageUid);
+        $backendUser = $this->logInBackendUser(2);
+        // A page saved through the backend carries its initialized l10n_state
+        // (a translation's per-field synchronization, which editors change
+        // and which therefore stays pinned); the fixture row gets it the same
+        // way before the demand is issued.
+        $this->runDataHandler(['pages' => [$pageUid => ['title' => 'Saved once']]], $backendUser);
+        $demand = fn(): array => $this->demandPayload(
+            2,
+            recordTable: 'pages',
+            recordUid: $pageUid,
+            fileUid: 1,
+            fileReferenceUid: 420,
+            recordColumns: ['media'],
+            pageUid: 10,
+            languageUid: $languageUid,
+        );
+        $pages = $this->getConnectionPool()->getConnectionForTable('pages');
+        $storeScanId = new \ReflectionMethod(ScanCreationService::class, 'storeScanId');
+
+        $payload = $demand();
+        $GLOBALS['EXEC_TIME'] += 60;
+        self::assertTrue($storeScanId->invoke($this->get(ScanCreationService::class), $pageUid, 'scan-1'));
+        self::assertSame('scan-1', $this->fetchRow('pages', $pageUid)['tx_mindfula11y_scanid'], 'fixture guard: the scan id was stored');
+        $this->assertOpenAiFailure($this->generate($payload));
+
+        foreach (['title' => 'Edited meanwhile', 'media' => 2] as $column => $value) {
+            $payload = $demand();
+            $pages->update('pages', [$column => $value], ['uid' => $pageUid]);
+            $this->assertErrorResponse($this->generate($payload), 403, 'error.invalidRecordAccess');
+        }
     }
 }

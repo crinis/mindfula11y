@@ -84,28 +84,69 @@ final class RecordSnapshotServiceTest extends AbstractAuthorizationTestCase
 
     public function testFullRowFingerprintTracksEveryColumn(): void
     {
-        $record = $this->pageRecord();
-        $before = $this->subject()->fingerprint('pages', $record);
+        $record = BackendUtility::getRecord('tt_content', 100);
+        self::assertIsArray($record);
+        $before = $this->subject()->fingerprint('tt_content', $record);
 
         $record['tstamp'] = (int)$record['tstamp'] + 100;
 
-        self::assertNotSame($before, $this->subject()->fingerprint('pages', $record));
+        self::assertNotSame($before, $this->subject()->fingerprint('tt_content', $record));
     }
 
     /**
-     * The one exception: core's frontend render rewrites pages.SYS_LASTCHANGED
-     * without anyone editing the page (v13 TSFE::setSysLastChanged(), v14
-     * RequestHandler::updateSysLastChangedInPageRecord()).
+     * The exception: page columns written without anyone editing the page —
+     * core's frontend render (SYS_LASTCHANGED) and the extension's own scan
+     * bookkeeping, which DataHandler stores along with tstamp and
+     * l10n_diffsource.
+     *
+     * @return array<string, array{string, int|string}>
      */
-    public function testFullRowFingerprintIgnoresThePagesSysLastChanged(): void
+    public static function pageBookkeepingColumnProvider(): array
+    {
+        return [
+            'SYS_LASTCHANGED' => ['SYS_LASTCHANGED', time() + 100],
+            'tstamp' => ['tstamp', time() + 100],
+            'l10n_diffsource' => ['l10n_diffsource', '{"tx_mindfula11y_scanid":""}'],
+            'tx_mindfula11y_scanid' => ['tx_mindfula11y_scanid', 'scan-1'],
+            'tx_mindfula11y_scanupdated' => ['tx_mindfula11y_scanupdated', time()],
+        ];
+    }
+
+    #[DataProvider('pageBookkeepingColumnProvider')]
+    public function testFullRowFingerprintIgnoresPageBookkeepingColumns(string $column, int|string $changedValue): void
     {
         $record = $this->pageRecord();
-        self::assertArrayHasKey('SYS_LASTCHANGED', $record, 'fixture guard: the row carries the column');
+        self::assertArrayHasKey($column, $record, 'fixture guard: the row carries the column');
         $before = $this->subject()->fingerprint('pages', $record);
 
-        $record['SYS_LASTCHANGED'] = time() + 100;
+        $record[$column] = $changedValue;
 
         self::assertSame($before, $this->subject()->fingerprint('pages', $record));
+    }
+
+    /**
+     * Every column an editor changes stays pinned on pages, too.
+     *
+     * @return array<string, array{string, int|string}>
+     */
+    public static function pageContentColumnProvider(): array
+    {
+        return [
+            'title' => ['title', 'Changed'],
+            'media' => ['media', 3],
+            'hidden' => ['hidden', 1],
+        ];
+    }
+
+    #[DataProvider('pageContentColumnProvider')]
+    public function testFullRowFingerprintTracksEditedPageColumns(string $column, int|string $changedValue): void
+    {
+        $record = $this->pageRecord();
+        $before = $this->subject()->fingerprint('pages', $record);
+
+        $record[$column] = $changedValue;
+
+        self::assertNotSame($before, $this->subject()->fingerprint('pages', $record));
     }
 
     /**

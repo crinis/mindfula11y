@@ -69,9 +69,10 @@ final class RecordSnapshotService
     ];
 
     /**
-     * Columns the full-row fingerprint leaves out, per table: values core
-     * rewrites without anyone editing the record, which would otherwise kill
-     * every outstanding demand for it.
+     * Columns the full-row fingerprint leaves out, per table: values written
+     * without anyone editing the record, which would otherwise kill every
+     * outstanding demand for it. No check reads them (PAGES_SCOPE_COLUMNS
+     * leaves them out for the same reason).
      *
      *  - `pages.SYS_LASTCHANGED`: the first uncached frontend render after a
      *    content change writes it with a plain connection update (v13
@@ -79,12 +80,30 @@ final class RecordSnapshotService
      *    RequestHandler::updateSysLastChangedInPageRecord()) — including the
      *    extension's own uncached structure-analysis render, so a Generate
      *    button for a `pages.media` image would fail right after the editor
-     *    looked at the page's structure. No check reads it (see
-     *    PAGES_SCOPE_COLUMNS for the same reasoning), and every real edit
-     *    still changes `tstamp` alongside the edited columns.
+     *    looked at the page's structure.
+     *  - the scan bookkeeping (`tx_mindfula11y_scanid`,
+     *    `tx_mindfula11y_scanupdated`) together with `tstamp` and
+     *    `l10n_diffsource`: creating a scan — also one auto-created in another
+     *    tab — stores its id through DataHandler
+     *    (ScanCreationService::storeScanId()), which writes all four.
+     *
+     * Leaving these out loses no edit. DataHandler writes `tstamp` only
+     * alongside another changed column (it unsets unchanged values first, on
+     * TYPO3 13 and 14 alike), and `l10n_diffsource` merely records the
+     * default language's values of the columns a save submitted — so every
+     * edit of the page itself still changes a pinned column. Editors cannot
+     * write the scan columns at all (ScanStateDataHandlerGuard). `l10n_state`
+     * stays pinned: editors switch a translated field's synchronization
+     * through it.
      */
     private const FULL_ROW_EXCLUDED_COLUMNS = [
-        'pages' => ['SYS_LASTCHANGED'],
+        'pages' => [
+            'SYS_LASTCHANGED',
+            'tstamp',
+            'l10n_diffsource',
+            ScanStateService::FIELD_SCAN_ID,
+            ScanStateService::FIELD_SCAN_UPDATED,
+        ],
     ];
 
     /**
