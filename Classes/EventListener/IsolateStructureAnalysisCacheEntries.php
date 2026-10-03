@@ -27,11 +27,15 @@ use TYPO3\CMS\Frontend\ContentObject\Event\BeforeStdWrapContentStoredInCacheEven
  * 13 and 14 alike). A menu cached under a shared key would then serve the
  * preview's content to every later visitor until the entry expires.
  *
- * The event cannot cancel the write, so the entry is made unreachable
- * instead: a key no other request can compute, with the shortest lifetime
- * the caching framework accepts (0 would mean "unlimited"). Backends with
- * native expiry drop it by themselves; file and database backends remove it
- * on the next cache garbage collection.
+ * The event cannot cancel the write, so the entry is moved out of reach
+ * instead: under a prefixed key derived from the original one, with the
+ * shortest lifetime the caching framework accepts (0 would mean
+ * "unlimited"). Public renders only ever compute the integrator's key, and
+ * analysis renders never read (the read is gated on caching being allowed,
+ * which the analysis disables), so nothing reads the entry. Deriving the key
+ * instead of randomizing it bounds the storage: repeated analyses overwrite
+ * one entry per original key rather than adding rows to a database or file
+ * backend until the next garbage collection.
  */
 final readonly class IsolateStructureAnalysisCacheEntries
 {
@@ -44,7 +48,7 @@ final readonly class IsolateStructureAnalysisCacheEntries
             return;
         }
 
-        $event->setKey(self::KEY_PREFIX . bin2hex(random_bytes(16)));
+        $event->setKey(self::KEY_PREFIX . hash('xxh128', $event->getKey()));
         $event->setLifetime(self::LIFETIME);
     }
 }
