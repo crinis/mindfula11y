@@ -44,7 +44,10 @@ final readonly class ScanApiService
     private const REQUEST_TIMEOUT = 10;
 
     /** Upper bound on scanner-supplied text forwarded to a backend user. */
-    private const MAX_CLIENT_DETAIL_LENGTH = 500;
+    private const MAX_CLIENT_DETAIL_LENGTH = 1000;
+
+    /** Upper bound on one field error ("pointer: message") within that text. */
+    private const MAX_CLIENT_FIELD_ERROR_LENGTH = 400;
 
     /**
      * Versioned route prefix of all business endpoints (the health endpoint is unprefixed).
@@ -137,18 +140,51 @@ final readonly class ScanApiService
     }
 
     /**
-     * The problem detail as it may be shown to a backend user.
+     * The problem details as they may be shown to a backend user.
      *
      * The scanner's own explanation is genuinely useful ("AI audit is not
      * enabled on this server."), so it is surfaced rather than replaced by a
-     * generic message — redacted (see redactSecrets()), and length-bounded so
-     * an error page cannot become a channel for bulk upstream output.
+     * generic message. For a validation failure the `detail` is only "One or
+     * more fields failed validation." and the actionable text sits in
+     * `errors[]` as `{pointer, message}` — appended as "pointer: message".
+     * Every piece is redacted (see redactSecrets()) before it is shortened, and
+     * the whole is length-bounded so an error page cannot become a channel for
+     * bulk upstream output. Shortening cuts the middle: the scanner names what
+     * failed first and the remedy last (blocked URLs, then how to allow them).
      *
+     * @param array<mixed> $errors The problem's `errors` member.
      * @param array<mixed> $requestSecrets Secret values this request carried, in any shape the caller holds them.
      */
-    private function toClientSafeDetail(string $detail, array $requestSecrets = []): string
+    private function toClientSafeDetail(string $detail, array $errors, array $requestSecrets = []): string
     {
-        return mb_strimwidth($this->redactSecrets($detail, $requestSecrets), 0, self::MAX_CLIENT_DETAIL_LENGTH, '…');
+        $parts = $detail !== '' ? [$this->redactSecrets($detail, $requestSecrets)] : [];
+        foreach ($errors as $error) {
+            $message = is_array($error) && is_string($error['message'] ?? null) ? trim($error['message']) : '';
+            if ($message === '') {
+                continue;
+            }
+            $pointer = is_string($error['pointer'] ?? null) ? trim($error['pointer']) : '';
+            $parts[] = $this->shortenInTheMiddle(
+                $this->redactSecrets($pointer !== '' ? $pointer . ': ' . $message : $message, $requestSecrets),
+                self::MAX_CLIENT_FIELD_ERROR_LENGTH,
+            );
+        }
+
+        return $this->shortenInTheMiddle(implode(' ', $parts), self::MAX_CLIENT_DETAIL_LENGTH);
+    }
+
+    /**
+     * $text cut to at most $maxLength characters by replacing its middle with
+     * an ellipsis, so that both its beginning and its end survive.
+     */
+    private function shortenInTheMiddle(string $text, int $maxLength): string
+    {
+        if (mb_strlen($text) <= $maxLength) {
+            return $text;
+        }
+        $tailLength = intdiv($maxLength - 1, 2);
+
+        return mb_substr($text, 0, $maxLength - 1 - $tailLength) . '…' . mb_substr($text, -$tailLength);
     }
 
     /**
@@ -229,7 +265,7 @@ final readonly class ScanApiService
         throw new ScanApiRequestException(
             $response->getStatusCode(),
             $problem['title'],
-            $this->toClientSafeDetail($problem['detail'], $requestSecrets),
+            $this->toClientSafeDetail($problem['detail'], $problem['errors'], $requestSecrets),
             $this->parseRetryAfter($response),
         );
     }

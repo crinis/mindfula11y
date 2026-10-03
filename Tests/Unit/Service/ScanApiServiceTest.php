@@ -213,6 +213,101 @@ final class ScanApiServiceTest extends TestCase
     }
 
     /**
+     * For a validation failure MindfulAPI's `detail` is the fixed "One or
+     * more fields failed validation." — the actionable text is in `errors[]`.
+     * The body below is the problem document it answers for an AI review of a
+     * scan mode the server does not allow.
+     */
+    #[Test]
+    public function fieldErrorsOfAValidationProblemReachTheClientFacingDetail(): void
+    {
+        $service = $this->serviceAnswering(400, json_encode([
+            'type' => 'https://github.com/crinis/mindfulapi/blob/main/docs/problems.md#validation-error',
+            'title' => 'Validation Failed',
+            'status' => 400,
+            'detail' => 'One or more fields failed validation.',
+            'instance' => '/v1/scans',
+            'errors' => [
+                [
+                    'pointer' => '/aiAudit',
+                    'message' => "AI audit is not allowed for scan mode 'url_list' on this server. Allowed scan modes: single_url.",
+                ],
+            ],
+        ], JSON_THROW_ON_ERROR), $this->recordingLogger());
+
+        try {
+            $service->createScan(['https://example.com/a', 'https://example.com/b'], includeAiAudit: true);
+            self::fail('the scanner rejection must surface as an exception');
+        } catch (\MindfulMarkup\MindfulA11y\Exception\ScanApiRequestException $exception) {
+            self::assertSame(
+                'One or more fields failed validation. /aiAudit: AI audit is not allowed for scan mode '
+                    . "'url_list' on this server. Allowed scan modes: single_url.",
+                $exception->getProblemDetail(),
+            );
+        }
+    }
+
+    #[Test]
+    public function fieldErrorsAreRedactedAndMalformedEntriesSkipped(): void
+    {
+        $service = $this->serviceAnswering(400, json_encode([
+            'detail' => 'One or more fields failed validation.',
+            'errors' => [
+                ['pointer' => '/scanOptions/basicAuth/password', 'message' => 'site-password-1234 is too weak'],
+                ['pointer' => '/x', 'message' => ['not', 'text']],
+                'not an object',
+                ['message' => 'token super-secret-api-token rejected'],
+            ],
+        ], JSON_THROW_ON_ERROR), $this->recordingLogger());
+
+        try {
+            $service->createScan(
+                ['https://example.com/'],
+                scanOptions: ['basicAuth' => ['username' => 'site-user', 'password' => 'site-password-1234']],
+            );
+            self::fail('the scanner rejection must surface as an exception');
+        } catch (\MindfulMarkup\MindfulA11y\Exception\ScanApiRequestException $exception) {
+            self::assertSame(
+                'One or more fields failed validation. /scanOptions/basicAuth/password: [redacted] is too weak '
+                    . 'token [redacted] rejected',
+                $exception->getProblemDetail(),
+            );
+        }
+    }
+
+    /**
+     * MindfulAPI names the blocked URLs before the remedy in its private-target
+     * error — for a page tree that is hundreds of URLs. The cap must not cut
+     * the part that tells the integrator what to do.
+     */
+    #[Test]
+    public function aLongDetailKeepsItsRemedy(): void
+    {
+        $blocked = implode(', ', array_map(
+            static fn(int $index): string => 'https://typo3.ddev.site/page-' . $index . ' (resolves to private address 127.0.0.1)',
+            range(1, 200),
+        ));
+        $service = $this->serviceAnswering(400, json_encode([
+            'detail' => 'Scan target(s) not allowed: ' . $blocked . '. Private and reserved network targets are blocked; '
+                . 'set SCAN_ALLOW_PRIVATE_TARGETS=true or add the host to SCAN_TARGET_ALLOW_HOSTS to permit them.',
+        ], JSON_THROW_ON_ERROR), $this->recordingLogger());
+
+        try {
+            $service->createScan(['https://typo3.ddev.site/']);
+            self::fail('the scanner rejection must surface as an exception');
+        } catch (\MindfulMarkup\MindfulA11y\Exception\ScanApiRequestException $exception) {
+            $detail = $exception->getProblemDetail();
+            self::assertLessThanOrEqual(1000, mb_strlen($detail));
+            self::assertStringStartsWith('Scan target(s) not allowed: https://typo3.ddev.site/page-1 ', $detail);
+            self::assertStringEndsWith(
+                'set SCAN_ALLOW_PRIVATE_TARGETS=true or add the host to SCAN_TARGET_ALLOW_HOSTS to permit them.',
+                $detail,
+            );
+            self::assertStringContainsString('…', $detail, 'the cut is marked');
+        }
+    }
+
+    /**
      * An unbounded upstream string would turn a backend error message into a
      * channel for bulk third-party output.
      */
@@ -227,6 +322,7 @@ final class ScanApiServiceTest extends TestCase
         $stream = $this->createMock(\Psr\Http\Message\StreamInterface::class);
         $stream->method('__toString')->willReturn(json_encode([
             'detail' => str_repeat('A', 5000),
+            'errors' => array_fill(0, 50, ['pointer' => '/urls', 'message' => str_repeat('B', 2000)]),
         ], JSON_THROW_ON_ERROR));
         $response = $this->createMock(\Psr\Http\Message\ResponseInterface::class);
         $response->method('getStatusCode')->willReturn(400);
@@ -245,7 +341,7 @@ final class ScanApiServiceTest extends TestCase
             $service->createScan(['https://example.com/']);
             self::fail('the scanner rejection must surface as an exception');
         } catch (\MindfulMarkup\MindfulA11y\Exception\ScanApiRequestException $exception) {
-            self::assertLessThanOrEqual(500, mb_strlen($exception->getProblemDetail()));
+            self::assertLessThanOrEqual(1000, mb_strlen($exception->getProblemDetail()));
         }
     }
 
