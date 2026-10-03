@@ -94,6 +94,8 @@ export class ScanSessionController implements ReactiveController {
     private justCreated: boolean = false;
     /** Failed loads in a row; drives the retry backoff and the polling stop. */
     private consecutiveFailures: number = 0;
+    /** Set while a failed load is retried on its own — the retry scheduled or in flight. */
+    private retryPending: boolean = false;
 
     private connected: boolean = false;
     private initialized: boolean = false;
@@ -122,6 +124,16 @@ export class ScanSessionController implements ReactiveController {
 
     get crawlResult(): ScanResult | null {
         return this._crawlResult;
+    }
+
+    /**
+     * Whether the session gave up after a failed load: no retry follows — it
+     * failed {@link MAX_CONSECUTIVE_FAILURES} times in a row, retrying cannot
+     * help, or nothing was in progress to poll — so only {@link reload} loads
+     * again. False while a failed load is still being retried.
+     */
+    get pollingStopped(): boolean {
+        return this._state === 'error' && !this.retryPending;
     }
 
     /** Attribute id unless it was created away from or dismissed by a user-triggered create. */
@@ -225,13 +237,14 @@ export class ScanSessionController implements ReactiveController {
             // The last result stays: the host shows the error next to it.
             this._error = error;
             this.consecutiveFailures += 1;
-            this.setState('error');
             // A transient failure must not stop polling for good: commitStatus
             // (the only other place that re-arms the timer) runs on the success
             // path only. lastStatus is left untouched on failure, so retry here
             // while the scan is still believed to be in progress — backed off,
             // and not at all once retrying cannot help.
-            if (this.lastStatus !== '' && isScanInProgress(this.lastStatus) && this.shouldRetry(error)) {
+            this.retryPending = this.lastStatus !== '' && isScanInProgress(this.lastStatus) && this.shouldRetry(error);
+            this.setState('error');
+            if (this.retryPending) {
                 this.schedulePoll(this.retryDelay(error));
             }
         }
@@ -436,6 +449,7 @@ export class ScanSessionController implements ReactiveController {
         this._state = state;
         if (state !== 'error') {
             this._error = null;
+            this.retryPending = false;
         }
         this.host.requestUpdate();
     }

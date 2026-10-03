@@ -133,15 +133,37 @@ export class ScanIssueCount extends LitElement {
             this.announceIfChanged(announcementFor(view));
         }
         // The Retry button leaves the DOM while its load runs, dropping focus
-        // to <body>. When the load fails again the button returns — give focus
-        // back to it, unless the editor has moved on meanwhile.
+        // to <body>. Once the load settles, put focus back into the callout,
+        // unless the editor has moved on meanwhile.
         if (this.refocusRetry && this.controller.state !== 'loading') {
             this.refocusRetry = false;
             const active = this.ownerDocument.activeElement;
             if (active === null || active === this.ownerDocument.body) {
-                this.renderRoot.querySelector<HTMLButtonElement>('button[data-action="retry"]')?.focus();
+                this.focusAfterRetry();
             }
         }
+    }
+
+    /**
+     * Moves focus to the Retry button again when the load failed once more;
+     * otherwise to the details link, or else to the callout itself — made
+     * focusable only until it loses focus, so it never becomes a Tab stop.
+     */
+    private focusAfterRetry(): void {
+        const control =
+            this.renderRoot.querySelector<HTMLElement>('button[data-action="retry"]') ??
+            this.renderRoot.querySelector<HTMLElement>('a[href]');
+        if (control !== null) {
+            control.focus();
+            return;
+        }
+        const notice = this.renderRoot.querySelector<HTMLElement>('mindfula11y-notice');
+        if (notice === null) {
+            return;
+        }
+        notice.setAttribute('tabindex', '-1');
+        notice.focus();
+        notice.addEventListener('blur', () => notice.removeAttribute('tabindex'), { once: true });
     }
 
     override render(): TemplateResult {
@@ -157,13 +179,23 @@ export class ScanIssueCount extends LitElement {
      * A failed load wins over a result that is still in progress: polling
      * backs off and stops after repeated failures (at once on a 401/403), so
      * that result's "Scan running" would otherwise stay up with its spinner
-     * for good. A settled result stays — no later load can change it. With a
+     * for good. While the controller still retries, the result stays as its
+     * last known status — without the spinner, which would claim live
+     * progress, as in the scan module — and the error shows only once polling
+     * stopped. A settled result stays — no later load can change it. With a
      * scan to load, the error offers Retry, which also restarts polling; this
      * compact callout has no other way back after, say, a re-login.
      */
     private statusView(): StatusView | null {
         const result = this.controller.result;
         if (this.controller.state === 'error' && (result === null || isScanInProgress(result.status))) {
+            if (result !== null && !this.controller.pollingStopped) {
+                return {
+                    ...this.viewFromResult(result),
+                    spinner: false,
+                    detail: lll('mindfula11y.scan.status.notRefreshed'),
+                };
+            }
             return {
                 state: 'danger',
                 text: errorView(this.controller.error, 'mindfula11y.scan.error.loading').title,

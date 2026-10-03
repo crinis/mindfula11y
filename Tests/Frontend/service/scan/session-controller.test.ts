@@ -280,6 +280,7 @@ describe('ScanSessionController', () => {
         // First poll after the normal 5 s, then the delay doubles up to 60 s.
         expect(callTimes.map((time) => time - start)).toEqual([5000, 15_000, 35_000, 75_000, 135_000]);
         expect(controller.state).toBe('error');
+        expect(controller.pollingStopped).toBe(true);
     });
 
     it('stops polling on a client error other than 429', async () => {
@@ -298,6 +299,60 @@ describe('ScanSessionController', () => {
 
         expect(service.loadScan).toHaveBeenCalledTimes(2);
         expect(controller.state).toBe('error');
+        expect(controller.pollingStopped).toBe(true);
+    });
+
+    it('signals pollingStopped only once a failed poll is no longer retried', async () => {
+        // A host must tell a transient failure, which the controller retries
+        // on its own, from one that needs the editor's reload.
+        vi.useFakeTimers();
+        const running = makeResult(ScanStatus.Running);
+        const service = createFakeService();
+        let failRetry: (error: unknown) => void = () => {};
+        service.loadScan
+            .mockResolvedValueOnce(running)
+            .mockRejectedValueOnce(new Error('network blip'))
+            .mockReturnValueOnce(
+                new Promise<never>((_resolve, reject) => {
+                    failRetry = reject;
+                }),
+            )
+            .mockRejectedValue(new RequestError('Load failed', '', 500));
+        const { controller } = build(service, { scanId: () => 'attr' });
+
+        controller.hostConnected();
+        await flush();
+        expect(controller.pollingStopped).toBe(false);
+
+        await vi.advanceTimersByTimeAsync(5000);
+        expect(controller.state).toBe('error');
+        expect(controller.pollingStopped).toBe(false); // the retry follows in 10 s
+
+        await vi.advanceTimersByTimeAsync(10_000);
+        expect(service.loadScan).toHaveBeenCalledTimes(3);
+        expect(controller.pollingStopped).toBe(false); // the retry is in flight
+
+        failRetry(new Error('network blip'));
+        await vi.advanceTimersByTimeAsync(600_000);
+        expect(service.loadScan).toHaveBeenCalledTimes(6); // five failed loads in a row
+        expect(controller.pollingStopped).toBe(true);
+
+        service.loadScan.mockResolvedValue(running);
+        await controller.reload();
+        expect(controller.pollingStopped).toBe(false);
+        controller.hostDisconnected();
+    });
+
+    it('signals pollingStopped after a failed load with nothing in progress to poll', async () => {
+        const service = createFakeService();
+        service.loadScan.mockRejectedValue(new Error('scanner down'));
+        const { controller } = build(service, { scanId: () => 'attr' });
+
+        controller.hostConnected();
+        await flush();
+
+        expect(controller.state).toBe('error');
+        expect(controller.pollingStopped).toBe(true);
     });
 
     it('restarts polling from an explicit reload after polling stopped', async () => {

@@ -22,6 +22,8 @@ class ScanSessionController {
     this.justCreated = false;
     /** Failed loads in a row; drives the retry backoff and the polling stop. */
     this.consecutiveFailures = 0;
+    /** Set while a failed load is retried on its own — the retry scheduled or in flight. */
+    this.retryPending = false;
     this.connected = false;
     this.initialized = false;
     this.abortController = null;
@@ -39,6 +41,15 @@ class ScanSessionController {
   }
   get crawlResult() {
     return this._crawlResult;
+  }
+  /**
+   * Whether the session gave up after a failed load: no retry follows — it
+   * failed {@link MAX_CONSECUTIVE_FAILURES} times in a row, retrying cannot
+   * help, or nothing was in progress to poll — so only {@link reload} loads
+   * again. False while a failed load is still being retried.
+   */
+  get pollingStopped() {
+    return this._state === "error" && !this.retryPending;
   }
   /** Attribute id unless it was created away from or dismissed by a user-triggered create. */
   effectiveScanId() {
@@ -124,8 +135,9 @@ class ScanSessionController {
       }
       this._error = error;
       this.consecutiveFailures += 1;
+      this.retryPending = this.lastStatus !== "" && isScanInProgress(this.lastStatus) && this.shouldRetry(error);
       this.setState("error");
-      if (this.lastStatus !== "" && isScanInProgress(this.lastStatus) && this.shouldRetry(error)) {
+      if (this.retryPending) {
         this.schedulePoll(this.retryDelay(error));
       }
     }
@@ -310,6 +322,7 @@ class ScanSessionController {
     this._state = state;
     if (state !== "error") {
       this._error = null;
+      this.retryPending = false;
     }
     this.host.requestUpdate();
   }

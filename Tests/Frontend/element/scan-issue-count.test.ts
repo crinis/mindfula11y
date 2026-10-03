@@ -12,7 +12,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { loadScanMock } = vi.hoisted(() => ({ loadScanMock: vi.fn() }));
+const { createScanMock, loadScanMock } = vi.hoisted(() => ({ createScanMock: vi.fn(), loadScanMock: vi.fn() }));
 
 vi.mock('@typo3/core/lit-helper.js', () => ({
     lll: (key: string, ...args: unknown[]): string => (args.length > 0 ? `${key}: ${args.join(', ')}` : key),
@@ -25,6 +25,7 @@ vi.mock('../../../Resources/Private/Source/service/scan/api.js', () => {
         module,
         'ScanApi',
         class {
+            createScan = createScanMock;
             loadScan = loadScanMock;
         },
     );
@@ -49,9 +50,21 @@ HTMLElement.prototype.attachInternals = function (this: HTMLElement): ElementInt
 };
 
 import { LiveAnnouncer } from '../../../Resources/Private/Source/lib/live-announcer.js';
-import type { ScanResult } from '../../../Resources/Private/Source/lib/scan/types.js';
+import type { CreateScanDemand, ScanResult } from '../../../Resources/Private/Source/lib/scan/types.js';
 import { ScanStatus } from '../../../Resources/Private/Source/lib/scan/types.js';
 import { RequestError } from '../../../Resources/Private/Source/service/request-error.js';
+
+const demand: CreateScanDemand = {
+    userId: 1,
+    pageId: 5,
+    previewUrl: 'https://example.test/',
+    languageId: 0,
+    workspaceId: 0,
+    pageLevels: 0,
+    crawl: false,
+    expiresAt: 0,
+    signature: 'sig',
+};
 
 const completedWith = (totalIssueCount: number): ScanResult => ({
     status: ScanStatus.Completed,
@@ -65,10 +78,20 @@ const completedWith = (totalIssueCount: number): ScanResult => ({
     updatedAt: null,
 });
 
+const runningScan = (): ScanResult => ({ ...completedWith(0), status: ScanStatus.Running });
+
+/** Lets a pending load settle and the callout re-render (and announce). */
+const settle = async (view: ScanIssueCount): Promise<void> => {
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await view.updateComplete;
+    await view.updateComplete;
+};
+
 /** Mounts the callout for an already stored scan and settles its initial load. */
-const mount = async (): Promise<ScanIssueCount> => {
+const mount = async (scanUri: string = ''): Promise<ScanIssueCount> => {
     const view = document.createElement('mindfula11y-scan-issue-count');
     view.scanId = 'scan-1';
+    view.scanUri = scanUri;
     document.body.append(view);
     await view.updateComplete;
     // The load resolves in a microtask after the first update; yield a
@@ -78,12 +101,24 @@ const mount = async (): Promise<ScanIssueCount> => {
     return view;
 };
 
+/** Mounts the callout on a failed load, then clicks Retry from the keyboard focus. */
+const retryFromFailedLoad = async (scanUri: string = ''): Promise<ScanIssueCount> => {
+    loadScanMock.mockRejectedValueOnce(new RequestError('Load failed', '', 500));
+    const view = await mount(scanUri);
+    const retry = view.renderRoot.querySelector<HTMLButtonElement>('button[data-action="retry"]');
+    expect(retry).not.toBeNull();
+    retry?.focus();
+    retry?.click();
+    return view;
+};
+
 const announcement = (view: ScanIssueCount): string =>
     view.renderRoot.querySelector('[role="status"]')?.textContent?.trim() ?? '';
 
 describe('ScanIssueCount', () => {
     beforeEach(() => {
         document.body.replaceChildren();
+        createScanMock.mockReset();
         loadScanMock.mockReset();
     });
 
@@ -147,6 +182,106 @@ describe('ScanIssueCount', () => {
         const again = view.renderRoot.querySelector('button[data-action="retry"]');
         expect(again).not.toBeNull();
         expect((view.renderRoot as ShadowRoot).activeElement).toBe(again);
+    });
+
+    it('keeps a running scan as its last known status, not an error, while a failed poll is still retried', async () => {
+        // The controller retries a transient failure on its own: no reason to
+        // flash the error and its Retry, nor to announce it. The status stays,
+        // without the spinner, which would claim live progress.
+        vi.useFakeTimers();
+        const announce = vi.spyOn(LiveAnnouncer.prototype, 'announce');
+        loadScanMock
+            .mockResolvedValueOnce(runningScan())
+            .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+            .mockResolvedValue(runningScan());
+        const view = document.createElement('mindfula11y-scan-issue-count');
+        view.scanId = 'scan-1';
+        document.body.append(view);
+        await vi.advanceTimersByTimeAsync(0);
+        await view.updateComplete;
+
+        await vi.advanceTimersByTimeAsync(5000); // the poll fails; a retry follows after 10 s
+        await view.updateComplete;
+
+        const row = view.renderRoot.querySelector('mindfula11y-notice');
+        expect(row?.getAttribute('state')).toBe('info');
+        expect(row?.textContent).toContain('mindfula11y.scan.status.running');
+        expect(row?.textContent).toContain('mindfula11y.scan.status.notRefreshed');
+        expect(view.renderRoot.querySelector('typo3-backend-spinner')).toBeNull();
+        expect(view.renderRoot.querySelector('button[data-action="retry"]')).toBeNull();
+
+        await vi.advanceTimersByTimeAsync(10_000); // the retry succeeds
+        await view.updateComplete;
+
+        expect(loadScanMock).toHaveBeenCalledTimes(3);
+        expect(view.renderRoot.querySelector('typo3-backend-spinner')).not.toBeNull();
+        expect(view.renderRoot.textContent).not.toContain('mindfula11y.scan.status.notRefreshed');
+        expect(announce.mock.calls.some(([text]) => text.includes('mindfula11y.scan.error.loading'))).toBe(false);
+    });
+
+    it('shows a failed first load at once, even while the controller retries it', async () => {
+        // A freshly created scan is known to be pending, so its failed first
+        // load is retried — but there is no status to keep showing meanwhile.
+        createScanMock.mockResolvedValue({ scanId: 'created-1', status: ScanStatus.Pending });
+        loadScanMock.mockRejectedValue(new TypeError('Failed to fetch'));
+        const view = document.createElement('mindfula11y-scan-issue-count');
+        view.createScanDemand = demand;
+        view.autoCreateScan = true;
+        document.body.append(view);
+        await settle(view);
+
+        expect(loadScanMock).toHaveBeenCalledTimes(1);
+        const row = view.renderRoot.querySelector('mindfula11y-notice');
+        expect(row?.getAttribute('state')).toBe('danger');
+        expect(row?.textContent).toContain('mindfula11y.scan.error.loading');
+        expect(view.renderRoot.querySelector('button[data-action="retry"]')).not.toBeNull();
+    });
+
+    it('moves focus to the details link once a Retry succeeded', async () => {
+        // The Retry button leaves with the error: focus must not stay on <body>.
+        loadScanMock.mockResolvedValue(completedWith(3));
+        const view = await retryFromFailedLoad('/typo3/module/mindfula11y');
+        await settle(view);
+
+        const link = view.renderRoot.querySelector('a[href]');
+        expect(link).not.toBeNull();
+        expect((view.renderRoot as ShadowRoot).activeElement).toBe(link);
+    });
+
+    it('focuses the callout itself once a Retry succeeded and there is no link to move to', async () => {
+        loadScanMock.mockResolvedValue(completedWith(3));
+        const view = await retryFromFailedLoad();
+        await settle(view);
+
+        const row = view.renderRoot.querySelector<HTMLElement>('mindfula11y-notice');
+        expect(row?.getAttribute('count')).toBe('3');
+        expect((view.renderRoot as ShadowRoot).activeElement).toBe(row);
+        expect(row?.getAttribute('tabindex')).toBe('-1');
+
+        // Focusable for this moment only — once left, it is no Tab stop.
+        const elsewhere = document.createElement('button');
+        document.body.append(elsewhere);
+        elsewhere.focus();
+        expect(row?.hasAttribute('tabindex')).toBe(false);
+    });
+
+    it('leaves focus where the editor moved it while a Retry was loading', async () => {
+        let finishLoad: (result: ScanResult) => void = () => {};
+        loadScanMock.mockReturnValue(
+            new Promise<ScanResult>((resolve) => {
+                finishLoad = resolve;
+            }),
+        );
+        const view = await retryFromFailedLoad('/typo3/module/mindfula11y');
+        const elsewhere = document.createElement('button');
+        document.body.append(elsewhere);
+        elsewhere.focus();
+
+        finishLoad(completedWith(3));
+        await settle(view);
+
+        expect(view.renderRoot.querySelector('mindfula11y-notice')?.getAttribute('count')).toBe('3');
+        expect(document.activeElement).toBe(elsewhere);
     });
 
     it('announces the issue total, which the visible row shows only as a badge', async () => {
