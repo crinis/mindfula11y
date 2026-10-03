@@ -19,6 +19,8 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
 use TYPO3\CMS\Core\Schema\TcaSchemaFactory;
+use TYPO3\CMS\Core\SysLog\Action\Database as SystemLogDatabaseAction;
+use TYPO3\CMS\Core\SysLog\Error as SystemLogErrorClassification;
 
 /**
  * Functional coverage of DecorativeFileReferenceDataHandlerGuard, the
@@ -403,6 +405,64 @@ final class DecorativeFileReferenceDataHandlerGuardTest extends AbstractAuthoriz
         self::assertSame(1, (int)$reference['tx_mindfula11y_decorative'], 'the TSconfig default applies for a fully granted editor');
         self::assertSame('', (string)$reference['alternative'], 'alternative blanked on the defaulted decorative reference');
         self::assertSame('', (string)$reference['title'], 'title blanked on the defaulted decorative reference');
+        self::assertSame([SystemLogDatabaseAction::INSERT], $this->decorativeLogActions(), 'the discarded texts are noted as part of the insert');
+    }
+
+    /**
+     * FormEngine pre-checks a toggle that has a TSconfig default, so a
+     * toggle-only editor submits it. The pre-process rejection is the one
+     * report; DataHandler re-applying the default afterwards must not add a
+     * second "default not applied" note for the same reference.
+     */
+    public function testRejectedToggleIsReportedOnceWhenATcaDefaultPreChecksIt(): void
+    {
+        $this->setDecorativeTcaDefaultOnPage10();
+        $backendUser = $this->logInBackendUser(20);
+
+        $dataHandler = $this->runDataHandler([
+            'tt_content' => [
+                'NEW1' => [
+                    'pid' => 10,
+                    'sys_language_uid' => 0,
+                    'CType' => 'textmedia',
+                    'header' => 'Defaulted reference parent',
+                    'assets' => 'NEW2',
+                ],
+            ],
+            'sys_file_reference' => [
+                'NEW2' => [
+                    'pid' => 10,
+                    'sys_language_uid' => 0,
+                    'uid_local' => 1,
+                    'tx_mindfula11y_decorative' => 1,
+                ],
+            ],
+        ], $backendUser);
+
+        $referenceUid = (int)($dataHandler->substNEWwithIDs['NEW2'] ?? 0);
+        self::assertGreaterThan(0, $referenceUid, 'the reference was created');
+        self::assertSame(0, (int)$this->fetchRow('sys_file_reference', $referenceUid)['tx_mindfula11y_decorative']);
+        self::assertSame([SystemLogErrorClassification::USER_ERROR], $this->decorativeLogLevels(), 'one rejection, no second note');
+        self::assertSame([SystemLogDatabaseAction::INSERT], $this->decorativeLogActions());
+    }
+
+    /**
+     * The same for a duplicate: its "not carried over" note already explains
+     * the dropped flag; a "default not applied" note on top would misstate
+     * why the copy is not decorative.
+     */
+    #[DataProvider('duplicatingCommandProvider')]
+    public function testDroppedDuplicateFlagIsReportedOnceWhenATcaDefaultReappliesIt(string $table, string $command, int $target): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/DecorativeCopySupplement.csv');
+        $this->writeDefaultSiteConfiguration();
+        $this->setDecorativeTcaDefaultOnPage10();
+        $backendUser = $this->logInBackendUser(20);
+
+        $dataHandler = $this->runCommandMap([$table => [702 => [$command => $target]]], $backendUser);
+
+        self::assertSame(0, (int)$this->fetchDuplicateReference($command, $dataHandler)['tx_mindfula11y_decorative']);
+        self::assertSame([SystemLogErrorClassification::MESSAGE], $this->decorativeLogLevels(), 'one note about the dropped flag');
     }
 
     /**
@@ -718,6 +778,27 @@ final class DecorativeFileReferenceDataHandlerGuardTest extends AbstractAuthoriz
         self::assertGreaterThan(0, $referenceUid, 'the reference was created: ' . implode(' | ', $dataHandler->errorLog));
 
         return $referenceUid;
+    }
+
+    /**
+     * sys_log actions of the guard's own entries (1 = insert, 2 = update).
+     *
+     * @return list<int>
+     */
+    private function decorativeLogActions(): array
+    {
+        $queryBuilder = $this->getConnectionPool()->getQueryBuilderForTable('sys_log');
+        $queryBuilder->getRestrictions()->removeAll();
+
+        return array_map('intval', $queryBuilder
+            ->select('action')
+            ->from('sys_log')
+            ->where(
+                $queryBuilder->expr()->eq('tablename', $queryBuilder->createNamedParameter('sys_file_reference')),
+                $queryBuilder->expr()->like('details', $queryBuilder->createNamedParameter('%ecorative%'))
+            )
+            ->executeQuery()
+            ->fetchFirstColumn());
     }
 
     private function countDecorativeReferences(): int

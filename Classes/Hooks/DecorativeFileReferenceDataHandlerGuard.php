@@ -69,9 +69,23 @@ final class DecorativeFileReferenceDataHandlerGuard
      */
     public const BLANKED_FIELDS = ['alternative', 'title'];
 
+    /**
+     * Records the pre-process pass already decided on (dropped its flag or
+     * blanked its texts), per DataHandler instance — the hook object is a
+     * shared service, while copies and translations run in nested
+     * DataHandler instances. The post-process pass enforces the same rules on
+     * these silently: DataHandler re-applying a TSconfig default afterwards
+     * is no news to the editor, who already got the first report.
+     *
+     * @var \WeakMap<DataHandler, array<string, true>>
+     */
+    private \WeakMap $decidedInPreProcess;
+
     public function __construct(
         private readonly PermissionService $permissionService,
-    ) {}
+    ) {
+        $this->decidedInPreProcess = new \WeakMap();
+    }
 
     /**
      * Keep the stored alternative and title empty for decorative references.
@@ -117,11 +131,12 @@ final class DecorativeFileReferenceDataHandlerGuard
         // that case, though, so dropping it is a note, not an error flash.
         if ($enablesDecorative && !$this->userMayWriteFields($dataHandler, self::BLANKED_FIELDS)) {
             unset($incomingFieldArray[self::FIELD_NAME]);
+            $this->markDecided($dataHandler, $table, $id);
             $isDuplicate = self::isDuplicating() && !MathUtility::canBeInterpretedAsInteger($id);
             $dataHandler->log(
                 $table,
                 MathUtility::canBeInterpretedAsInteger($id) ? (int)$id : 0,
-                SystemLogDatabaseAction::UPDATE,
+                MathUtility::canBeInterpretedAsInteger($id) ? SystemLogDatabaseAction::UPDATE : SystemLogDatabaseAction::INSERT,
                 0,
                 $isDuplicate ? SystemLogErrorClassification::MESSAGE : SystemLogErrorClassification::USER_ERROR,
                 $isDuplicate
@@ -144,7 +159,14 @@ final class DecorativeFileReferenceDataHandlerGuard
             : $storedDecorative;
 
         if ($isDecorative) {
-            $this->blankTexts($incomingFieldArray, $table, $id, $dataHandler);
+            $this->markDecided($dataHandler, $table, $id);
+            $this->blankTexts(
+                $incomingFieldArray,
+                $table,
+                $id,
+                $dataHandler,
+                MathUtility::canBeInterpretedAsInteger($id) ? SystemLogDatabaseAction::UPDATE : SystemLogDatabaseAction::INSERT,
+            );
         }
     }
 
@@ -169,34 +191,53 @@ final class DecorativeFileReferenceDataHandlerGuard
             return;
         }
 
+        $alreadyReported = isset($this->decidedInPreProcess[$dataHandler][$table . ':' . $id]);
+        $action = $status === 'new' ? SystemLogDatabaseAction::INSERT : SystemLogDatabaseAction::UPDATE;
+
         if (!$this->userMayWriteFields($dataHandler, [self::FIELD_NAME, ...self::BLANKED_FIELDS])) {
             unset($fieldArray[self::FIELD_NAME]);
             // Only a default can get here (a submitted flag was already
             // filtered or rejected), which the editor did not ask for: a
             // note, not an error flash.
-            $dataHandler->log(
-                $table,
-                MathUtility::canBeInterpretedAsInteger($id) ? (int)$id : 0,
-                SystemLogDatabaseAction::INSERT,
-                0,
-                SystemLogErrorClassification::MESSAGE,
-                'Decorative default not applied to the file reference: a decorative reference keeps its alternative and title fields empty, which requires access to the decorative flag and both fields.'
-            );
+            if (!$alreadyReported) {
+                $dataHandler->log(
+                    $table,
+                    MathUtility::canBeInterpretedAsInteger($id) ? (int)$id : 0,
+                    $action,
+                    0,
+                    SystemLogErrorClassification::MESSAGE,
+                    'Decorative default not applied to the file reference: a decorative reference keeps its alternative and title fields empty, which requires access to the decorative flag and both fields.'
+                );
+            }
             return;
         }
 
-        $this->blankTexts($fieldArray, $table, $id, $dataHandler);
+        $this->blankTexts($fieldArray, $table, $id, $dataHandler, $action, !$alreadyReported);
+    }
+
+    private function markDecided(DataHandler $dataHandler, string $table, int|string $id): void
+    {
+        $decided = $this->decidedInPreProcess[$dataHandler] ?? [];
+        $decided[$table . ':' . $id] = true;
+        $this->decidedInPreProcess[$dataHandler] = $decided;
     }
 
     /**
      * Empties alternative and title of a reference that is (or turns)
      * decorative. The save is valid, but submitted text is discarded — leave
-     * a note rather than an error flash.
+     * a note rather than an error flash, logged as part of the insert or
+     * update ($action) unless an earlier pass already reported ($report).
      *
      * @param array<string, mixed> $fieldArray
      */
-    private function blankTexts(array &$fieldArray, string $table, int|string $id, DataHandler $dataHandler): void
-    {
+    private function blankTexts(
+        array &$fieldArray,
+        string $table,
+        int|string $id,
+        DataHandler $dataHandler,
+        int $action,
+        bool $report = true,
+    ): void {
         $discardedFields = [];
         foreach (self::BLANKED_FIELDS as $fieldName) {
             if ((string)($fieldArray[$fieldName] ?? '') !== '') {
@@ -204,11 +245,11 @@ final class DecorativeFileReferenceDataHandlerGuard
             }
             $fieldArray[$fieldName] = '';
         }
-        if ($discardedFields !== []) {
+        if ($report && $discardedFields !== []) {
             $dataHandler->log(
                 $table,
                 MathUtility::canBeInterpretedAsInteger($id) ? (int)$id : 0,
-                SystemLogDatabaseAction::UPDATE,
+                $action,
                 0,
                 SystemLogErrorClassification::MESSAGE,
                 'Submitted {fields} emptied: the file reference is decorative, so it keeps these fields empty.',
