@@ -16,6 +16,7 @@ namespace MindfulMarkup\MindfulA11y\Tests\Functional\Controller;
 
 use MindfulMarkup\MindfulA11y\Controller\AltTextAjaxController;
 use MindfulMarkup\MindfulA11y\Domain\Model\GenerateAltTextDemand;
+use MindfulMarkup\MindfulA11y\Service\AltTextFinderService;
 use MindfulMarkup\MindfulA11y\Service\DemandSignatureService;
 use MindfulMarkup\MindfulA11y\Service\RecordSnapshotService;
 use MindfulMarkup\MindfulA11y\Tests\Functional\AbstractAuthorizationTestCase;
@@ -27,6 +28,8 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
+use TYPO3\CMS\Fluid\Core\Rendering\RenderingContextFactory;
+use TYPO3Fluid\Fluid\View\TemplateView;
 
 /**
  * Authorization coverage of the alt-text-generation AJAX endpoint
@@ -712,5 +715,155 @@ final class AltTextAjaxControllerTest extends AbstractAuthorizationTestCase
         $response = $this->generate($this->demandPayload(2, recordUid: 100, fileUid: 1, recordColumns: ['assets']));
 
         $this->assertOpenAiFailure($response);
+    }
+
+    // ---------------------------------------------------------------
+    // L. "All languages" file references
+    // ---------------------------------------------------------------
+
+    /**
+     * A reference stored for "All languages" (-1) is listed in every language
+     * its parent renders in: under an all-languages parent or one of the
+     * listed language (AltlessFileReferenceRepository::createLanguageClause()).
+     * Its demand carries the listed language, and redemption admits exactly
+     * those parents — -1 is no wildcard for the parent's language.
+     *
+     * Fixture: AllLanguagesReferenceSupplement.csv (tt_content 410 and its
+     * reference 410 on page 10, both -1, file 1).
+     *
+     * @return array<string, array{int, int, bool}>
+     */
+    public static function allLanguagesReferenceDemandProvider(): array
+    {
+        return [
+            'all-languages parent, default-language list' => [-1, 0, true],
+            'all-languages parent, translation list' => [-1, 1, true],
+            'default-language parent, default-language list' => [0, 0, true],
+            'translation parent, its own list' => [1, 1, true],
+            'default-language parent, translation list (not listed there)' => [0, 1, false],
+            'translation parent, default-language list (not listed there)' => [1, 0, false],
+            'default-language parent, demand for "All languages"' => [0, -1, false],
+        ];
+    }
+
+    #[DataProvider('allLanguagesReferenceDemandProvider')]
+    public function testAllLanguagesReferenceDemandIsRedeemableWhereItsParentRenders(
+        int $parentLanguageUid,
+        int $demandLanguageUid,
+        bool $authorized,
+    ): void {
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/AllLanguagesReferenceSupplement.csv');
+        $this->getConnectionPool()->getConnectionForTable('tt_content')->update(
+            'tt_content',
+            ['sys_language_uid' => $parentLanguageUid],
+            ['uid' => 410],
+        );
+        $this->logInBackendUser(2);
+
+        $response = $this->generate($this->demandPayload(
+            2,
+            recordUid: 410,
+            fileUid: 1,
+            fileReferenceUid: 410,
+            languageUid: $demandLanguageUid,
+        ));
+
+        if ($authorized) {
+            $this->assertOpenAiFailure($response);
+        } else {
+            $this->assertErrorResponse($response, 403, 'error.invalidRecordAccess');
+        }
+    }
+
+    /**
+     * The other half of the contract: a reference of a concrete language
+     * stays bound to it — admitting -1 parents is only for -1 references.
+     */
+    public function testConcreteLanguageReferenceDemandStaysBoundToItsLanguage(): void
+    {
+        $this->logInBackendUser(2);
+
+        $response = $this->generate($this->demandPayload(2, recordUid: 100, fileUid: 1, languageUid: 1));
+
+        $this->assertErrorResponse($response, 403, 'error.invalidRecordAccess');
+    }
+
+    /**
+     * What the list renders must be what redemption accepts: the Generate
+     * button of a listed "All languages" reference is redeemable, and the
+     * text is generated in the listed language — the language whose metadata
+     * text the same row advertises as inherited.
+     *
+     * @return array<string, array{int, int, string}>
+     */
+    public static function listedAllLanguagesReferenceProvider(): array
+    {
+        return [
+            'all-languages parent in the French list' => [-1, 1, 'fr'],
+            'all-languages parent in the default-language list' => [-1, 0, 'en'],
+            'default-language parent in the default-language list' => [0, 0, 'en'],
+            'French parent in the French list' => [1, 1, 'fr'],
+        ];
+    }
+
+    #[DataProvider('listedAllLanguagesReferenceProvider')]
+    public function testListedAllLanguagesReferenceGeneratesInTheListedLanguage(
+        int $parentLanguageUid,
+        int $listedLanguageUid,
+        string $expectedLanguageCode,
+    ): void {
+        $this->writeDefaultSiteConfiguration();
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/AllLanguagesReferenceSupplement.csv');
+        $this->getConnectionPool()->getConnectionForTable('tt_content')->update(
+            'tt_content',
+            ['sys_language_uid' => $parentLanguageUid],
+            ['uid' => 410],
+        );
+        $this->logInBackendUser(2);
+
+        $listed = array_values(array_filter(
+            $this->get(AltTextFinderService::class)->findAltlessFileReferencePage(
+                10,
+                0,
+                $listedLanguageUid,
+                [],
+                1,
+                100,
+                tableName: 'tt_content',
+            )['items'],
+            static fn($reference): bool => (int)$reference->getUid() === 410,
+        ));
+        self::assertCount(1, $listed, 'fixture guard: the list shows the all-languages reference');
+
+        $context = $this->get(RenderingContextFactory::class)->create();
+        $context->getTemplatePaths()->setTemplateSource(
+            '<html xmlns:mindfula11y="http://typo3.org/ns/MindfulMarkup/MindfulA11y/ViewHelpers" data-namespace-typo3-fluid="true">'
+            . '<mindfula11y:altlessFileReference fileReference="{reference}" languageId="{languageId}" />'
+            . '</html>'
+        );
+        $view = new TemplateView($context);
+        $view->assignMultiple(['reference' => $listed[0], 'languageId' => $listedLanguageUid]);
+        self::assertSame(
+            1,
+            preg_match('/generate-alt-text-demand="([^"]+)"/', $view->render(), $match),
+            'the list offers generation',
+        );
+        $payload = json_decode(html_entity_decode($match[1]), true, 512, JSON_THROW_ON_ERROR);
+
+        // Offline like setUp()'s handler, but recording what would be sent.
+        // Arrow functions capture by value, so both levels capture explicitly.
+        $instructions = [];
+        $GLOBALS['TYPO3_CONF_VARS']['HTTP']['handler']['mindfula11y-offline'] =
+            static function (callable $handler) use (&$instructions): callable {
+                return static function (RequestInterface $request) use (&$instructions): PromiseInterface {
+                    $instructions[] = (string)(json_decode((string)$request->getBody(), true)['instructions'] ?? '');
+
+                    return Create::rejectionFor(new ConnectException('Offline functional test instance', $request));
+                };
+            };
+
+        $this->assertOpenAiFailure($this->generate($payload));
+        self::assertCount(1, $instructions, 'redemption reached the OpenAI request');
+        self::assertStringContainsString('ISO language code: ' . $expectedLanguageCode . '.', $instructions[0]);
     }
 }

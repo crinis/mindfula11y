@@ -53,7 +53,7 @@ final readonly class AltTextDemandAuthorizationService
         }
 
         $reference = $this->resolveReference($demand, $record);
-        if ($reference === false) {
+        if ($reference === false || !$this->languagesMatchDemand($demand, $record, $reference)) {
             return AltTextDemandAuthorizationFailure::INVALID_SNAPSHOT;
         }
         if (($reference === null && $demand->getFileReferenceSnapshot() !== '')
@@ -104,12 +104,15 @@ final readonly class AltTextDemandAuthorizationService
         return $hasFileAccess ? $file : AltTextDemandAuthorizationFailure::NO_FILE_MOUNT_ACCESS;
     }
 
-    /** @param array<string, mixed> $record */
+    /**
+     * The record's identity; its language is judged together with the file
+     * reference's (see languagesMatchDemand()).
+     *
+     * @param array<string, mixed> $record
+     */
     private function recordMatchesDemand(GenerateAltTextDemand $demand, array $record): bool
     {
-        if ((int)($record['pid'] ?? -1) !== $demand->getPageUid()
-            || TranslationFields::languageId($demand->getRecordTable(), $record) !== $demand->getLanguageUid()
-        ) {
+        if ((int)($record['pid'] ?? -1) !== $demand->getPageUid()) {
             return false;
         }
 
@@ -147,7 +150,6 @@ final readonly class AltTextDemandAuthorizationService
             : BackendUtility::getRecordWSOL('sys_file_reference', $demand->getFileReferenceUid());
         if (!is_array($reference)
             || (int)($reference['pid'] ?? -1) !== $demand->getPageUid()
-            || TranslationFields::languageId('sys_file_reference', $reference) !== $demand->getLanguageUid()
             || (int)($reference['uid_local'] ?? 0) !== $demand->getFileUid()
         ) {
             return false;
@@ -162,5 +164,37 @@ final readonly class AltTextDemandAuthorizationService
         }
 
         return $reference;
+    }
+
+    /**
+     * Whether the signed language is one the target is offered in.
+     *
+     * A demand carries the language its target was listed or edited in, and
+     * the generated text is written in that language. Rows stored for it
+     * match. A file reference stored for "All languages" (-1) is listed in
+     * every language its parent renders in — under a parent stored for -1 or
+     * for the listed language (AltlessFileReferenceRepository::
+     * createLanguageClause()) — so it matches a demand for such a language
+     * under such a parent, and nowhere else: -1 is no wildcard for the
+     * parent's language. On the direct sys_file_reference path the record IS
+     * the reference.
+     *
+     * @param array<string, mixed> $record
+     * @param array<string, mixed>|null $reference Null for a metadata demand.
+     */
+    private function languagesMatchDemand(GenerateAltTextDemand $demand, array $record, ?array $reference): bool
+    {
+        $languageUid = $demand->getLanguageUid();
+        $recordLanguageUid = TranslationFields::languageId($demand->getRecordTable(), $record);
+        if ($reference === null) {
+            return $recordLanguageUid === $languageUid;
+        }
+
+        $referenceLanguageUid = TranslationFields::languageId('sys_file_reference', $reference);
+        if ($referenceLanguageUid === -1) {
+            return $recordLanguageUid === $languageUid || $recordLanguageUid === -1;
+        }
+
+        return $referenceLanguageUid === $languageUid && $recordLanguageUid === $languageUid;
     }
 }
