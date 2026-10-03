@@ -35,8 +35,8 @@ mod {
                 # (one page), url_list (a page with child levels that resolves to several
                 # pages), crawl (full-site crawl). A page without subpages scanned with child
                 # levels is sent as single_url. Every scanned page is reviewed, up to
-                # MindfulAPI's per-scan unit cap, so widen this deliberately; MindfulAPI's
-                # AGENT_ALLOWED_SCAN_MODES must list the modes as well.
+                # MindfulAPI's per-scan unit cap, so widen this deliberately. Where MindfulAPI
+                # restricts the modes too (AGENT_ALLOWED_SCAN_MODES), it must list them as well.
                 scanModes = single_url
                 # Optional subset. Leave unset to run every skill enabled on MindfulAPI.
                 # An empty value switches the AI review off (the toggle is not offered).

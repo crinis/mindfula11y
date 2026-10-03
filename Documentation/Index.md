@@ -34,6 +34,7 @@ Mindful A11y brings accessibility checks and fixes directly into the TYPO3 backe
 - TYPO3 `13.4 LTS` (13.4.18 or later) or `14.3 LTS`
 - PHP `8.2` to `8.4`
 - Optional: [MindfulAPI](https://github.com/crinis/mindfulapi) **v0.7.0 or later** for the scanner
-  (see [Scanner integration](Integrators/Index.md#scanner-integration)), an OpenAI API key for AI
+  (**v0.7.1 or later** for its AI review; see
+  [Scanner integration](Integrators/Index.md#scanner-integration)), an OpenAI API key for AI
   alternative text, and `typo3/cms-form` for the validation-error title prefix (enable it with
   `enableValidationErrorTitlePrefix` in the extension configuration)

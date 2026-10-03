@@ -28,9 +28,9 @@ the TYPO3 backend.
 
 - TYPO3 `13.4 LTS` (13.4.18 or later) or `14.3 LTS`
 - PHP `8.2` to `8.4`
-- Optional, for the scanner: [MindfulAPI](https://github.com/crinis/mindfulapi) `v0.7.0` or later,
-  reachable from TYPO3. Its axe-core checks reliably find technical violations but cover only a
-  subset of accessibility issues.
+- Optional, for the scanner: [MindfulAPI](https://github.com/crinis/mindfulapi) `v0.7.0` or later
+  (`v0.7.1` or later for the AI review), reachable from TYPO3. Its axe-core checks reliably find
+  technical violations but cover only a subset of accessibility issues.
 - Optional, for AI alternative text: an OpenAI API key
 - Optional, for the form-error title prefix: `typo3/cms-form`
 

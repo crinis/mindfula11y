@@ -131,7 +131,7 @@ All `mod.*` paths below are relative to `mod.mindfula11y_accessibility` unless s
 | `scan.basicAuthPassword` | _(unset)_ | Deprecated — use `mindfula11y.scan.basicAuth.password` in the site configuration. |
 | `scan.aiAudit.enable` | `0` | Offers the "Include AI review" toggle; needs MindfulAPI's agent feature ([AI review](#ai-review-agent-audit)). |
 | `scan.aiAudit.default` | `0` | Pre-selects the AI review toggle; editors can switch it off per scan. |
-| `scan.aiAudit.scanModes` | `single_url` | Scan modes the AI review is offered and accepted for, as MindfulAPI names them: `single_url` (one page), `url_list` (a page with child levels that resolves to several pages), `crawl`. A scan counts as the mode it is sent with: a page without subpages scanned with child levels is `single_url`. Every scanned page is reviewed and paid for, so widen deliberately; MindfulAPI's `AGENT_ALLOWED_SCAN_MODES` must list the modes too. |
+| `scan.aiAudit.scanModes` | `single_url` | Scan modes the AI review is offered and accepted for, as MindfulAPI names them: `single_url` (one page), `url_list` (a page with child levels that resolves to several pages), `crawl`. A scan counts as the mode it is sent with: a page without subpages scanned with child levels is `single_url`. Every scanned page is reviewed and paid for, so widen deliberately. Where MindfulAPI restricts the modes too (`AGENT_ALLOWED_SCAN_MODES`, not in a release yet), it must list them as well. |
 | `scan.aiAudit.skills` | _(unset)_ | Optional comma-separated skill subset. Unset: every MindfulAPI-enabled skill. An empty value switches the AI review off: the toggle is not offered and requests are refused. |
 | `mod.web_layout.mindfula11y.hideInfo` | `0` | Hides the Mindful A11y info box in the page module. |
 
@@ -201,7 +201,9 @@ instead:
 
 The scanner runs automated axe-core checks in a headless browser via the external
 [MindfulAPI](https://github.com/crinis/mindfulapi) service. It requires **MindfulAPI 0.7.0 or
-later** (versioned `/v1` routes and AI audit fields); older releases are not supported.
+later** (versioned `/v1` routes and AI audit fields); older releases are not supported. The
+[AI review](#ai-review-agent-audit) requires **0.7.1 or later**: without a `skills` list the
+extension asks for every skill the server enables, which 0.7.0 rejects.
 
 1. Run MindfulAPI with Docker:
 
@@ -229,8 +231,13 @@ credentials. The full message is written to the TYPO3 log.
 
 - **Targeted scan:** the current page, or its child pages up to `0/1/5/10/99` levels (scan scope
   menu).
-- **Full-site crawl:** starts at the page and follows links within the site/language URL space.
-  Only offered on site root pages (`is_siteroot = 1`).
+- **Full-site crawl:** starts at the page and follows links within the selected language's URL
+  space; other languages whose URLs are nested below it (such as `/fr/` below a default language
+  at `/`) are excluded. Only offered on site root pages (`is_siteroot = 1`). The extension sends
+  no page or depth limits, so MindfulAPI's defaults apply: at most 250 pages, followed up to 4
+  links deep from the start page.
+- **Page limit:** a targeted scan covers at most 500 pages, the most MindfulAPI accepts in one
+  scan. A larger page scope is refused with "Too many pages for one scan"; select fewer levels.
 - Scans can only be started in the live workspace.
 - `scan.autoCreate` only creates single-page scans.
 
@@ -298,8 +305,9 @@ mod.mindfula11y_accessibility.scan.aiAudit {
     # page, the default), url_list (a page with child levels that resolves to
     # several pages), crawl. A page without subpages scanned with child levels is
     # sent as single_url. Every scanned page is reviewed (up to MindfulAPI's
-    # AGENT_MAX_UNITS_PER_SCAN), so widening this is a deliberate cost decision;
-    # MindfulAPI's AGENT_ALLOWED_SCAN_MODES must list the modes as well.
+    # AGENT_MAX_UNITS_PER_SCAN), so widening this is a deliberate cost decision.
+    # Where MindfulAPI restricts the modes too (AGENT_ALLOWED_SCAN_MODES), it
+    # must list them as well.
     scanModes = single_url
     # Optional comma-separated subset. Leave unset to run every skill enabled
     # by MindfulAPI's AGENT_SKILLS setting. An empty value switches the AI
@@ -311,6 +319,10 @@ mod.mindfula11y_accessibility.scan.aiAudit {
 - The audit runs **only** when an editor starts a scan with the toggle checked. Automatic scans
   (page module info box, Overview tab) never request it, so browsing the backend costs nothing.
 - Each audit consumes LLM tokens on the MindfulAPI side; set `default = 1` deliberately.
+- `scanModes` is checked against the mode a scan is sent with, before the request leaves TYPO3.
+  MindfulAPI's own `AGENT_ALLOWED_SCAN_MODES` restriction is not part of a release yet (releases
+  up to 0.7.1 allow the review for every mode); with a MindfulAPI version that has it, list the
+  modes there too.
 - MindfulAPI validates `skills`; its `AGENT_SKILLS` whitelist stays authoritative.
 - If MindfulAPI has the feature disabled, scan creation fails and the editor sees the API's
   explanation.
@@ -327,6 +339,9 @@ mod.mindfula11y_accessibility.scan.aiAudit {
 | Full-site crawl missing | Page is not a site root | Use Targeted scan, or select the `is_siteroot = 1` page. |
 | Scan actions missing | Draft workspace, or no edit permission on the page | Switch to live; see [Permissions checklist](#permissions-checklist). |
 | "Invalid request signature" when scanning or generating alt text | View or edit form open longer than 15 minutes; signed requests expired | Save changes and reload. |
+| "Scan target(s) not allowed: … Private and reserved network targets are blocked" | The site's host resolves to a private address, which MindfulAPI blocks by default. On DDEV `*.ddev.site` resolves to 127.0.0.1, so this is the usual first-run failure there. | On MindfulAPI, list the hostnames in `SCAN_TARGET_ALLOW_HOSTS` (exact names, no wildcards), or set `SCAN_ALLOW_PRIVATE_TARGETS=true` when the API is not reachable by untrusted clients. See MindfulAPI's DDEV network note. |
+| "Last external scan — no page could be scanned", or "N of M pages could not be scanned" | MindfulAPI could not load those pages: unreachable from its network, a rejected certificate (self-signed on DDEV), a blocked private target, or an HTTP error answer (401, 403, 404, 5xx) | Check reachability from the MindfulAPI container; for DDEV certificates set `IGNORE_HTTPS_ERRORS=true` on MindfulAPI; for protected sites set the [Basic Auth credentials](#scanning-pages-behind-http-basic-authentication). |
+| "Scanner busy" while a scan runs | MindfulAPI's rate limit (`THROTTLE_LIMIT` requests per `THROTTLE_TTL` seconds per client); all editors share the TYPO3 server's address | The scan view retries after a pause and stops after repeated failures; raise the limit on MindfulAPI if editors hit it regularly. |
 
 ## Validation-error page-title prefix
 

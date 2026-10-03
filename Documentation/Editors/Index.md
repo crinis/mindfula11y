@@ -122,13 +122,18 @@ The **Scanner** needs MindfulAPI, set up and enabled by your integrator. You can
 workspace, on pages you may edit. The pages must be reachable and previewable in the frontend.
 
 - **Targeted scan** checks the current page, plus child pages depending on **Page Scope**.
-- **Full-site crawl** (site root pages only) follows links and scans every page it reaches.
+- **Full-site crawl** (site root pages only) follows links within the page's language and scans
+  the pages it reaches (by default at most 250).
 - **Include AI review** (if enabled) adds a language-model review of content quality, such as
   alternative text and link purpose. Its findings appear under **AI review**. Always check them
   yourself.
 
 Each result shows severity, the affected element, context and details. Download the results as
 **HTML report** or **PDF report**.
+
+A result only covers the pages the scanner could load. If it reports **no page could be scanned**
+or that some pages **could not be scanned**, those pages were not checked at all — ask your
+integrator to make them reachable for the scanner, then scan again.
 
 The scanner runs automated technical checks (axe-core). They find many problems, but do not
 replace a manual review of content and usability.
