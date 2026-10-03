@@ -205,13 +205,22 @@ final readonly class StructureAnalysisAuthenticationMiddleware implements Middle
     }
 
     /**
-     * Shows hidden pages the way a logged-in core frontend preview does:
-     * hidden content stays excluded and start/end-time restrictions stay
-     * active.
+     * Shows hidden pages the way a logged-in core frontend preview does
+     * (PreviewSimulator): built on the current aspect, so its other flags are
+     * kept — by default, hidden content stays excluded and start/end-time
+     * restrictions stay active.
      */
     private function includeHiddenPages(): void
     {
-        $this->context->setAspect('visibility', new VisibilityAspect(true, false, false, false));
+        $visibility = $this->context->getAspect('visibility');
+        $this->context->setAspect('visibility', $visibility instanceof VisibilityAspect
+            ? new VisibilityAspect(
+                true,
+                $visibility->includeHiddenContent(),
+                $visibility->includeDeletedRecords(),
+                $visibility->includeScheduledRecords(),
+            )
+            : new VisibilityAspect(true));
     }
 
     /**

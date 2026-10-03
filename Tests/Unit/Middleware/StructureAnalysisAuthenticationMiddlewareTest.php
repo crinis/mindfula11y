@@ -71,6 +71,25 @@ final class StructureAnalysisAuthenticationMiddlewareTest extends TestCase
         self::assertFalse($visibility->includeHiddenContent());
     }
 
+    /**
+     * Like core's PreviewSimulator, showing hidden pages builds on the
+     * current aspect instead of resetting its other flags.
+     */
+    #[Test]
+    public function hiddenPagePreviewKeepsTheCurrentVisibilityFlags(): void
+    {
+        $this->context->setAspect('visibility', new VisibilityAspect(false, true, true, true));
+
+        (new \ReflectionMethod($this->subject, 'includeHiddenPages'))->invoke($this->subject);
+
+        $visibility = $this->context->getAspect('visibility');
+        self::assertInstanceOf(VisibilityAspect::class, $visibility);
+        self::assertTrue($visibility->includeHiddenPages());
+        self::assertTrue($visibility->includeHiddenContent());
+        self::assertTrue($visibility->includeDeletedRecords());
+        self::assertTrue($visibility->includeScheduledRecords());
+    }
+
     /** Where a hidden page is previewed, its hidden content stays excluded as in core. */
     #[Test]
     public function hiddenPagePreviewUsesNativeFrontendRecordVisibility(): void
