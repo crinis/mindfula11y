@@ -927,4 +927,37 @@ final class AltTextAjaxControllerTest extends AbstractAuthorizationTestCase
 
         $this->assertOpenAiFailure($response);
     }
+
+    /**
+     * Core rewrites pages.SYS_LASTCHANGED on the first uncached frontend
+     * render after a content change — v13
+     * TypoScriptFrontendController::setSysLastChanged(), v14
+     * RequestHandler::updateSysLastChangedInPageRecord(), both a plain
+     * connection update — including the uncached render of the extension's
+     * own structure analysis. Nobody edited the page, so a Generate button
+     * for one of its images must survive it. A real edit still invalidates.
+     */
+    public function testPageMediaDemandSurvivesTheFrontendRendersSysLastChangedWrite(): void
+    {
+        $this->preparePageMediaReference(10, 0);
+        $this->logInBackendUser(2);
+        $demand = fn(): array => $this->demandPayload(
+            2,
+            recordTable: 'pages',
+            recordUid: 10,
+            fileUid: 1,
+            fileReferenceUid: 420,
+            recordColumns: ['media'],
+            pageUid: 10,
+        );
+        $pages = $this->getConnectionPool()->getConnectionForTable('pages');
+
+        $payload = $demand();
+        $pages->update('pages', ['SYS_LASTCHANGED' => time() + 60], ['uid' => 10]);
+        $this->assertOpenAiFailure($this->generate($payload));
+
+        $payload = $demand();
+        $pages->update('pages', ['title' => 'Edited meanwhile'], ['uid' => 10]);
+        $this->assertErrorResponse($this->generate($payload), 403, 'error.invalidRecordAccess');
+    }
 }

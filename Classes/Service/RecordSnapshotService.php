@@ -69,6 +69,25 @@ final class RecordSnapshotService
     ];
 
     /**
+     * Columns the full-row fingerprint leaves out, per table: values core
+     * rewrites without anyone editing the record, which would otherwise kill
+     * every outstanding demand for it.
+     *
+     *  - `pages.SYS_LASTCHANGED`: the first uncached frontend render after a
+     *    content change writes it with a plain connection update (v13
+     *    TypoScriptFrontendController::setSysLastChanged(), v14
+     *    RequestHandler::updateSysLastChangedInPageRecord()) — including the
+     *    extension's own uncached structure-analysis render, so a Generate
+     *    button for a `pages.media` image would fail right after the editor
+     *    looked at the page's structure. No check reads it (see
+     *    PAGES_SCOPE_COLUMNS for the same reasoning), and every real edit
+     *    still changes `tstamp` alongside the edited columns.
+     */
+    private const FULL_ROW_EXCLUDED_COLUMNS = [
+        'pages' => ['SYS_LASTCHANGED'],
+    ];
+
+    /**
      * Wire format of a fingerprint produced by fingerprint(): lowercase hex
      * SHA-256.
      *
@@ -95,9 +114,10 @@ final class RecordSnapshotService
     ) {}
 
     /**
-     * Without $columns the fingerprint covers every schema column — the strict
-     * any-change-invalidates revision pin the alt-text demands rely on. With
-     * $columns it covers exactly the given authorization scope.
+     * Without $columns the fingerprint covers every schema column but the
+     * FULL_ROW_EXCLUDED_COLUMNS — the strict any-change-invalidates revision
+     * pin the alt-text demands rely on. With $columns it covers exactly the
+     * given authorization scope.
      *
      * @param array<string, mixed> $record
      * @param list<string>|null $columns
@@ -124,7 +144,8 @@ final class RecordSnapshotService
     }
 
     /**
-     * The table's column names in their schema case — the keys rows carry.
+     * The table's column names in their schema case — the keys rows carry —
+     * without the FULL_ROW_EXCLUDED_COLUMNS.
      *
      * Not the keys of listTableColumns(): DBAL lowercases those (from the
      * quoted name), so mixed-case columns such as `CType` or `colPos` would
@@ -137,14 +158,19 @@ final class RecordSnapshotService
     private function getSchemaColumnNames(string $table): array
     {
         if (!isset($this->schemaColumnNames[$table])) {
-            $columnNames = array_values(array_map(
-                // getName() is deprecated since DBAL 4.4, but its successor getObjectName() only exists
-                // from DBAL 4.3, while TYPO3 13.4.18 ships 4.2 (core's own ColumnInfo uses getName() too).
-                static fn(Column $column): string => $column->getName(),
-                $this->connectionPool
-                    ->getConnectionForTable($table)
-                    ->createSchemaManager()
-                    ->listTableColumns($table)
+            $excludedColumns = array_map(strtolower(...), self::FULL_ROW_EXCLUDED_COLUMNS[$table] ?? []);
+            $columnNames = array_values(array_filter(
+                array_map(
+                    // getName() is deprecated since DBAL 4.4, but its successor getObjectName() only exists
+                    // from DBAL 4.3, while TYPO3 13.4.18 ships 4.2 (core's own ColumnInfo uses getName() too).
+                    static fn(Column $column): string => $column->getName(),
+                    $this->connectionPool
+                        ->getConnectionForTable($table)
+                        ->createSchemaManager()
+                        ->listTableColumns($table)
+                ),
+                // Case-insensitive like SQL identifiers, whatever case the platform reports.
+                static fn(string $column): bool => !in_array(strtolower($column), $excludedColumns, true),
             ));
             sort($columnNames);
             $this->schemaColumnNames[$table] = $columnNames;

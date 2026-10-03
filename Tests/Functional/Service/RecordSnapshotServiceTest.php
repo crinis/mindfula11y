@@ -93,6 +93,22 @@ final class RecordSnapshotServiceTest extends AbstractAuthorizationTestCase
     }
 
     /**
+     * The one exception: core's frontend render rewrites pages.SYS_LASTCHANGED
+     * without anyone editing the page (v13 TSFE::setSysLastChanged(), v14
+     * RequestHandler::updateSysLastChangedInPageRecord()).
+     */
+    public function testFullRowFingerprintIgnoresThePagesSysLastChanged(): void
+    {
+        $record = $this->pageRecord();
+        self::assertArrayHasKey('SYS_LASTCHANGED', $record, 'fixture guard: the row carries the column');
+        $before = $this->subject()->fingerprint('pages', $record);
+
+        $record['SYS_LASTCHANGED'] = time() + 100;
+
+        self::assertSame($before, $this->subject()->fingerprint('pages', $record));
+    }
+
+    /**
      * The full-row pin covers mixed-case columns too: DBAL lowercases the
      * keys of its column listing, so `CType` and `colPos` never matched the
      * row's keys and fingerprinted as the constant missing-column sentinel.
